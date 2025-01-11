@@ -5,9 +5,10 @@ import RightTrackSection from "./track/right_track"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/shadcn/ui/card"
 import { ScrollArea } from "~/components/shadcn/ui/scroll-area"
 import { Skeleton } from "~/components/shadcn/ui/skeleton"
+import { usePlayer } from "../context/PlayerContext"
 
 export function MusicRightSide() {
-  const { song, isPlaying, setisPlaying } = usePlayerStore()
+  const { currentTrack } = usePlayer()
 
   return (
     <div className="flex h-screen flex-col gap-4 p-1">
@@ -27,11 +28,11 @@ export function MusicRightSide() {
         <CardContent>
           <div className="flex items-center space-x-4">
             <div className="h-24 w-24 overflow-hidden rounded-lg">
-              <PlayerSongCover song={song} />
+              <PlayerSongCover song={currentTrack} />
             </div>
             <div className="space-y-1">
-              <h3 className="text-lg font-semibold">{song?.name ?? "No song selected"}</h3>
-              <p className="text-sm text-muted-foreground">{song?.artist ?? "Unknown artist"}</p>
+              <h3 className="text-lg font-semibold">{currentTrack?.asset.name ?? "No song selected"}</h3>
+              <p className="text-sm text-muted-foreground">{currentTrack?.artist ?? "Unknown artist"}</p>
             </div>
           </div>
           {/* Audio player component can be added here */}

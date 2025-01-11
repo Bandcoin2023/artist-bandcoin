@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { Button } from "~/components/shadcn/ui/button";
 import { Card, CardContent } from "~/components/shadcn/ui/card";
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-100 to-[#39BD2B]">
+    <div className="min-h-screen bg-gradient-to-b from-yellow-50 to-yellow-100">
       <main className="container mx-auto px-4 py-16">
         <h1 className="mb-8 text-center text-4xl font-bold ">About</h1>
 
@@ -14,9 +15,11 @@ export default function AboutPage() {
             Our mission is to redefine how artists and fans engage, collaborate,
             and grow within the music industry.
           </p>
-          <Button className="bg-purple-600 text-white hover:bg-purple-700">
-            Join Bandcoin
-          </Button>
+          <Link href="/fans/home">
+            <Button className="bg-purple-600 text-white hover:bg-purple-700">
+              Join Bandcoin
+            </Button>
+          </Link>
         </div>
 
         <div className="mb-16 grid gap-8 md:grid-cols-2">
