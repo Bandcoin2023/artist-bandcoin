@@ -176,7 +176,7 @@ export function PostCard({
             </Link>
             <PostContextMenu creatorId={creator.id} postId={post.id} />
           </div>
-          <div className="flex items-center text-xs text-blue-700">
+          <div className="flex items-center text-xs text-blue-700 gap-1">
             {priority && (
               <Badge variant="secondary" className={`mr-2 ${getBadgeStyle(priority)}`}>
                 {priority}
