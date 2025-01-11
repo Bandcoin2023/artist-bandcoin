@@ -15,8 +15,8 @@ export const CreatorAboutShema = z.object({
     .nullable(),
   name: z
     .string()
-    .min(3, { message: "Name must be between 3 to 21 characters" })
-    .max(20, { message: "Name must be between 3 to 21 characters" }),
+    .min(3, { message: "Name must be between 3 to 98 characters" })
+    .max(98, { message: "Name must be between 3 to 98 characters" }),
   profileUrl: z.string().nullable().optional(),
 });
 
@@ -34,7 +34,12 @@ export default function About({ creator }: { creator: Creator }) {
         toast.success("Profile Picture changes successfully");
       },
     });
-
+  const coverChangeMutation =
+    api.fan.creator.changeCreatorCoverPicture.useMutation({
+      onSuccess: () => {
+        toast.success("Cover Changed Successfully");
+      },
+    });
   const {
     register,
     handleSubmit,
@@ -57,11 +62,11 @@ export default function About({ creator }: { creator: Creator }) {
         onSubmit={handleSubmit(onSubmit)}
         className="w-full"
       >
-        <div className="flex flex-col items-center   gap-2">
-          <div className="space-y-4 ">
+        <div className="flex flex-col items-center w-full   gap-2">
+          <div className="space-y-4  w-1/2 text-center">
             <span className="text-xs">Profile Dimension 200 x 200 pixels</span>
             <UploadS3Button
-              endpoint="imageUploader"
+              endpoint="profileUploader"
               onClientUploadComplete={(res) => {
                 const fileUrl = res.url;
                 updateProfileMutation.mutate(fileUrl);
@@ -71,11 +76,28 @@ export default function About({ creator }: { creator: Creator }) {
                 toast.error(`ERROR! ${error.message}`);
 
               }}
+              type="profile"
             />
 
           </div>
 
-          <CoverChange />
+          <div className="space-y-4  w-1/2 text-center">
+            <span className="text-xs">Cover Dimension of 851 x 315 pixels</span>
+            <UploadS3Button
+              endpoint="coverUploader"
+              onClientUploadComplete={(res) => {
+                const fileUrl = res.url;
+                coverChangeMutation.mutate(fileUrl);
+              }}
+              onUploadError={(error: Error) => {
+                // Do something with the error.
+                toast.error(`ERROR! ${error.message}`);
+
+              }}
+              type="cover"
+            />
+
+          </div>
           <PadSVG />
         </div>
 
@@ -90,7 +112,7 @@ export default function About({ creator }: { creator: Creator }) {
             className="input input-bordered w-full "
           />
           <span className="text-xs">
-            * Hint : Name must be between 3 to 21 characters
+            * Hint : Name must be between 3 to 98 characters
           </span>
           {errors.name && (
             <div className="label">

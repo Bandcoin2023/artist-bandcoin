@@ -46,12 +46,12 @@ export default function SongBuyModal() {
     onClose();
   };
 
-  const copy = api.marketplace.market.getMarketAssetAvailableCopy.useQuery(
+  const copy = api.marketplace.market.getSongAvailableCopy.useQuery(
     {
-      id: data.Song?.asset?.id,
+      songId: data.Song?.id,
     },
     {
-      enabled: !!data.Song?.asset,
+      enabled: !!data.Song?.id,
     },
   );
 
@@ -64,12 +64,13 @@ export default function SongBuyModal() {
   };
 
   const { data: canBuyUser } =
-    api.marketplace.market.userCanBuyThisMarketAsset.useQuery(
-      data.Song?.asset?.id ?? 0,
+    api.marketplace.market.userCanBuySongMarketAsset.useQuery(
+      data.Song?.id ?? -1,
       {
-        enabled: !!data.Song?.asset,
+        enabled: !!data.Song?.id,
       },
     );
+
 
   if (!data.Song || !data.Song.asset)
     return (
@@ -182,7 +183,7 @@ export default function SongBuyModal() {
                       />
                     </>
                   ) : (
-                    canBuyUser &&
+                    canBuyUser?.canBuy &&
                     copy.data &&
                     copy.data > 0 && (
                       <Button
@@ -253,10 +254,11 @@ export default function SongBuyModal() {
               <Card>
                 <CardContent className="p-0">
                   <BuyItem
-                    marketItemId={data.Song.asset.id}
+                    marketItemId={canBuyUser?.marketAssetId}
                     priceUSD={data.Song.priceUSD}
                     item={data.Song.asset}
                     price={data.Song.price}
+                    placerId={data.Song.creatorId}
                     setClose={handleClose}
                   />
                 </CardContent>
