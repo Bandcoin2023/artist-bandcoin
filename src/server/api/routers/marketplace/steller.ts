@@ -55,7 +55,6 @@ export const stellarRouter = createTRPCRouter({
 
       if (!marketAsset) throw new Error("asset is not in market");
 
-      console.log("marketAsset", marketAsset);
       // validate and transform input
 
       let seller: string;
