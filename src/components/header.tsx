@@ -71,9 +71,6 @@ function Header(_props: HeaderProps) {
         className="absolute right-4 top-[4rem] z-10 rotate-45 transform  "
       />
 
-      {/* Happy New Year Lottie Animation */}
-      {isMounted && <NewYearAnimation />}
-      {isMounted && <TextNewYearAnimation />}
     </header>
   );
 }

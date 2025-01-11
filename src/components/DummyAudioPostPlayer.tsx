@@ -106,13 +106,14 @@ export default function DummyAudioPostPlayer({ audioId, name, artist, mediaUrl, 
                                             id: 1,
                                             mediaUrl: mediaUrl,
                                             name: name,
-                                            thumbnail: creatorProfileUrl ?? 'https://bandcoin.io/images/logo.png',
+                                            thumbnail: creatorProfileUrl ?? 'https://app.wadzzo.com/images/loading.png',
                                         },
                                         assetId: 1,
                                         createdAt: new Date(),
                                         id: 1,
                                         price: 0,
                                         priceUSD: 0,
+                                        creatorId: addrShort(artist, 7),
 
                                     })
                                     setIsPlaying(true)

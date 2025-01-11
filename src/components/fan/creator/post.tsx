@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, Lock, MessageCircle, Music, ImageIcon, Video, Share, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, GlobeLock, Globe, Lock, MessageCircle, Music, ImageIcon, Video, Share, ChevronLeft, ChevronRight, Unlock } from 'lucide-react';
 import { formatPostCreatedAt } from "~/utils/format-date";
 import { api } from "~/utils/api";
 import { useModal } from "~/lib/state/play/use-modal-store";
@@ -37,6 +37,7 @@ export function PostCard({
   creator,
   priority,
   media,
+  locked
 }: {
   creator: { name: string; id: string; profileUrl: string | null };
   post: Post;
@@ -45,6 +46,7 @@ export function PostCard({
   commentCount: number;
   priority?: number;
   media?: Media[];
+  locked?: boolean;
 }) {
   const likeMutation = api.fan.post.likeApost.useMutation();
   const [showCommentBox, setShowCommentBox] = useState(false);
@@ -181,6 +183,15 @@ export function PostCard({
               </Badge>
             )}
             {formatPostCreatedAt(post.createdAt)}
+            {
+              show && locked ? (
+                <Unlock size={15} />
+              )
+                : !show && locked ? (
+                  <GlobeLock size={15} />
+                ) :
+                  <Globe size={15} />
+            }
           </div>
         </div>
 
