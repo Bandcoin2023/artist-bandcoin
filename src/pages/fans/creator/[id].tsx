@@ -1,29 +1,28 @@
 import { Creator, Subscription } from "@prisma/client";
 import clsx from "clsx";
+import { Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { clientsign } from "package/connect_wallet";
 import React from "react";
 import toast from "react-hot-toast";
 import MemberShipCard from "~/components/fan/creator/card";
 import { PostCard } from "~/components/fan/creator/post";
+import ShopAssetComponent from "~/components/fan/shop/shop_asset";
+import { MoreAssetsSkeleton } from "~/components/marketplace/platforms_nfts";
+import { Button } from "~/components/shadcn/ui/button";
+import { Card, CardContent } from "~/components/shadcn/ui/card";
+import useNeedSign from "~/lib/hook";
 import {
   CreatorProfileMenu,
   useCreatorProfileMenu,
 } from "~/lib/state/fan/creator-profile-menu";
-import { clientSelect } from "~/lib/stellar/fan/utils";
-import { api } from "~/utils/api";
-import { Loader2 } from "lucide-react";
-import { useSession } from "next-auth/react";
-import ViewMediaModal from "~/components/fan/shop/asset_view_modal";
-import ShopAssetComponent from "~/components/fan/shop/shop_asset";
-import { MoreAssetsSkeleton } from "~/components/marketplace/platforms_nfts";
-import { Button } from "~/components/shadcn/ui/button";
-import useNeedSign from "~/lib/hook";
 import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances";
-import { CreatorBack } from "~/pages/fans/creator";
-import { CREATOR_TERM } from "~/utils/term";
+import { clientSelect } from "~/lib/stellar/fan/utils";
 import { getAssetBalanceFromBalance } from "~/lib/stellar/marketplace/test/acc";
-import { Card, CardContent } from "~/components/shadcn/ui/card";
+import { CreatorBack } from "~/pages/fans/creator";
+import { api } from "~/utils/api";
+import { CREATOR_TERM } from "~/utils/term";
 
 export default function CreatorPage() {
   const router = useRouter();
@@ -37,22 +36,21 @@ export default function CreatorPage() {
 }
 
 function CreatorPageView({ creatorId }: { creatorId: string }) {
-  const { data: creator } = api.fan.creator.getCreator.useQuery({
-    id: creatorId,
-  },
+  const { data: creator } = api.fan.creator.getCreator.useQuery(
+    {
+      id: creatorId,
+    },
     {
       enabled: creatorId.length === 56,
-    }
+    },
   );
 
-  let code: string | undefined
-  let issuer: string | undefined
+  let code: string | undefined;
+  let issuer: string | undefined;
 
   if (creator?.customPageAssetCodeIssuer) {
-
     code = creator.customPageAssetCodeIssuer.split("-")[0];
     issuer = creator.customPageAssetCodeIssuer.split("-")[1];
-
   }
 
   if (creator)
@@ -68,16 +66,11 @@ function CreatorPageView({ creatorId }: { creatorId: string }) {
                   code={creator.pageAsset?.code}
                   issuer={creator.pageAsset?.issuer}
                 />
-              ) :
-                creator.customPageAssetCodeIssuer && code && issuer && (
-
-                  <UserCreatorBalance
-                    code={code}
-                    issuer={issuer}
-                  />
-
-                )
-              }
+              ) : (
+                creator.customPageAssetCodeIssuer &&
+                code &&
+                issuer && <UserCreatorBalance code={code} issuer={issuer} />
+              )}
             </div>
 
             <ChooseMemberShip creator={creator} />
@@ -106,16 +99,14 @@ function CreatorPosts({ creatorId }: { creatorId: string }) {
   if (!data) return <div>No data</div>;
   if (data.pages.length > 0) {
     return (
-      <div className="flex w-full flex-col gap-4 items-center p-2 md:mx-auto md:container bg-base-100">
-        {
-          data.pages[0]?.posts.length === 0 && (
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <p className="text-lg font-semibold">No Post Found Yet!</p>
-              </CardContent>
-            </Card>
-          )
-        }
+      <div className="flex w-full flex-col items-center gap-4 bg-base-100 p-2 md:container md:mx-auto">
+        {data.pages[0]?.posts.length === 0 && (
+          <Card className="text-center">
+            <CardContent className="pt-6">
+              <p className="text-lg font-semibold">No Post Found Yet!</p>
+            </CardContent>
+          </Card>
+        )}
 
         {data.pages.map((page) =>
           page.posts.map((el) => (
@@ -127,13 +118,11 @@ function CreatorPosts({ creatorId }: { creatorId: string }) {
               key={el.id}
               post={el}
               locked={el.subscription ? true : false}
-
               show={(() => {
                 if (el.subscription) {
                   let pageAssetCode: string | undefined;
                   let pageAssetIssuer: string | undefined;
-                  const customPageAsset =
-                    el.creator.customPageAssetCodeIssuer;
+                  const customPageAsset = el.creator.customPageAssetCodeIssuer;
                   const pageAsset = el.creator.pageAsset;
 
                   if (pageAsset) {
@@ -340,7 +329,6 @@ export function ChooseMemberShip({ creator }: { creator: Creator }) {
                 creator={creator}
                 subscription={el}
                 pageAsset={el.creator.pageAsset?.code}
-
               />
             ))}
         </SubscriptionGridWrapper>
@@ -390,12 +378,11 @@ function SubscriptionCard({
   subscription: SubscriptionType;
   creator: Creator;
   priority?: number;
-  pageAsset?: string
+  pageAsset?: string;
 }) {
   return (
     <MemberShipCard
       key={subscription.id}
-
       creator={creator}
       priority={priority}
       subscription={subscription}
@@ -446,17 +433,11 @@ function CreatorStoreItem({ creatorId }: { creatorId: string }) {
 
   if (assets.data) {
     return (
-
-      <div
-
-        className="w-full p-4 grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
-      >
-
+      <div className="grid w-full gap-4 p-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
         {assets.data.pages.map((page) =>
           page.nfts.map((item, i) => (
             <div key={i}>
               <ShopAssetComponent item={item} />
-
             </div>
           )),
         )}
@@ -470,17 +451,15 @@ function CreatorStoreItem({ creatorId }: { creatorId: string }) {
           </button>
         )}
 
-        {
-          assets.hasNextPage && (
-            <button
-              className="btn btn-outline btn-primary"
-              onClick={() => void assets.fetchNextPage()}
-            >
-              Load More
-            </button>
-          )
-        }
-      </div >
+        {assets.hasNextPage && (
+          <button
+            className="btn btn-outline btn-primary"
+            onClick={() => void assets.fetchNextPage()}
+          >
+            Load More
+          </button>
+        )}
+      </div>
     );
   }
 }

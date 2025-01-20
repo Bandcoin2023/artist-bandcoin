@@ -191,7 +191,6 @@ function CreatorStoreItem({ creatorId }: { creatorId: string }) {
 
 function CreatorPosts({ creatorId }: { creatorId: string }) {
   const accBalances = api.wallate.acc.getUserPubAssetBallances.useQuery();
-
   const { data, isLoading, error } = api.fan.post.getPosts.useInfiniteQuery(
     {
       pubkey: creatorId,
@@ -220,8 +219,7 @@ function CreatorPosts({ creatorId }: { creatorId: string }) {
                 if (el.subscription) {
                   let pageAssetCode: string | undefined;
                   let pageAssetIssuer: string | undefined;
-                  const customPageAsset =
-                    el.creator.customPageAssetCodeIssuer;
+                  const customPageAsset = el.creator.customPageAssetCodeIssuer;
                   const pageAsset = el.creator.pageAsset;
 
                   if (pageAsset) {
