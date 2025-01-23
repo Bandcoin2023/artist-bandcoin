@@ -9,7 +9,11 @@ import { z } from "zod";
 import { Button } from "~/components/shadcn/ui/button";
 import Alert from "~/components/ui/alert";
 import useNeedSign from "~/lib/hook";
-import { PLATFORM_ASSET, PLATFORM_FEE, TrxBaseFeeInPlatformAsset } from "~/lib/stellar/constant";
+import {
+  PLATFORM_ASSET,
+  PLATFORM_FEE,
+  TrxBaseFeeInPlatformAsset,
+} from "~/lib/stellar/constant";
 import { clientSelect } from "~/lib/stellar/fan/utils";
 import { api } from "~/utils/api";
 
@@ -25,7 +29,7 @@ export const MAX_ASSET_LIMIT = Number("922337203685");
 export const CreatorPageAssetSchema = z.object({
   code: z
     .string()
-    .min(4, { message: "Must be a minimum of 4 characters" })
+    .min(2, { message: "Must be a minimum of 2 characters" })
     .max(12, { message: "Must be a maximum of 12 characters" })
     .refine(
       (value) => {
@@ -45,7 +49,8 @@ export const CreatorPageAssetSchema = z.object({
     .max(MAX_ASSET_LIMIT, {
       message: `Limit must be less than ${MAX_ASSET_LIMIT} `,
     })
-    .nonnegative(),
+    .nonnegative()
+    .default(10),
   thumbnail: z.string(),
 });
 
@@ -101,7 +106,6 @@ function NewPageAssetFrom({ requiredToken }: { requiredToken: number }) {
       })
         .then((res) => {
           if (res) {
-
             mutation.mutate({
               code: getValues("code"),
               limit: getValues("limit"),
@@ -121,7 +125,6 @@ function NewPageAssetFrom({ requiredToken }: { requiredToken: number }) {
           shadToast({
             title: "Transaction failed",
           });
-
         })
         .finally(() => {
           toast.dismiss(toastId);
@@ -170,7 +173,6 @@ function NewPageAssetFrom({ requiredToken }: { requiredToken: number }) {
 
       setUploading(false);
     } catch (e) {
-
       setUploading(false);
       alert("Trouble uploading file");
     }
@@ -217,6 +219,7 @@ function NewPageAssetFrom({ requiredToken }: { requiredToken: number }) {
         )}
       </label>
 
+      {/*
       <label className="form-control w-full px-2">
         <div className="label">
           <span className="label-text">Limit</span>
@@ -238,6 +241,7 @@ function NewPageAssetFrom({ requiredToken }: { requiredToken: number }) {
           </div>
         )}
       </label>
+    */}
 
       <label className="form-control w-full px-2">
         <input

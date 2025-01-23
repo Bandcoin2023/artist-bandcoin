@@ -15,9 +15,9 @@ import { SignUser, WithSing } from "~/lib/stellar/utils";
 
 import { Keypair } from "@stellar/stellar-sdk";
 
+import { PaymentMethodEnum } from "~/components/BuyItem";
 import { env } from "~/env";
 import {
-  PLATFORM_ASSET,
   PLATFORM_FEE,
   TrxBaseFeeInPlatformAsset,
 } from "~/lib/stellar/constant";
@@ -40,8 +40,8 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
-import { PaymentMethodEnum } from "~/components/BuyItem";
-import { useCreatorStorageAcc } from "~/lib/state/wallete/stellar-balances";
+
+const HIGHEST_LIMIT = "922,337,203,685.4775807";
 
 export const trxRouter = createTRPCRouter({
   createCreatorPageAsset: protectedProcedure
@@ -68,7 +68,7 @@ export const trxRouter = createTRPCRouter({
       if (input.method && input.method === "xlm") {
         return await creatorPageAccCreateWithXLM({
           ipfs: input.ipfs,
-          limit: limit.toString(),
+          limit: HIGHEST_LIMIT,
           storageSecret: creatorStorageSec,
           pubkey: creatorId,
           assetCode: code,
@@ -77,7 +77,7 @@ export const trxRouter = createTRPCRouter({
       } else {
         return await creatorPageAccCreate({
           ipfs: input.ipfs,
-          limit: limit.toString(),
+          limit: HIGHEST_LIMIT,
           storageSecret: creatorStorageSec,
           pubkey: creatorId,
           assetCode: code,
@@ -365,11 +365,11 @@ export const trxRouter = createTRPCRouter({
       const { code, issuer, signWith } = input;
 
       const creator = await ctx.db.creator.findUniqueOrThrow({
-        where: { id: ctx.session.user.id, },
+        where: { id: ctx.session.user.id },
         select: {
           storageSecret: true,
           storagePub: true,
-        }
+        },
       });
 
       const requiredPlatformAsset = await getplatformAssetNumberForXLM(0.5);
