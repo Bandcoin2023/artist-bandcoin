@@ -79,7 +79,9 @@ function NewPageAssetFrom({ requiredToken }: { requiredToken: number }) {
     reset,
   } = useForm<z.infer<typeof CreatorPageAssetSchema>>({
     resolver: zodResolver(CreatorPageAssetSchema),
-    defaultValues: {},
+    defaultValues: {
+      limit: 10,
+    },
   });
 
   const mutation = api.fan.member.createCreatePageAsset.useMutation({

@@ -19,6 +19,7 @@ const config = {
   images: {
     remotePatterns: [
       { hostname: "bandcoin-object-store.s3.amazonaws.com" },
+      { hostname: "gateway.pinata.cloud" },
       {
         hostname: "utfs.io",
       },
