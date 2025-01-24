@@ -41,7 +41,7 @@ import {
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
 
-const HIGHEST_LIMIT = "922,337,203,685.4775807";
+const HIGHEST_LIMIT = "922337203685.4775807";
 
 export const trxRouter = createTRPCRouter({
   createCreatorPageAsset: protectedProcedure
