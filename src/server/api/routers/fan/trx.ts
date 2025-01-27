@@ -17,7 +17,6 @@ import { Keypair } from "@stellar/stellar-sdk";
 
 import { env } from "~/env";
 import {
-  PLATFORM_ASSET,
   PLATFORM_FEE,
   TrxBaseFeeInPlatformAsset,
 } from "~/lib/stellar/constant";
@@ -33,15 +32,24 @@ import {
   createUniAsset,
   createUniAssetWithXLM,
 } from "~/lib/stellar/uni_create_asset";
-import { FanGitFormSchema } from "~/pages/fans/creator/gift";
 import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
-import { PaymentMethodEnum } from "~/components/BuyItem";
-import { useCreatorStorageAcc } from "~/lib/state/wallete/stellar-balances";
+
+const HIGHEST_LIMIT = "922337203685.4775807";
+export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
+export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
+export const FanGitFormSchema = z.object({
+  pubkey: z.string().length(56),
+  amount: z.number({
+    required_error: "Amount is required",
+    invalid_type_error: "Amount must be a number",
+    message: "Amount must be a number",
+  }).min(1),
+});
 
 export const trxRouter = createTRPCRouter({
   createCreatorPageAsset: protectedProcedure
@@ -68,7 +76,7 @@ export const trxRouter = createTRPCRouter({
       if (input.method && input.method === "xlm") {
         return await creatorPageAccCreateWithXLM({
           ipfs: input.ipfs,
-          limit: limit.toString(),
+          limit: HIGHEST_LIMIT,
           storageSecret: creatorStorageSec,
           pubkey: creatorId,
           assetCode: code,
@@ -77,7 +85,7 @@ export const trxRouter = createTRPCRouter({
       } else {
         return await creatorPageAccCreate({
           ipfs: input.ipfs,
-          limit: limit.toString(),
+          limit: HIGHEST_LIMIT,
           storageSecret: creatorStorageSec,
           pubkey: creatorId,
           assetCode: code,
@@ -365,11 +373,11 @@ export const trxRouter = createTRPCRouter({
       const { code, issuer, signWith } = input;
 
       const creator = await ctx.db.creator.findUniqueOrThrow({
-        where: { id: ctx.session.user.id, },
+        where: { id: ctx.session.user.id },
         select: {
           storageSecret: true,
           storagePub: true,
-        }
+        },
       });
 
       const requiredPlatformAsset = await getplatformAssetNumberForXLM(0.5);

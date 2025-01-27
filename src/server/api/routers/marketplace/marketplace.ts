@@ -1,7 +1,5 @@
 import { Keypair } from "@stellar/stellar-sdk";
 import { z } from "zod";
-import { PlaceMarketFormSchema } from "~/components/marketplace/modal/place_2storage_modal";
-import { BackMarketFormSchema } from "~/components/marketplace/modal/revert_place_market_modal";
 import { env } from "~/env";
 import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
 import {
@@ -16,7 +14,34 @@ import {
   createTRPCRouter,
   protectedProcedure,
 } from "~/server/api/trpc";
-
+export const BackMarketFormSchema = z.object({
+  placingCopies: z
+    .number({
+      required_error: "Placing Copies  must be a number",
+      invalid_type_error: "Placing Copies must be a number",
+    })
+    .nonnegative()
+    .int(),
+  code: z
+    .string()
+    .min(4, { message: "Must be a minimum of 4 characters" })
+    .max(12, { message: "Must be a maximum of 12 characters" }),
+  issuer: z.string(),
+});
+export const PlaceMarketFormSchema = z.object({
+  placingCopies: z
+    .number({
+      required_error: "Placing Copies  must be a number",
+      invalid_type_error: "Placing Copies must be a number",
+    })
+    .nonnegative()
+    .int(),
+  code: z
+    .string()
+    .min(4, { message: "Must be a minimum of 4 characters" })
+    .max(12, { message: "Must be a maximum of 12 characters" }),
+  issuer: z.string(),
+});
 export const AssetSelectAllProperty = {
   code: true,
   name: true,
@@ -148,9 +173,6 @@ export const marketRouter = createTRPCRouter({
       });
     }),
 
-
-
-
   getFanMarketNfts: protectedProcedure
     .input(
       z.object({
@@ -207,14 +229,24 @@ export const marketRouter = createTRPCRouter({
         }
 
         if (item.asset.privacy === ItemPrivacy.PRIVATE) {
-          return creatorPageAsset && stellarAcc.hasTrustline(creatorPageAsset.code, creatorPageAsset.issuer);
+          return (
+            creatorPageAsset &&
+            stellarAcc.hasTrustline(
+              creatorPageAsset.code,
+              creatorPageAsset.issuer,
+            )
+          );
         }
 
         if (item.asset.privacy === ItemPrivacy.TIER) {
           return (
             creatorPageAsset &&
             item.asset.tier &&
-            item.asset.tier.price <= stellarAcc.getTokenBalance(creatorPageAsset.code, creatorPageAsset.issuer)
+            item.asset.tier.price <=
+            stellarAcc.getTokenBalance(
+              creatorPageAsset.code,
+              creatorPageAsset.issuer,
+            )
           );
         }
 
@@ -259,8 +291,8 @@ export const marketRouter = createTRPCRouter({
         cursor: cursor ? { id: cursor } : undefined,
         orderBy: {
           pageAsset: {
-            creatorId: "asc"
-          }
+            creatorId: "asc",
+          },
         },
       });
 
@@ -328,7 +360,13 @@ export const marketRouter = createTRPCRouter({
 
         if (item.asset.privacy === ItemPrivacy.PRIVATE) {
           const creatorPageAsset = item.asset.creator?.pageAsset;
-          if (creatorPageAsset && stellarAcc.hasTrustline(creatorPageAsset.code, creatorPageAsset.issuer)) {
+          if (
+            creatorPageAsset &&
+            stellarAcc.hasTrustline(
+              creatorPageAsset.code,
+              creatorPageAsset.issuer,
+            )
+          ) {
             return true;
           }
         } else if (item.asset.privacy === ItemPrivacy.TIER) {
@@ -336,7 +374,11 @@ export const marketRouter = createTRPCRouter({
           if (
             creatorPageAsset &&
             item.asset.tier &&
-            item.asset.tier.price <= stellarAcc.getTokenBalance(creatorPageAsset.code, creatorPageAsset.issuer)
+            item.asset.tier.price <=
+            stellarAcc.getTokenBalance(
+              creatorPageAsset.code,
+              creatorPageAsset.issuer,
+            )
           ) {
             return true;
           }
@@ -355,7 +397,6 @@ export const marketRouter = createTRPCRouter({
         nextCursor,
       };
     }),
-
 
   getCreatorNftsByCreatorID: protectedProcedure
     .input(
@@ -418,7 +459,7 @@ export const marketRouter = createTRPCRouter({
             select: AssetSelectAllProperty,
           },
         },
-        where: { asset: { creatorId: creatorId, song: null }, },
+        where: { asset: { creatorId: creatorId, song: null } },
       });
 
       let nextCursor: typeof cursor | undefined = undefined;
@@ -446,7 +487,6 @@ export const marketRouter = createTRPCRouter({
       const copy = bal.getTokenBalance(code, issuer);
       return copy;
     }),
-
 
   getMarketAssetAvailableCopy: protectedProcedure
     .input(z.object({ id: z.number().optional() }))
@@ -516,34 +556,24 @@ export const marketRouter = createTRPCRouter({
         select: {
           creator: true,
           asset: {
-            select: { code: true, issuer: true }
+            select: { code: true, issuer: true },
           },
-        }
+        },
       });
 
-
       if (song.creator) {
-        const storage = song?.creator?.storagePub;
+        const storage = song.creator.storagePub;
 
         if (!storage) throw new Error("Song item not found");
 
-
         const acc = await StellarAccount.create(storage);
-        const copy = acc.getTokenBalance(
-          song.asset.code,
-          song.asset.issuer,
-        );
+        const copy = acc.getTokenBalance(song.asset.code, song.asset.issuer);
         return copy;
-      }
-      else {
-
+      } else {
         const adminStorage = Keypair.fromSecret(env.STORAGE_SECRET).publicKey();
 
         const bal = await StellarAccount.create(adminStorage);
-        const copy = bal.getTokenBalance(
-          song.asset.code,
-          song.asset.issuer,
-        );
+        const copy = bal.getTokenBalance(song.asset.code, song.asset.issuer);
 
         return copy;
       }
@@ -600,7 +630,7 @@ export const marketRouter = createTRPCRouter({
               tier: { include: { creator: { include: { pageAsset: true } } } },
             },
           },
-        }
+        },
       });
       console.log("marketAsset", marketAsset);
       if (!marketAsset) return false;
@@ -617,11 +647,14 @@ export const marketRouter = createTRPCRouter({
         const creatorPageAsset = await ctx.db.creator.findUniqueOrThrow({
           where: { id: marketAsset.placerId },
           select: {
-            pageAsset: true
-          }
-        })
+            pageAsset: true,
+          },
+        });
         if (!creatorPageAsset.pageAsset) return false;
-        const hasTrust = stellarAcc.hasTrustline(creatorPageAsset.pageAsset?.code, creatorPageAsset.pageAsset?.issuer);
+        const hasTrust = stellarAcc.hasTrustline(
+          creatorPageAsset.pageAsset?.code,
+          creatorPageAsset.pageAsset?.issuer,
+        );
         if (hasTrust) {
           return true;
         }
@@ -663,9 +696,8 @@ export const marketRouter = createTRPCRouter({
               tier: { include: { creator: { include: { pageAsset: true } } } },
             },
           },
-        }
+        },
       });
-
 
       if (!marketAsset) return { canBuy: false, marketAssetId: -1 };
 
@@ -681,11 +713,15 @@ export const marketRouter = createTRPCRouter({
         const creatorPageAsset = await ctx.db.creator.findUniqueOrThrow({
           where: { id: marketAsset.placerId },
           select: {
-            pageAsset: true
-          }
-        })
-        if (!creatorPageAsset.pageAsset) return { canBuy: false, marketAssetId: -1 };
-        const hasTrust = stellarAcc.hasTrustline(creatorPageAsset.pageAsset?.code, creatorPageAsset.pageAsset?.issuer);
+            pageAsset: true,
+          },
+        });
+        if (!creatorPageAsset.pageAsset)
+          return { canBuy: false, marketAssetId: -1 };
+        const hasTrust = stellarAcc.hasTrustline(
+          creatorPageAsset.pageAsset?.code,
+          creatorPageAsset.pageAsset?.issuer,
+        );
         if (hasTrust) {
           return { canBuy: true, marketAssetId: marketAsset.id };
         }

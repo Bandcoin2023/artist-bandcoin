@@ -7,10 +7,19 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
-import { AlbumFormShema } from "~/components/music/modal/album_create";
 import { AssetSelectAllProperty } from "../marketplace/marketplace";
 import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
 import { ItemPrivacy } from "@prisma/client";
+
+export const AlbumFormShema = z.object({
+  id: z.number().optional(),
+  name: z
+    .string()
+    .max(20, { message: "Album name must be between 3 to 20 characters" })
+    .min(3, { message: "Album name must be between 3 to 20 characters" }),
+  description: z.string(),
+  coverImgUrl: z.string(),
+});
 
 export const albumRouter = createTRPCRouter({
   getAll: publicProcedure.query(async ({ ctx }) => {

@@ -15,8 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/shadcn/ui/card";
-import React, { useRef } from "react";
-import { InfiniteScroll } from "../wallete/infinite-scroll";
+import React, { useRef, useState } from "react";
 import { Skeleton } from "../shadcn/ui/skeleton";
 import { useModal } from "~/lib/state/play/use-modal-store";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -30,6 +29,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "~/components/shadcn/ui/tooltip"
+import { InfiniteScroll } from "../common/infinite-scroll";
+import { TransactionHistoryTypes } from "~/types/transaction/transaction-history-types";
+import TransactionHistoryModal from "../modal/transaction-history-modal";
 
 const BatchLimit = 10;
 
@@ -49,7 +51,8 @@ function AddressWithTooltip({ address }: { address: string }) {
 
 
 const TransactionHistory = () => {
-  const { onOpen } = useModal();
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionHistoryTypes>();
   const parentRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -72,7 +75,7 @@ const TransactionHistory = () => {
   };
 
   if (status === "loading") {
-    return <div>Loading...</div>;
+    return <div>Fetching...</div>;
   }
 
   if (status === "error") {
@@ -80,7 +83,7 @@ const TransactionHistory = () => {
   }
 
   return (
-    <div ref={parentRef} className="h-[calc(100vh-50vh)] md:h-[calc(100vh-40vh)] overflow-y-auto scrollbar-none">
+    <div ref={parentRef} className="h-[calc(100vh-44vh)] md:h-[calc(100vh-42vh)] rounded-lg overflow-y-auto scrollbar-hide " >
       <InfiniteScroll
         parentRef={parentRef}
         dataLength={data?.pages.reduce((acc, page) => acc + page.items.length, 0) ?? 0}
@@ -98,8 +101,12 @@ const TransactionHistory = () => {
 
 
                     <TableRow key={j}
-                      className={j % 2 === 1 ? "bg-green-50 hover:bg-red-100" : "bg-white hover:bg-red-100"}
-                      onClick={() => onOpen("transaction history", { transaction: transaction })}
+                      className={j % 2 === 1 ? "bg-green-50 hover:bg-red-100" : "bg-white hover:bg-primary"}
+                      onClick={() => {
+                        setIsTransactionModalOpen(true)
+                        setSelectedTransaction(transaction)
+                      }
+                      }
                     >
                       <TableCell >{new Date(transaction.createdAt).toLocaleString()}</TableCell>
                       {
@@ -323,6 +330,15 @@ const TransactionHistory = () => {
           </Table>
         </TooltipProvider>
       </InfiniteScroll>
+      {
+        isTransactionModalOpen && (
+          <TransactionHistoryModal
+            isOpen={isTransactionModalOpen}
+            setIsOpen={setIsTransactionModalOpen}
+            transaction={selectedTransaction}
+          />
+        )
+      }
     </div >
   );
 };

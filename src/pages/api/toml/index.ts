@@ -1,15 +1,23 @@
 // nextjs 14 api routes
 
-import { Asset } from "@prisma/client";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { env } from "~/env";
+import NextCors from "nextjs-cors";
+import { PLATFORM_ASSET } from "~/lib/stellar/constant";
 import { db } from "~/server/db";
+import { ipfsHashToUrl } from "~/utils/ipfs";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  let Fulltomlstring = defaultTomlString;
+  await NextCors(req, res, {
+    // Options
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
+    origin: "*",
+    optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+  });
+
+  let FullTomlContent = defaultTomlString;
 
   const assets = await db.asset.findMany({
     select: {
@@ -22,17 +30,45 @@ export default async function handler(
     },
   });
 
+  const PageAssets = await db.creatorPageAsset.findMany({
+    select: {
+      issuer: true,
+      code: true,
+      thumbnail: true,
+      limit: true,
+      creator: true,
+    },
+  });
+
   for (const asset of assets) {
-    Fulltomlstring += dictinaryToTomlString(asset as Asset);
+    FullTomlContent += dictionaryToTomlString(asset);
   }
 
-  res.send(Fulltomlstring);
+  for (const asset of PageAssets) {
+    const ipfsHash = asset.thumbnail?.split("/").pop();
+    FullTomlContent += dictionaryToTomlString({
+      code: asset.code,
+      issuer: asset.issuer,
+      name: asset.creator?.name || PLATFORM_ASSET.code,
+      description: `Page Asset of ${asset.creator?.name}`,
+      thumbnail: asset.thumbnail ?? "",
+    });
+  }
+
+  res.send(FullTomlContent);
+
   return;
 
   // res.status(200).json({ message: assets });
 }
 
-export function dictinaryToTomlString(dict: Asset) {
+export function dictionaryToTomlString(dict: {
+  thumbnail: string;
+  code: string;
+  issuer: string;
+  name: string;
+  description: string | null;
+}) {
   const ipfsHash = dict.thumbnail.split("/").pop();
   let tomlString = "[[CURRENCIES]]\n";
   tomlString += `code="${dict.code}"\n`;
@@ -40,22 +76,18 @@ export function dictinaryToTomlString(dict: Asset) {
   tomlString += `display_decimals=7\n`;
   tomlString += `name="${dict.name}"\n`;
   tomlString += `desc="${dict.description}"\n`;
-  tomlString += `image="${ipfsHash}"\n`;
-  if (dict.limit) tomlString += `limit="${dict.limit}"\n`;
+  if (ipfsHash) tomlString += `image="${ipfsHashToUrl(ipfsHash)}"\n`;
 
   return tomlString + "\n";
 }
 
 const defaultTomlString = `[DOCUMENTATION]
-ORG_URL="<${env.NEXT_PUBLIC_URL}>"
+ORG_NAME="Bandcoin"
+ORG_URL="https://bandcoin.io/"
+ORG_LOGO="https://raw.githubusercontent.com/Bandcoin2023/assets/refs/heads/main/public/bandcoin.png"
+ORG_DESCRIPTION="Bandcoin : Collect, Connect, Listen"
+ORG_TWITTER="bandcoinio"
+ORG_OFFICIAL_EMAIL="support@bandcoin.io"
 
-[[CURRENCIES]]
-issuer="get asset issuer"
-code="get asset code"
-name="get asset name"
-desc="This is a description of the cool NFT."
-image="ipfs link ending with file format extension"
-limit=limit
-display_decimals=7
 
 `;

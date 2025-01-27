@@ -1,7 +1,6 @@
 import { Horizon } from "@stellar/stellar-sdk";
 import { getAccSecretFromRubyApi } from "package/connect_wallet/src/lib/stellar/get-acc-secret";
 import { z } from "zod";
-import { UserAboutShema } from "~/components/fan/me/user-profile";
 import { STELLAR_URL } from "~/lib/stellar/constant";
 import { claimRedeemXDR } from "~/lib/stellar/fan/redeem";
 import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
@@ -12,7 +11,17 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
-
+export const UserAboutShema = z.object({
+  bio: z
+    .string()
+    .max(100, { message: "Bio must be less than 101 characters" })
+    .nullable(),
+  name: z
+    .string()
+    .min(3, { message: "Name must be greater than 2 characters." })
+    .max(20, { message: "Name must be less than 21 characters." }),
+  profileUrl: z.string().nullable().optional(),
+});
 export const userRouter = createTRPCRouter({
   getUser: protectedProcedure.query(async ({ ctx }) => {
     return await ctx.db.user.findUnique({ where: { id: ctx.session.user.id } });

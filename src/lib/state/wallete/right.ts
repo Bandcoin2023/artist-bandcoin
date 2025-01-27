@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { AdminAssetWithTag } from "~/components/wallete/asset";
+import { AdminAssetWithTag } from "../play/use-modal-store";
 
 interface RightState {
   open: boolean;

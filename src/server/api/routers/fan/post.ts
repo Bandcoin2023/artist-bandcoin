@@ -1,14 +1,26 @@
 import { NotificationType } from "@prisma/client";
 import { z } from "zod";
-import { PostSchema } from "~/components/fan/creator/CreatPost";
-import { CommentSchema } from "~/components/fan/post/add-comment";
 import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
-
+export const PostSchema = z.object({
+  heading: z.string().min(1, { message: "Required" }),
+  content: z.string().min(2, { message: "Minimum 2 characters required." }),
+  subscription: z.string().optional(),
+  medias: z.array(MediaInfo).optional(),
+});
+export const CommentSchema = z.object({
+  postId: z.number(),
+  parentId: z.number().optional(),
+  content: z
+    .string()
+    .min(1, { message: "Minimum 5 character is required!" })
+    .trim(),
+});
 import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
+import { MediaInfo } from "../bounty/bounty";
 
 export const postRouter = createTRPCRouter({
   create: protectedProcedure

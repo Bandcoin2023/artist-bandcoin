@@ -459,13 +459,13 @@ async function updateSubmissionAtachement() {
   }
 }
 
-// await updateUserTable();
-// await updateCreatorTable();
-// await updateCreatorPageAsset();
-// await updateAlbumTable();
-// await updateAssetTable();
-// await updateAdmin();
-// await updateLocationGroup();
-// await updateMedia();
-// await updateBounty();
-// await updateSubmissionAtachement();
+await updateUserTable();
+await updateCreatorTable();
+await updateCreatorPageAsset();
+await updateAlbumTable();
+await updateAssetTable();
+await updateAdmin();
+await updateLocationGroup();
+await updateMedia();
+await updateBounty();
+await updateSubmissionAtachement();

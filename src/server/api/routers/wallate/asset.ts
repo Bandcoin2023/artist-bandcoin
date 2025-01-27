@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { AdminAssetFormSchema } from "~/components/wallete/add_asset_form";
 
 import {
   adminProcedure,
@@ -7,7 +6,21 @@ import {
   protectedProcedure,
 } from "~/server/api/trpc";
 import { getBlurData } from "~/utils/serverUtils";
+export const AdminAssetFormSchema = z.object({
+  logoUrl: z.string().url(),
+  code: z
+    .string()
+    .min(4, { message: "Must be a minimum of 4 characters" })
+    .max(12, { message: "Must be a maximum of 12 characters" }),
+  issuer: z.string(),
+  description: z.string(),
+  link: z.string().url(),
+  tags: z.string(),
 
+  litemint: z.string().optional(),
+  stellarx: z.string().optional(),
+  stellarterm: z.string().optional(),
+});
 export const assetRouter = createTRPCRouter({
   getBancoinAssets: protectedProcedure
     .input(

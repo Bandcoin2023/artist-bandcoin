@@ -1,12 +1,111 @@
 import { NotificationType } from "@prisma/client";
 import { z } from "zod";
-import { CreatorAboutShema } from "~/components/fan/creator/about";
-import { CreatorPageAssetSchema } from "~/components/fan/creator/page_asset/new";
-import { TierSchema } from "~/components/fan/creator/add-tier-modal";
-import { EditTierSchema } from "~/components/fan/creator/edit-tier-modal";
 import { AccountSchema } from "~/lib/stellar/fan/utils";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { BADWORDS } from "~/utils/banned-word";
+export const EditTierSchema = z.object({
+  name: z
+    .string()
+    .min(4, { message: "Must be a minimum of 4 characters" })
+    .max(12, { message: "Must be a maximum of 12 characters" })
+    .refine(
+      (value) => {
+        // Check if the input is a single word
+        return /^\w+$/.test(value);
+      },
+      {
+        message: "Input must be a single word",
+      },
+    ),
+
+  price: z
+    .number({
+      required_error: "Price must be entered as a number",
+      invalid_type_error: "Price must be entered as a number",
+    })
+    .min(1, {
+      message: "Price must be greater than 0",
+    }),
+  featureDescription: z
+    .string()
+    .min(20, { message: "Description must be longer than 20 characters" }),
+  id: z.number(),
+});
+export const TierSchema = z.object({
+  name: z
+    .string()
+    .min(4, { message: "Must be a minimum of 4 characters" })
+    .max(12, { message: "Must be a maximum of 12 characters" })
+    .refine(
+      (value) => {
+        // Check if the input is a single word
+        return /^\w+$/.test(value);
+      },
+      {
+        message: "Input must be a single word",
+      },
+    )
+    .refine(
+      (value) => {
+        return !BADWORDS.some((word) => value.includes(word));
+      },
+      {
+        message: "Input contains banned words.",
+      },
+    ),
+  price: z
+    .number({
+      required_error: "Price must be entered as a number",
+      invalid_type_error: "Price must be entered as a number",
+    })
+    .min(1, {
+      message: "Price must be greater than 0",
+    }),
+  featureDescription: z
+    .string()
+    .min(10, { message: "Make description longer" }),
+});
+export const CreatorAboutShema = z.object({
+  description: z
+    .string()
+    .max(100, { message: "Bio must be lass than 101 character" })
+    .nullable(),
+  name: z
+    .string()
+    .min(3, { message: "Name must be between 3 to 98 characters" })
+    .max(98, { message: "Name must be between 3 to 98 characters" }),
+  profileUrl: z.string().nullable().optional(),
+});
+export const MAX_ASSET_LIMIT = Number("922337203685");
+
+export const CreatorPageAssetSchema = z.object({
+  code: z
+    .string()
+    .min(2, { message: "Must be a minimum of 2 characters" })
+    .max(12, { message: "Must be a maximum of 12 characters" })
+    .refine(
+      (value) => {
+        // Check if the input is a single word
+        return /^\w+$/.test(value);
+      },
+      {
+        message: "Input must be a single word",
+      },
+    ),
+  limit: z
+    .number({
+      required_error: "Limit must be entered as a number",
+      invalid_type_error: "Limit must be entered as a number",
+    })
+    .min(1, { message: "Limit must be greater than 0" })
+    .max(MAX_ASSET_LIMIT, {
+      message: `Limit must be less than ${MAX_ASSET_LIMIT} `,
+    })
+    .nonnegative()
+    .default(10),
+  thumbnail: z.string(),
+});
 
 const selectedColumn = {
   name: true,

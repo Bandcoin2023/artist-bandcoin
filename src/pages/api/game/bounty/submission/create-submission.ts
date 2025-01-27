@@ -5,10 +5,16 @@ import { getSession } from "next-auth/react";
 import NextCors from "nextjs-cors";
 
 import { z } from "zod";
-import { SubmissionMediaInfo } from "~/components/modals/file-upload-modal";
 import { EnableCors } from "~/server/api-cors";
 
 import { db } from "~/server/db";
+export const SubmissionMediaInfo = z.object({
+    url: z.string(),
+    name: z.string(),
+    size: z.number(),
+    type: z.string(),
+});
+type SubmissionMediaInfoType = z.TypeOf<typeof SubmissionMediaInfo>;
 
 
 

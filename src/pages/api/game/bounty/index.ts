@@ -32,7 +32,7 @@ export default async function handler(
       BountyWinner: {
         select: {
           userId: true,
-        }
+        },
       },
       totalWinner: true,
       status: true,
@@ -56,13 +56,11 @@ export default async function handler(
     },
   });
 
-
   const bountiesWithJoinStatus = allBounty.map((bounty) => ({
     ...bounty,
     isJoined: bounty.participants.length > 0,
     isOwner: bounty.creatorId === currentUserId,
   }));
-
 
   res.status(200).json({ allBounty: bountiesWithJoinStatus });
 }

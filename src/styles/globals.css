@@ -3,67 +3,85 @@
 @tailwind utilities;
 
 @layer base {
-  :root,
-  .light {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+  :root {
+    /* Light mode colors */
+    --background: 60 33% 98%; /* Light background */
+    --foreground: 60 10% 10%; /* Dark text */
+    --card: 60 40% 98%; /* Light card background */
+    --card-foreground: 60 10% 10%; /* Dark card text */
+    --popover: 60 33% 98%; /* Light popover */
+    --popover-foreground: 60 10% 10%; /* Dark popover text */
+    --primary: 62 50% 95%; /* Primary color (soft green) */
+    --primary-foreground: 60 10% 10%; /* Dark text on primary color */
+    --secondary: 60 14% 88%; /* Secondary color (light pastel) */
+    --secondary-foreground: 60 10% 10%; /* Dark text on secondary */
+    --muted: 60 14% 88%; /* Muted color (light gray) */
+    --muted-foreground: 60 5% 40%; /* Muted text (darker gray) */
+    --accent: 60 72% 52%; /* Accent color (same as primary) */
+    --accent-foreground: 60 10% 10%; /* Dark text on accent color */
+    --destructive: 0 84.2% 60.2%; /* Red (for destructive actions) */
+    --destructive-foreground: 60 33% 98%; /* Light text on destructive elements */
+    --border: 60 60% 88%; /* Light border color */
+    --input: 60 14% 88%; /* Light input background */
+    --ring: 60 72% 52%; /* Focus ring (same as primary) */
+    --radius: 0.75rem;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Chart colors with yellowish tint */
+    --chart-1: 60 72% 52%;
+    --chart-2: 45 84% 56%;
+    --chart-3: 30 84% 56%;
+    --chart-4: 15 84% 56%;
+    --chart-5: 75 84% 56%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
+    /* Sidebar colors with yellowish tint */
+    --sidebar-background: 60 33% 96%; /* Lighter sidebar background */
+    --sidebar-foreground: 60 10% 10%; /* Dark sidebar text */
+    --sidebar-primary: 60 72% 52%; /* Sidebar primary color */
+    --sidebar-primary-foreground: 60 10% 10%; /* Dark sidebar primary text */
+    --sidebar-accent: 45 84% 56%; /* Sidebar accent color */
+    --sidebar-accent-foreground: 60 10% 10%; /* Dark sidebar accent text */
+    --sidebar-border: 60 14% 88%; /* Sidebar border */
+    --sidebar-ring: 60 72% 52%; /* Sidebar focus ring */
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Dark mode colors */
+    --background: 60 10% 10%; /* Dark background */
+    --foreground: 60 33% 98%; /* Light text on dark background */
+    --card: 60 10% 10%; /* Dark card background */
+    --card-foreground: 60 33% 98%; /* Light card text */
+    --popover: 60 10% 10%; /* Dark popover */
+    --popover-foreground: 60 33% 98%; /* Light popover text */
+    --primary: 60 72% 52%; /* Primary color (soft green) */
+    --primary-foreground: 60 10% 10%; /* Dark text on primary color */
+    --secondary: 60 14% 20%; /* Darker secondary color */
+    --secondary-foreground: 60 33% 98%; /* Light secondary text */
+    --muted: 60 14% 20%; /* Muted dark gray */
+    --muted-foreground: 60 5% 65%; /* Lighter muted text */
+    --accent: 60 72% 52%; /* Accent color (same as primary) */
+    --accent-foreground: 60 10% 10%; /* Dark text on accent color */
+    --destructive: 0 62.8% 30.6%; /* Dark red for destructive actions */
+    --destructive-foreground: 60 33% 98%; /* Light text on destructive elements */
+    --border: 60 14% 20%; /* Dark border */
+    --input: 60 14% 20%; /* Dark input background */
+    --ring: 60 72% 52%; /* Focus ring (same as primary) */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    /* Dark mode chart colors with yellowish tint */
+    --chart-1: 60 72% 52%;
+    --chart-2: 45 84% 56%;
+    --chart-3: 30 84% 56%;
+    --chart-4: 15 84% 56%;
+    --chart-5: 75 84% 56%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Dark mode sidebar colors with yellowish tint */
+    --sidebar-background: 60 10% 12%; /* Darker sidebar background */
+    --sidebar-foreground: 60 33% 98%; /* Light sidebar text */
+    --sidebar-primary: 60 72% 52%; /* Sidebar primary color */
+    --sidebar-primary-foreground: 60 10% 10%; /* Dark sidebar primary text */
+    --sidebar-accent: 45 84% 56%; /* Sidebar accent color */
+    --sidebar-accent-foreground: 60 10% 10%; /* Dark sidebar accent text */
+    --sidebar-border: 60 14% 20%; /* Sidebar dark border */
+    --sidebar-ring: 60 72% 52%; /* Sidebar focus ring */
   }
 }
 
@@ -71,103 +89,25 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
   }
 }
-
-@layer components {
-  .scrollbar-style {
-    @apply scrollbar-thin scrollbar-track-base-content/5 scrollbar-thumb-base-content/5 scrollbar-track-rounded-md  scrollbar-thumb-rounded hover:scrollbar-thumb-base-content/40;
+@layer utilities {
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 
-  .tsd {
-    @apply transition-all duration-500 ease-in-out;
-  }
-
-  .aac-sbt {
-    @apply font-bold transition-all duration-75 ease-in-out hover:scale-105
-     hover:font-semibold hover:tracking-wider hover:text-blue-500 focus:ring-8 focus:ring-blue-300 
-     active:scale-90 active:ring-blue-500;
-  }
-
-  .acc-bt {
-    @apply tsd overflow-hidden rounded-xl
-    bg-slate-800/60 px-4 py-3 text-xl
-    font-bold tracking-wider text-slate-900/80 backdrop-blur hover:scale-105 hover:border-blue-400 hover:bg-slate-900/80 hover:text-slate-300/70
-    focus:border-blue-400 focus:outline-none focus:ring focus:ring-blue-300 active:scale-90;
-  }
-
-  .main-asset-area {
-    @apply scrollbar-style grid max-h-full gap-3 overflow-y-auto px-1 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-8;
-  }
-}
-
-.gradient-background {
-  background: linear-gradient(
-    180deg,
-    rgba(181, 228, 118, 0.84) 12.21%,
-    rgba(131, 215, 203, 0.84) 81.69%
-  );
-}
-.background-color {
-  background: linear-gradient(0deg, rgb(62 62 62 / 17%), rgb(62 62 62 / 19%)),
-    linear-gradient(0deg, hsla(0, 0%, 54%, 0.61), hsl(0deg 0% 54% / 62%));
-}
-
-html,
-body {
-  background: url("/images/header.jpg") no-repeat center center fixed;
-  -webkit-background-size: cover;
-  -moz-background-size: cover;
-  -o-background-size: cover;
-  background-size: cover;
-}
-.ql-editor {
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: break-word;
-  white-space: pre-wrap;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.ql-editor img,
-.ql-editor .ql-video {
-  max-width: 100%;
-  height: auto;
-}
-
-.ql-editor * {
-  word-wrap: break-word;
-}
-#ihx {
-  background: url("/images/guitar.svg");
-  background-size: 10%;
-  animation: pan 135s linear infinite;
-}
-@keyframes fall {
-  0% {
-    transform: translateY(-10%) rotate(0deg);
-  }
-
-  100% {
-    transform: translateY(110vh) rotate(360deg);
-  }
-}
-
-.animate-fall {
-  animation-name: fall;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
-@keyframes pan {
-  0% {
-    background-position: 0% 0%;
-  }
-
-  100% {
-    background-position: 100% 0%;
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
   }
 }

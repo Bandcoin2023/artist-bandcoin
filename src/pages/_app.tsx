@@ -9,37 +9,34 @@ import { api } from "~/utils/api";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { Titillium_Web } from "next/font/google";
-import Layout from "~/components/layout";
 import "~/styles/globals.css";
-import "~/styles/music.scss";
-import ProgressProvider from "~/components/progress-bar";
+import Layout from "~/components/layout/root/RootLayout";
 
 const queryClient = new QueryClient();
 
 const PopupImports = dynamic(
-  async () =>
-    await import("package/connect_wallet/src/components/popup_imports"),
+    async () =>
+        await import("package/connect_wallet/src/components/popup_imports"),
 );
 
 const inner = Titillium_Web({ subsets: ["latin"], weight: "400" });
-// const avro = Arvo({ subsets: ["latin"], weight: ["400", "700"] });
 
 const MyApp: AppType<{ session: Session | null }> = ({
-  Component,
-  pageProps: { session, ...pageProps },
+    Component,
+    pageProps: { session, ...pageProps },
 }) => {
-  return (
-    <SessionProvider session={session}>
-      <QueryClientProvider client={queryClient}>
-        <ProgressProvider>
-          <Layout className={inner.className}>
-            <Component {...pageProps} />
-          </Layout>
-          <PopupImports className={inner.className} />
-        </ProgressProvider>
-      </QueryClientProvider>
-    </SessionProvider>
-  );
+    return (
+        <SessionProvider session={session}>
+            <QueryClientProvider client={queryClient}>
+
+                <Layout className={inner.className}>
+                    <Component {...pageProps} />
+                </Layout>
+                <PopupImports className={inner.className} />
+
+            </QueryClientProvider>
+        </SessionProvider>
+    );
 };
 
 export default api.withTRPC(MyApp);
