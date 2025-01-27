@@ -1,6 +1,5 @@
 import { getAccSecret } from "package/connect_wallet";
 import { z } from "zod";
-import { CreatorAboutShema } from "~/components/fan/creator/about";
 import {
   createRedeemXDRAsset,
   createRedeemXDRNative,
@@ -22,6 +21,17 @@ import {
 } from "~/server/api/trpc";
 import { BADWORDS } from "~/utils/banned-word";
 import { truncateString } from "~/utils/string";
+export const CreatorAboutShema = z.object({
+  description: z
+    .string()
+    .max(100, { message: "Bio must be lass than 101 character" })
+    .nullable(),
+  name: z
+    .string()
+    .min(3, { message: "Name must be between 3 to 98 characters" })
+    .max(98, { message: "Name must be between 3 to 98 characters" }),
+  profileUrl: z.string().nullable().optional(),
+});
 
 export const creatorRouter = createTRPCRouter({
   getCreator: protectedProcedure

@@ -1,11 +1,6 @@
 import { ItemPrivacy } from "@prisma/client";
 import { z } from "zod";
-import {
-  NO_ASSET,
-  PAGE_ASSET_NUM,
-  createPinFormSchema,
-} from "~/components/maps/modals/create-pin";
-import { LocationWithConsumers } from "~/pages/maps/pins/creator";
+
 
 import {
   adminProcedure,
@@ -17,7 +12,60 @@ import {
 import { PinLocation } from "~/types/pin";
 import { BADWORDS } from "~/utils/banned-word";
 import { randomLocation as getLocationInLatLngRad } from "~/utils/map";
+export const PAGE_ASSET_NUM = -10;
+export const NO_ASSET = -99;
 
+export type LocationWithConsumers = {
+  title: string;
+  description?: string;
+  image?: string;
+  startDate: Date;
+  endDate: Date;
+  approved?: boolean;
+  latitude: number;
+  longitude: number;
+  consumers: number;
+  autoCollect: boolean;
+  id: string;
+};
+export const createPinFormSchema = z.object({
+  lat: z
+    .number({
+      message: "Latitude is required",
+    })
+    .min(-180)
+    .max(180),
+  lng: z
+    .number({
+      message: "Longitude is required",
+    })
+    .min(-180)
+    .max(180),
+  description: z.string(),
+  title: z
+    .string()
+    .min(3)
+    .refine(
+      (value) => {
+        return !BADWORDS.some((word) => value.includes(word));
+      },
+      {
+        message: "Input contains banned words.",
+      },
+    ),
+  image: z.string().url().optional(),
+  startDate: z.date(),
+  endDate: z.date().min(new Date(new Date().setHours(0, 0, 0, 0))),
+  url: z.string().url().optional(),
+  autoCollect: z.boolean(),
+  token: z.number().optional(),
+  tokenAmount: z.number().nonnegative().optional(), // if it optional then no token selected
+  pinNumber: z.number().nonnegative().min(1),
+  radius: z.number().nonnegative(),
+  pinCollectionLimit: z.number().min(0),
+  tier: z.string().optional(),
+  multiPin: z.boolean().optional(),
+});
 export const pinRouter = createTRPCRouter({
   getSecretMessage: protectedProcedure.query(() => {
     return "you can now see this secret message!";
@@ -510,10 +558,10 @@ export const pinRouter = createTRPCRouter({
         where: {
           createdAt: input
             ? {
-                gte: new Date(
-                  new Date().getTime() - input.day * 24 * 60 * 60 * 1000,
-                ),
-              }
+              gte: new Date(
+                new Date().getTime() - input.day * 24 * 60 * 60 * 1000,
+              ),
+            }
             : {},
           creatorId,
         },
@@ -591,10 +639,10 @@ export const pinRouter = createTRPCRouter({
         where: {
           createdAt: input
             ? {
-                gte: new Date(
-                  new Date().getTime() - input.day * 24 * 60 * 60 * 1000,
-                ),
-              }
+              gte: new Date(
+                new Date().getTime() - input.day * 24 * 60 * 60 * 1000,
+              ),
+            }
             : {},
         },
         include: {
@@ -650,10 +698,10 @@ export const pinRouter = createTRPCRouter({
         where: {
           createdAt: input
             ? {
-                gte: new Date(
-                  new Date().getTime() - input.day * 24 * 60 * 60 * 1000,
-                ),
-              }
+              gte: new Date(
+                new Date().getTime() - input.day * 24 * 60 * 60 * 1000,
+              ),
+            }
             : {},
         },
         include: {
@@ -707,10 +755,10 @@ export const pinRouter = createTRPCRouter({
         where: {
           createdAt: input
             ? {
-                gte: new Date(
-                  new Date().getTime() - input.day * 24 * 60 * 60 * 1000,
-                ),
-              }
+              gte: new Date(
+                new Date().getTime() - input.day * 24 * 60 * 60 * 1000,
+              ),
+            }
             : {},
         },
         include: {
@@ -840,10 +888,10 @@ export const pinRouter = createTRPCRouter({
         take: limit + 1,
         ...(cursor
           ? {
-              cursor: {
-                id: cursor,
-              },
-            }
+            cursor: {
+              id: cursor,
+            },
+          }
           : {}),
       });
 

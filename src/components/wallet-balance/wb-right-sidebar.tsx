@@ -34,43 +34,24 @@ export default function WBRightSideBar() {
   const [loading, setLoading] = useState(false);
   if (!session) return null;
   return (
-    <Card>
-      <CardContent>
-        <Tabs defaultValue="asset">
-          <TabsList className="w-full">
-            <TabsTrigger className="w-full" value="asset">
-              My Asset
-            </TabsTrigger>
-            {/* <TabsTrigger className="w-full" value="pending">
-              Pending Asset
-            </TabsTrigger> */}
-          </TabsList>
-          <TabsContent value="asset">
-            <MyAssetList />
-          </TabsContent>
-          {/* <TabsContent value="pending">
-            <PendingAssetList
-              user={session?.user}
-              setLoading={setLoading}
-              loading={loading}
-            />
-          </TabsContent> */}
-        </Tabs>
-      </CardContent>
-    </Card>
+
+    <MyAssetList />
+
+
   );
 }
 
 const MyAssetList = () => {
   const { data, isLoading } =
     api.walletBalance.wallBalance.getWalletsBalance.useQuery();
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div>Fetching...</div>;
   // console.log("data", data);
   return (
-    <>
-      <Separator className="my-4" />
-      <div className="space-y-4 h-[calc(100vh-60vh)] md:h-[calc(100vh-50vh)] overflow-y-auto scrollbar-none">
-        <div className="grid gap-6">
+    <Card>
+
+      <CardContent className=" h-[calc(100vh-44vh)] md:h-[calc(100vh-42vh)] rounded-md space-y-4 overflow-y-auto scrollbar-hide bg-white">
+
+        <div className="grid gap-6 mt-1">
           {!data || data.length === 0 ? (
             <h1>No Assets Available</h1>
           ) : (
@@ -125,7 +106,8 @@ const MyAssetList = () => {
             })
           )}
         </div>
-      </div>
-    </>
+
+      </CardContent>
+    </Card>
   );
 };

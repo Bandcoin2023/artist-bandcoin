@@ -8,9 +8,8 @@ import {
 } from "@prisma/client"; // Assuming you are using Prisma
 import { getAccSecretFromRubyApi } from "package/connect_wallet/src/lib/stellar/get-acc-secret";
 import { z } from "zod";
-import { BountyCommentSchema } from "~/components/fan/creator/bounty/Add-Bounty-Comment";
-import { sortOptionEnum } from "~/components/fan/creator/bounty/BountyList";
-import { MediaInfo } from "~/components/fan/creator/bounty/CreateBounty";
+import { MediaType } from "@prisma/client";
+
 import {
   checkXDRSubmitted,
   getHasMotherTrustOnUSDC,
@@ -35,9 +34,36 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
-import { SubmissionMediaInfo } from "~/components/modals/file-upload-modal";
-import { PaymentMethodEnum } from "~/components/BuyItem";
 
+export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
+export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
+
+export const BountyCommentSchema = z.object({
+  bountyId: z.number(),
+  parentId: z.number().optional(),
+  content: z
+    .string()
+    .min(1, { message: "Minimum 5 character is required!" })
+    .trim(),
+});
+export const SubmissionMediaInfo = z.object({
+  url: z.string(),
+  name: z.string(),
+  size: z.number(),
+  type: z.string(),
+});
+type SubmissionMediaInfoType = z.TypeOf<typeof SubmissionMediaInfo>;
+
+export const MediaInfo = z.object({
+  url: z.string(),
+  type: z.nativeEnum(MediaType),
+});
+export enum sortOptionEnum {
+  DATE_ASC = "DATE_ASC",
+  DATE_DESC = "DATE_DESC",
+  PRICE_ASC = "PRICE_ASC",
+  PRICE_DESC = "PRICE_DESC",
+}
 const getAllBountyByUserIdInput = z.object({
   limit: z.number().min(1).max(100).default(10),
   cursor: z.string().uuid().nullish(),

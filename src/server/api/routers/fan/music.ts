@@ -1,14 +1,56 @@
 
 import { ItemPrivacy } from "@prisma/client";
 import { z } from "zod";
-import { SongFormSchema } from "~/components/fan/creator/music/create-song";
 import {
     createTRPCRouter,
     creatorProcedure,
 
 } from "~/server/api/trpc";
 import { AssetSelectAllProperty } from "../marketplace/marketplace";
+import { AccountSchema } from "~/lib/stellar/fan/utils";
+export const SongFormSchema = z.object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    artist: z.string().min(2, "Artist must be at least 2 characters"),
+    musicUrl: z.string({
+        required_error:
+            "Music file is required",
+    }),
+    description: z.string(),
+    coverImgUrl: z.string({
+        required_error:
+            "Cover image is required",
+    }),
+    albumId: z.number(),
+    price: z.number({
+        required_error:
+            "Price is required",
+    }).nonnegative({
+        message: "Price must be a positive number",
 
+    }),
+    priceUSD: z.number({
+        required_error:
+            "USD Price is required",
+    }).nonnegative({
+        message: "Price must be a positive number",
+    }),
+    limit: z.number({
+        required_error:
+            "Limit is required",
+    }).nonnegative({
+        message: "Limit must be a positive number",
+    }),
+    code: z.string({
+        required_error:
+            "Asset name is required",
+    }).min(4, {
+        message: "Asset name must be at least 4 characters",
+    }).max(12, {
+        message: "Asset name must be at most 12 characters",
+    }),
+    issuer: AccountSchema.optional(),
+    tier: z.string().optional(),
+})
 export const musicRouter = createTRPCRouter({
 
     getCreatorAlbums: creatorProcedure.query(async ({ ctx }) => {

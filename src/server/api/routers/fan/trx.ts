@@ -15,7 +15,6 @@ import { SignUser, WithSing } from "~/lib/stellar/utils";
 
 import { Keypair } from "@stellar/stellar-sdk";
 
-import { PaymentMethodEnum } from "~/components/BuyItem";
 import { env } from "~/env";
 import {
   PLATFORM_FEE,
@@ -33,7 +32,6 @@ import {
   createUniAsset,
   createUniAssetWithXLM,
 } from "~/lib/stellar/uni_create_asset";
-import { FanGitFormSchema } from "~/pages/fans/creator/gift";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -42,6 +40,16 @@ import {
 import { db } from "~/server/db";
 
 const HIGHEST_LIMIT = "922337203685.4775807";
+export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
+export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
+export const FanGitFormSchema = z.object({
+  pubkey: z.string().length(56),
+  amount: z.number({
+    required_error: "Amount is required",
+    invalid_type_error: "Amount must be a number",
+    message: "Amount must be a number",
+  }).min(1),
+});
 
 export const trxRouter = createTRPCRouter({
   createCreatorPageAsset: protectedProcedure

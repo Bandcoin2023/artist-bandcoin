@@ -1,7 +1,5 @@
 import { Keypair } from "@stellar/stellar-sdk";
 import { z } from "zod";
-import { PlaceMarketFormSchema } from "~/components/marketplace/modal/place_2storage_modal";
-import { BackMarketFormSchema } from "~/components/marketplace/modal/revert_place_market_modal";
 import { env } from "~/env";
 import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
 import {
@@ -16,7 +14,34 @@ import {
   createTRPCRouter,
   protectedProcedure,
 } from "~/server/api/trpc";
-
+export const BackMarketFormSchema = z.object({
+  placingCopies: z
+    .number({
+      required_error: "Placing Copies  must be a number",
+      invalid_type_error: "Placing Copies must be a number",
+    })
+    .nonnegative()
+    .int(),
+  code: z
+    .string()
+    .min(4, { message: "Must be a minimum of 4 characters" })
+    .max(12, { message: "Must be a maximum of 12 characters" }),
+  issuer: z.string(),
+});
+export const PlaceMarketFormSchema = z.object({
+  placingCopies: z
+    .number({
+      required_error: "Placing Copies  must be a number",
+      invalid_type_error: "Placing Copies must be a number",
+    })
+    .nonnegative()
+    .int(),
+  code: z
+    .string()
+    .min(4, { message: "Must be a minimum of 4 characters" })
+    .max(12, { message: "Must be a maximum of 12 characters" }),
+  issuer: z.string(),
+});
 export const AssetSelectAllProperty = {
   code: true,
   name: true,
@@ -218,10 +243,10 @@ export const marketRouter = createTRPCRouter({
             creatorPageAsset &&
             item.asset.tier &&
             item.asset.tier.price <=
-              stellarAcc.getTokenBalance(
-                creatorPageAsset.code,
-                creatorPageAsset.issuer,
-              )
+            stellarAcc.getTokenBalance(
+              creatorPageAsset.code,
+              creatorPageAsset.issuer,
+            )
           );
         }
 
@@ -350,10 +375,10 @@ export const marketRouter = createTRPCRouter({
             creatorPageAsset &&
             item.asset.tier &&
             item.asset.tier.price <=
-              stellarAcc.getTokenBalance(
-                creatorPageAsset.code,
-                creatorPageAsset.issuer,
-              )
+            stellarAcc.getTokenBalance(
+              creatorPageAsset.code,
+              creatorPageAsset.issuer,
+            )
           ) {
             return true;
           }
