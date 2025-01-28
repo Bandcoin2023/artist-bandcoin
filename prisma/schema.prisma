@@ -396,6 +396,7 @@ model Asset {
     marketItems   MarketAsset[]
     LocationGroup LocationGroup[]
     Redeem        Redeem[]
+    createdAt     DateTime        @default(now())
 
     @@unique([code, issuer])
     @@index([name, description])
@@ -426,6 +427,8 @@ model MarketAsset {
 
     placerId String? // admin placing this assets
     placer   Creator? @relation(fields: [placerId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
 
     @@unique([assetId, placerId])
 }

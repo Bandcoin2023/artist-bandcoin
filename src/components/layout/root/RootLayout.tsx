@@ -37,7 +37,7 @@ export default function Layout({
                         <Sidebar />
                         <ChevronLeft
                             className={cn(
-                                "absolute -right-4 top-0  hidden md:block  cursor-pointer rounded-full border bg-background text-3xl text-foreground",
+                                "absolute -right-4 top-1  hidden md:block  cursor-pointer rounded-full border-2 shadow-sm shadow-black bg-background text-3xl text-foreground",
                                 isMinimized && "rotate-180",
                             )}
                             onClick={handleToggle}
@@ -47,7 +47,7 @@ export default function Layout({
                     {
                         session.status === "authenticated" ?
                             <>
-                                <div className="w-full h-full">
+                                <div className="w-full h-full p-6">
                                     {children}
                                 </div>
                             </>

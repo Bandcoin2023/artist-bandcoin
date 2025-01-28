@@ -21,8 +21,8 @@
     --accent-foreground: 60 10% 10%; /* Dark text on accent color */
     --destructive: 0 84.2% 60.2%; /* Red (for destructive actions) */
     --destructive-foreground: 60 33% 98%; /* Light text on destructive elements */
-    --border: 60 60% 88%; /* Light border color */
-    --input: 60 14% 88%; /* Light input background */
+    --border: 60 70% 80%; /* Light border color */
+    --input: 60 60% 88%; /* Light input background */
     --ring: 60 72% 52%; /* Focus ring (same as primary) */
     --radius: 0.75rem;
 
@@ -80,7 +80,7 @@
     --sidebar-primary-foreground: 60 10% 10%; /* Dark sidebar primary text */
     --sidebar-accent: 45 84% 56%; /* Sidebar accent color */
     --sidebar-accent-foreground: 60 10% 10%; /* Dark sidebar accent text */
-    --sidebar-border: 60 14% 20%; /* Sidebar dark border */
+    --sidebar-border: 60 80% 90%; /* Sidebar dark border */
     --sidebar-ring: 60 72% 52%; /* Sidebar focus ring */
   }
 }

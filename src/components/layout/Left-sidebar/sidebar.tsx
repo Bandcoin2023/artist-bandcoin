@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, LogOut } from "lucide-react";
 
 import { useSidebar } from "~/hooks/use-sidebar";
 
@@ -17,6 +17,7 @@ import { env } from "~/env";
 
 import { NavItem } from "~/types/icon-types";
 import { Button } from "~/components/shadcn/ui/button";
+import { signOut, useSession } from "next-auth/react";
 
 export const LeftNavigation: NavItem[] = [
   { href: "/", icon: "dashboard", title: "HOMEPAGE" },
@@ -45,11 +46,11 @@ type SidebarProps = {
 export default function Sidebar({ className }: SidebarProps) {
   const { isMinimized, toggle } = useSidebar();
 
-
+  const session = useSession()
   return (
     <div
       className={cn(
-        `relative h-[calc(100vh-10vh)] w-full overflow-y-auto overflow-x-hidden border-r     hidden  transition-[width] duration-500 md:block`,
+        `relative h-[calc(100vh-9vh)] p-1 w-full overflow-y-auto overflow-x-hidden border-r    shadow-md  hidden  transition-[width] duration-500 md:block`,
         !isMinimized ? "w-[280px]" : "w-[78px]",
         className,
       )}
@@ -57,8 +58,8 @@ export default function Sidebar({ className }: SidebarProps) {
 
 
 
-      <div className=" flex  h-full   w-full  flex-col items-center justify-between    p-2   no-scrollbar  ">
-        <div className="flex  w-full overflow-x-hidden   flex-col  py-2">
+      <div className=" flex  h-full   w-full  flex-col items-center justify-between   py-2   no-scrollbar  ">
+        <div className="flex  w-full overflow-x-hidden   flex-col  ">
           <DashboardNav items={LeftNavigation} />
         </div>
         <div
@@ -66,22 +67,42 @@ export default function Sidebar({ className }: SidebarProps) {
         >
           <LeftBottom />
         </div>
+        {session.status == "authenticated" && isMinimized &&
+
+          <div className="">
+            <LogOutButon />
+          </div>
+
+        }
       </div>
     </div>
 
   );
 }
+function LogOutButon() {
+  async function disconnectWallet() {
+    await signOut({
+      redirect: false,
+    });
+  }
+  return (
+    <Button className="flex flex-col p-3 shadow-sm shadow-black" onClick={disconnectWallet}>
+      <span> <LogOut /></span>
+      <span className="text-xs">Logout</span>
+    </Button>
+  );
+}
 
 export function LeftBottom() {
   return (
-    <div className="flex w-full flex-col justify-center gap-4">
+    <div className="flex w-full flex-col justify-center gap-4 p-1">
 
       <ConnectWalletButton />
 
       <div className="flex  items-center justify-between  gap-4 ">
         <Link
           href={"https://facebook.com/bandcoinio"}
-          className="btn flex h-16 shadow-md flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
+          className="btn flex h-16 shadow-sm shadow-black flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
           target="_blank"
         >
           <Facebook size={26} />
@@ -89,7 +110,7 @@ export function LeftBottom() {
         </Link>
         <Link
           href={"https://x.com/bandcoinio"}
-          className="btn flex h-16 shadow-md flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
+          className="btn flex h-16 shadow-sm shadow-black flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
           target="_blank"
         >
           <Image src="/images/icons/x.svg" alt="X" height={18} width={18}
@@ -99,7 +120,7 @@ export function LeftBottom() {
         </Link>
         <Link
           href={"https://www.instagram.com/bandcoin"}
-          className="btn flex h-16 shadow-md flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
+          className="btn flex h-16 shadow-sm shadow-black flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
           target="_blank"
         >
           <Instagram size={26} />

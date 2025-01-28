@@ -23,17 +23,16 @@ function CopyToClip({ text, collapse }: CopyToClipProps) {
   };
 
   return (
-    <span className="tooltip tooltip-left" data-tip={press ? "Copied" : "Copy"}>
-      <CopyToClipboard text={text} onCopy={() => void onCopy()}>
-        <Button
-          size='sm'
-          className="border-[#dbdd2c] border-2">
-          {
-            press ? <Copy className="text-[#dbdd2c]" /> : <Copy />
-          }
-        </Button>
-      </CopyToClipboard>
-    </span>
+    <CopyToClipboard
+      text={text} onCopy={() => void onCopy()}>
+      <Button
+        size='sm'
+        className="border-[#dbdd2c] border-2">
+        {
+          press ? <Copy className="text-[#dbdd2c]" size={12} /> : <Copy size={12} />
+        }
+      </Button>
+    </CopyToClipboard>
   );
 }
 
