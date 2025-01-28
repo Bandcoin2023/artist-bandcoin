@@ -3,6 +3,7 @@
 import { ShieldAlert } from "lucide-react"
 import { twMerge } from "tailwind-merge"
 import CoinAnimation from "./coin-animation"
+import { PLATFORM_ASSET } from "~/lib/stellar/constant"
 
 interface LoadingProps {
     className?: string
@@ -19,7 +20,7 @@ export default function Loading({ className, text }: LoadingProps) {
                 ) : (
                     <>
                         <CoinAnimation />
-                        <div className="mt-4 text-xl font-bold text-gray-800">bandcoin.io</div>
+                        <div className="mt-4 text-xl font-bold text-gray-800">{PLATFORM_ASSET.code.toLocaleUpperCase()}</div>
                         <div role="status" className="mt-4">
                             <svg
                                 aria-hidden="true"

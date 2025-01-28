@@ -28,12 +28,12 @@ interface DashboardNavProps {
 
 export function DashboardNav({ items, setOpen }: DashboardNavProps) {
   const path = usePathname();
-  const { isMinimized, setIsOpen: setIsSheetOpen, isSheetOpen } = useSidebar();
+  const { isMinimized, setIsSheetOpen, isSheetOpen } = useSidebar();
   if (!items.length) {
     return null
   }
   return (
-    <nav className="grid w-full gap-3  ">
+    <nav className="grid w-full gap-3 p-1 ">
       <TooltipProvider>
         {items.map((item, index) => {
           const Icon = Icons[item.icon as keyof typeof Icons];
@@ -44,10 +44,10 @@ export function DashboardNav({ items, setOpen }: DashboardNavProps) {
                   <Link href={item.disabled ? "/" : item.href} >
                     <Button
                       className={cn(
-                        "  flex    w-full items-center shadow-md  justify-start   gap-2 overflow-hidden rounded-md text-sm font-medium hover:text-[#dbdd2c]",
+                        "  flex    w-full items-center shadow-sm  justify-start   gap-2 overflow-hidden rounded-md text-sm font-medium hover:text-[#dbdd2c]",
                         path === item.href
                           ? "border-[#dbdd2c] border-2 text-[#dbdd2c] font-bold "
-                          : "transparent",
+                          : "transparent shadow-black ",
                         item.disabled && "cursor-not-allowed opacity-80",
                       )}
                       onClick={() => {

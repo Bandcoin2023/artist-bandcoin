@@ -56,6 +56,7 @@ export const AssetSelectAllProperty = {
   limit: true,
   tierId: true,
   tier: true,
+  createdAt: true,
 };
 
 export const marketRouter = createTRPCRouter({
@@ -264,6 +265,83 @@ export const marketRouter = createTRPCRouter({
         nfts: array,
         nextCursor,
       };
+    }),
+
+
+  getLatestMarketNFT: protectedProcedure
+
+    .query(async ({ ctx, input }) => {
+      const currentUserId = ctx.session.user.id;
+
+      const items = await ctx.db.marketAsset.findMany({
+
+        include: {
+          asset: {
+            select: {
+              ...AssetSelectAllProperty,
+              tier: {
+                select: {
+                  price: true,
+                },
+              },
+              creator: {
+                select: {
+                  pageAsset: {
+                    select: {
+                      code: true,
+                      issuer: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        where: { placerId: { not: null } },
+      });
+
+      const stellarAcc = await StellarAccount.create(currentUserId);
+
+      // Filter items based on privacy and conditions
+      const array = items.filter((item) => {
+        const creatorPageAsset = item.asset.creator?.pageAsset;
+
+        if (item.asset.privacy === ItemPrivacy.PUBLIC) {
+          return true;
+        }
+
+        if (item.asset.creatorId !== item.placerId) {
+          return true;
+        }
+
+        if (item.asset.privacy === ItemPrivacy.PRIVATE) {
+          return (
+            creatorPageAsset &&
+            stellarAcc.hasTrustline(
+              creatorPageAsset.code,
+              creatorPageAsset.issuer,
+            )
+          );
+        }
+
+        if (item.asset.privacy === ItemPrivacy.TIER) {
+          return (
+            creatorPageAsset &&
+            item.asset.tier &&
+            item.asset.tier.price <=
+            stellarAcc.getTokenBalance(
+              creatorPageAsset.code,
+              creatorPageAsset.issuer,
+            )
+          );
+        }
+
+        return false;
+      });
+
+      return array.slice(0, 5);
+
     }),
 
   getPageAssets: protectedProcedure
@@ -498,7 +576,7 @@ export const marketRouter = createTRPCRouter({
 
         return 0;
       }
-
+      console.log("id............", id);
       const marketItem = await ctx.db.marketAsset.findUnique({
         where: { id },
         include: { asset: { select: { code: true, issuer: true } } },
