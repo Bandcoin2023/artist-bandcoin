@@ -8,7 +8,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { WalletType } from "package/connect_wallet/src/lib/enums";
-import { Sheet, SheetContent, SheetTrigger } from "~/components/shadcn/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTrigger } from "~/components/shadcn/ui/sheet";
 import { Button } from "~/components/shadcn/ui/button";
 import { Mode, useMode } from "~/lib/state/fan/left-side-mode";
 import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances";
@@ -36,13 +36,32 @@ function Header() {
                     <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                         <SheetTrigger asChild>
                             <Button
-                                variant='destructive'
+                                variant="link"
                                 className="md:hidden p-2"
                             >
-                                <Menu />
+                                <Menu color="white" />
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="w-72 !px-0">
+
+                        <SheetContent side="left" className="w-72 p-0">
+                            <SheetHeader className="flex items-center justify-between bg-primary p-2 rounded-md shadow-md">
+
+                                <div className="flex items-center gap-1 ">
+                                    <Image
+                                        alt="logo"
+                                        objectFit="cover"
+                                        src="/images/logo.png"
+                                        height={200}
+                                        width={200}
+                                        className=" h-10 w-10"
+                                    />
+                                    <h1 className="relative text-xl font-bold capitalize text-black md:text-4xl ">
+                                        <p className="">{PLATFORM_ASSET.code.toLocaleUpperCase()}</p>
+                                        <p className="absolute  right-0 top-0 -mr-4 -mt-1  text-xs">TM</p>
+                                    </h1>
+
+                                </div>
+                            </SheetHeader>
                             <div className="flex h-full w-full flex-col items-center justify-between p-2 no-scrollbar">
                                 <div className="flex w-full overflow-x-hidden flex-col py-2">
                                     <DashboardNav items={LeftNavigation} />

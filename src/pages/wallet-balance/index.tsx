@@ -183,7 +183,7 @@ const Wallets = () => {
 
     return (
         <div className=" p-6 space-y-6  w-full"  >
-            <Card className="bg-gradient-to-r  from-yellow-400 to-blue-400 text-white">
+            <Card className="bg-gradient-to-r  from-yellow-400 to-blue-400 text-white shadow-md">
                 <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row justify-between items-center">
                         <div className="mb-4 md:mb-0">
