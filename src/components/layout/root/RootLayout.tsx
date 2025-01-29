@@ -47,12 +47,12 @@ export default function Layout({
                     {
                         session.status === "authenticated" ?
                             <>
-                                <div className="w-full h-full p-6">
+                                <div className="w-full h-full p-2 md:p-6  ">
                                     {children}
                                 </div>
                             </>
                             :
-                            <div className="w-full flex items-center justify-center ">
+                            <div className="w-full h-screen flex items-center justify-center ">
                                 <ConnectWalletButton />
                             </div>
 

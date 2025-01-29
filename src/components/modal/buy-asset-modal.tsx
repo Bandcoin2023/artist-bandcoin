@@ -43,17 +43,15 @@ interface BuyModalProps {
     data: MarketAssetType;
 
     isOpen: boolean;
-    setIsOpen: (value: boolean) => void;
+    setIsOpen: (isOpen: boolean) => void;
 }
 
 export default function BuyModal({ data, isOpen, setIsOpen }: BuyModalProps) {
-
     const session = useSession();
-    const router = useRouter();
     const [step, setStep] = useState(1);
     // const { setCurrentTrack, currentTrack, setIsPlaying, setCurrentAudioPlayingId } = usePlayer();
     const handleClose = () => {
-        // setCurrentTrack(null);
+        console.log(isOpen)
         setStep(1);
         setIsOpen(false);
     };
@@ -134,14 +132,14 @@ export default function BuyModal({ data, isOpen, setIsOpen }: BuyModalProps) {
     return (
         <>
             <Dialog open={isOpen} onOpenChange={handleClose}>
-                <DialogContent className="max-w-3xl  overflow-hidden p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-black [&>button]:bg-white [&>button]:text-black">
+                <DialogContent className="max-w-4xl  overflow-hidden p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-black [&>button]:bg-white [&>button]:text-black">
                     {step === 1 && (
                         <div className="grid grid-cols-1 md:grid-cols-7">
                             {/* Left Column - Product Image */}
-                            <Card className=" max-h-[770px] min-h-[770px] overflow-y-auto   md:col-span-3 ">
+                            <Card className=" max-h-[770px] min-h-[770px] overflow-y-auto scrollbar-hide   md:col-span-3 ">
                                 <CardContent className="p-0 bg-primary rounded-sm">
                                     {/* Image Container */}
-                                    <div className="relative aspect-square ">
+                                    <div className="relative h-[300px] w-full">
                                         <SparkleEffect />
                                         <Image
                                             src={data.asset.thumbnail}
@@ -250,11 +248,11 @@ export default function BuyModal({ data, isOpen, setIsOpen }: BuyModalProps) {
 
                                     {/* Content */}
                                     <div className="space-y-3 p-4 border-2 rounded-md">
-                                        <h2 className="text-xl font-bold ">
+                                        <h2 className="text-xl font-bold  max-h-[50px] min-h-[50px] overflow-y-auto scrollbar-hide">
                                             NAME: {data.asset.name}
                                         </h2>
 
-                                        <p className="max-h-[100px] min-h-[100px] overflow-y-auto text-sm text-gray-500">
+                                        <p className="max-h-[100px] min-h-[100px] overflow-y-auto text-sm text-gray-500 scrollbar-hide">
                                             DESCRIPTION: {data.asset.description}
                                         </p>
 
@@ -502,8 +500,8 @@ export default function BuyModal({ data, isOpen, setIsOpen }: BuyModalProps) {
                             </CardContent>
                             <CardFooter className="p-2">
                                 {step === 2 && (
-                                    <Button onClick={handleBack} variant="secondary" className="">
-                                        <ArrowLeft className="h-4 w-4" /> Back
+                                    <Button onClick={handleBack} variant="destructive" className="shadow-sm shadow-black">
+                                        Back
                                     </Button>
                                 )}
                             </CardFooter>

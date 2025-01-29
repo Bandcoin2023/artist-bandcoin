@@ -97,6 +97,7 @@ export function LeftBottom() {
   return (
     <div className="flex w-full flex-col justify-center gap-4 p-1">
 
+
       <ConnectWalletButton />
 
       <div className="flex  items-center justify-between  gap-4 ">
@@ -106,7 +107,7 @@ export function LeftBottom() {
           target="_blank"
         >
           <Facebook size={26} />
-          <span>Facebook</span>
+
         </Link>
         <Link
           href={"https://x.com/bandcoinio"}
@@ -116,7 +117,7 @@ export function LeftBottom() {
           <Image src="/images/icons/x.svg" alt="X" height={18} width={18}
             className="w-5 h-5"
           />
-          <span>X</span>
+
         </Link>
         <Link
           href={"https://www.instagram.com/bandcoin"}
@@ -124,7 +125,6 @@ export function LeftBottom() {
           target="_blank"
         >
           <Instagram size={26} />
-          <span>Instagram</span>
         </Link>
       </div>
       <div className="flex w-full flex-col text-center text-xs text-base-content">
