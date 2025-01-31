@@ -6,26 +6,26 @@ import { MarketAssetType, useModal } from "~/lib/state/play/use-modal-store";
 import AssetView from "./asset";
 import BuyModal from "../modal/buy-asset-modal";
 import React, { useState } from "react";
+import { useBuyModalStore } from "../store/buy-modal-store";
 
 function MarketAssetComponent({ item }: { item: MarketAssetType }) {
     const { asset } = item;
-    const [isOpenBuyModal, setIsOpenBuyModal] = useState(false)
+    const { setIsOpen, setData, isOpen, data } = useBuyModalStore()
+
     return (
         <div className=""
             onClick={() => {
-                setIsOpenBuyModal(true);
+                console.log("cliked")
+                setIsOpen(true)
+                setData(item)
             }}>
 
             <AssetView code={asset.name} thumbnail={asset.thumbnail} />
-            {
-                isOpenBuyModal && item && (
-                    <BuyModal
-                        isOpen={isOpenBuyModal}
-                        setIsOpen={setIsOpenBuyModal}
-                        data={item}
-                    />
-                )
-            }
+
+
+
+
+
         </div>
     );
 }

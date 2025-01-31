@@ -16,6 +16,8 @@ export function MoreAssetsSkeleton({ className }: skeletonProps) {
             <MarketAssetSkeleton />
             <MarketAssetSkeleton />
             <MarketAssetSkeleton />
+            <MarketAssetSkeleton />
+
 
         </div>
     );
