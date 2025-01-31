@@ -35,20 +35,19 @@ import PaymentProcessItem from "../payment/payment-process";
 import ShowThreeDModel from "../3d-model/model-show";
 import { MarketAssetType } from "~/types/market/market-asset-type";
 import CopyToClip from "../common/copy_to_Clip";
+import { useBuyModalStore } from "../store/buy-modal-store";
 
 export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
 
-interface BuyModalProps {
-    data: MarketAssetType;
 
-    isOpen: boolean;
-    setIsOpen: (isOpen: boolean) => void;
-}
 
-export default function BuyModal({ data, isOpen, setIsOpen }: BuyModalProps) {
+export default function BuyModal() {
     const session = useSession();
     const [step, setStep] = useState(1);
+    const { data, isOpen, setIsOpen } = useBuyModalStore()
+    console.log("data", data)
+    console.log("isOpen", isOpen)
     // const { setCurrentTrack, currentTrack, setIsPlaying, setCurrentAudioPlayingId } = usePlayer();
     const handleClose = () => {
         console.log(isOpen)
@@ -132,6 +131,7 @@ export default function BuyModal({ data, isOpen, setIsOpen }: BuyModalProps) {
     return (
         <>
             <Dialog open={isOpen} onOpenChange={handleClose}>
+
                 <DialogContent className="max-w-4xl  overflow-hidden p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-black [&>button]:bg-white [&>button]:text-black">
                     {step === 1 && (
                         <div className="grid grid-cols-1 md:grid-cols-7">

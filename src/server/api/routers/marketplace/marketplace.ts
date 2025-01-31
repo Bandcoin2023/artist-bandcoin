@@ -379,6 +379,9 @@ export const marketRouter = createTRPCRouter({
       const { limit, cursor, skip } = input;
 
       const items = await ctx.db.creator.findMany({
+        where: {
+          profileUrl: { not: null }
+        },
         select: {
           id: true,
           name: true,
@@ -390,8 +393,8 @@ export const marketRouter = createTRPCRouter({
         cursor: cursor ? { id: cursor } : undefined,
         orderBy: {
           pageAsset: {
-            creatorId: "asc",
-          },
+            creatorId: "asc"
+          }
         },
       });
 

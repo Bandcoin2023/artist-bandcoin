@@ -13,6 +13,7 @@ export default {
 		"node_modules/daisyui/dist/**/*.js",
 		"node_modules/react-daisyui/dist/**/*.js",
 	],
+
 	theme: {
 		extend: {
 			colors: {
@@ -71,9 +72,10 @@ export default {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
-			}
+			},
+
 		}
 	},
-	plugins: [require("tailwindcss-animate"), require('tailwind-scrollbar-hide')
-	],
+	plugins: [require("tailwindcss-animate"),
+	require('tailwind-scrollbar-hide')],
 } satisfies Config;

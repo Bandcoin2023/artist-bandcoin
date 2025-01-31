@@ -21,12 +21,8 @@ import { signOut, useSession } from "next-auth/react";
 
 export const LeftNavigation: NavItem[] = [
   { href: "/", icon: "dashboard", title: "HOMEPAGE" },
-  {
-    href: "/wallet-balance",
-    icon: "wallet",
-    title: "MY WALLET",
-  },
-  { href: "/assets", icon: "collection", title: "MY COLLECTION" },
+
+  { href: "/my-collection", icon: "collection", title: "MY COLLECTION" },
   // Search: { path: "/search", icon: Search, text: "Search" },
   { href: "/music", icon: "music", title: "MUSIC" },
   { href: "/marketplace", icon: "store", title: "MARKETPLACE" },
@@ -50,13 +46,11 @@ export default function Sidebar({ className }: SidebarProps) {
   return (
     <div
       className={cn(
-        `relative h-[calc(100vh-9vh)] p-1 w-full overflow-y-auto overflow-x-hidden border-r    shadow-md  hidden  transition-[width] duration-500 md:block`,
+        ` h-[calc(100vh-10vh)] sticky top-[5.8rem] p-1 w-full overflow-hidden border-r shadow-md hidden transition-[width] duration-500 md:block`,
         !isMinimized ? "w-[280px]" : "w-[78px]",
         className,
       )}
     >
-
-
 
       <div className=" flex  h-full   w-full  flex-col items-center justify-between   py-2   no-scrollbar  ">
         <div className="flex  w-full overflow-x-hidden   flex-col  ">
