@@ -19,15 +19,15 @@ const Marketplace = () => {
     return (
         <Card className="">
             <CardHeader className="w-full bg-primary border-b-2 p-2 md:p-4 flex items-center justify-center">
-                <CardTitle className="flex md:w-1/2 items-center justify-center  p-0  gap-4 ">
+                <CardTitle className="flex md:w-1/2 items-center justify-center  p-0  gap-2 md:gap-4">
                     {TABS.map((tab) => (
                         <Button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             className={cn(
-                                "flex w-1/2  text-sm shadow-sm shadow-black transition-all duration-300 ease-in-out ",
+                                "flex  text-xs md:text-sm shadow-sm shadow-black transition-all duration-300 ease-in-out ",
                                 activeTab === tab
-                                    ? "w-full border-2 px-10 font-bold text-[#dbdd2c]"
+                                    ? "w-full px-10  border-2 font-bold text-[#dbdd2c]"
                                     : " ",
                             )}
                         >
@@ -51,7 +51,10 @@ const Marketplace = () => {
                     {activeTab === "Trade" && (
                         <div>
                             <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
-                                <h1 className="text-white text-2xl font-bold">Trade</h1>
+                                <div className="flex items-center justify-center h-full flex-col gap-2">
+                                    <h1 className="text-lg font-bold ">No Trade Items</h1>
+
+                                </div>
                             </div>
                         </div>
                     )}
@@ -77,6 +80,14 @@ const CuratedItems = () => {
             {curatedItems.isLoading && (
                 <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
             )}
+            {
+                curatedItems.data?.pages[0]?.assets.length === 0 && (
+                    <div className="flex items-center justify-center h-full flex-col gap-2">
+                        <h1 className="text-lg font-bold ">No Curated Items</h1>
+
+                    </div>
+                )
+            }
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6">
                 {curatedItems.data?.pages.map((page, pageIndex) =>
                     page.assets.map((item, index) => (
@@ -114,6 +125,14 @@ const ArtistTokens = () => {
             {artistTokens.isLoading && (
                 <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
             )}
+            {
+                artistTokens.data?.pages[0]?.nfts.length === 0 && (
+                    <div className="flex items-center justify-center h-full flex-col gap-2">
+                        <h1 className="text-lg font-bold ">No Artist Tokens</h1>
+
+                    </div>
+                )
+            }
             <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                 {artistTokens.data?.pages.map((page, pageIndex) =>
                     page.nfts.map((item, index) => (

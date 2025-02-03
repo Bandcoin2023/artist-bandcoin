@@ -132,11 +132,11 @@ export default function BuyModal() {
         <>
             <Dialog open={isOpen} onOpenChange={handleClose}>
 
-                <DialogContent className="max-w-4xl  overflow-hidden p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-black [&>button]:bg-white [&>button]:text-black">
+                <DialogContent className="max-w-3xl     overflow-hidden p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-black [&>button]:bg-white [&>button]:text-black">
                     {step === 1 && (
                         <div className="grid grid-cols-1 md:grid-cols-7">
                             {/* Left Column - Product Image */}
-                            <Card className=" max-h-[770px] min-h-[770px] overflow-y-auto scrollbar-hide   md:col-span-3 ">
+                            <Card className="overflow-y-auto max-h-[770px] min-h-[770px] scrollbar-hide   md:col-span-3 ">
                                 <CardContent className="p-0 bg-primary rounded-sm">
                                     {/* Image Container */}
                                     <div className="relative h-[300px] w-full">
@@ -247,13 +247,14 @@ export default function BuyModal() {
                                     </div>
 
                                     {/* Content */}
-                                    <div className="space-y-3 p-4 border-2 rounded-md">
-                                        <h2 className="text-xl font-bold  max-h-[50px] min-h-[50px] overflow-y-auto scrollbar-hide">
+                                    <div className="space-y-1 p-4 border-2 rounded-md">
+                                        <h2 className="text-lg font-bold  truncate">
                                             NAME: {data.asset.name}
                                         </h2>
 
-                                        <p className="max-h-[100px] min-h-[100px] overflow-y-auto text-sm text-gray-500 scrollbar-hide">
+                                        <p className="max-h-[100px] border-b-2  min-h-[100px] overflow-y-auto text-sm text-gray-500 scrollbar-hide">
                                             DESCRIPTION: {data.asset.description}
+
                                         </p>
 
                                         <div className="flex items-center gap-2">
@@ -326,7 +327,7 @@ export default function BuyModal() {
 
                                                 // } as SongItemType);
                                             }}
-
+                                            size={"sm"}
                                             className="w-full bg-[#39BD2B] text-white hover:bg-sky-700 "
 
                                         >
@@ -350,7 +351,7 @@ export default function BuyModal() {
                                                 }}
 
                                                 className="w-full bg-[#39BD2B] text-white hover:bg-sky-700"
-
+                                                size={"sm"}
                                             >
                                                 Play
                                             </Button>
@@ -369,6 +370,7 @@ export default function BuyModal() {
                                         copy.data &&
                                         copy.data > 0 && (
                                             <Button
+                                                size={"sm"}
                                                 onClick={handleNext}
                                                 className="w-full shadow-sm shadow-black border-2"
 

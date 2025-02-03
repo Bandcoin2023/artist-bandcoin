@@ -1,5 +1,5 @@
 import { clientsign } from "package/connect_wallet";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { api } from "~/utils/api";
 
 import { z } from "zod";
@@ -12,6 +12,7 @@ import useNeedSign from "~/lib/hook";
 import { clientSelect } from "~/lib/stellar/fan/utils";
 import { addrShort } from "~/utils/utils";
 import { Button } from "~/components/shadcn/ui/button";
+import { Dialog } from "../shadcn/ui/dialog";
 
 export const BackMarketFormSchema = z.object({
     placingCopies: z
@@ -37,8 +38,7 @@ export default function NftBackModal({
     item: { code: string; issuer: string };
     copy: number;
 }) {
-    const modalRef = useRef<HTMLDialogElement>(null);
-
+    const [isOpen, setIsOpen] = useState(false);
     const session = useSession();
     const { needSign } = useNeedSign();
 
@@ -85,7 +85,7 @@ export default function NftBackModal({
     }
 
     const handleModal = () => {
-        modalRef.current?.showModal();
+        setIsOpen(!isOpen);
     };
 
     const onSubmit: SubmitHandler<z.infer<typeof BackMarketFormSchema>> = (
@@ -105,7 +105,7 @@ export default function NftBackModal({
 
     return (
         <>
-            <dialog className="modal" ref={modalRef}>
+            <Dialog open={isOpen} onOpenChange={handleModal}>
                 <div className="modal-box">
                     <form method="dialog">
                         <button
@@ -174,7 +174,7 @@ export default function NftBackModal({
                 {/* <form method="dialog" className="modal-backdrop">
           <button>close</button>
         </form> */}
-            </dialog>
+            </Dialog>
             <Button
                 className="btn btn-outline btn-sm my-2 w-full transition duration-500 ease-in-out"
                 onClick={handleModal}

@@ -27,7 +27,7 @@ export const LeftNavigation: NavItem[] = [
   { href: "/music", icon: "music", title: "MUSIC" },
   { href: "/marketplace", icon: "store", title: "MARKETPLACE" },
   { href: "/bounty", icon: "bounty", title: "BOUNTY" },
-  { href: "/fans/home", icon: "creator", title: "ARTISTS" },
+  { href: "/artist/home", icon: "creator", title: "ARTISTS" },
   { href: "/settings", icon: "setting", title: "SETTINGS" },
 ];
 
@@ -46,7 +46,7 @@ export default function Sidebar({ className }: SidebarProps) {
   return (
     <div
       className={cn(
-        ` h-[calc(100vh-10vh)] sticky top-[5.8rem] p-1 w-full overflow-hidden border-r shadow-md hidden transition-[width] duration-500 md:block`,
+        ` h-[calc(100vh-10.8vh)] sticky top-[5.8rem] p-1 w-full overflow-hidden border-r shadow-md hidden transition-[width] duration-500 md:block`,
         !isMinimized ? "w-[280px]" : "w-[78px]",
         className,
       )}
@@ -97,7 +97,7 @@ export function LeftBottom() {
       <div className="flex  items-center justify-between  gap-4 ">
         <Link
           href={"https://facebook.com/bandcoinio"}
-          className="btn flex h-16 shadow-sm shadow-black flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
+          className="btn flex h-12 shadow-sm shadow-black flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
           target="_blank"
         >
           <Facebook size={26} />
@@ -105,7 +105,7 @@ export function LeftBottom() {
         </Link>
         <Link
           href={"https://x.com/bandcoinio"}
-          className="btn flex h-16 shadow-sm shadow-black flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
+          className="btn flex h-12 shadow-sm shadow-black flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
           target="_blank"
         >
           <Image src="/images/icons/x.svg" alt="X" height={18} width={18}
@@ -115,7 +115,7 @@ export function LeftBottom() {
         </Link>
         <Link
           href={"https://www.instagram.com/bandcoin"}
-          className="btn flex h-16 shadow-sm shadow-black flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
+          className="btn flex h-12 shadow-sm shadow-black flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
           target="_blank"
         >
           <Instagram size={26} />

@@ -106,7 +106,8 @@ const HomePage = () => {
   // Early return if no data
   if (fanAssets.isLoading ?? RecentlyAddedMarketAssets.length === 0) {
     return (
-      <div className="relative h-[56vh] overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-4 md:h-[42vh]">
+      <div className="h-[calc(100vh-10vh)]">
+        <div className="relative h-[56vh] overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-4 md:h-[42vh]">
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-black/60 via-black/40 to-black/90 backdrop-blur-md" />
         <div className="relative z-10 flex h-full flex-col rounded-md">
           <div className="mb-4 flex items-center justify-between">
@@ -137,6 +138,7 @@ const HomePage = () => {
             ))}
           </div>
         </div>
+      </div>
       </div>
     );
   }
@@ -469,7 +471,7 @@ const FilterTabs = () => {
             </div>
           )}
           {activeTab === "BANDCOIN" && (
-            <div>
+            <div className="">
               <AdminAsset
                 adminAssets={adminAssets}
                 hasNextPage={adminAssets.hasNextPage ?? false}
@@ -480,7 +482,7 @@ const FilterTabs = () => {
             </div>
           )}
           {activeTab === "ARTISTS" && (
-            <div>
+            <div className="">
               <Artist
                 artist={artistAssets}
                 hasNextPage={artistAssets.hasNextPage ?? false}
@@ -537,7 +539,7 @@ const AllAssets = ({
   fetchNextPage,
 }: AllAssetsTypes) => {
   return (
-    <div className="flex min-h-[35vh] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
+    <div className="flex min-h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
       {isLoading && (
         <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
       )}
@@ -606,11 +608,11 @@ const AdminAsset = ({
   isLoading,
 }: AdminAssetTypes) => {
   return (
-    <div className="flex min-h-[35vh] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
+    <div className="flex min-h-[calc(100vh-20vh)]  flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
       {isLoading && (
         <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
       )}
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6">
         {adminAssets.data?.pages.map((page, pageIndex) =>
           page.nfts.map((item, index) => (
             <MarketAssetComponent
@@ -653,11 +655,11 @@ const ArtistTokens = ({
   isLoading,
 }: AristTokenTypes) => {
   return (
-    <div className="flex min-h-[35vh] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
+    <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
       {isLoading && (
         <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
       )}
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6">
         {artistTokens.data?.pages.map((page, pageIndex) =>
           page.nfts.map((item, index) => (
             <MarketAssetComponent
@@ -700,11 +702,11 @@ const Artist = ({
   isLoading,
 }: ArtistTypes) => {
   return (
-    <div className="flex min-h-[35vh] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
+    <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
       {isLoading && (
         <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
       )}
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6">
         {artist.data?.pages.map((page, pageIndex) =>
           page.nfts.map((item, index) => (
             <PageAssetComponent
