@@ -19,7 +19,7 @@ export const UserAboutShema = z.object({
   name: z
     .string()
     .min(3, { message: "Name must be greater than 2 characters." })
-    .max(20, { message: "Name must be less than 21 characters." }),
+    .max(100, { message: "Name must be less than 99 characters." }),
   profileUrl: z.string().nullable().optional(),
 });
 export const userRouter = createTRPCRouter({

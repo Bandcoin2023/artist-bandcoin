@@ -82,83 +82,75 @@ export default function AssetInfoModal() {
                         </DialogClose>
                         <div className="grid grid-cols-1 md:grid-cols-7">
                             {/* Left Column - Product Image */}
-                            <Card className=" overflow-y-auto  max-h-[770px] min-h-[770px]  scrollbar-hide   md:col-span-3">
-                                <CardContent className="p-0 bg-primary rounded-sm">
+                            <Card className=" overflow-y-hidden  max-h-[770px] min-h-[770px]  scrollbar-hide   md:col-span-3">
+                                <CardContent className="p-1 bg-primary rounded-sm flex flex-col justify-between h-full">
                                     {/* Image Container */}
-                                    <div className="relative h-[300px] w-full">
-                                        <SparkleEffect />
-                                        <Image
-                                            src={data.thumbnail}
-                                            alt={data.name}
-                                            width={1000}
-                                            height={1000}
-                                            className="h-full w-full object-cover"
+                                    <div className="flex flex-col">
+                                        <div className="relative h-[300px] w-full">
+                                            <SparkleEffect />
+                                            <Image
+                                                src={data.thumbnail}
+                                                alt={data.name}
+                                                width={1000}
+                                                height={1000}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="space-y-3 p-4 border-2 rounded-md">
+                                            <h2 className="text-lg font-bold  truncate">
+                                                NAME: {data.name}
+                                            </h2>
+
+                                            <p className="max-h-[100px] border-b-2  min-h-[100px] overflow-y-auto text-sm text-gray-500 scrollbar-hide">
+                                                DESCRIPTION: {data.description}
+                                            </p>
+
+                                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                                                <span className="h-auto p-0 text-xs text-[#00a8fc]">
+                                                    ISSUER ID: {addrShort(data.issuer, 5)}
+                                                </span>
+                                                <Badge variant="secondary" className=" rounded-lg">
+                                                    {data.code}
+                                                </Badge>
+                                            </div>
+
+                                            <p className="font-semibold ">
+                                                <span className="">Available:</span>{" "}
+                                                {Number(copyCreatorAssetBalance) === 0
+                                                    ? "Sold out"
+                                                    : Number(copyCreatorAssetBalance) === 1
+                                                        ? "1 copy"
+                                                        : Number(copyCreatorAssetBalance) !== undefined
+                                                            ? `${Number(copyCreatorAssetBalance)} copies`
+                                                            : "..."}
+                                            </p>
+                                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                                                <span className="h-auto p-0 text-xs text-[#00a8fc]">
+                                                    Media Type:
+                                                </span>
+                                                <Badge variant="destructive" className=" rounded-lg">
+                                                    {data.mediaType}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-2 w-full">
+                                        <OtherButtons
+                                            currentData={data}
+                                            copies={Number(copyCreatorAssetBalance)}
                                         />
-                                    </div>
-
-                                    {/* Content */}
-                                    <div className="space-y-3 p-4 border-2 rounded-md">
-                                        <h2 className="text-lg font-bold  truncate">
-                                            NAME: {data.name}
-                                        </h2>
-
-                                        <p className="max-h-[100px] border-b-2  min-h-[100px] overflow-y-auto text-sm text-gray-500 scrollbar-hide">
-                                            DESCRIPTION: {data.description}
-                                        </p>
-
-                                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                                            <span className="h-auto p-0 text-xs text-[#00a8fc]">
-                                                ISSUER ID: {addrShort(data.issuer, 5)}
-                                            </span>
-                                            <Badge variant="secondary" className=" rounded-lg">
-                                                {data.code}
-                                            </Badge>
-                                        </div>
-
-                                        <p className="font-semibold ">
-                                            <span className="">Available:</span>{" "}
-                                            {Number(copyCreatorAssetBalance) === 0
-                                                ? "Sold out"
-                                                : Number(copyCreatorAssetBalance) === 1
-                                                    ? "1 copy"
-                                                    : Number(copyCreatorAssetBalance) !== undefined
-                                                        ? `${Number(copyCreatorAssetBalance)} copies`
-                                                        : "..."}
-                                        </p>
-                                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                                            <span className="h-auto p-0 text-xs text-[#00a8fc]">
-                                                Media Type:
-                                            </span>
-                                            <Badge variant="destructive" className=" rounded-lg">
-                                                {data.mediaType}
-                                            </Badge>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                                <CardFooter className="flex flex-col gap-1 p-2">
-                                    <OtherButtons
-                                        currentData={data}
-                                        copies={Number(copyCreatorAssetBalance)}
-                                    />
-                                    {session.status === "authenticated" &&
-                                        data?.creatorId === session.data.user.id && (
-                                            <>
-                                                <DisableFromMarketButton
-                                                    code={data.code}
-                                                    issuer={data.issuer}
-                                                />
-                                            </>
-                                        )}
-                                    {data.mediaType === "MUSIC" ? (
-                                        <Button
-
-                                            className="w-full"
-                                            variant="secondary"
-                                        >
-                                            Play
-                                        </Button>
-                                    ) : (
-                                        data.mediaType === "VIDEO" && (
+                                        {session.status === "authenticated" &&
+                                            data?.creatorId === session.data.user.id && (
+                                                <>
+                                                    <DisableFromMarketButton
+                                                        code={data.code}
+                                                        issuer={data.issuer}
+                                                    />
+                                                </>
+                                            )}
+                                        {data.mediaType === "MUSIC" ? (
                                             <Button
 
                                                 className="w-full"
@@ -166,11 +158,24 @@ export default function AssetInfoModal() {
                                             >
                                                 Play
                                             </Button>
-                                        )
-                                    )}
-                                    <DeleteAssetByAdmin assetId={data.id}
-                                        handleClose={handleClose}
-                                    />
+                                        ) : (
+                                            data.mediaType === "VIDEO" && (
+                                                <Button
+
+                                                    className="w-full"
+                                                    variant="secondary"
+                                                >
+                                                    Play
+                                                </Button>
+                                            )
+                                        )}
+                                        <DeleteAssetByAdmin assetId={data.id}
+                                            handleClose={handleClose}
+                                        />
+                                    </div>
+                                </CardContent>
+                                <CardFooter className="flex flex-col gap-1 p-2">
+
                                 </CardFooter>
                             </Card>
 

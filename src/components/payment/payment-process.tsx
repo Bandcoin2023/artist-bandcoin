@@ -297,7 +297,7 @@ export function MethodDetails({
     submitLoading,
     paymentSuccess,
 }: MethodDetailsProps) {
-    if (xdrMutation.isLoading) return <Loader className="animate-spin" />;
+    if (xdrMutation.isLoading) return <Loader className="animate-spin w-full" />;
 
     if (xdrMutation.isError) {
         return (
@@ -346,7 +346,7 @@ export function MethodDetails({
                     {isSufficientAssetBalance ? (
                         <Button
                             disabled={paymentSuccess}
-                            className="w-full shadow-sm"
+                            className="w-full shadow-sm shadow-black"
                             onClick={onConfirmPayment}
                         >
                             {submitLoading && (
@@ -389,7 +389,7 @@ export function MethodDetails({
                     {isSufficientAssetBalance ? (
                         <Button
                             disabled={paymentSuccess}
-                            className="w-full"
+                            className="w-full shadow-sm shadow-black"
                             onClick={onConfirmPayment}
                         >
                             {submitLoading && (

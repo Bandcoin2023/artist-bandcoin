@@ -109,6 +109,7 @@ const HeaderButtons = () => {
         onError: (error) => {
             setActive(false);
         },
+        enabled: session.data?.user?.id !== undefined,
     });
     const updateMutation = api.fan.notification.updateNotification.useMutation();
 
@@ -117,7 +118,12 @@ const HeaderButtons = () => {
     };
 
     const { data: notificationCount } =
-        api.fan.notification.getUnseenNotificationCount.useQuery();
+        api.fan.notification.getUnseenNotificationCount.useQuery(
+            undefined,
+            {
+                enabled: session.data?.user?.id !== undefined,
+            }
+        );
 
     const walletType = session.data?.user.walletType ?? WalletType.none;
 
