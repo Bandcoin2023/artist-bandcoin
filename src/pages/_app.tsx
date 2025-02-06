@@ -11,6 +11,7 @@ import dynamic from "next/dynamic";
 import { Titillium_Web } from "next/font/google";
 import "~/styles/globals.css";
 import Layout from "~/components/layout/root/RootLayout";
+import { Toaster } from "~/components/shadcn/ui/toaster";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const MyApp: AppType<{ session: Session | null }> = ({
 
                 <Layout className={inner.className}>
                     <Component {...pageProps} />
+
                 </Layout>
                 <PopupImports className={inner.className} />
 

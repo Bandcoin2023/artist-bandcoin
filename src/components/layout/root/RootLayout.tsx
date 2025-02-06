@@ -15,6 +15,7 @@ import Sidebar, { LeftNavigation } from "../Left-sidebar/sidebar";
 import { cn } from "~/lib/utils";
 import { useSidebar } from "~/hooks/use-sidebar";
 import ModalProvider from "~/components/providers/modal-provider";
+import { Toaster } from "~/components/shadcn/ui/toaster";
 
 export default function Layout({
     children,
@@ -47,9 +48,11 @@ export default function Layout({
                     </div>
 
                     {session.status === "authenticated" ? (
-                        <div className="w-full  overflow-y-auto p-2  md:p-4 lg:p-6 scrollbar-hide">
+                        <div className="w-full  overflow-y-auto p-2  md:px-4 lg:px-6 scrollbar-hide">
                             {children}
                             <ModalProvider />
+                            <Toaster />
+
                         </div>
 
                     ) : (
