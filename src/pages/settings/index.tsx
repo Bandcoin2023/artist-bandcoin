@@ -36,7 +36,7 @@ export const AboutUserShema = z.object({
     name: z
         .string()
         .min(3, { message: "Name must be greater than 2 characters." })
-        .max(20, { message: "Name must be less than 21 characters." }),
+        .max(100, { message: "Name must be less than 99 characters." }),
     profileUrl: z.string().nullable().optional(),
 });
 
@@ -134,15 +134,17 @@ export default function AboutUserData() {
 
 
 const AboutUser = ({ user }: { user: UserSettingsType }) => {
-
+    const utils = api.useUtils();
 
     const mutation = api.fan.user.updateUserProfile.useMutation({
-        onSuccess: () => {
+        onSuccess: async () => {
             toast({
                 title: "Profile Updated",
                 description: "Your profile information has been updated successfully.",
                 variant: "default",
             });
+            await utils.fan.user.getUser.invalidate();
+
         },
         onError: (error) => {
             toast({
@@ -160,7 +162,7 @@ const AboutUser = ({ user }: { user: UserSettingsType }) => {
     const form = useForm({
         resolver: zodResolver(AboutUserShema),
         defaultValues: {
-            name: user.name ?? "Unknown",
+            name: user.name ?? "",
             bio: user.bio ?? "",
         },
     });
@@ -223,7 +225,7 @@ const AboutUser = ({ user }: { user: UserSettingsType }) => {
                     {/* Profile Details */}
                     <div className="lg:grid grid-cols-12 p-6 flex flex-col">
                         <div className="pt-28 col-span-4">
-                            <h1 className="text-2xl font-bold ">{user.name}</h1>
+                            <h1 className="text-2xl font-bold ">{user.name && user?.name?.length > 21 ? user.name?.slice(0, 22) + "..." : user.name?.slice(0, 22)}</h1>
 
                             <div className="mt-2 space-y-1 text-md  ">
                                 <span className=" font-bold"> PUB KEY:</span>
@@ -244,7 +246,7 @@ const AboutUser = ({ user }: { user: UserSettingsType }) => {
                             </div>
                         </div>
                         <div>
-                            <Textarea className="w-full  lg:w-[calc(100vw-50vw)] h-56 border-[2px] bg-gray-100" disabled
+                            <Textarea className="w-full  lg:w-[calc(100vw-50vw)] h-56 border-[2px] bg-gray-100  " disabled
 
 
 
@@ -296,7 +298,7 @@ const AboutUser = ({ user }: { user: UserSettingsType }) => {
                                                     />
                                                 </FormControl>
                                                 <FormDescription className="text-xs ">
-                                                    Name must be between 3 to 20 characters
+                                                    Name must be between 3 to 99 characters
                                                 </FormDescription>
                                                 <FormMessage />
                                             </FormItem>

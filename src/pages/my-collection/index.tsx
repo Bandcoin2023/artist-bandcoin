@@ -83,14 +83,19 @@ const MyCollection = () => {
         },
     );
 
+    if (acc.isLoading) {
+        return (
+            <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
+                <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
+            </div>
+        )
+    }
 
 
     if (acc.data ?? data) {
         return (
             <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
-                {isLoading || acc.isLoading && (
-                    <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
-                )}
+
                 {
                     (acc.data?.dbAssets.length === 0 && data?.pages[0]?.items.length === 0) && (
                         <div className="flex items-center justify-center h-full">
