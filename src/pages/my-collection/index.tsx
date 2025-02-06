@@ -162,26 +162,27 @@ const SecondaryStorage = () => {
     const { setData, setIsOpen } = useAssestInfoModalStore()
 
 
-    if (acc.data === undefined) {
-        return (
-            <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
 
-                <div className="flex items-center justify-center h-full flex-col gap-2">
-                    <h1 className="text-lg font-bold ">You don{"'t"} have storage account. please create one.</h1>
-                    <Link href="/artist/home">
-                        <Button className="flex items-center justify-center shadow-sm shadow-black">
-                            Create Storage
-                        </Button>
-                    </Link>
-                </div>
-            </div>
-        )
-    }
     return (
         <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
             {acc.isLoading && (
                 <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
             )}
+            {
+                acc.data === undefined && !acc.isLoading && (
+                    <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
+
+                        <div className="flex items-center justify-center h-full flex-col gap-2">
+                            <h1 className="text-lg font-bold ">You don{"'t"} have storage account. please create one.</h1>
+                            <Link href="/artist/home">
+                                <Button className="flex items-center justify-center shadow-sm shadow-black">
+                                    Create Storage
+                                </Button>
+                            </Link>
+                        </div>
+                    </div>
+                )
+            }
             {
                 (acc.data?.dbAssets.length === 0) && (
                     <div className="flex items-center justify-center h-full">

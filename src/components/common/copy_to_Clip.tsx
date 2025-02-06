@@ -1,39 +1,41 @@
-import { Copy } from "lucide-react";
-import { useState } from "react";
-import CopyToClipboard from "react-copy-to-clipboard";
-import toast from "react-hot-toast";
-import { addrShort, delay } from "~/utils/utils";
-import { Button } from "../shadcn/ui/button";
+"use client"
+
+import { Check, Copy } from "lucide-react"
+import { useState } from "react"
+import { addrShort } from "~/utils/utils"
+import { Button } from "~/components/shadcn/ui/button"
+import toast from "react-hot-toast"
 
 interface CopyToClipProps {
-  text: string;
-  collapse?: number;
+  text: string
+  collapse?: number
 }
 
 function CopyToClip({ text, collapse }: CopyToClipProps) {
-  const [press, setPress] = useState(false);
+  const [isCopied, setIsCopied] = useState(false)
 
-  const onCopy = async () => {
-    setPress(true);
-    toast.success(`Copied: ${collapse ? addrShort(text, collapse) : text}`);
-    await delay(1000);
-    setPress(false);
-
-    return;
-  };
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setIsCopied(true)
+      toast.success(`Copied ${addrShort(text, collapse)}`)
+      setTimeout(() => setIsCopied(false), 2000)
+    } catch (err) {
+      toast.error("Failed to copy text")
+    }
+  }
 
   return (
-    <CopyToClipboard
-      text={text} onCopy={() => void onCopy()}>
-      <Button
-        size='sm'
-        className="border-[#dbdd2c] border-2">
-        {
-          press ? <Copy className="text-[#dbdd2c]" size={12} /> : <Copy size={12} />
-        }
-      </Button>
-    </CopyToClipboard>
-  );
+    <Button
+      size="sm"
+      variant="outline"
+      className="border-[#dbdd2c] border-2 p-2 hover:bg-[#dbdd2c]/10"
+      onClick={handleCopy}
+    >
+      {isCopied ? <Check className="text-[#dbdd2c]" size={12} /> : <Copy size={12} />}
+    </Button>
+  )
 }
 
-export default CopyToClip;
+export default CopyToClip
+

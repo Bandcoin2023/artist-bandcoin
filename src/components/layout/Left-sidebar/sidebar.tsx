@@ -46,7 +46,7 @@ export default function Sidebar({ className }: SidebarProps) {
   return (
     <div
       className={cn(
-        ` h-[calc(100vh-10.8vh)] sticky top-[5.8rem] p-1 w-full overflow-hidden border-r shadow-md hidden transition-[width] duration-500 md:block`,
+        ` h-[calc(100vh-10.8vh)] sticky top-[5.8rem] p-1 w-full overflow-hidden border-r  hidden transition-[width] duration-500 md:block`,
         !isMinimized ? "w-[280px]" : "w-[78px]",
         className,
       )}
@@ -92,7 +92,9 @@ export function LeftBottom() {
     <div className="flex w-full flex-col justify-center gap-4 p-1">
 
 
-      <ConnectWalletButton />
+      <div className="w-full flex items-center justify-center ">
+        <ConnectWalletButton />
+      </div>
 
       <div className="flex  items-center justify-between  gap-4 ">
         <Link
