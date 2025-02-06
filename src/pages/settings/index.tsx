@@ -195,7 +195,7 @@ const AboutUser = ({ user }: { user: UserSettingsType }) => {
                     <div className="absolute -top-32 left-0">
                         <div className="relative">
                             <Image
-                                src={user.image || "/images/logo.png"}
+                                src={user.image ?? "/images/logo.png"}
                                 alt="Profile picture"
                                 width={250}
                                 height={250}
@@ -263,7 +263,7 @@ const AboutUser = ({ user }: { user: UserSettingsType }) => {
                     <div className="flex-shrink-0 hidden lg:block">
                         <div className=" overflow-hidden rounded-full  bg-white p-0">
                             <Image
-                                src={user.image || "/images/logo.png"}
+                                src={user.image ?? "/images/logo.png"}
                                 alt="Profile"
                                 width={300}
                                 height={300}
