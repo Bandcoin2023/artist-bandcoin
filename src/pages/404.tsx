@@ -11,7 +11,7 @@ function NotFound() {
                     <div className="text-center space-y-4">
                         <h1 className="text-7xl font-bold  mb-4">404</h1>
                         <h2 className="text-3xl font-semibold ">Looks like this track skipped a beat</h2>
-                        <p className="text-lg">The page you're looking for seems to have dropped off our setlist.</p>
+                        <p className="text-lg">The page you{"'"}re looking for seems to have dropped off our setlist.</p>
                     </div>
                 </CardHeader>
 
@@ -19,7 +19,7 @@ function NotFound() {
                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                         <Button
                             asChild
-                            className="bg-[#6200EE] hover:bg-[#6200EE]/90 text-white px-6 py-2 rounded-full flex items-center gap-2 w-full sm:w-auto"
+                            className="bg-primary  text-black px-6 py-2 rounded-full flex items-center gap-2 w-full sm:w-auto shadow-sm shadow-black"
                         >
                             <Link href="/">
                                 <Home className="w-4 h-4" />

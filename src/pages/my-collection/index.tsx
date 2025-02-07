@@ -86,7 +86,7 @@ const MyCollection = () => {
     if (acc.isLoading) {
         return (
             <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
-                <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
+                <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5" />
             </div>
         )
     }
@@ -103,7 +103,7 @@ const MyCollection = () => {
                         </div>
                     )
                 }
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6">
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5">
                     <>
                         {acc.data?.dbAssets.map((asset, i) => (
                             <div
@@ -171,7 +171,7 @@ const SecondaryStorage = () => {
     return (
         <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
             {acc.isLoading && (
-                <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
+                <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5" />
             )}
             {
                 acc.data === undefined && !acc.isLoading && (

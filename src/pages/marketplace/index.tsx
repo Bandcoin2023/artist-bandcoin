@@ -78,7 +78,7 @@ const CuratedItems = () => {
     return (
         <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
             {curatedItems.isLoading && (
-                <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
+                <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5" />
             )}
             {
                 curatedItems.data?.pages[0]?.assets.length === 0 && (
@@ -88,7 +88,7 @@ const CuratedItems = () => {
                     </div>
                 )
             }
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6">
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5">
                 {curatedItems.data?.pages.map((page, pageIndex) =>
                     page.assets.map((item, index) => (
                         <Asset
@@ -123,7 +123,7 @@ const ArtistTokens = () => {
     return (
         <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
             {artistTokens.isLoading && (
-                <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
+                <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5" />
             )}
             {
                 artistTokens.data?.pages[0]?.nfts.length === 0 && (

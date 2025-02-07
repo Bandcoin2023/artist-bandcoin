@@ -22,8 +22,26 @@ export const AlbumFormShema = z.object({
 });
 
 export const albumRouter = createTRPCRouter({
-  getAll: publicProcedure.query(async ({ ctx }) => {
-    return await ctx.db.album.findMany();
+  getAll: publicProcedure.input(
+    z.object({
+      limit: z.number(),
+      cursor: z.number().nullish(),
+      skip: z.number().optional(),
+    }),
+  ).query(async ({ ctx, input }) => {
+    const { limit, cursor, skip } = input;
+    const albums = await ctx.db.album.findMany({
+      take: limit,
+      skip: skip,
+      cursor: cursor ? { id: cursor } : undefined,
+    });
+    let nextCursor: typeof cursor | undefined = undefined;
+    if (albums.length === limit) {
+      nextCursor = albums[albums.length - 1]?.id;
+    }
+    return { albums, nextCursor };
+
+
   }),
 
   getById: protectedProcedure

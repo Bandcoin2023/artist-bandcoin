@@ -108,37 +108,37 @@ const HomePage = () => {
     return (
       <div className="h-[calc(100vh-10vh)]">
         <div className="relative h-[56vh] overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-4 md:h-[42vh]">
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-black/60 via-black/40 to-black/90 backdrop-blur-md" />
-        <div className="relative z-10 flex h-full flex-col rounded-md">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-white xl:text-4xl">
-              RECENLTY ADDED
-            </h2>
-            <div className="hidden gap-2 md:flex">
-              <div className="h-10 w-10 rounded-lg bg-gray-700 " />
-              <div className="h-10 w-10 animate-pulse rounded-lg bg-gray-700" />
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-black/60 via-black/40 to-black/90 backdrop-blur-md" />
+          <div className="relative z-10 flex h-full flex-col rounded-md">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white xl:text-4xl">
+                RECENLTY ADDED
+              </h2>
+              <div className="hidden gap-2 md:flex">
+                <div className="h-10 w-10 rounded-lg bg-gray-700 " />
+                <div className="h-10 w-10 animate-pulse rounded-lg bg-gray-700" />
+              </div>
             </div>
-          </div>
 
-          <div className="grid flex-grow gap-4 md:grid-cols-4">
-            <div className="relative col-span-3 flex h-full items-center justify-center overflow-hidden md:justify-start">
-              <ProductSkeleton />
+            <div className="grid flex-grow gap-4 md:grid-cols-4">
+              <div className="relative col-span-3 flex h-full items-center justify-center overflow-hidden md:justify-start">
+                <ProductSkeleton />
+              </div>
+              <div className="hidden w-full md:flex">
+                <DetailsSkeleton />
+              </div>
             </div>
-            <div className="hidden w-full md:flex">
-              <DetailsSkeleton />
-            </div>
-          </div>
 
-          <div className="mt-4 flex justify-center">
-            {[0, 1, 2, 3, 4].map((index) => (
-              <div
-                key={index}
-                className="mx-1 h-2 w-2 animate-pulse rounded-full bg-gray-700"
-              />
-            ))}
+            <div className="mt-4 flex justify-center">
+              {[0, 1, 2, 3, 4].map((index) => (
+                <div
+                  key={index}
+                  className="mx-1 h-2 w-2 animate-pulse rounded-full bg-gray-700"
+                />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
       </div>
     );
   }
@@ -541,9 +541,9 @@ const AllAssets = ({
   return (
     <div className="flex min-h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
       {isLoading && (
-        <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
+        <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5" />
       )}
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5">
         {musicAssets.data?.pages.map((page, pageIndex) =>
           page.nfts.map((item, index) => (
             <MarketAssetComponent
@@ -610,9 +610,9 @@ const AdminAsset = ({
   return (
     <div className="flex min-h-[calc(100vh-20vh)]  flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
       {isLoading && (
-        <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
+        <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5" />
       )}
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5">
         {adminAssets.data?.pages.map((page, pageIndex) =>
           page.nfts.map((item, index) => (
             <MarketAssetComponent
@@ -657,9 +657,9 @@ const ArtistTokens = ({
   return (
     <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
       {isLoading && (
-        <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
+        <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5" />
       )}
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5">
         {artistTokens.data?.pages.map((page, pageIndex) =>
           page.nfts.map((item, index) => (
             <MarketAssetComponent
@@ -704,9 +704,9 @@ const Artist = ({
   return (
     <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
       {isLoading && (
-        <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6" />
+        <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5" />
       )}
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5">
         {artist.data?.pages.map((page, pageIndex) =>
           page.nfts.map((item, index) => (
             <PageAssetComponent
