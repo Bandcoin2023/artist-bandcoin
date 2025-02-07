@@ -202,7 +202,7 @@ const AboutUser = ({ user }: { user: UserSettingsType }) => {
                                 className="rounded-full h-64 w-64 border-2 "
                             />
                             <UploadS3Button
-                                className="absolute top-16 right-0 bg-white h-8 w-8 rounded-full bg-white/80 hover:bg-white"
+                                className="absolute top-16 right-0 bg-white h-8 w-8 rounded-full bg-white/80 hover:bg-white flex items-center justify-center lg:hidden"
                                 endpoint="imageUploader"
                                 varient="input"
                                 onClientUploadComplete={(res) => {
@@ -260,15 +260,35 @@ const AboutUser = ({ user }: { user: UserSettingsType }) => {
                 {/* Edit Form */}
                 <div className="flex gap-8 p-6 shadow-md border-[1px]">
                     {/* Profile Image Preview */}
-                    <div className="flex-shrink-0 hidden lg:block">
-                        <div className=" overflow-hidden rounded-full  bg-white p-0">
-                            <Image
-                                src={user.image ?? "/images/logo.png"}
-                                alt="Profile"
-                                width={300}
-                                height={300}
-                                className="h-[300px] w-[300px]  object-cover border-2 p-0"
-                            />
+                    <div className=" items-center hidden lg:flex">
+                        <div className="relative  overflow-hidden rounded-full  bg-white p-0">
+                            <div className="relative">
+                                <Image
+                                    src={user.image ?? "/images/logo.png"}
+                                    alt="Profile picture"
+                                    width={250}
+                                    height={250}
+                                    className="rounded-full h-64 w-64 border-2 "
+                                />
+                                <UploadS3Button
+                                    className="absolute top-16 right-0 bg-white h-8 w-8 rounded-full bg-white/80 hover:bg-white"
+                                    endpoint="imageUploader"
+                                    varient="input"
+                                    onClientUploadComplete={(res) => {
+                                        const fileUrl = res.url;
+                                        updateProfileMutation.mutate(fileUrl);
+                                    }}
+                                    onUploadError={(error: Error) => {
+                                        // Do something with the error.
+                                        toast({
+                                            title: "Upload Error",
+                                            description: error.message,
+                                            variant: "destructive",
+
+                                        })
+                                    }}
+                                />
+                            </div>
                         </div>
                     </div>
 

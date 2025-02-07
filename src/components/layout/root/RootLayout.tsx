@@ -48,7 +48,7 @@ export default function Layout({
                     </div>
 
                     {session.status === "authenticated" ? (
-                        <div className="w-full  overflow-y-auto p-2  md:px-4 lg:px-6 scrollbar-hide">
+                        <div className="w-full  overflow-y-auto p-2  lg:px-4 scrollbar-hide">
                             {children}
                             <ModalProvider />
                             <Toaster />

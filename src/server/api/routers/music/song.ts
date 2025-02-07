@@ -56,6 +56,91 @@ export const SongFormSchema = z.object({
 })
 
 export const songRouter = createTRPCRouter({
+
+  getRecentSong: protectedProcedure.query(async ({ ctx }) => {
+    const currentUserId = ctx.session.user.id;
+
+    const songs = await ctx.db.song.findMany({
+      include: {
+        asset: {
+          select: {
+            ...AssetSelectAllProperty,
+            tier: {
+              select: {
+                price: true,
+              },
+            },
+            creator: {
+              select: {
+                pageAsset: {
+                  select: {
+                    code: true,
+                    issuer: true,
+                  },
+                },
+                customPageAssetCodeIssuer: true
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 5
+    });
+    const stellarAcc = await StellarAccount.create(currentUserId);
+    const array = songs.filter((item) => {
+      if (item.asset.creator?.pageAsset) {
+        const creatorPageAsset = item.asset.creator?.pageAsset;
+        if (item.creatorId === currentUserId) {
+          return true;
+        }
+        if (item.asset.privacy === ItemPrivacy.PUBLIC) {
+          return true;
+        }
+        if (item.asset.privacy === ItemPrivacy.PRIVATE) {
+          return creatorPageAsset && stellarAcc.hasTrustline(creatorPageAsset.code, creatorPageAsset.issuer);
+        }
+        if (item.asset.privacy === ItemPrivacy.TIER) {
+          return (
+            creatorPageAsset &&
+            item.asset.tier &&
+            item.asset.tier.price <= stellarAcc.getTokenBalance(creatorPageAsset.code, creatorPageAsset.issuer)
+          );
+        }
+      }
+      else if (item.asset.creator?.customPageAssetCodeIssuer) {
+
+        const customPageAsset = item.asset.creator.customPageAssetCodeIssuer;
+        console.log("customPageAsset", customPageAsset);
+        const [code, issuer] = customPageAsset.split("-");
+        if (item.creatorId === currentUserId) {
+          return true;
+        }
+        if (item.asset.privacy === ItemPrivacy.PUBLIC) {
+          return true;
+        }
+        if (item.asset.privacy === ItemPrivacy.PRIVATE) {
+          if (code && issuer)
+            return stellarAcc.hasTrustline(code, issuer);
+        }
+        if (item.asset.privacy === ItemPrivacy.TIER) {
+          return (
+            code && issuer &&
+            item.asset.tier &&
+            item.asset.tier.price <= stellarAcc.getTokenBalance(code, issuer)
+          );
+        }
+
+      }
+      else if (item.creatorId === null) {
+        return true
+      }
+
+      return false;
+    });
+    return array
+  }),
+
   getAllSong: protectedProcedure.query(async ({ ctx }) => {
     const currentUserId = ctx.session.user.id;
 
