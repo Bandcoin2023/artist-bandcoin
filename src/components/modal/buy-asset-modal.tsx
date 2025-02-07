@@ -139,7 +139,7 @@ export default function BuyModal() {
                             <Card className="overflow-y-hidden max-h-[770px] min-h-[770px] scrollbar-hide   md:col-span-3 ">
                                 <CardContent className="p-0 bg-primary rounded-sm flex flex-col justify-between h-full">
                                     {/* Image Container */}
-                                    <div className="flex flex-col">
+                                    <div className="flex flex-col h-full">
 
                                         <div className="relative h-[300px] w-full">
                                             <SparkleEffect />
@@ -315,7 +315,7 @@ export default function BuyModal() {
 
 
 
-                                    <div className="flex flex-col gap-2 w-full p-1  items-center">
+                                    <div className="flex flex-col gap-2 w-full p-1  ">
                                         {data.asset.mediaType === "MUSIC" && hasTrustonAsset ? (
                                             <Button
                                                 onClick={() => {
