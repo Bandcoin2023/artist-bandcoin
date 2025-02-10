@@ -31,7 +31,14 @@ export default function Layout({
         toggle();
     };
     return (
-        <ThemeProvider>
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+
+
+        >
             <div className=" h-screen w-full scrollbar-hide ">
                 <Header />
                 <div className="flex w-full scrollbar-hide ">

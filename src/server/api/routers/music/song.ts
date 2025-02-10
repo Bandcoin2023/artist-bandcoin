@@ -11,6 +11,7 @@ import { AssetSelectAllProperty } from "../marketplace/marketplace";
 import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
 import { ItemPrivacy } from "@prisma/client";
 import { AccountSchema } from "~/lib/stellar/fan/utils";
+import { SongItemType } from "~/types/song/song-item-types";
 export const SongFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   artist: z.string().min(2, "Artist must be at least 2 characters"),
@@ -57,7 +58,9 @@ export const SongFormSchema = z.object({
 
 export const songRouter = createTRPCRouter({
 
-  getRecentSong: protectedProcedure.query(async ({ ctx }) => {
+  getRecentSong: protectedProcedure.input(z.object({
+    limit: z.number().default(5),
+  })).query(async ({ ctx, input }) => {
     const currentUserId = ctx.session.user.id;
 
     const songs = await ctx.db.song.findMany({
@@ -85,7 +88,7 @@ export const songRouter = createTRPCRouter({
         },
       },
       orderBy: { createdAt: "desc" },
-      take: 5
+      take: input.limit
     });
     const stellarAcc = await StellarAccount.create(currentUserId);
     const array = songs.filter((item) => {
@@ -141,90 +144,116 @@ export const songRouter = createTRPCRouter({
     return array
   }),
 
-  getAllSong: protectedProcedure.query(async ({ ctx }) => {
-    const currentUserId = ctx.session.user.id;
+  getAllSong: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number(),
+        cursor: z.number().nullish(),
+        skip: z.number().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { limit, cursor, skip } = input
+      const currentUserId = ctx.session.user.id
 
-    const songs = await ctx.db.song.findMany({
-      include: {
-        asset: {
-          select: {
-            ...AssetSelectAllProperty,
-            tier: {
+      const fetchAndFilterSongs = async (
+        currentLimit: number,
+        currentCursor: number | null | undefined,
+        currentSkip: number | undefined,
+        accumulatedSongs: SongItemType[] = [],
+      ): Promise<{ songs: SongItemType[]; nextCursor: number | null }> => {
+        const songs = await ctx.db.song.findMany({
+          take: currentLimit,
+          skip: currentSkip,
+          cursor: currentCursor ? { id: currentCursor } : undefined,
+          include: {
+            asset: {
               select: {
-                price: true,
-              },
-            },
-            creator: {
-              select: {
-                pageAsset: {
+                ...AssetSelectAllProperty,
+                tier: {
                   select: {
-                    code: true,
-                    issuer: true,
+                    price: true,
                   },
                 },
-                customPageAssetCodeIssuer: true
+                creator: {
+                  select: {
+                    pageAsset: {
+                      select: {
+                        code: true,
+                        issuer: true,
+                      },
+                    },
+                    customPageAssetCodeIssuer: true,
+                  },
+                },
               },
             },
           },
-        },
-      },
-    });
-    const stellarAcc = await StellarAccount.create(currentUserId);
+        })
 
+        const stellarAcc = await StellarAccount.create(currentUserId)
 
-    // Filter items based on privacy and conditions
-    const array = songs.filter((item) => {
-      if (item.asset.creator?.pageAsset) {
-        const creatorPageAsset = item.asset.creator?.pageAsset;
-        if (item.creatorId === currentUserId) {
-          return true;
-        }
-        if (item.asset.privacy === ItemPrivacy.PUBLIC) {
-          return true;
-        }
-        if (item.asset.privacy === ItemPrivacy.PRIVATE) {
-          return creatorPageAsset && stellarAcc.hasTrustline(creatorPageAsset.code, creatorPageAsset.issuer);
-        }
-        if (item.asset.privacy === ItemPrivacy.TIER) {
-          return (
-            creatorPageAsset &&
-            item.asset.tier &&
-            item.asset.tier.price <= stellarAcc.getTokenBalance(creatorPageAsset.code, creatorPageAsset.issuer)
-          );
+        const filteredSongs = songs.filter((item) => {
+          const creatorPageAsset = item.asset.creator?.pageAsset
+          const creatorCustomPageAsset = item.asset.creator?.customPageAssetCodeIssuer
+          let code: string | undefined
+          let issuer: string | undefined
+
+          if (creatorCustomPageAsset) {
+            [code, issuer] = creatorCustomPageAsset.split("-")
+          } else if (creatorPageAsset) {
+            code = creatorPageAsset.code
+            issuer = creatorPageAsset.issuer
+          }
+
+          if (item.creatorId === currentUserId) {
+            return true
+          }
+
+          if (item.creatorId === null) {
+            return true
+          }
+
+          if (!code || !issuer) return false
+
+          if (item.asset.privacy === ItemPrivacy.PUBLIC) {
+            return true
+          }
+
+          if (item.asset.privacy === ItemPrivacy.PRIVATE) {
+            return stellarAcc.hasTrustline(code, issuer)
+          }
+
+          if (item.asset.privacy === ItemPrivacy.TIER) {
+            return item.asset.tier && item.asset.tier.price <= stellarAcc.getTokenBalance(code, issuer)
+          }
+
+          return false
+        })
+
+        const newAccumulatedSongs = [...accumulatedSongs, ...filteredSongs]
+
+        if (newAccumulatedSongs.length >= limit || songs.length < currentLimit) {
+          const nextCursor = newAccumulatedSongs.length > limit ? newAccumulatedSongs[limit - 1]?.id ?? null : null
+          return {
+            songs: newAccumulatedSongs.slice(0, limit),
+            nextCursor,
+          }
+        } else {
+          const lastSong = songs[songs.length - 1]
+          if (lastSong) {
+            return fetchAndFilterSongs(currentLimit, lastSong.id, 0, newAccumulatedSongs)
+          } else {
+            return {
+              songs: newAccumulatedSongs,
+              nextCursor: null,
+            }
+          }
         }
       }
-      else if (item.asset.creator?.customPageAssetCodeIssuer) {
 
-        const customPageAsset = item.asset.creator.customPageAssetCodeIssuer;
-        console.log("customPageAsset", customPageAsset);
-        const [code, issuer] = customPageAsset.split("-");
-        if (item.creatorId === currentUserId) {
-          return true;
-        }
-        if (item.asset.privacy === ItemPrivacy.PUBLIC) {
-          return true;
-        }
-        if (item.asset.privacy === ItemPrivacy.PRIVATE) {
-          if (code && issuer)
-            return stellarAcc.hasTrustline(code, issuer);
-        }
-        if (item.asset.privacy === ItemPrivacy.TIER) {
-          return (
-            code && issuer &&
-            item.asset.tier &&
-            item.asset.tier.price <= stellarAcc.getTokenBalance(code, issuer)
-          );
-        }
-
-      }
-      else if (item.creatorId === null) {
-        return true
-      }
-
-      return false;
-    });
-    return array
-  }),
+      return fetchAndFilterSongs(limit, cursor, skip)
+    }),
 
   getCreatorPublicSong: protectedProcedure.query(async ({ ctx }) => {
     const assets = await ctx.db.song.findMany({
@@ -378,7 +407,8 @@ export const songRouter = createTRPCRouter({
       include: { asset: { select: AssetSelectAllProperty } },
     });
     // return songs;
-
+    console.log("foundSongs", foundSongs);
+    console.log("foundSongs", foundSongs.length);
     return foundSongs;
   }),
 

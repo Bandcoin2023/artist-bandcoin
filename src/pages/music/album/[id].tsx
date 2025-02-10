@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "~/components/shadcn/ui/button";
 import { Card, CardContent, CardTitle } from "~/components/shadcn/ui/card";
+import { useMusicBuyModalStore } from "~/components/store/music-buy-store";
 
 import { api } from "~/utils/api";
 import { addrShort } from "~/utils/utils";
@@ -15,7 +16,7 @@ import { addrShort } from "~/utils/utils";
 export default function Album() {
     const params = useParams();
     const userAssets = api.wallate.acc.getAccountInfo.useQuery();
-
+    const { setData, setIsOpen } = useMusicBuyModalStore()
     const {
         data: album,
         isLoading,
@@ -40,7 +41,7 @@ export default function Album() {
 
 
     return (
-        <div className="min-h-screen w-full">
+        <div className="min-h-screen w-full overflow-hidden">
             {/* Album Header Section */}
             <div className="relative h-auto min-h-[400px] w-full overflow-hidden rounded-t-md">
                 <Image
@@ -73,7 +74,7 @@ export default function Album() {
                             {album?.name}
                         </h1>
                         <div className="space-y-2">
-                            <p className="text-xl text-gray-200 md:text-2xl">{album.description}</p>
+                            <p className="text-sm text-gray-200">{album.description}</p>
                         </div>
                     </div>
                 </div>
@@ -83,17 +84,17 @@ export default function Album() {
             {album?.songs.length === 0 && <EmptyAlbum coverImgUrl={album.coverImgUrl} />}
 
             {album?.songs.map((song, index) => (
-                <Card key={index} className="my-2 flex w-full flex-col items-start gap-4 p-2 md:flex-row md:items-center">
+                <Card key={index} className="my-2 flex w-full flex-col items-start gap-4 p-2 md:flex-row md:items-center shadow-sm shadow-slate-300">
                     <div className="h-16 w-16 flex items-center justify-center bg-gray-700 rounded-lg">
                         <Image
                             src={song.asset.thumbnail ?? "/placeholder.svg"}
                             alt="Artist"
                             width={300}
                             height={300}
-                            className="ml-2 h-full w-full rounded-sm object-cover flex items-center justify-center "
+                            className="ml-2  h-16 w-16 rounded-sm object-cover flex items-center justify-center "
                         />
                     </div>
-                    <div className="flex w-full flex-col items-start gap-4 rounded-lg bg-primary p-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex w-full flex-col items-start gap-4 rounded-lg  bg-primary p-4 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-center gap-4">
                             <div>
                                 <h3 className="text-lg font-semibold">{song.asset.name}</h3>
@@ -118,7 +119,13 @@ export default function Album() {
                                         <span>PLAY</span>
                                     </Button>
                                 )}
-                            <Button className="rounded-md bg-white px-6 py-2 font-medium shadow-sm shadow-black transition-colors hover:bg-gray-100">
+                            <Button
+                                onClick={() => {
+                                    setData(song)
+                                    setIsOpen(true)
+                                }}
+
+                                className="rounded-md bg-white px-6 py-2 font-medium shadow-sm shadow-black transition-colors hover:bg-gray-100">
                                 BUY NOW
                             </Button>
                         </div>
@@ -149,8 +156,7 @@ export const AlbumSkeleton = () => {
                         <div className="h-20 w-96 bg-gray-700 animate-pulse rounded" />
                         <div className="space-y-2">
                             <div className="h-8 w-64 bg-gray-700 animate-pulse rounded" />
-                            <div className="h-8 w-48 bg-gray-700 animate-pulse rounded" />
-                            <div className="h-8 w-32 bg-gray-700 animate-pulse rounded" />
+
                         </div>
                     </div>
                 </div>

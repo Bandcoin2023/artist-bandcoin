@@ -4,6 +4,7 @@ import BuyModal from "../modal/buy-asset-modal";
 import ViewAdminAsset from "../modal/view-admin-asset";
 import AssetInfoModal from "../modal/asset-info-modal";
 import CollectedPinInfoModal from "../modal/pin-info-modal";
+import MusicBuyModal from "../modal/music-buy-modal";
 
 const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -20,6 +21,7 @@ const ModalProvider = () => {
       <ViewAdminAsset />
       <AssetInfoModal />
       <CollectedPinInfoModal />
+      <MusicBuyModal />
 
     </>
   );

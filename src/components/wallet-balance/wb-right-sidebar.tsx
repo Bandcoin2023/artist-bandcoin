@@ -49,7 +49,7 @@ const MyAssetList = () => {
   return (
     <Card>
 
-      <CardContent className=" h-[calc(100vh-44vh)] md:h-[calc(100vh-42vh)] rounded-md space-y-4 overflow-y-auto scrollbar-hide bg-white">
+      <CardContent className=" h-[calc(100vh-44vh)] md:h-[calc(100vh-42vh)] rounded-md space-y-4 overflow-y-auto scrollbar-hide ">
 
         <div className="grid gap-6 mt-1">
           {!data || data.length === 0 ? (

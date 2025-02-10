@@ -187,11 +187,11 @@ export const BountyRoute = createTRPCRouter({
         sortBy: z
           .enum(["DATE_ASC", "DATE_DESC", "PRICE_ASC", "PRICE_DESC"])
           .optional(),
-        status: z.enum(["ALL", "ACTIVE", "FINISHED"]).optional(),
+        filter: z.enum(["ALL", "NOT_JOINED", "JOINED"]).optional(),
       }),
     )
     .query(async ({ input, ctx }) => {
-      const { limit, cursor, skip, search, sortBy, status } = input;
+      const { limit, cursor, skip, search, sortBy, filter } = input;
 
       const orderBy: Prisma.BountyOrderByWithRelationInput = {};
       if (sortBy === sortOptionEnum.DATE_ASC) {
@@ -211,6 +211,24 @@ export const BountyRoute = createTRPCRouter({
             { description: { contains: search, mode: "insensitive" } },
           ],
         }),
+        ...(filter === "NOT_JOINED" && {
+          NOT: {
+            participants: {
+              some: {
+                userId: ctx.session?.user.id,
+              },
+            },
+          },
+        }),
+        ...(filter === "JOINED" && {
+          participants: {
+            some: {
+              userId: ctx.session?.user.id,
+            },
+          },
+        }),
+
+
       };
 
       const bounties = await ctx.db.bounty.findMany({
