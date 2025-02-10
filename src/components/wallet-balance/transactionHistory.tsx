@@ -101,7 +101,7 @@ const TransactionHistory = () => {
 
 
                     <TableRow key={j}
-                      className={j % 2 === 1 ? "bg-green-50 hover:bg-red-100" : "bg-white hover:bg-primary"}
+                      className={j % 2 === 1 ? " bg-primary" : " bg-secondary"}
                       onClick={() => {
                         setIsTransactionModalOpen(true)
                         setSelectedTransaction(transaction)

@@ -1,7 +1,8 @@
 import { api } from "~/utils/api";
-import { MoreAssetsSkeleton } from "../common/grid-loading";
-import { Button } from "../shadcn/ui/button";
+
 import AlbumView from "./album-item";
+import { Button } from "~/components/shadcn/ui/button";
+import { MoreAssetsSkeleton } from "~/components/common/grid-loading";
 
 const AlbumTab = () => {
     const albums = api.music.album.getAll.useInfiniteQuery({ limit: 10 }, {

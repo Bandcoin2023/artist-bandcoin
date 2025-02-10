@@ -46,8 +46,7 @@ export default function BuyModal() {
     const session = useSession();
     const [step, setStep] = useState(1);
     const { data, isOpen, setIsOpen } = useBuyModalStore()
-    console.log("data", data)
-    console.log("isOpen", isOpen)
+
     // const { setCurrentTrack, currentTrack, setIsPlaying, setCurrentAudioPlayingId } = usePlayer();
     const handleClose = () => {
         console.log(isOpen)
@@ -255,7 +254,7 @@ export default function BuyModal() {
                                             </h2>
 
                                             <p className="max-h-[100px] border-b-2  min-h-[100px] overflow-y-auto text-sm text-gray-500 scrollbar-hide">
-                                                DESCRIPTION: {data.asset.description}
+                                                DESCRIPTION: {data.asset.description && data.asset.description.length > 0 ? data.asset.description : "No description"}
 
                                             </p>
 
