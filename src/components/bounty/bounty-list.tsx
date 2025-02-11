@@ -33,12 +33,14 @@ export default function BountyList({
         return bounty.currentWinnerCount < bounty.totalWinner && bounty.requiredBalance <= platformAssetBalance
     }
     const joinBountyMutation = api.bounty.Bounty.joinBounty.useMutation({
-        onSuccess: async (data) => {
+        onSuccess: async (data, variables) => {
             toast({
                 title: "Success",
                 description: "You have successfully joined the bounty",
 
             })
+            router.push(`/bounty/${variables?.BountyId}`)
+
         },
     });
     const handleJoinBounty = (id: number) => {
@@ -119,7 +121,6 @@ export default function BountyList({
                                 onClick={(e) => {
                                     e.stopPropagation()
                                     handleJoinBounty(bounty.id)
-                                    router.push(`/bounty/${bounty.id}`)
                                 }}
                                 className="w-full mt-2" disabled={!isEligible(bounty)}>
                                 {joinBountyMutation.isLoading

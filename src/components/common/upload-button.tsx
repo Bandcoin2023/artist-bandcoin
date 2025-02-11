@@ -7,7 +7,7 @@ import axios, { AxiosError } from "axios";
 import { EndPointType } from "~/server/s3";
 import { Progress } from "~/components/shadcn/ui/progress";
 import { Button } from "~/components/shadcn/ui/button";
-import { Camera, Loader2, Upload } from "lucide-react";
+import { Camera, Loader2, Paperclip, Upload } from "lucide-react";
 
 
 const computeSHA256 = async (file: File) => {
@@ -123,12 +123,22 @@ export function UploadS3Button({
     return (
         <div className="grid w-full items-center gap-2">
             {varient === 'button' && <Button
-                variant="default"
+                variant="destructive"
                 type="button"
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="shadow-sm shadow-black"
                 disabled={disabled ?? loading}
                 onClick={() => document.getElementById(`file-upload-${type}`)?.click()}
             >
+
+                {loading ? (
+                    <p className="text-white">{progress} %</p>
+                ) : (
+                    <p className="flex items-center gap-2">
+                        <Upload className=" h-4 w-4" />
+                        <span>Upload Media</span>
+                    </p>
+                )}
+
                 <input
                     id={`file-upload-${type}`}
                     type="file"
@@ -137,12 +147,7 @@ export function UploadS3Button({
                     className="hidden"
                     onChange={handleFileChange}
                 />
-                {loading && (
-                    <Progress
-                        value={progress}
-                        className="h-1 w-full"
-                    />
-                )}
+
 
             </Button>}
             {varient === 'input' && <Button
@@ -219,6 +224,8 @@ export function MultiUploadS3Button({
     onUploadProgress,
     onClientUploadComplete,
     onUploadError,
+    varient,
+    className
 }: {
     endpoint?: EndPointType;
     onUploadProgress?: (p: number) => void;
@@ -229,6 +236,8 @@ export function MultiUploadS3Button({
     }[]) => void;
     onBeforeUploadBegin?: (files: File[]) => Promise<File[]> | File[];
     onUploadError?: (error: Error) => void;
+    varient: 'button' | 'input';
+    className?: string;
 }) {
     const [progress, setProgress] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -338,37 +347,56 @@ export function MultiUploadS3Button({
 
     return (
 
-        <div className="grid w-full items-center gap-2">
-            <Button
-                variant="default"
-                type="button"
-                className="w-full bg-blue-600 hover:bg-blue-700"
-                disabled={loading}
-                onClick={() => document.getElementById('file-upload')?.click()}
-            >
-                {loading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                    <Upload className="mr-2 h-4 w-4" />
-                )}
-                {loading ? 'Uploading...' : 'Add Media'}
-            </Button>
-            <input
-                id="file-upload"
-                type="file"
-                accept={getAcceptString(endpoint)}
-                disabled={loading}
-                className="hidden"
-                onChange={handleFileChange}
-                multiple
-            />
-            {loading && (
-                <Progress
-                    value={progress}
-                    className="h-1 w-full"
-                />
-            )}
-            {loading && <div className="text-sm text-gray-600">Completed: {completedCount}/{files?.length}</div>}
+        <div className="grid  items-center gap-2">
+            {
+                varient === 'button' && <Button
+                    type="button"
+                    variant='destructive'
+
+                    className="shadow-sm shadow-black"
+                    onClick={() => document.getElementById(`file-upload-${endpoint}`)?.click()}
+                >
+                    <input
+                        id={`file-upload-${endpoint}`}
+                        type="file"
+                        accept={getAcceptString(endpoint)}
+                        className="hidden"
+                        multiple
+                        onChange={handleFileChange}
+                    />
+                    {loading ? (
+                        <p className="text-black">{progress} % {" "} </p>
+                    ) :
+                        !loading && <p className="flex items-center gap-2">
+                            <Upload className=" h-4 w-4" />
+                            <span>Upload Media</span>
+                        </p>
+                    }
+                    {loading && <div className="text-black ml-2"> {" "} {completedCount}  files uploaded</div>}
+                </Button>
+            }
+            {
+                varient === 'input' && <Button
+                    size="icon"
+                    variant="secondary"
+                    className={className}
+                    type="button"
+                    onClick={() => document.getElementById(`file-upload-${endpoint}`)?.click()}
+                >
+                    <input
+                        id={`file-upload-${endpoint}`}
+                        type="file"
+                        accept={getAcceptString(endpoint)}
+                        className="hidden"
+                        multiple
+                        onChange={handleFileChange}
+                    />
+                    {
+                        loading ? <Loader2 className=" h-4 w-4 animate-spin" /> : <Paperclip className=" h-4 w-4" />
+                    }
+                </Button>
+
+            }
 
         </div>
 

@@ -51,6 +51,7 @@
     "@react-three/fiber": "^8.17.10",
     "@stellar/freighter-api": "^1.7.1",
     "@stellar/stellar-sdk": "^12.1.0",
+    "@syncfusion/ej2-react-richtexteditor": "^28.2.5",
     "@t3-oss/env-nextjs": "^0.7.3",
     "@tailwindcss/line-clamp": "^0.4.4",
     "@tailwindcss/typography": "^0.5.13",
