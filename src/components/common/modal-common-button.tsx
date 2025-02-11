@@ -15,16 +15,14 @@ import {
 
 import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances";
 
-import {
-    AssetMenu,
-    useAssetMenu,
-} from "~/lib/state/marketplace/asset-tab-menu";
+
 import { useMarketRightStore } from "~/lib/state/marketplace/right";
 import { AssetType } from "~/lib/state/play/use-modal-store";
 import toast from "react-hot-toast";
 import StorageCreateDialog from "../modal/place-nft-to-storage-modal";
 import EnableInMarket from "../modal/Enable-nft-in-market";
 import NftBackModal from "../modal/nft-back-modal";
+import { MyCollectionMenu, useMyCollectionTabs } from "../store/tabs/mycollection-tabs";
 
 export function DisableFromMarketButton({
     code,
@@ -45,7 +43,7 @@ export function DisableFromMarketButton({
         <div className="flex w-full flex-col gap-2">
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                    <Button variant={"outline"} className="w-full ">
+                    <Button variant={"glow"} className="w-full shadow-sm shadow-foreground ">
                         {disable.isLoading && <span className="loading loading-spinner" />}
                         DISABLE
                     </Button>
@@ -147,8 +145,7 @@ export function DeleteAssetByAdmin({
             <>
                 <Dialog open={isOpen} onOpenChange={setIsOpen}>
                     <DialogTrigger asChild>
-                        <Button variant={"destructive"} className="w-full "
-                            size={"sm"}
+                        <Button variant={"destructive"} className="w-full shadow-sm shadow-foreground "
                         >
                             {del.isLoading && <span className="loading loading-spinner" />}
                             Remove from market
@@ -167,7 +164,7 @@ export function DeleteAssetByAdmin({
                         <DialogFooter className=" w-full">
                             <div className="flex w-full gap-4  ">
                                 <DialogClose className="w-full">
-                                    <Button variant="outline" className="w-full">
+                                    <Button variant="outline" className="w-full shadow-sm shadow-foreground ">
                                         Cancel
                                     </Button>
                                 </DialogClose>
@@ -176,7 +173,7 @@ export function DeleteAssetByAdmin({
                                     type="submit"
                                     onClick={() => del.mutate({ assetId, marketId })}
                                     disabled={del.isLoading}
-                                    className="w-full"
+                                    className="w-full shadow-sm shadow-foreground "
                                 >
                                     {del.isLoading && (
                                         <span className="loading loading-spinner" />
@@ -198,12 +195,12 @@ export function OtherButtons({
     currentData: AssetType;
     copies: number | undefined;
 }) {
-    const { selectedMenu, setSelectedMenu } = useAssetMenu();
+    const { selectedMenu, setSelectedMenu } = useMyCollectionTabs();
     if (currentData && copies) {
-        if (selectedMenu == AssetMenu.OWN) {
+        if (selectedMenu == MyCollectionMenu.COLLECTION) {
             return <StorageCreateDialog item={{ ...currentData, copies }} />;
         }
-        if (selectedMenu == AssetMenu.STORAGE) {
+        if (selectedMenu == MyCollectionMenu.SECONDARY) {
             return (
                 <MarketButtons
                     copy={copies}

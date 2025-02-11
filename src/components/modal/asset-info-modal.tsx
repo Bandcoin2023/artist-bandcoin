@@ -153,8 +153,8 @@ export default function AssetInfoModal() {
                                         {data.mediaType === "MUSIC" ? (
                                             <Button
 
-                                                className="w-full"
-                                                variant="secondary"
+                                                className="w-full shadow-sm shadow-foreground"
+                                                variant="warmOutline"
                                             >
                                                 Play
                                             </Button>
@@ -163,7 +163,7 @@ export default function AssetInfoModal() {
                                                 <Button
 
                                                     className="w-full"
-                                                    variant="secondary"
+                                                    variant="warmOutline"
                                                 >
                                                     Play
                                                 </Button>

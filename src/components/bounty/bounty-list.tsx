@@ -12,13 +12,19 @@ import { api } from "~/utils/api"
 import { toast } from "~/hooks/use-toast"
 import { addrShort } from "~/utils/utils"
 import { Spinner } from "../shadcn/ui/spinner"
+import { Preview } from "../common/quill-preview"
 
 function SafeHTML({
     html,
 }: {
     html: string
 }) {
-    return <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }} />
+    return (
+        <Preview
+
+            value={html}
+        />
+    )
 }
 
 export default function BountyList({
