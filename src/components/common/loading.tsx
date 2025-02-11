@@ -12,7 +12,7 @@ interface LoadingProps {
 
 export default function Loading({ className, text }: LoadingProps) {
     return (
-        <div className={twMerge("flex h-full items-center justify-center", className)}>
+        <div className={twMerge("flex h-screen items-center justify-center", className)}>
             <div className="flex flex-col items-center justify-center">
                 {text && <div className="mb-2 text-sm font-medium tracking-wider text-gray-600">{text}</div>}
                 {text && text.toLowerCase() === "empty" ? (

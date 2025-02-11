@@ -34,6 +34,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
+import { BountySchema } from "~/components/modal/edit-bounty-modal";
 
 export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
@@ -932,16 +933,11 @@ export const BountyRoute = createTRPCRouter({
 
   updateBounty: protectedProcedure
     .input(
-      z.object({
-        BountyId: z.number(),
-        title: z.string().min(1, { message: "Title can't be empty" }),
-        status: z.nativeEnum(BountyStatus).optional(),
-        requiredBalance: z
-          .number()
-          .min(0, { message: "Required Balance can't be less than 0" }),
-        content: z.string().min(2, { message: "Description can't be empty" }),
-        medias: z.array(MediaInfo).optional(),
-      }),
+      BountySchema.merge(
+        z.object({
+          BountyId: z.number(),
+        }),
+      )
     )
     .mutation(async ({ input, ctx }) => {
 

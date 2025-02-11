@@ -5,6 +5,9 @@ import ViewAdminAsset from "../modal/view-admin-asset";
 import AssetInfoModal from "../modal/asset-info-modal";
 import CollectedPinInfoModal from "../modal/pin-info-modal";
 import MusicBuyModal from "../modal/music-buy-modal";
+import EditBountyModal from "../modal/edit-bounty-modal";
+import BountyFileUploadModal from "../modal/bounty-submission-modal";
+import ViewBountyAttachmentModal from "../modal/view-bounty-attachment-modal";
 
 const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -22,6 +25,9 @@ const ModalProvider = () => {
       <AssetInfoModal />
       <CollectedPinInfoModal />
       <MusicBuyModal />
+      <EditBountyModal />
+      <BountyFileUploadModal />
+      <ViewBountyAttachmentModal />
 
     </>
   );
