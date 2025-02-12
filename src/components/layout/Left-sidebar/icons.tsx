@@ -38,18 +38,20 @@ import {
   Store,
   Trophy,
 } from "lucide-react";
+import { RiAdminFill } from "react-icons/ri";
+import { FaWallet } from "react-icons/fa";
+import { RiNftFill } from "react-icons/ri";
+import { MdMusicNote } from "react-icons/md";
+import { FaMapPin } from "react-icons/fa";
+import { BsCollectionFill } from "react-icons/bs";
 
 export type Icon = LucideIcon;
+import { SiSpringCreators } from "react-icons/si";
 
 export const Icons = {
   dashboard: LayoutDashboardIcon,
-
-  wallet: Wallet,
   collection: ScrollText,
-  music: Music,
   store: Store,
-  bounty: Trophy,
-  creator: User,
   setting: Settings,
   gitHub: ({ ...props }: LucideProps) => (
     <svg
@@ -70,4 +72,15 @@ export const Icons = {
   ),
   twitter: Twitter,
   check: Check,
+  admin: RiAdminFill,
+  wallet: FaWallet,
+  nft: RiNftFill,
+  pins: FaMapPin,
+  report: BsCollectionFill,
+  creator: SiSpringCreators,
+  users: User2Icon,
+  bounty: Trophy,
+  music: Music,
+
+
 };

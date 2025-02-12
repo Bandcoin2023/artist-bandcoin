@@ -67,7 +67,7 @@ const Marketplace = () => {
 export default Marketplace;
 
 
-const CuratedItems = () => {
+export const CuratedItems = () => {
     const curatedItems = api.wallate.asset.getBancoinAssets.useInfiniteQuery(
         { limit: 10 },
         {

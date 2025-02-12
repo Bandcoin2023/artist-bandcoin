@@ -42,7 +42,7 @@ export default function Layout({
             <div className=" h-screen w-full scrollbar-hide ">
                 <Header />
                 <div className="flex w-full scrollbar-hide ">
-                    <div className="relative  ">
+                    <div className="relative  z-50">
                         <Sidebar />
                         <ChevronLeft
                             className={cn(
