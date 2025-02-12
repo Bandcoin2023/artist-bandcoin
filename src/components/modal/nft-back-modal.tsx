@@ -1,23 +1,34 @@
-import { clientsign } from "package/connect_wallet";
-import { useRef, useState } from "react";
-import { api } from "~/utils/api";
+"use client"
 
-import { z } from "zod";
-
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useSession } from "next-auth/react";
-import { SubmitHandler, useForm } from "react-hook-form";
-import toast from "react-hot-toast";
-import useNeedSign from "~/lib/hook";
-import { clientSelect } from "~/lib/stellar/fan/utils";
-import { addrShort } from "~/utils/utils";
-import { Button } from "~/components/shadcn/ui/button";
-import { Dialog } from "../shadcn/ui/dialog";
+import { clientsign } from "package/connect_wallet"
+import { useState } from "react"
+import { api } from "~/utils/api"
+import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useSession } from "next-auth/react"
+import { type SubmitHandler, useForm } from "react-hook-form"
+import toast from "react-hot-toast"
+import useNeedSign from "~/lib/hook"
+import { clientSelect } from "~/lib/stellar/fan/utils"
+import { addrShort } from "~/utils/utils"
+import { Button } from "~/components/shadcn/ui/button"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogClose,
+} from "~/components/shadcn/ui/dialog"
+import { Input } from "~/components/shadcn/ui/input"
+import { Label } from "~/components/shadcn/ui/label"
+import { Badge } from "~/components/shadcn/ui/badge"
+import { Card, CardContent } from "~/components/shadcn/ui/card"
 
 export const BackMarketFormSchema = z.object({
     placingCopies: z
         .number({
-            required_error: "Placing Copies  must be a number",
+            required_error: "Placing Copies must be a number",
             invalid_type_error: "Placing Copies must be a number",
         })
         .nonnegative()
@@ -27,20 +38,20 @@ export const BackMarketFormSchema = z.object({
         .min(4, { message: "Must be a minimum of 4 characters" })
         .max(12, { message: "Must be a maximum of 12 characters" }),
     issuer: z.string(),
-});
+})
 
-type PlaceMarketFormType = z.TypeOf<typeof BackMarketFormSchema>;
+type PlaceMarketFormType = z.TypeOf<typeof BackMarketFormSchema>
 
 export default function NftBackModal({
     item,
     copy,
 }: {
-    item: { code: string; issuer: string };
-    copy: number;
+    item: { code: string; issuer: string }
+    copy: number
 }) {
-    const [isOpen, setIsOpen] = useState(false);
-    const session = useSession();
-    const { needSign } = useNeedSign();
+    const [isOpen, setIsOpen] = useState(false)
+    const session = useSession()
+    const { needSign } = useNeedSign()
 
     const {
         register,
@@ -53,13 +64,12 @@ export default function NftBackModal({
     } = useForm<z.infer<typeof BackMarketFormSchema>>({
         resolver: zodResolver(BackMarketFormSchema),
         defaultValues: { code: item.code, issuer: item.issuer, placingCopies: 1 },
-    });
+    })
 
-    // const placeItem = api.marketplace.market.placeToMarketDB.useMutation();
     const xdrMutaion = api.marketplace.market.placeBackNftXdr.useMutation({
         onSuccess(data, variables, context) {
-            const xdr = data;
-            const tostId = toast.loading("Signing transaction...");
+            const xdr = data
+            const tostId = toast.loading("Signing transaction...")
             clientsign({
                 presignedxdr: xdr,
                 pubkey: session.data?.user.id,
@@ -68,119 +78,98 @@ export default function NftBackModal({
             })
                 .then((res) => {
                     if (res) {
-                        toast.success("Success");
+                        toast.success("Success")
                     } else {
-                        toast.error("Failed");
+                        toast.error("Failed")
                     }
                 })
                 .catch((e) => console.log(e))
-                .finally(() => toast.dismiss(tostId));
+                .finally(() => toast.dismiss(tostId))
         },
-    });
+    })
 
     function resetState() {
-        // console.log("hi");
-        reset();
-        xdrMutaion.reset();
+        reset()
+        xdrMutaion.reset()
     }
 
-    const handleModal = () => {
-        setIsOpen(!isOpen);
-    };
-
-    const onSubmit: SubmitHandler<z.infer<typeof BackMarketFormSchema>> = (
-        data,
-    ) => {
+    const onSubmit: SubmitHandler<z.infer<typeof BackMarketFormSchema>> = (data) => {
         if (copy > getValues("placingCopies")) {
             xdrMutaion.mutate({
                 issuer: item.issuer,
                 placingCopies: getValues("placingCopies"),
                 code: item.code,
                 signWith: needSign(),
-            });
+            })
         } else {
-            toast.error("You can't take more than you have");
+            toast.error("You can't take more than you have")
         }
-    };
+    }
 
     return (
-        <>
-            <Dialog open={isOpen} onOpenChange={handleModal}>
-                <div className="modal-box">
-                    <form method="dialog">
-                        <button
-                            className="btn btn-circle btn-ghost btn-sm absolute right-2 top-2"
-                            onClick={() => resetState()}
-                        >
-                            ✕
-                        </button>
-                    </form>
-                    <h3 className="mb-2 text-lg font-bold">
-                        Take Asset Back From Storage to Main Acc
-                    </h3>
-
-                    <form onSubmit={handleSubmit(onSubmit)}>
-                        <div className="mt-4 flex flex-col items-center gap-y-2">
-                            <div className="flex w-full  max-w-sm flex-col rounded-lg bg-base-200 p-2 py-5">
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full
+                shadow-sm shadow-foreground">
+                    Remove from market
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Take Asset Back From Storage to Main Acc</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit(onSubmit)}>
+                    <div className="grid gap-4 py-4">
+                        <Card>
+                            <CardContent className="pt-6">
                                 <p>Asset Name: {item.code}</p>
                                 <p>
-                                    Asset Code:{" "}
-                                    <span className="badge badge-primary">{item.code}</span>
+                                    Asset Code: <Badge variant="secondary">{item.code}</Badge>
                                 </p>
-                                {/* <p className="">Price: {item.price} XLM</p> */}
-                                <p className="text-sm text-error">Items left: {copy}</p>
+                                <p className="text-sm text-destructive">Items left: {copy}</p>
                                 <p className="text-sm">Issuer: {addrShort(item.issuer, 15)}</p>
-                            </div>
-
-                            <div className=" w-full max-w-sm ">
-                                <label className="label">
-                                    <span className="label-text">Quantity</span>
-                                    <span className="label-text-alt">
-                                        Default quantity would be 1
-                                    </span>
-                                </label>
-                                <input
-                                    type="number"
-                                    {...register("placingCopies", { valueAsNumber: true })}
-                                    min={1}
-                                    step={1}
-                                    className="input input-sm input-bordered  w-full"
-                                    placeholder="How many copy you want to place to market?"
-                                />
-                            </div>
-
-                            <div className="flex w-full max-w-sm flex-col items-center">
-                                <button
-                                    disabled={xdrMutaion.isSuccess}
-                                    className="btn btn-primary w-full"
-                                >
-                                    {xdrMutaion.isLoading && (
-                                        <span className="loading loading-spinner"></span>
-                                    )}
-                                    Proceced
-                                </button>
-                            </div>
+                            </CardContent>
+                        </Card>
+                        <div className="">
+                            <Label htmlFor="placingCopies" className="text-right">
+                                Quantity
+                            </Label>
+                            <Input
+                                id="placingCopies"
+                                type="number"
+                                className="col-span-3"
+                                {...register("placingCopies", { valueAsNumber: true })}
+                                min={1}
+                                step={1}
+                                placeholder="How many copies to remove?"
+                            />
                         </div>
-                    </form>
-                    <div className="modal-action">
-                        <form method="dialog">
-                            <button className="btn" onClick={() => resetState()}>
-                                Close
-                            </button>
-                        </form>
                     </div>
-                </div>
+                    <div className="flex justify-end gap-4">
+                        <DialogClose asChild>
+                            <Button type="button" variant="destructive"
+                                className="w-full shadow-sm shadow-foreground"
+                                onClick={resetState}>
+                                Close
+                            </Button>
+                        </DialogClose>
+                        <Button type="submit"
+                            className="w-full shadow-sm shadow-foreground"
 
-                {/* <form method="dialog" className="modal-backdrop">
-          <button>close</button>
-        </form> */}
-            </Dialog>
-            <Button
-                className="btn btn-outline btn-sm my-2 w-full transition duration-500 ease-in-out"
-                onClick={handleModal}
-            >
-                Remove from market
-            </Button>
-        </>
-    );
+                            disabled={xdrMutaion.isLoading || xdrMutaion.isSuccess}>
+                            {xdrMutaion.isLoading ? (
+                                <>
+                                    <span className="loading loading-spinner"></span>
+                                    Processing...
+                                </>
+                            ) : (
+                                "Proceed"
+                            )}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+    )
 }
+

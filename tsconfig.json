@@ -39,6 +39,6 @@
     ".next/types/**/*.ts",
     "test/**/*.ts|js",
     "trigger.config.ts"
-, "src/pages/chat.jsx"  ],
+, "src/pages/chat.jsx", "src/components/layout/root/CreatorLayouttsx"  ],
   "exclude": ["node_modules"]
 }

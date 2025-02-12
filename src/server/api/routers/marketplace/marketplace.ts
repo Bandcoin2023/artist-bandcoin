@@ -164,7 +164,7 @@ export const marketRouter = createTRPCRouter({
       });
 
       if (!asset) throw new Error("asset not found");
-      ``;
+
 
       console.log("asset", asset, code, issuer);
 

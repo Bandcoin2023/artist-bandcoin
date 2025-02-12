@@ -15,22 +15,22 @@ import AssetView from "~/components/common/asset";
 import Link from "next/link";
 import { useAssestInfoModalStore } from "~/components/store/asset-info-modal-store";
 import { useCollectedPinInfoModalStore } from "~/components/store/collectedPin-info-modal-store";
+import { MyCollectionMenu, useMyCollectionTabs } from "~/components/store/tabs/mycollection-tabs";
 
-const TABS = ["My Collection", "Secondary Marketplace"];
 
 const MyCollecton = () => {
-    const [activeTab, setActiveTab] = useState("My Collection");
+    const { selectedMenu, setSelectedMenu } = useMyCollectionTabs();
     return (
         <Card className="">
             <CardHeader className="w-full bg-primary border-b-2 p-2 md:p-4 flex items-center justify-center">
                 <CardTitle className="flex md:w-1/2 items-center justify-center  p-0  gap-2 md:gap-4">
-                    {TABS.map((tab) => (
+                    {Object.values(MyCollectionMenu).map((tab) => (
                         <Button
                             key={tab}
-                            onClick={() => setActiveTab(tab)}
+                            onClick={() => setSelectedMenu(tab)}
                             className={cn(
                                 "flex  text-xs md:text-sm shadow-sm shadow-black transition-all duration-300 ease-in-out ",
-                                activeTab === tab
+                                selectedMenu === tab
                                     ? "w-full px-10  border-2 font-bold text-[#dbdd2c]"
                                     : " ",
                             )}
@@ -42,12 +42,12 @@ const MyCollecton = () => {
             </CardHeader>
             <CardContent className="h-[calc(100vh-20vh)] overflow-y-auto p-0 scrollbar-hide ">
                 <div>
-                    {activeTab === "My Collection" && (
+                    {selectedMenu === MyCollectionMenu.COLLECTION && (
                         <div>
                             <MyCollection />
                         </div>
                     )}
-                    {activeTab === "Secondary Marketplace" && (
+                    {selectedMenu === MyCollectionMenu.SECONDARY && (
                         <div>
                             <SecondaryStorage />
                         </div>

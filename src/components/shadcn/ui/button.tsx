@@ -10,14 +10,35 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        warm: "bg-[#F2994A] text-white hover:bg-[#E07C24]",
+        warmOutline: "border-2 border-[#F2994A] text-[#F2994A] hover:bg-[#F2994A] hover:text-white",
+        warmGhost: "text-[#F2994A] hover:bg-[#F2994A]/10",
+
+        // Cool palette variants
+        cool: "bg-[#56CCF2] text-white hover:bg-[#2D9CDB]",
+        coolOutline: "border-2 border-[#56CCF2] text-[#56CCF2] hover:bg-[#56CCF2] hover:text-white",
+        coolGhost: "text-[#56CCF2] hover:bg-[#56CCF2]/10",
+
+        // Vibrant palette variants
+        vibrant: "bg-[#6FCF97] text-white hover:bg-[#27AE60]",
+        vibrantOutline: "border-2 border-[#6FCF97] text-[#6FCF97] hover:bg-[#6FCF97] hover:text-white",
+        vibrantGhost: "text-[#6FCF97] hover:bg-[#6FCF97]/10",
+
+        // Golden palette variants
+        golden: "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:bg-[hsl(var(--primary))/90]",
+        goldenOutline:
+          "border-2 border-[hsl(var(--primary))] text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))] hover:text-[hsl(var(--primary-foreground))]",
+        goldenGhost: "text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/10",
+
+        // Special effect variants
+        glow: "bg-[#BB86FC] text-white hover:bg-[#BB86FC]/90 shadow-lg shadow-[#BB86FC]/50 hover:shadow-[#BB86FC]/80",
+        neon: "bg-black text-[#39FF14] border-2 border-[#39FF14] hover:bg-[#39FF14] hover:text-black transition-all duration-300 shadow-[0_0_10px_#39FF14]",
+        gradient: "bg-gradient-to-r from-[#FF416C] to-[#FF4B2B] text-white hover:from-[#FF4B2B] hover:to-[#FF416C]",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -35,7 +56,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  VariantProps<typeof buttonVariants> {
   asChild?: boolean
 }
 
