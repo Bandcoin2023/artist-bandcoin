@@ -15,7 +15,7 @@ export default function SearchAndSort({ searchTerm, setSearchTerm, sortOption, s
 
 }) {
     return (
-        <div className="mb-8 flex flex-col   gap-4 items-center justify-between bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+        <div className=" flex flex-col   gap-4 items-center justify-between  bg-primary p-6 rounded-lg shadow-md">
             <h1 className="mb-8 text-4xl hidden md:block font-extrabold text-center ">
                 Discover Exciting Bounties
             </h1>
@@ -37,18 +37,18 @@ export default function SearchAndSort({ searchTerm, setSearchTerm, sortOption, s
                     </div>
                     <div className="flex justify-center items-center space-x-4">
                         <Button
-                            className="shadow-sm shadow-black"
-                            variant={filter === "ALL" ? "destructive" : "default"} onClick={() => setFilter(filterEnum.ALL)}>
+                            className={`shadow-sm shadow-black ${filter === "ALL" ? "border-[#dbdd2c] border-2 text-[#dbdd2c] font-bold" : "transparent shadow-black"}`}
+                            onClick={() => setFilter(filterEnum.ALL)}>
                             ALL
                         </Button>
                         <Button
-                            className="shadow-sm shadow-black"
-                            variant={filter === "NOT_JOINED" ? "destructive" : "default"} onClick={() => setFilter(filterEnum.NOT_JOINED)}>
+                            className={`shadow-sm shadow-black ${filter === "NOT_JOINED" ? "border-[#dbdd2c] border-2 text-[#dbdd2c] font-bold" : "transparent shadow-black"}`}
+                            onClick={() => setFilter(filterEnum.NOT_JOINED)}>
                             NOT JOINED
                         </Button>
                         <Button
-                            className="shadow-sm shadow-black"
-                            variant={filter === "JOINED" ? "destructive" : "default"} onClick={() => setFilter(filterEnum.JOINED)}>
+                            className={`shadow-sm shadow-black ${filter === "JOINED" ? "border-[#dbdd2c] border-2 text-[#dbdd2c] font-bold" : "transparent shadow-black"}`}
+                            onClick={() => setFilter(filterEnum.JOINED)}>
                             JOINED
                         </Button>
                     </div>
@@ -56,7 +56,7 @@ export default function SearchAndSort({ searchTerm, setSearchTerm, sortOption, s
 
                         onValueChange={(value: sortOptionEnum) => setSortOption(value)}>
                         <SelectTrigger
-                            className="w-full md:w-auto shadow-sm shadow-black">
+                            className="w-full md:w-auto shadow-sm shadow-black  ">
                             <SelectValue
 
                                 placeholder="Sort bounties" />
