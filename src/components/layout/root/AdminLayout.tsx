@@ -81,7 +81,6 @@ export default function AdminLayout({
                         "fixed z-40 right-[13.3rem] top-1/2 hidden rotate-180 rounded-sm  md:block",
                         isMinimized && "-rotate-180 right-[5.5rem]"
                     )}
-
                     transition={{ delay: 0.5, duration: 0.3 }}
                 >
                     <ToggleButton
@@ -98,12 +97,9 @@ export default function AdminLayout({
                         "h-[calc(100vh-10.8vh)]  sticky top-[5.8rem] p-1 w-full overflow-hidden border-r hidden md:block",
                         !isMinimized ? "w-[210px]" : "w-[78px]"
                     )}
-
                     transition={{ type: "spring", stiffness: 100, damping: 20 }}
                     style={{ perspective: "1000px" }}
                 >
-
-
                     <motion.div
                         className="flex h-full w-full flex-col items-center justify-start py-2 no-scrollbar"
                         animate={{ rotateY: isMinimized ? 30 : 0 }}
@@ -120,7 +116,6 @@ export default function AdminLayout({
                     <DropdownMenuTrigger asChild>
                         <Button variant="destructive" className="shadow-sm shadow-foreground">
                             <PanelRight />
-
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">

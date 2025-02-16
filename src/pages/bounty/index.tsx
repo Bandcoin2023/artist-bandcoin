@@ -38,7 +38,7 @@ const Bounty = () => {
 
     return (
         <div className="
-            min-h-screen bg-gradient-to-br w-full">
+            min-h-screen  w-full">
             <div className="sticky top-0 ">
                 <SearchAndSort
                     searchTerm={searchTerm}
@@ -50,7 +50,7 @@ const Bounty = () => {
                 />
             </div>
 
-            <div className="flex min-h-[calc(100vh-20vh)]  flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
+            <div className="my-4 flex min-h-[calc(100vh-20vh)]  flex-col gap-4 ">
 
                 <div className="">
                     {
