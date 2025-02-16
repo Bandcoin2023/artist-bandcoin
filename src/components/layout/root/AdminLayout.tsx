@@ -74,7 +74,6 @@ export default function AdminLayout({
                             </div>
                         )
                 }
-
             </motion.div>
             <AnimatePresence>
                 <motion.div
