@@ -4,7 +4,7 @@ import React, { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { cn } from "~/lib/utils"
 import { NavItem } from "~/types/icon-types"
-import { ChevronsLeft, ChevronsRight, PanelRight } from 'lucide-react'
+import { ArrowRight, ChevronsLeft, ChevronsRight, PanelRight } from 'lucide-react'
 import { Button } from "~/components/shadcn/ui/button"
 // import ParticleBackground from "../components/particle-background"
 import { useAdminSidebar } from "~/hooks/use-admin-sidebar"
@@ -115,7 +115,7 @@ export default function AdminLayout({
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="destructive" className="shadow-sm shadow-foreground">
-                            <PanelRight />
+                            <ChevronsLeft />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
