@@ -8,6 +8,7 @@ import MusicBuyModal from "../modal/music-buy-modal";
 import EditBountyModal from "../modal/edit-bounty-modal";
 import BountyFileUploadModal from "../modal/bounty-submission-modal";
 import ViewBountyAttachmentModal from "../modal/view-bounty-attachment-modal";
+import CreateBountyModal from "../modal/create-bounty-modal";
 
 const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -28,6 +29,7 @@ const ModalProvider = () => {
       <EditBountyModal />
       <BountyFileUploadModal />
       <ViewBountyAttachmentModal />
+      <CreateBountyModal />
 
     </>
   );

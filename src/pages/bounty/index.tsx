@@ -39,7 +39,7 @@ const Bounty = () => {
     return (
         <div className="
             min-h-screen  w-full">
-            <div className="sticky top-0 ">
+            <div className="sticky top-0 z-10">
                 <SearchAndSort
                     searchTerm={searchTerm}
                     setSearchTerm={setSearchTerm}
