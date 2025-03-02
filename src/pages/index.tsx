@@ -146,8 +146,8 @@ const HomePage = () => {
   const currentAsset = RecentlyAddedMarketAssets[currentIndex];
 
   return (
-    <div className="relative  flex h-full flex-col gap-4 overflow-y-auto scrollbar-hide">
-      <div className="relative h-[40vh] overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-4 shadow-lg md:h-[42vh]">
+    <div className="relative  flex h-[calc(100vh-10.8vh)] flex-col gap-4 overflow-y-auto scrollbar-hide">
+      <div className="relative min-h-[40vh] overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-4 shadow-lg md:min-h-[42vh]">
         {/* Background with gradient overlay */}
         <motion.div
           key={currentIndex}

@@ -61,7 +61,7 @@ export default function BountyList({
             {bounties.map((bounty) => (
                 <Card
                     key={bounty.id}
-                    className="flex h-full flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer  bg-primary  overflow-hidden justify-between"
+                    className="flex h-full flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer    overflow-hidden justify-between"
 
                 >
                     <CardHeader className="relative p-0">
@@ -73,17 +73,17 @@ export default function BountyList({
                             className="h-48 w-full object-cover"
                         />
                         <div className="absolute top-0 right-0 m-4">
-                            <Badge variant="secondary" className="bg-primary text-black">
+                            <Badge variant="secondary" className="bg-primary ">
                                 ${bounty.priceInUSD}
                             </Badge>
                         </div>
                     </CardHeader>
                     <CardContent className="flex flex-col p-6">
-                        <CardTitle className="mb-3 text-xl font-bold text-black">{bounty.title}</CardTitle>
-                        <div className="mb-4 text-sm text-gray-600 min-h-[100px] max-h-[100px] dark:text-gray-300 line-clamp-3 overflow-y-auto scrollbar-hide">
+                        <CardTitle className="mb-3 text-xl font-bold">{bounty.title}</CardTitle>
+                        <div className="mb-4  min-h-[100px] max-h-[100px] line-clamp-3 overflow-y-auto scrollbar-hide">
                             <SafeHTML html={bounty.description} />
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center gap-4 text-sm ">
                             <div className="flex items-center">
                                 <Users className="mr-1 h-4 w-4" />
                                 <span>{bounty._count.participants} participants</span>
@@ -98,7 +98,7 @@ export default function BountyList({
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="bg-primary p-4 flex flex-col items-center ">
+                    <CardFooter className="bg-secondary p-4 flex flex-col items-center ">
                         <div className="flex items-center justify-between w-full mb-2">
                             <div className="flex items-center text-sm">
                                 <Award className="mr-1 inline-block h-4 w-4" />
@@ -115,14 +115,15 @@ export default function BountyList({
                         </div>
                         {bounty.isJoined || bounty.isOwner ? (
                             <Button
+
                                 onClick={() => {
                                     router.push(`/bounty/${bounty.id}`)
                                 }}
-                                variant="secondary" className="w-full mt-2">
+                                variant="default" className="w-full mt-2">
                                 View
                             </Button>
                         ) : (
-                            <Button variant="secondary"
+                            <Button variant="default"
 
                                 onClick={(e) => {
                                     e.stopPropagation()

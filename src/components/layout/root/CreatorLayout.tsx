@@ -44,7 +44,7 @@ export default function CreatorLayout({
     const [isExpanded, setIsExpanded] = useState(false);
 
     const [cursorVariant, setCursorVariant] = useState("default");
-    const creators = api.fan.creator.getAllCreator.useQuery(
+    const creators = api.fan.creator.getAllCreator.useInfiniteQuery(
         { limit: 10 },
         {
             getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -117,24 +117,58 @@ export default function CreatorLayout({
                                         animate={{ rotateY: isMinimized ? 30 : 0 }}
                                         transition={{ type: "spring", stiffness: 100, damping: 10 }}
                                     >
-                                        <div className="flex w-full h-1/2 overflow-x-hidden flex-col gap-2 p-1">
+                                        <div className="flex w-full h-full overflow-x-hidden scrollbar-hide flex-col gap-2 p-1">
                                             {
-                                                creators.data?.items.map((creator) => (
-                                                    <Button
-                                                        size="creator"
-                                                        className="flex w-full items-center justify-start gap-2   overflow-hidden  rounded-md   text-sm font-medium shadow-sm shadow-foreground hover:text-[#dbdd2c]"
-                                                        key={creator.id}
-                                                    >
-                                                        <CustomAvatar url={creator.profileUrl} />
-                                                        <div className=" flex flex-col items-start justify-center">
-                                                            <h1 className="truncate">{creator.name}</h1>
-                                                            <p>{addrShort(creator.id, 4)}</p>
+                                                creators.isLoading ? (
+                                                    Array.from({ length: 15 }).map((_, index) => (
+                                                        // Skeleton loader
+                                                        <div
+                                                            key={index}
+                                                            className="flex w-full items-center justify-start gap-2  rounded-md text-sm font-medium shadow-sm shadow-foreground hover:text-[#dbdd2c]"
+                                                        >
+                                                            <div className="flex items-center justify-center w-14 h-14 bg-gray-200 rounded-full animate-pulse"></div>
+                                                            {
+                                                                !isMinimized && (
+                                                                    <div className="flex flex-col items-start justify-center gap-2">
+                                                                        <h1 className="w-20 h-4 bg-gray-200 rounded-md animate-pulse"></h1>
+                                                                        <p className="w-10 h-3 bg-gray-200 rounded-md animate-pulse"></p>
+                                                                    </div>
+                                                                )
+                                                            }
                                                         </div>
+                                                    ))
+                                                ) : (
+                                                    creators.data?.pages.map((creators) => (
+                                                        creators.items.map((creator) => (
+                                                            <Button
+                                                                size="creator"
+                                                                className="flex w-full items-center justify-start gap-2  rounded-md text-sm font-medium shadow-sm shadow-foreground hover:text-[#dbdd2c]"
+                                                                key={creator.id}
+                                                            >
+                                                                <CustomAvatar url={creator.profileUrl} />
+                                                                <div className="flex flex-col items-start justify-center">
+                                                                    <h1 className="truncate">{creator.name}</h1>
+                                                                    <p>{addrShort(creator.id, 4)}</p>
+                                                                </div>
+                                                            </Button>
+                                                        )
+                                                        )
+                                                    ))
+                                                )
+                                            }
+                                            {
+                                                creators.hasNextPage && (
+                                                    <Button
+                                                        className="flex items-center justify-center  shadow-sm shadow-black "
+                                                        onClick={() => creators.fetchNextPage()}
+                                                        disabled={creators.isFetchingNextPage}
+                                                    >
+                                                        {creators.isFetchingNextPage ? "Loading more..." : "Load More"}
                                                     </Button>
-                                                ))
-
+                                                )
                                             }
                                         </div>
+
                                     </motion.div>
                                 </motion.div>
                             </div>
