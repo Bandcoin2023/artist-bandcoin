@@ -51,7 +51,6 @@ export default function AdminLayout({
         refetchOnWindowFocus: false,
     });
     const path = usePathname();
-
     const [isExpanded, setIsExpanded] = useState(false)
     const LeftNavigation: DockerItem[] = [
         { href: "/admin/wallet", icon: "wallet", label: "WALLET", color: "bg-blue-500" },
