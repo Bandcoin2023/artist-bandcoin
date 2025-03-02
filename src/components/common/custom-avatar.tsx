@@ -16,7 +16,7 @@ export default function CustomAvatar({ url, size = 40, className, winnerCount }:
 
     return (
         <div className=" relative">
-            <div className={cn("rounded-full overflow-hidden", className)}>
+            <div className={cn("rounded-full h-14 w-14   overflow-hidden", className)}>
                 {url ? (
                     <Image
                         src={url}
@@ -24,7 +24,7 @@ export default function CustomAvatar({ url, size = 40, className, winnerCount }:
                         width={size}
                         height={size}
 
-                        className="rounded-full h-full w-full object-cover"
+                        className="rounded-full h-14 w-14  object-cover"
                     />
                 ) : (
                     <Image
@@ -33,7 +33,7 @@ export default function CustomAvatar({ url, size = 40, className, winnerCount }:
                         width={size}
                         height={size}
 
-                        className="rounded-full h-full w-full object-cover"
+                        className="rounded-full h-14 w-14 object-cover"
                     />
                 )}
             </div>

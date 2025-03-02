@@ -177,7 +177,6 @@ export const BountyRoute = createTRPCRouter({
         await createNotification(followerId);
       }
     }),
-
   getAllBounties: publicProcedure
     .input(
       z.object({
@@ -372,6 +371,7 @@ export const BountyRoute = createTRPCRouter({
         skip: z.number().optional(),
         search: z.string().optional(),
         sortBy: z.nativeEnum(sortOptionEnum).optional(),
+
       }),
     )
     .query(async ({ input, ctx }) => {
@@ -415,6 +415,8 @@ export const BountyRoute = createTRPCRouter({
               user: {
                 select: {
                   id: true,
+
+
                 },
               },
               isSwaped: true,
@@ -423,6 +425,7 @@ export const BountyRoute = createTRPCRouter({
           creator: {
             select: {
               name: true,
+              profileUrl: true,
             },
           },
           participants: {

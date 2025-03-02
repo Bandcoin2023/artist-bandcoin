@@ -30,6 +30,7 @@ export function UploadS3Button({
     type,
     varient,
     className,
+    label
 }: {
     endpoint: EndPointType;
     onUploadProgress?: (p: number) => void;
@@ -40,6 +41,7 @@ export function UploadS3Button({
     type?: "profile" | "cover";
     varient: 'button' | 'input';
     className?: string;
+    label?: string;
 }) {
     const [progress, setProgress] = useState(0);
     const [file, setFile] = useState<File>();
@@ -135,7 +137,7 @@ export function UploadS3Button({
                 ) : (
                     <p className="flex items-center gap-2">
                         <Upload className=" h-4 w-4" />
-                        <span>Upload Media</span>
+                        <span>{label ?? "Upload Media"}</span>
                     </p>
                 )}
 

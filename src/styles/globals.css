@@ -22,7 +22,7 @@
     --destructive: 0 84.2% 60.2%; /* Red (for destructive actions) */
     --destructive-foreground: 60 33% 98%; /* Light text on destructive elements */
     --border: 60 40% 80%; /* Light border color */
-    --input: 60 60% 88%; /* Light input background */
+    --input: 60 30% 55%; /* Light input background */
     --ring: 60 72% 52%; /* Focus ring (same as primary) */
     --radius: 0.75rem;
 
