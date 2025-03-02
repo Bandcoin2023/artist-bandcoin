@@ -33,11 +33,9 @@ export default function Layout({
     return (
         <ThemeProvider
             attribute="class"
-            defaultTheme="system"
+            defaultTheme="light"
             enableSystem
             disableTransitionOnChange
-
-
         >
             <div className=" h-screen w-full scrollbar-hide  overflow-hidden">
                 <Header />
@@ -55,7 +53,7 @@ export default function Layout({
                     </div>
 
                     {session.status === "authenticated" ? (
-                        <div className="w-full  overflow-y-auto p-2  lg:px-4 scrollbar-hide">
+                        <div className="w-full  overflow-y-auto px-2  lg:px-4 scrollbar-hide">
                             {children}
                             <ModalProvider />
                             <Toaster />
