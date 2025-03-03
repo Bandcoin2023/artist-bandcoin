@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -158,6 +159,7 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #f8f9ec;
 }
+
 @layer utilities {
     .scrollbar-hide {
         -ms-overflow-style: none;
@@ -173,4 +175,8 @@
         /* For Chrome, Safari, and Opera */
       }
       
+}
+
+@layer components{
+  
 }

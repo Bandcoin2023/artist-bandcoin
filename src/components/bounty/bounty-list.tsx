@@ -119,7 +119,7 @@ export default function BountyList({
                                 onClick={() => {
                                     router.push(`/bounty/${bounty.id}`)
                                 }}
-                                variant="default" className="w-full mt-2">
+                                variant="default" className="w-full mt-2 shadow-sm shadow-foreground">
                                 View
                             </Button>
                         ) : (
@@ -129,7 +129,7 @@ export default function BountyList({
                                     e.stopPropagation()
                                     handleJoinBounty(bounty.id)
                                 }}
-                                className="w-full mt-2" disabled={!isEligible(bounty)}>
+                                className="w-full mt-2 shadow-sm shadow-foreground" disabled={!isEligible(bounty)}>
                                 {joinBountyMutation.isLoading
                                     && bounty.id === joinBountyMutation.variables?.BountyId
                                     ? <span className="flex items-center justify-center gap-2">
