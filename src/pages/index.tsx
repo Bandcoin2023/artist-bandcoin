@@ -147,7 +147,7 @@ const HomePage = () => {
 
   return (
     <div className="relative  flex h-[calc(100vh-10.8vh)] flex-col gap-4 overflow-y-auto scrollbar-hide">
-      <div className="relative min-h-[40vh] overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-4 shadow-lg md:min-h-[42vh]">
+      <div className="relative min-h-[40vh] overflow-hidden rounded-b-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-4 shadow-lg md:min-h-[42vh]">
         {/* Background with gradient overlay */}
         <motion.div
           key={currentIndex}
@@ -162,7 +162,7 @@ const HomePage = () => {
             backgroundPosition: "center",
           }}
         >
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/20 via-white/20 to-white/10 backdrop-blur-md" />
+          <div className="absolute inset-0 rounded-b-2xl bg-gradient-to-b from-white/20 via-white/20 to-white/10 backdrop-blur-md" />
         </motion.div>
 
         {/* Main content */}
@@ -435,8 +435,8 @@ const FilterTabs = () => {
     if (artistAssets.hasNextPage) artistAssets.fetchNextPage();
   };
   return (
-    <Card >
-      <CardHeader className="w-full rounded-md bg-primary p-2 md:p-4">
+    <Card className="rounded-none" >
+      <CardHeader className="w-full rounded-none bg-primary p-2 md:p-4">
         <CardTitle className="flex w-full gap-2 p-0 md:w-[50vw] md:gap-4 ">
           {TABS.map((tab) => (
             <Button

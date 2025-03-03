@@ -15,68 +15,63 @@ export function ModeSwitch() {
     const router = useRouter()
     return (
         <TooltipProvider>
-            <div className="inline-flex flex-col  rounded-md p-1 shadow-sm shadow-black bg-gray-100/50 backdrop-blur-sm ">
-                {/* User Mode Button */}
+            <div className="inline-flex flex-col rounded-md p-1 shadow-sm shadow-black bg-gray-100/50 backdrop-blur-sm">
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <button
                             type="button"
                             onClick={() => {
-                                isCreator && toggleSelectedMode()
-                                router.push("/artist/home")
+                                if (isCreator) {
+                                    toggleSelectedMode()
+                                    router.push("/artist/home")
+                                }
                             }}
                             className={cn(
-                                "relative rounded-md transition-colors ",
-                                "flex items-center justify-center",
-                                "w-8 h-8", // Fixed square size
-                                !isCreator && "text-white animate-bounce ",
-                                isCreator && "text-gray-600 hover:text-gray-900 "
+                                "relative rounded-md transition-colors mb-1",
+                                "flex flex-col items-center justify-center gap-1 p-2",
+                                "w-10 h-10 md:w-12 md:h-12", // Smaller on mobile, regular on md+
+                                isCreator ? "text-gray-600 " : "text-white animate-bounce",
                             )}
                             disabled={!isCreator}
                         >
-                            <VisuallyHidden>Switch to User mode</VisuallyHidden>
                             {!isCreator && (
                                 <motion.div
                                     layoutId="activeBackgroundIcon"
-                                    className="absolute inset-0 bg-blue-500 rounded-md "
+                                    className="absolute inset-0 bg-blue-500 rounded-md"
                                     transition={{
                                         type: "spring",
                                         bounce: 0.15,
-                                        duration: 0.5
+                                        duration: 0.5,
                                     }}
                                 />
                             )}
                             <User className="relative w-4 h-4" />
+                            <span className="relative text-[10px] font-medium hidden md:inline">User</span>
                         </button>
                     </TooltipTrigger>
-                    <TooltipContent
-                        side="right"
-                        className="font-medium"
-                        sideOffset={8}
-                    >
+                    <TooltipContent side="right" className="font-medium" sideOffset={8}>
                         {!isCreator ? "User Mode" : "Switch to User Mode"}
                     </TooltipContent>
                 </Tooltip>
 
-                {/* Creator Mode Button */}
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <button
                             type="button"
                             onClick={() => {
-                                !isCreator && toggleSelectedMode()
-                                router.push("/artist/profile")
+                                if (!isCreator) {
+                                    toggleSelectedMode()
+                                    router.push("/artist/profile")
+                                }
                             }}
                             className={cn(
-                                "relative rounded-md transition-colors ",
-                                "flex items-center justify-center",
-                                "w-8 h-8", // Fixed square size
-                                isCreator && "text-white animate-bounce",
-                                !isCreator && "text-gray-600 hover:text-gray-900"
+                                "relative rounded-md transition-colors",
+                                "flex flex-col items-center justify-center gap-1 p-2",
+                                "w-10 h-10 md:w-12 md:h-12", // Smaller on mobile, regular on md+
+                                isCreator ? "text-white animate-bounce" : "text-gray-600",
                             )}
                             disabled={isCreator}
                         >
-                            <VisuallyHidden>Switch to Creator mode</VisuallyHidden>
                             {isCreator && (
                                 <motion.div
                                     layoutId="activeBackgroundIcon"
@@ -84,18 +79,15 @@ export function ModeSwitch() {
                                     transition={{
                                         type: "spring",
                                         bounce: 0.15,
-                                        duration: 0.5
+                                        duration: 0.5,
                                     }}
                                 />
                             )}
                             <Paintbrush className="relative w-4 h-4" />
+                            <span className="relative text-[10px] font-medium hidden md:inline">Creator</span>
                         </button>
                     </TooltipTrigger>
-                    <TooltipContent
-                        side="right"
-                        className="font-medium"
-                        sideOffset={8}
-                    >
+                    <TooltipContent side="right" className="font-medium" sideOffset={8}>
                         {isCreator ? "Creator Mode" : "Switch to Creator Mode"}
                     </TooltipContent>
                 </Tooltip>

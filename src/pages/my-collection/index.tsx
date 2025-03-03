@@ -21,7 +21,7 @@ import { MyCollectionMenu, useMyCollectionTabs } from "~/components/store/tabs/m
 const MyCollecton = () => {
     const { selectedMenu, setSelectedMenu } = useMyCollectionTabs();
     return (
-        <Card className="">
+        <Card className="rounded-none">
             <CardHeader className="w-full bg-primary border-b-2 p-2 md:p-4 flex items-center justify-center">
                 <CardTitle className="flex md:w-1/2 items-center justify-center  p-0  gap-2 md:gap-4">
                     {Object.values(MyCollectionMenu).map((tab) => (

@@ -717,6 +717,15 @@ export const BountyRoute = createTRPCRouter({
   getTrustCost: protectedProcedure.query(async ({ ctx }) => {
     return await getplatformAssetNumberForXLM(0.5);
   }),
+  getplatformAssetNumberForXLM: protectedProcedure
+    .input(
+      z.object({
+        xlm: z.number().optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      return await getplatformAssetNumberForXLM(input.xlm);
+    }),
 
   getSendBalanceToWinnerXdr: protectedProcedure
     .input(
