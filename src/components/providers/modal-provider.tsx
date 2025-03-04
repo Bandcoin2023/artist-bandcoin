@@ -9,6 +9,8 @@ import EditBountyModal from "../modal/edit-bounty-modal";
 import BountyFileUploadModal from "../modal/bounty-submission-modal";
 import ViewBountyAttachmentModal from "../modal/view-bounty-attachment-modal";
 import CreateBountyModal from "../modal/create-bounty-modal";
+import CreatorCreatePinModal from "../modal/creator-create-pin-modal";
+import MapOptionModal from "../modal/map-options-modal";
 
 const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -30,6 +32,8 @@ const ModalProvider = () => {
       <BountyFileUploadModal />
       <ViewBountyAttachmentModal />
       <CreateBountyModal />
+      <MapOptionModal />
+      <CreatorCreatePinModal />
 
     </>
   );

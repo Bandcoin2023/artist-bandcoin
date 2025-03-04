@@ -200,6 +200,16 @@ export const creatorRouter = createTRPCRouter({
   getSecretMessage: protectedProcedure.query(() => {
     return "you can now see this secret message!";
   }),
+  getCreators: protectedProcedure
+
+    .query(async ({ input, ctx }) => {
+
+      const items = await ctx.db.creator.findMany({
+
+        where: { approved: { equals: true } },
+      });
+      return items;
+    }),
 
   search: publicProcedure
     .input(
