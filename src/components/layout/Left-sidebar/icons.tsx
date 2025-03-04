@@ -37,6 +37,8 @@ import {
   Music,
   Store,
   Trophy,
+  MapPinned,
+
 } from "lucide-react";
 import { RiAdminFill } from "react-icons/ri";
 import { FaWallet } from "react-icons/fa";
@@ -81,6 +83,7 @@ export const Icons = {
   users: User2Icon,
   bounty: Trophy,
   music: Music,
+  map: MapPinned,
 
 
 };

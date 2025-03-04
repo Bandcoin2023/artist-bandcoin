@@ -114,7 +114,7 @@ export default function CreatorLayout({
     }
 
     return (
-        <div className="relative">
+        <div className="relative overflow-hidden">
             <div className="flex gap-4 h-[calc(100vh-10.8vh)] overflow-hidden">
                 {selectedMode === Mode.User ? (
                     <>
@@ -371,6 +371,7 @@ export const LeftNavigation: NavItem[] = [
     { href: "/bounty", icon: "bounty", title: "BOUNTY" },
     { href: "/artist/home", icon: "creator", title: "ARTISTS" },
     { href: "/settings", icon: "setting", title: "SETTINGS" },
+
 ]
 
 type DockerItem = {
@@ -419,5 +420,12 @@ const CreatorNavigation: DockerItem[] = [
         label: "SETTINGS",
         color: "bg-purple-500",
     },
+    {
+        href: "/artist/map",
+        icon: "map",
+        label: "MAP",
+        color: "bg-pink-500",
+
+    }
 ]
 

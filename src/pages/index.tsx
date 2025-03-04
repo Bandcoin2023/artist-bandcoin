@@ -107,7 +107,7 @@ const HomePage = () => {
   if (fanAssets.isLoading ?? RecentlyAddedMarketAssets.length === 0) {
     return (
       <div className="h-[calc(100vh-10vh)]">
-        <div className="relative h-[56vh] overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-4 md:h-[42vh]">
+        <div className="relative h-[56vh] overflow-hidden rounded-b-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-4 md:h-[42vh]">
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-black/60 via-black/40 to-black/90 backdrop-blur-md" />
           <div className="relative z-10 flex h-full flex-col rounded-md">
             <div className="mb-4 flex items-center justify-between">
