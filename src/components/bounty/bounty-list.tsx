@@ -140,7 +140,7 @@ export default function BountyList({
                         )}
                         {!isEligible(bounty) ? (
                             <p className="text-xs text-red-500 mt-2">
-                                {bounty.currentWinnerCount >= bounty.totalWinner ? "No spots left" : "Insufficient balance to join"}
+                                {bounty.currentWinnerCount >= bounty.totalWinner ? "No spots left" : `${bounty.requiredBalance.toFixed(1)} ${PLATFORM_ASSET.code.toLocaleUpperCase()} required`}
                             </p>
                         ) :
                             <p className="text-xs text-green-500 mt-2">
