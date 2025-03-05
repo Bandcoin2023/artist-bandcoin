@@ -154,7 +154,7 @@ export default function AssetInfoModal() {
                                             <Button
 
                                                 className="w-full shadow-sm shadow-foreground"
-                                                variant="warmOutline"
+                                                variant="accent"
                                             >
                                                 Play
                                             </Button>
@@ -163,7 +163,7 @@ export default function AssetInfoModal() {
                                                 <Button
 
                                                     className="w-full"
-                                                    variant="warmOutline"
+                                                    variant="accent"
                                                 >
                                                     Play
                                                 </Button>

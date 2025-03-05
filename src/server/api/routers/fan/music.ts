@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
     createTRPCRouter,
     creatorProcedure,
+    protectedProcedure,
 
 } from "~/server/api/trpc";
 import { AssetSelectAllProperty } from "../marketplace/marketplace";
@@ -53,26 +54,63 @@ export const SongFormSchema = z.object({
 })
 export const musicRouter = createTRPCRouter({
 
-    getCreatorAlbums: creatorProcedure.query(async ({ ctx }) => {
-        const creatorId = ctx.session.user.id;
+    getCreatorAlbums: protectedProcedure.input(
+        z.object({
+            limit: z.number().min(1).max(100).default(10),
+            cursor: z.string().nullish(),
+        })
+    ).query(async ({ ctx, input }) => {
+        const { limit, cursor } = input
+        const creatorId = ctx.session.user.id
 
         const creator = await ctx.db.creator.findUnique({
             where: {
                 id: creatorId,
-            }
-
-        });
-
+            },
+        })
 
         if (!creator) {
-            throw new Error("Creator not found");
+            throw new Error("Creator not found")
         }
+
+        // Get one more item than requested to determine if there's a next page
         const albums = await ctx.db.album.findMany({
+            take: limit + 1,
             where: {
                 creatorId: ctx.session.user.id,
             },
-        });
-        return albums;
+            include: {
+                creator: {
+                    select: {
+                        name: true,
+                    }
+                }
+            },
+            // If cursor is provided, start after that album
+            ...(cursor
+                ? {
+                    cursor: {
+                        id: Number(cursor),
+                    },
+                    skip: 1, // Skip the cursor item
+                }
+                : {}),
+            orderBy: {
+                createdAt: "desc", // Most recent albums first
+            },
+        })
+
+        // Check if we have more items
+        let nextCursor: typeof cursor | undefined = undefined
+        if (albums.length > limit) {
+            const nextItem = albums.pop() // Remove the extra item
+            nextCursor = nextItem?.id.toString()
+        }
+
+        return {
+            albums,
+            nextCursor,
+        }
     }),
 
     createAlbum: creatorProcedure.input(z.object({

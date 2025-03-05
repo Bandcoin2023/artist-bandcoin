@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "~/lib/utils";
 import type { NavItem } from "~/types/icon-types";
@@ -9,7 +9,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "~/components/shadcn/ui/button";
 import { ToggleButton } from "~/components/common/toggle-button-admin";
 import { api } from "~/utils/api";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCreatorSidebar } from "~/hooks/use-creator-sidebar";
 import { Mode, useModeStore } from "~/components/store/mode-store";
 import CustomAvatar from "~/components/common/custom-avatar";
@@ -19,6 +19,7 @@ import Link from "next/link";
 import { Icons } from "../Left-sidebar/icons";
 import { CreatorListSkeleton } from "~/components/loading/creator-skeleton";
 import { SkeletonEffect } from "~/components/loading/skeleton-effect";
+import { useToast } from "~/components/shadcn/ui/use-toast";
 
 export default function CreatorLayout({
   children,
@@ -26,7 +27,8 @@ export default function CreatorLayout({
   children: React.ReactNode;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
-
+  const router = useRouter();
+  const toast = useToast();
   const [cursorVariant, setCursorVariant] = useState("default");
   const creators = api.fan.creator.getAllCreator.useInfiniteQuery(
     { limit: 10 },
@@ -118,6 +120,17 @@ export default function CreatorLayout({
       },
     },
   };
+
+  // i want if user try to access creator page but he is on user page then it should redirect to user page
+  useEffect(() => {
+    if (creator.data?.id && selectedMode === Mode.User) {
+      toast.toast({
+        title: "You must be toggled to creator mode to access this page",
+        variant: "destructive",
+      })
+      router.push("/artist/home");
+    }
+  }, [creator.data?.id]);
 
   return (
     <div className="relative overflow-hidden">
@@ -236,13 +249,13 @@ export default function CreatorLayout({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              {creator.isLoading ? (
+              {creator.isLoading && selectedMode === Mode.Creator ? (
                 <div className="flex h-full w-full items-center justify-center">
                   <div className="w-full max-w-4xl space-y-4 px-4">
                     <SkeletonEffect variant="card" count={3} />
                   </div>
                 </div>
-              ) : creator.data?.id ? (
+              ) : creator.data?.id && selectedMode === Mode.Creator ? (
                 <div className="flex h-screen w-full flex-col">{children}</div>
               ) : (
                 !creator.data && (
@@ -256,7 +269,7 @@ export default function CreatorLayout({
             </motion.div>
 
             <div
-              className={`fixed bottom-4 z-50 -translate-x-1/2 transition-all duration-500 ease-in-out ${isExpanded ? " right-20 md:right-32 " : "right-14 "}`}
+              className={`fixed bottom-4 z-50 -translate-x-1/2 transition-all duration-500 ease-in-out ${isExpanded ? " right-20 md:right-32 " : "right-16 "}`}
             >
               <div className="relative">
                 {/* Expanded Items */}
@@ -348,6 +361,7 @@ export default function CreatorLayout({
                 >
                   <Button
                     size="icon"
+                    variant='destructive'
                     onClick={toggleExpand}
                     className="h-10 w-10 rounded-sm border-2 border-[#dbdd2c] font-bold"
                   >

@@ -18,12 +18,11 @@ export default function CustomAvatar({
   className,
   winnerCount,
 }: HexagonAvatarProps) {
-  return <HexagonAvatar url={url ?? undefined} />;
-  /*
+
   return (
-    <div className=" relative">
+    <div className=" relative avatar">
       <div
-        className={cn("h-14 w-14 overflow-hidden   rounded-full", className)}
+        className={cn("h-14 w-14 overflow-hidden  mask mask-hexagon     rounded-full", className)}
       >
         {url ? (
           <Image
@@ -31,7 +30,7 @@ export default function CustomAvatar({
             alt="Avatar"
             width={size}
             height={size}
-            className="h-14 w-14 rounded-full  object-cover"
+            className="h-14 w-14 rounded-full  object-cover -rotate-90"
           />
         ) : (
           <Image
@@ -39,7 +38,7 @@ export default function CustomAvatar({
             alt="Avatar"
             width={size}
             height={size}
-            className="h-14 w-14 rounded-full object-cover"
+            className="h-14 w-14 rounded-full object-cover -rotate-90"
           />
         )}
       </div>
@@ -57,19 +56,24 @@ export default function CustomAvatar({
       )}
     </div>
   );
-  */
+
 }
 
-export function HexagonAvatar({
-  url = "https://avatars.githubusercontent.com/u/47269261?v=4",
-}: {
-  url?: string;
-}) {
-  return (
-    <div className="avatar">
-      <div className="mask mask-hexagon w-24">
-        <img src={url} />
-      </div>
-    </div>
-  );
-}
+// export function HexagonAvatar({
+//   url = "https://avatars.githubusercontent.com/u/47269261?v=4",
+// }: {
+//   url?: string;
+// }) {
+//   return (
+//     <div className="avatar">
+//       <div className="mask mask-hexagon ">
+//         <Image src={url}
+//           alt="Avatar"
+//           width={40}
+//           height={40}
+//           className="h-6 w-6 object-cover"
+//         />
+//       </div>
+//     </div>
+//   );
+// }
