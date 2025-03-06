@@ -24,6 +24,7 @@ const config = {
         hostname: "utfs.io",
       },
       { hostname: "app.wadzzo.com" },
+      { hostname: "bandcoin.io" },
       {
         hostname: "firebasestorage.googleapis.com",
       },

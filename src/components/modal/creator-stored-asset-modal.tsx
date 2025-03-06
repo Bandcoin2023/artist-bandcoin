@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, CreditCard, DollarSign, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useState } from "react";
@@ -30,6 +30,7 @@ import { MarketAssetType, useModal } from "~/lib/state/play/use-modal-store";
 import { Label } from "../shadcn/ui/label";
 import ShowThreeDModel from "../3d-model/model-show";
 import { useCreatorStoredAssetModalStore } from "../store/creator-stored-asset-modal-store";
+import { Separator } from "@radix-ui/react-select";
 
 export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
@@ -204,24 +205,24 @@ export default function CreatorStoredAssetModal() {
         );
 }
 
+
 export const updateAssetFormShema = z.object({
     assetId: z.number(),
     price: z.number().nonnegative(),
-
     priceUSD: z.number().nonnegative(),
-});
+})
 
-function EditForm({
+export function EditForm({
     item,
     closeModal,
 }: {
-    item: MarketAssetType;
-    closeModal: () => void;
+    item: MarketAssetType
+    closeModal: () => void
 }) {
     const {
         register,
         handleSubmit,
-        formState: { errors },
+        formState: { errors, isDirty },
     } = useForm<z.infer<typeof updateAssetFormShema>>({
         resolver: zodResolver(updateAssetFormShema),
         defaultValues: {
@@ -229,81 +230,121 @@ function EditForm({
             price: item.price,
             priceUSD: item.priceUSD,
         },
-    });
+    })
 
     // mutation
     const update = api.fan.asset.updateAsset.useMutation({
         onSuccess: (data) => {
             if (data) {
-                toast.success("Asset updated successfully");
-                closeModal();
+                toast.success("Asset updated successfully")
+                closeModal()
             }
         },
-    });
+    })
 
-    const onSubmit: SubmitHandler<z.infer<typeof updateAssetFormShema>> = (
-        data,
-    ) => {
-        update.mutate(data);
-    };
+    const onSubmit: SubmitHandler<z.infer<typeof updateAssetFormShema>> = (data) => {
+        update.mutate(data)
+    }
 
     return (
-        <Card className=" w-full ">
-            <CardHeader>
-                <CardTitle className="text-center text-2xl font-bold">
-                    Edit Asset
-                </CardTitle>
+        <Card className="w-full border-0 shadow-lg">
+            <CardHeader className="bg-primary pb-4">
+                <div className="flex items-center justify-center space-x-2">
+
+
+
+                    <h2 className="text-center text-2xl font-bold text-gray-800 dark:text-gray-100">Edit Asset</h2>
+                </div>
+                <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                    Update the pricing information for this asset
+                </p>
             </CardHeader>
-            <CardContent>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+
+            <Separator />
+
+            <CardContent className="pt-6">
+                <form id="edit-asset-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                     <div className="space-y-2">
                         <Label htmlFor="price" className="text-sm font-medium">
                             Price in {PLATFORM_ASSET.code}
                         </Label>
-                        <Input
-                            id="price"
-                            type="number"
-                            step="0.01"
-                            {...register("price", { valueAsNumber: true })}
-                            className={`w-full ${errors.price ? "border-red-500" : ""}`}
-                        />
-                        {errors.price && (
-                            <p className="text-sm text-red-500">{errors.price.message}</p>
-                        )}
+                        <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                {PLATFORM_ASSET.code.toLocaleLowerCase() === "wadzzo" ?
+
+                                    (<CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />) : PLATFORM_ASSET.code.toLocaleLowerCase() === "bandcoin" ? (
+                                        <Image
+                                            src={"https://bandcoin.io/images/logo.png"}
+                                            alt={PLATFORM_ASSET.code}
+                                            width={24}
+                                            height={24}
+                                            className="h-4 w-4"
+                                        />
+
+                                    ) : (
+                                        <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                    )
+
+                                }
+                            </div>
+                            <Input
+                                id="price"
+                                type="number"
+                                step="0.01"
+                                placeholder={`Enter amount in ${PLATFORM_ASSET.code}`}
+                                {...register("price", { valueAsNumber: true })}
+                                className={`pl-10 ${errors.price ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                            />
+                        </div>
+                        {errors.price && <p className="text-sm font-medium text-red-500">{errors.price.message}</p>}
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="priceUSD" className="text-sm font-medium">
                             Price in USD
                         </Label>
-                        <Input
-                            id="priceUSD"
-                            type="number"
-                            step="0.01"
-                            {...register("priceUSD", { valueAsNumber: true })}
-                            className={`w-full ${errors.priceUSD ? "border-red-500" : ""}`}
-                        />
-                        {errors.priceUSD && (
-                            <p className="text-sm text-red-500">{errors.priceUSD.message}</p>
-                        )}
+                        <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <DollarSign className="h-4 w-4 " />
+                            </div>
+                            <Input
+                                id="priceUSD"
+                                type="number"
+                                step="0.01"
+                                placeholder="Enter amount in USD"
+                                {...register("priceUSD", { valueAsNumber: true })}
+                                className={`pl-10 ${errors.priceUSD ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                            />
+                        </div>
+                        {errors.priceUSD && <p className="text-sm font-medium text-red-500">{errors.priceUSD.message}</p>}
                     </div>
-
-                    <Button
-                        type="submit"
-                        className="w-full transform rounded-md bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-2 font-semibold text-white transition-all duration-300 ease-in-out hover:scale-105 hover:from-blue-600 hover:to-purple-600"
-                        disabled={update.isLoading}
-                    >
-                        {update.isLoading ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Updating...
-                            </>
-                        ) : (
-                            "Update Asset"
-                        )}
-                    </Button>
                 </form>
             </CardContent>
+
+            <CardFooter className="flex gap-2 pt-2">
+
+
+                <Button type="button" variant="outline" onClick={closeModal} className="w-full">
+                    Cancel
+                </Button>
+                <Button
+                    type="submit"
+                    variant='accent'
+                    form="edit-asset-form"
+                    className="w-full  shadow-foreground"
+                    disabled={update.isLoading || !isDirty}
+                >
+                    {update.isLoading ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Updating...
+                        </>
+                    ) : (
+                        "Update Asset"
+                    )}
+                </Button>
+            </CardFooter>
         </Card>
-    );
+    )
 }
+

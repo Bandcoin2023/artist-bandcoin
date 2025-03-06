@@ -26,6 +26,8 @@
     --input: 60 30% 55%; /* Light input background */
     --ring: 60 72% 52%; /* Focus ring (same as primary) */
     --radius: 0.75rem;
+    --success:  120 100% 50%; /* Success color */
+    --warning:  45 100% 50%; /* Warning color */
 
     /* Chart colors with yellowish tint */
     --chart-1: 60 72% 52%;
@@ -174,6 +176,15 @@
         display: none;
         /* For Chrome, Safari, and Opera */
       }
+            .animate-shimmer {
+              animation: shimmer 2s infinite;
+            }
+      
+            @keyframes shimmer {
+              100% {
+                transform: translateX(100%);
+              }
+            }
       
 }
 

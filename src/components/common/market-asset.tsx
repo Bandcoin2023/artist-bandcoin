@@ -20,7 +20,10 @@ function MarketAssetComponent({ item }: { item: MarketAssetType }) {
                 setData(item)
             }}>
 
-            <AssetView code={asset.name} thumbnail={asset.thumbnail} />
+            <AssetView code={asset.name} thumbnail={asset.thumbnail}
+                creatorId={asset.creatorId}
+                price={item.price}
+            />
 
 
 

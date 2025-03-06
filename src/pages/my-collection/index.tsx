@@ -94,7 +94,7 @@ const MyCollection = () => {
 
     if (acc.data ?? data) {
         return (
-            <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
+            <div className="flex h-[calc(100vh-20vh)] overflow-y-auto flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
 
                 {
                     (acc.data?.dbAssets.length === 0 && data?.pages[0]?.items.length === 0) && (
@@ -118,6 +118,8 @@ const MyCollection = () => {
                                     code={asset.name}
                                     thumbnail={asset.thumbnail}
                                     isNFT={true}
+                                    creatorId={asset.creatorId}
+                                    mediaType={asset.mediaType}
                                 />
                             </div>
                         ))}
@@ -141,6 +143,7 @@ const MyCollection = () => {
                                                 "https://bandcoin.io/images/loading.png"
                                             }
                                             isPinned={true}
+                                            creatorId={item.location.locationGroup?.creatorId}
                                         />
                                     </div>
                                 ))}
@@ -169,13 +172,13 @@ const SecondaryStorage = () => {
 
 
     return (
-        <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
+        <div className="flex h-[calc(100vh-20vh)] overflow-y-auto flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
             {acc.isLoading && (
                 <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5" />
             )}
             {
                 acc.data === undefined && !acc.isLoading && (
-                    <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
+                    <div className="flex h-[calc(100vh-20vh)]  flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
 
                         <div className="flex items-center justify-center h-full flex-col gap-2">
                             <h1 className="text-lg font-bold ">You don{"'t"} have storage account. please create one.</h1>
@@ -210,6 +213,8 @@ const SecondaryStorage = () => {
                                 code={asset.name}
                                 thumbnail={asset.thumbnail}
                                 isNFT={true}
+                                creatorId={asset.creatorId}
+                                mediaType={asset.mediaType}
                             />
                         </div>
                     );
