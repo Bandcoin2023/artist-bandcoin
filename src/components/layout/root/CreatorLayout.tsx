@@ -123,13 +123,17 @@ export default function CreatorLayout({
 
   // i want if user try to access creator page but he is on user page then it should redirect to user page
   useEffect(() => {
-    if (creator.data?.id && selectedMode === Mode.User) {
-      toast.toast({
-        title: "You must be toggled to creator mode to access this page",
-        variant: "destructive",
-      })
-      router.push("/artist/home");
-    }
+    CreatorNavigation.map((item) => {
+      if (item.href === path && selectedMode === Mode.User) {
+        toggleSelectedMode();
+        toast.toast({
+          title: "Mode Changed",
+          description: "You are now in creator mode",
+          variant: "destructive",
+        });
+
+      }
+    })
   }, [creator.data?.id]);
 
   return (
@@ -269,7 +273,7 @@ export default function CreatorLayout({
             </motion.div>
 
             <div
-              className={`fixed bottom-4 z-50 -translate-x-1/2 transition-all duration-500 ease-in-out ${isExpanded ? " right-20 md:right-32 " : "right-16 "}`}
+              className={`fixed bottom-4 z-50 -translate-x-1/2 transition-all duration-500 ease-in-out ${isExpanded ? " right-20 md:right-32 " : "right-16 md:right-20 "}`}
             >
               <div className="relative">
                 {/* Expanded Items */}
@@ -429,12 +433,12 @@ const CreatorNavigation: DockerItem[] = [
     color: "bg-purple-500",
   },
   { href: "/artist/store", icon: "pins", label: "STORE", color: "bg-pink-500" },
-  {
-    href: "/artist/music",
-    icon: "report",
-    label: "MUSIC",
-    color: "bg-amber-500",
-  },
+  // {
+  //   href: "/artist/music",
+  //   icon: "report",
+  //   label: "MUSIC",
+  //   color: "bg-amber-500",
+  // },
   {
     href: "/artist/gift",
     icon: "creator",

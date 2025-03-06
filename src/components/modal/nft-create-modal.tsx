@@ -74,6 +74,7 @@ import { Alert, AlertDescription } from "../shadcn/ui/alert"
 import RechargeLink from "../payment/recharge-link"
 import { useNFTCreateModalStore } from "../store/nft-create-modal-store"
 import { cn } from "~/lib/utils"
+import { Progress } from "../shadcn/ui/progress"
 
 export const ExtraSongInfo = z.object({
     artist: z.string(),
@@ -153,6 +154,7 @@ export default function NftCreateModal() {
     const [mediaUploadSuccess, setMediaUploadSuccess] = useState(false)
     const [mediaType, setMediaType] = useState<MediaType>(MediaType.IMAGE)
     const [activeStep, setActiveStep] = useState<string>("media")
+    const [formProgress, setFormProgress] = useState(25)
 
     const [mediaUrl, setMediaUrl] = useState<string>()
     const [coverUrl, setCover] = useState<string>()
@@ -200,8 +202,11 @@ export default function NftCreateModal() {
             setMediaUploadSuccess(false)
             setMediaUrl(undefined)
             setCover(undefined)
-            reset()
+            handleClose()
         },
+        onError: (error) => {
+            toast.error(error.message)
+        }
     })
 
     const xdrMutation = api.fan.trx.createUniAssetTrx.useMutation({
@@ -335,15 +340,30 @@ export default function NftCreateModal() {
     }
 
     const nextStep = () => {
-        if (activeStep === "media") setActiveStep("details")
-        if (activeStep === "details") setActiveStep("pricing")
+        const currentIndex = FORM_STEPS.indexOf(activeStep)
+        if (currentIndex < FORM_STEPS.length - 1) {
+            const nextStep = FORM_STEPS[currentIndex + 1]
+            if (nextStep) {
+                setActiveStep(nextStep)
+            }
+        }
     }
 
     const prevStep = () => {
-        if (activeStep === "pricing") setActiveStep("details")
-        if (activeStep === "details") setActiveStep("media")
+        const currentIndex = FORM_STEPS.indexOf(activeStep)
+        if (currentIndex > 0) {
+            const previousStep = FORM_STEPS[currentIndex - 1]
+            if (previousStep) {
+                setActiveStep(previousStep)
+            }
+        }
     }
 
+    // Update progress based on active step
+    React.useEffect(() => {
+        const stepIndex = FORM_STEPS.indexOf(activeStep)
+        setFormProgress((stepIndex + 1) * (100 / FORM_STEPS.length))
+    }, [activeStep])
 
     const handleClose = () => {
         setNFTModalOpen(false)
@@ -371,44 +391,37 @@ export default function NftCreateModal() {
                 >
                     <DialogHeader className=" px-6 py-4">
                         <DialogTitle className="flex items-center gap-2 text-xl">
-                            Create Pin
+                            Create Stored Item
                         </DialogTitle>
                         <DialogDescription>Create you nft  and place it to marketplace.</DialogDescription>
-                    </DialogHeader>
-                    <div className="w-full px-6 pt-6">
-                        <div className="flex items-center justify-between">
-                            {FORM_STEPS.map((step, index) => (
-                                <div key={step} className="flex flex-col items-center">
-                                    <div
-                                        className={cn(
-                                            "w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm mb-1 ",
-                                            activeStep === step ? "bg-primary text-primary-foreground shadow-sm shadow-foreground" : "bg-muted text-muted-foreground",
-                                        )}
-                                    >
-                                        {index + 1}
+                        <Progress value={formProgress} className="mt-2" />
+
+                        <div className="w-full px-6 ">
+                            <div className="flex items-center justify-between">
+                                {FORM_STEPS.map((step, index) => (
+                                    <div key={step} className="flex flex-col items-center">
+                                        <div
+                                            className={cn(
+                                                "w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm mb-1 ",
+                                                activeStep === step ? "bg-primary text-primary-foreground shadow-sm shadow-foreground" : "bg-muted text-muted-foreground",
+                                            )}
+                                        >
+                                            {index + 1}
+                                        </div>
+                                        <span
+                                            className={cn(
+                                                "text-xs",
+                                                activeStep === step ? " font-medium" : "text-muted-foreground",
+                                            )}
+                                        >
+                                            {step === "media" ? "Media Info" : step === "details" ? "Asset Info" : "Price & Payment"}
+                                        </span>
                                     </div>
-                                    <span
-                                        className={cn(
-                                            "text-xs",
-                                            activeStep === step ? " font-medium" : "text-muted-foreground",
-                                        )}
-                                    >
-                                        {step === "media" ? "Media Info" : step === "details" ? "Asset Info" : "Price & Payment"}
-                                    </span>
-                                </div>
-                            ))}
-                            <div className="absolute left-0 right-0 top-[6.5rem] px-6 z-0">
-                                <div className="h-[2px] bg-muted w-full relative">
-                                    <div
-                                        className="absolute h-full bg-destructive transition-all duration-300"
-                                        style={{
-                                            width: activeStep === "media" ? "0%" : activeStep === "details" ? "50%" : "100%",
-                                        }}
-                                    />
-                                </div>
+                                ))}
+
                             </div>
                         </div>
-                    </div>
+                    </DialogHeader>
                     <div className="px-6 py-4 overflow-y-auto">
                         <form id="nft-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                             {activeStep === "media" && (

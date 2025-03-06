@@ -17,6 +17,7 @@ import { PLATFORM_ASSET } from "~/lib/stellar/constant";
 import { create } from "zustand";
 import { env } from "~/env";
 import { PaymentMethod, PaymentMethodEnum } from "../payment/payment-process";
+import Image from "next/image";
 
 interface PaymentMethodStore {
     paymentMethod: PaymentMethod;
@@ -101,7 +102,13 @@ export function PaymentChoose({
                                 htmlFor={PaymentMethodEnum.enum.asset}
                                 className="flex flex-1 cursor-pointer items-center"
                             >
-                                <Coins className="mr-3 h-6 w-6 " />
+                                {
+                                    PLATFORM_ASSET.code.toLocaleLowerCase() === "bandcoin" ? <Image
+                                        alt="bandcoin"
+                                        height={24}
+                                        width={24}
+                                        src={"https://bandcoin.io/images/logo.png"} className="mr-3 h-6 w-6" /> : <Coins className="mr-3 h-6 w-6" />
+                                }
                                 <div className="flex-grow">
                                     <div className="font-medium">
                                         Pay with {PLATFORM_ASSET.code}
