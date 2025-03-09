@@ -32,6 +32,7 @@ const MyApp: AppType<{ session: Session | null }> = ({
 
                 <Layout className={inner.className}>
                     <Component {...pageProps} />
+                    <Toaster />
 
                 </Layout>
                 <PopupImports className={inner.className} />

@@ -546,4 +546,155 @@ export const creatorRouter = createTRPCRouter({
 
       return { isAvailable: !exixt };
     }),
+
+  getTrandingCreators: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number().default(5),
+        cursor: z.string().nullish(), // cursor for pagination
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { limit, cursor } = input;
+
+      // Parse the cursor (which is the last creator's ID)
+      const cursorObj = cursor ? { id: cursor } : undefined;
+
+      // Fetch creators with cursor-based pagination
+      const creators = await ctx.db.creator.findMany({
+        where: {
+          approved: true,
+          followers: {
+            none: {
+              userId: ctx.session.user.id
+            }
+          }
+        },
+        orderBy: {
+          followers: {
+            _count: 'desc',
+          },
+        },
+        take: limit + 1, // take one extra to determine if there are more
+        ...(cursorObj && {
+          cursor: {
+            id: cursorObj.id,
+          },
+          skip: 1, // Skip the cursor
+        }),
+        select: {
+          id: true,
+          name: true,
+          profileUrl: true,
+          _count: {
+            select: {
+              followers: true,
+            },
+          },
+        },
+      });
+
+      // Check if we have more items
+      let nextCursor: typeof cursor = undefined;
+      if (creators.length > limit) {
+        const nextItem = creators.pop(); // Remove the extra item
+        nextCursor = nextItem?.id;
+      }
+
+      // Check if current user follows the creators
+      const followedCreators = await ctx.db.follow.findMany({
+        where: {
+          creatorId: {
+            in: creators.map((creator) => creator.id),
+          },
+          userId: ctx.session.user.id,
+        },
+      });
+
+      const creatorsWithFollow = creators.map((creator) => {
+        const isFollowed = followedCreators.some((follow) => follow.creatorId === creator.id);
+        return {
+          ...creator,
+          isFollowed,
+          isCurrentUser: creator.id === ctx.session.user.id,
+        };
+      });
+
+      return {
+        creators: creatorsWithFollow,
+        nextCursor,
+      };
+    }
+    ),
+
+  getFollowedCreators: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number().default(3),
+        cursor: z.string().nullish(), // cursor for pagination
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { limit, cursor } = input;
+
+      // Parse the cursor (which is the last creator's ID)
+      const cursorObj = cursor ? { id: cursor } : undefined;
+
+      // Fetch creators with cursor-based pagination
+      const creators = await ctx.db.creator.findMany({
+        where: {
+          approved: true,
+          followers: {
+            some: {
+              userId: ctx.session.user.id
+            }
+          }
+        },
+        orderBy: {
+          followers: {
+            _count: 'desc',
+          },
+        },
+        take: limit + 1, // take one extra to determine if there are more
+        ...(cursorObj && {
+          cursor: {
+            id: cursorObj.id,
+          },
+          skip: 1, // Skip the cursor
+        }),
+        select: {
+          id: true,
+          name: true,
+          profileUrl: true,
+          _count: {
+            select: {
+              followers: true,
+            },
+          },
+          subscriptions: {
+            select: {
+              name: true,
+            }
+          }
+        },
+
+      });
+
+      // Check if we have more items
+      let nextCursor: typeof cursor = undefined;
+      if (creators.length > limit) {
+        const nextItem = creators.pop(); // Remove the extra item
+        nextCursor = nextItem?.id;
+      }
+
+      // Check if current user follows the creators
+
+
+      return {
+        creators: creators,
+        nextCursor,
+      };
+    }
+    ),
+
 });

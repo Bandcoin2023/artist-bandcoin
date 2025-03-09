@@ -8,14 +8,12 @@ import { ChevronLeft } from "lucide-react";
 
 import { ThemeProvider } from "../../providers/theme-provider";
 import { ConnectWalletButton } from "package/connect_wallet";
-import { ScrollArea } from "~/components/shadcn/ui/scroll-area";
 
 import Header from "../Header";
 import Sidebar, { LeftNavigation } from "../Left-sidebar/sidebar";
 import { cn } from "~/lib/utils";
 import { useSidebar } from "~/hooks/use-sidebar";
 import ModalProvider from "~/components/providers/modal-provider";
-import { Toaster } from "~/components/shadcn/ui/toaster";
 
 export default function Layout({
     children,
@@ -56,7 +54,7 @@ export default function Layout({
                         <div className="w-full overflow-y-auto px-1  lg:px-4 scrollbar-hide">
                             {children}
                             <ModalProvider />
-                            <Toaster />
+
 
                         </div>
 

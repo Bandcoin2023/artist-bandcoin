@@ -221,7 +221,7 @@ export function LeftBottom() {
       <div className="flex  items-center justify-center">
         <button
           onClick={() => tougleTheme()}
-          className="relative h-14 w-36  rounded-full transition-shadow duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-purple-400"
+          className="relative h-10 w-20  rounded-full transition-shadow duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-purple-400"
           style={{
             boxShadow: theme === "dark"
               ? "inset 0 0 15px rgba(255, 255, 255, 0.2), 0 0 20px rgba(138, 43, 226, 0.4)"
@@ -238,9 +238,9 @@ export function LeftBottom() {
             transition={{ duration: 0.5 }}
           />
           <motion.div
-            className="absolute   h-12 w-12 top-1 rounded-full "
+            className="absolute   h-8 w-8 top-1 rounded-full "
             animate={{
-              x: theme === 'dark' ? 92 : 5,
+              x: theme === 'dark' ? 45 : 4,
               background: theme === 'dark' ? "#f1c40f" : "#ffffff",
             }}
             transition={{
@@ -249,16 +249,12 @@ export function LeftBottom() {
               damping: 30,
             }}
           />
-          <div className="relative flex h-full items-center justify-between px-4">
-            <div className="flex items-center gap-2">
-              <Sun className="h-8 w-8 text-yellow-400" />
-              <Cloud className="h-6 w-6 text-gray-200" />
-            </div>
-            <div className="flex items-center gap-2">
+          <div className="relative flex h-full items-center justify-between px-3">
 
-              <Star className="h-4 w-4 text-yellow-200" />
-              <Moon className="h-8 w-8 text-indigo-200" />
-            </div>
+            <Sun className="h-4 w-4 text-yellow-400" />
+
+            <Moon className="h-4 w-4 text-white" />
+
           </div>
           <motion.div
             className="absolute inset-0 rounded-full"

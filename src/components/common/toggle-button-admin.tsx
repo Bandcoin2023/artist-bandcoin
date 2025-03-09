@@ -31,7 +31,7 @@ export const ToggleButton: React.FC<ToggleButtonProps> = ({ isActive, onToggle, 
 
     return (
         <motion.button
-            className="relative w-10 h-10 bg-primary shadow-sm shadow-foreground rounded-full overflow-hidden flex items-center justify-center animate-bounce"
+            className="relative w-10 h-10 bg-primary shadow-sm shadow-foreground rounded-full overflow-hidden flex items-center justify-center "
             onClick={handleClick}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
