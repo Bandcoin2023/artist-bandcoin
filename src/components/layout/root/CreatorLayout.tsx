@@ -20,6 +20,9 @@ import { Icons } from "../Left-sidebar/icons";
 import { CreatorListSkeleton } from "~/components/loading/creator-skeleton";
 import { SkeletonEffect } from "~/components/loading/skeleton-effect";
 import { useToast } from "~/components/shadcn/ui/use-toast";
+import TrendingSidebar from "~/components/post/trending-sidebar";
+import CreatorSidebar from "~/components/post/followed-creator";
+import { Card, CardContent, CardHeader } from "~/components/shadcn/ui/card";
 
 export default function CreatorLayout({
   children,
@@ -56,7 +59,7 @@ export default function CreatorLayout({
   // Animation variants for sidebar
   const sidebarVariants = {
     expanded: {
-      width: "210px",
+      width: "300px",
       transition: {
         type: "spring",
         stiffness: 300,
@@ -154,7 +157,7 @@ export default function CreatorLayout({
             <AnimatePresence>
               <motion.div
                 className={cn(
-                  "fixed right-[13.3rem] top-1/2 z-40 hidden rotate-180 rounded-sm md:block",
+                  "fixed right-[19rem] top-1/2 z-40 hidden rotate-180 rounded-sm md:block",
                   isMinimized && "right-[.5rem] -rotate-180",
                 )}
                 initial={false}
@@ -174,7 +177,7 @@ export default function CreatorLayout({
                 />
               </motion.div>
             </AnimatePresence>
-            <div className="hidden h-[calc(100vh-23vh)] rounded-sm border-[1px] bg-background md:block">
+            <div className="hidden h-[calc(100vh-21vh)]  bg-background md:block">
               <motion.div
                 className="sticky top-0 hidden h-full overflow-y-auto p-1 md:block"
                 initial={false}
@@ -183,64 +186,36 @@ export default function CreatorLayout({
                 style={{ perspective: "1000px" }}
               >
                 <motion.div
-                  className="no-scrollbar flex h-full w-full flex-col items-center justify-start py-2"
+                  className="no-scrollbar  flex gap-4 h-full w-full flex-col items-center justify-start py-2"
                   initial={false}
                   animate={isMinimized ? "collapsed" : "expanded"}
                   variants={contentVariants}
                 >
-                  <div className="flex h-full w-full flex-col gap-2 overflow-x-hidden p-1 scrollbar-hide">
-                    {creators.isLoading ? (
-                      <CreatorListSkeleton />
-                    ) : (
-                      creators.data?.pages.map((creators) =>
-                        creators.items.map((creator) => (
-                          <motion.div
-                            key={creator.id}
-                            variants={itemVariants}
-                            initial={false}
-                            animate={isMinimized ? "collapsed" : "expanded"}
-                            className="overflow-hidden"
-                          >
-                            <Button
-                              size="creator"
-                              className="flex w-full items-center justify-start gap-2 rounded-md text-sm font-medium shadow-sm shadow-foreground hover:text-[#dbdd2c]"
-                            >
-                              <CustomAvatar url={creator.profileUrl} />
-                              <motion.div
-                                className="flex flex-col items-start justify-center"
-                                variants={itemVariants}
-                              >
-                                <h1 className="truncate">{creator.name}</h1>
-                                <p>{addrShort(creator.id, 4)}</p>
-                              </motion.div>
-                            </Button>
-                          </motion.div>
-                        )),
-                      )
-                    )}
-                    {creators.hasNextPage && (
-                      <motion.div
-                        variants={itemVariants}
-                        initial={false}
-                        animate={isMinimized ? "collapsed" : "expanded"}
-                      >
-                        <Button
-                          className="flex items-center justify-center shadow-sm shadow-black"
-                          onClick={() => creators.fetchNextPage()}
-                          disabled={creators.isFetchingNextPage}
-                        >
-                          {creators.isFetchingNextPage ? (
-                            <div className="flex items-center gap-2">
-                              <span>Loading more...</span>
-                              <SkeletonEffect className="h-4 w-4 rounded-full" />
-                            </div>
-                          ) : (
-                            "Load More"
-                          )}
-                        </Button>
-                      </motion.div>
-                    )}
-                  </div>
+                  <Card className="flex min-h-[72%]    w-full flex-col gap-2 overflow-x-hidden scrollbar-hide">
+                    <CardHeader className="sticky top-0 bg-primary z-10 p-2">
+                      <h3 className="font-medium   text-center ">Trending Creators</h3>
+
+                    </CardHeader>
+                    <CardContent className="p-1 ">
+
+                      <TrendingSidebar />
+
+                    </CardContent>
+
+
+                  </Card>
+                  <Card className="flex h-full  w-full flex-col gap-2 overflow-x-hidden  scrollbar-hide">
+
+                    <CardHeader className="sticky top-0 bg-primary z-10 p-2">
+                      <h3 className="font-medium  mb-3 text-center sticky top-0">Followed Creators</h3>
+
+                    </CardHeader>
+                    <CardContent>
+                      <div className=" overflow-y-auto">
+                        <CreatorSidebar />
+                      </div>
+                    </CardContent>
+                  </Card>
                 </motion.div>
               </motion.div>
             </div>

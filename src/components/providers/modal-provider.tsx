@@ -15,6 +15,7 @@ import CreateAlbumModal from "../modal/create-album-modal";
 import NftCreateModal from "../modal/nft-create-modal";
 import CreatorStoredAssetModal from "../modal/creator-stored-asset-modal";
 import CreateSongModal from "../modal/create-song-modal";
+import ShareModal from "../modal/share-post-modal";
 
 const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -42,6 +43,7 @@ const ModalProvider = () => {
       <NftCreateModal />
       <CreatorStoredAssetModal />
       <CreateSongModal />
+      <ShareModal />
 
     </>
   );
