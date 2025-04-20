@@ -6,7 +6,6 @@ import { Group } from "three";
 import * as THREE from "three";
 import { Button } from "~/components/shadcn/ui/button";
 import clsx from "clsx";
-
 const Model = ({ url, setLoadingProgress }: { url: string; setLoadingProgress: (progress: number) => void }) => {
     const [model, setModel] = useState<Group | null>(null);
 
