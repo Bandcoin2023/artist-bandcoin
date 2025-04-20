@@ -1,19 +1,25 @@
 "use client";
 import clsx from "clsx";
 import { useSession } from "next-auth/react";
-import dynamic from "next/dynamic";
-import { useRouter } from "next/router";
-import React from "react";
+
+import React, { use } from "react";
 import { ChevronLeft } from "lucide-react";
 
 import { ThemeProvider } from "../../providers/theme-provider";
 import { ConnectWalletButton } from "package/connect_wallet";
 
 import Header from "../Header";
-import Sidebar, { LeftNavigation } from "../Left-sidebar/sidebar";
+import Sidebar from "../Left-sidebar/sidebar";
 import { cn } from "~/lib/utils";
 import { useSidebar } from "~/hooks/use-sidebar";
 import ModalProvider from "~/components/providers/modal-provider";
+import { Toaster } from "~/components/shadcn/ui/toaster";
+import { userRouter } from "~/server/api/routers/fan/user";
+import { useRouter } from "next/router";
+
+import CreatorLayout from "./CreatorLayout";
+import { MiniPlayerProvider } from "~/components/player/mini-player-provider";
+import LoginRequiredModal from "~/components/modal/login-required-modal";
 
 export default function Layout({
     children,
@@ -25,6 +31,12 @@ export default function Layout({
     const session = useSession();
     const { isMinimized, toggle } = useSidebar();
 
+    const router = useRouter();
+
+    const isArtistRoutes = router.pathname.startsWith("/artist");
+    const publicRoutes = ["/about", "/privacy", "/support", "/"];
+    const isPublicRoute = publicRoutes.includes(router.pathname);
+
     const handleToggle = () => {
         toggle();
     };
@@ -35,36 +47,48 @@ export default function Layout({
             enableSystem
             disableTransitionOnChange
         >
-            <div className=" h-screen w-full scrollbar-hide  overflow-hidden">
-                <Header />
-                <div className="flex w-full scrollbar-hide ">
-                    <div className="relative  z-50">
-                        <Sidebar />
-                        <ChevronLeft
-                            className={cn(
-                                "fixed z-10 left-[17rem] top-24 hidden cursor-pointer rounded-full border-2 bg-background text-3xl text-foreground shadow-sm shadow-black md:block transition-all duration-500 ease-in-out",
-                                isMinimized && "rotate-180 left-[4.5rem]",
-                            )}
-                            onClick={handleToggle}
-                        />
+            <MiniPlayerProvider>
 
+                <div className={clsx("flex h-screen w-full flex-col", className)}>
+                    <Header />
+                    <div className="flex w-full scrollbar-hide ">
+                        <div className="relative  bg-secondary  shadow-sm shadow-primary transition-all duration-500 ease-in-out">
+                            <Sidebar />
+                            <ChevronLeft
+                                className={cn(
+                                    "fixed left-[17rem] top-24 z-10 hidden cursor-pointer rounded-full border-2 bg-background text-3xl text-foreground shadow-sm shadow-black transition-all duration-500 ease-in-out md:block",
+                                    isMinimized && "left-[4.5rem] rotate-180",
+                                )}
+                                onClick={handleToggle}
+                            />
+                        </div>
+
+                        {session.status === "authenticated" ? (
+                            <div className="w-full  overflow-y-auto    scrollbar-hide lg:pl-6">
+                                {isArtistRoutes ? (
+                                    <>
+                                        <CreatorLayout>{children}</CreatorLayout>
+                                    </>
+                                ) : (
+                                    <>{children}</>
+                                )}
+                                <ModalProvider />
+                                <Toaster />
+                            </div>
+                        ) : (
+                            isPublicRoute ? (
+                                <div className="w-full   overflow-y-auto    scrollbar-hide lg:pl-6">
+                                    <>{children}</>
+                                    <LoginRequiredModal />
+                                </div>
+                            ) :
+                                (<div className="flex h-screen w-full items-center justify-center ">
+                                    <ConnectWalletButton />
+                                </div>)
+                        )}
                     </div>
-
-                    {session.status === "authenticated" ? (
-                        <div className="w-full overflow-y-auto px-1  lg:px-4 scrollbar-hide">
-                            {children}
-                            <ModalProvider />
-
-
-                        </div>
-
-                    ) : (
-                        <div className="flex h-screen w-full items-center justify-center ">
-                            <ConnectWalletButton />
-                        </div>
-                    )}
                 </div>
-            </div>
+            </MiniPlayerProvider>
         </ThemeProvider>
     );
 }

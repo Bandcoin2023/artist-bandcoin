@@ -50,6 +50,7 @@ const formatFileSize = (bytes: number): string => {
 }
 
 export function UploadS3Button({
+    id,
     endpoint,
     onBeforeUploadBegin,
     onUploadProgress,
@@ -61,7 +62,9 @@ export function UploadS3Button({
     className,
     label,
     showPreview = true,
+    ref
 }: {
+    id?: string
     endpoint: EndPointType
     onUploadProgress?: (p: number) => void
     onClientUploadComplete?: (file: { url: string }) => void
@@ -69,10 +72,11 @@ export function UploadS3Button({
     onUploadError?: (error: Error) => void
     disabled?: boolean
     type?: "profile" | "cover"
-    variant?: "button" | "input"
+    variant?: "button" | "input" | 'hidden'
     className?: string
     label?: string
     showPreview?: boolean
+    ref?: React.Ref<HTMLInputElement>
 }) {
     const [progress, setProgress] = useState(0)
     const [file, setFile] = useState<File | null>(null)
@@ -239,7 +243,8 @@ export function UploadS3Button({
     }
 
     return (
-        <div className="grid w-full items-center gap-2">
+        <div
+            className="grid w-full items-center gap-2">
             {variant === "button" && (
                 <motion.div whileTap={{ scale: 0.97 }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full">
                     <Button
@@ -266,7 +271,10 @@ export function UploadS3Button({
                     </Button>
                 </motion.div>
             )}
-
+            {variant === "hidden" && (
+                //don't show anything
+                <></>
+            )}
             {variant === "input" && (
                 <div className="relative">
                     <motion.div
@@ -337,7 +345,7 @@ export function UploadS3Button({
 
             <input
                 ref={fileInputRef}
-                id={`file-upload-${type}`}
+                id={id ? id : `file-upload-${type}`}
                 type="file"
                 accept={getAcceptString(endpoint)}
                 disabled={disabled ?? loading}

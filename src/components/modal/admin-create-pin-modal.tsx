@@ -174,7 +174,7 @@ export default function CreateAdminPinModal() {
                 return (
                     <div className="space-y-2 w-full">
                         <div className="flex items-center gap-2">
-                            <Coins className="h-4 w-4 text-primary" />
+                            <Coins className="h-4 w-4 " />
                             <Label htmlFor="token-select" className="text-sm font-medium">
                                 Choose Token
                             </Label>
@@ -228,7 +228,7 @@ export default function CreateAdminPinModal() {
             return (
                 <div className="space-y-2 w-full">
                     <div className="flex items-center gap-2">
-                        <Layers className="h-4 w-4 text-primary" />
+                        <Layers className="h-4 w-4 " />
                         <Label htmlFor="tier-select" className="text-sm font-medium">
                             Choose Tier
                         </Label>
@@ -482,7 +482,7 @@ export default function CreateAdminPinModal() {
                         >
                             <DialogHeader className="bg-gradient-to-r from-primary/10 to-primary/5 px-6 py-4">
                                 <DialogTitle className="flex items-center gap-2 text-xl">
-                                    <MapPin className="h-5 w-5 text-primary" />
+                                    <MapPin className="h-5 w-5 " />
                                     Create Admin Pin
                                 </DialogTitle>
                                 <DialogDescription>Create manual and specific pin hot spot as admin</DialogDescription>
@@ -497,7 +497,7 @@ export default function CreateAdminPinModal() {
                                                     <div
                                                         className={cn(
                                                             "w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm mb-1 ",
-                                                            activeStep === step ? "bg-primary text-primary-foreground shadow-sm shadow-foreground" : "bg-muted text-muted-foreground",
+                                                            activeStep === step ? "bg-primary  shadow-sm shadow-foreground" : "bg-muted text-muted-foreground",
                                                         )}
                                                     >
                                                         {index + 1}
@@ -539,7 +539,7 @@ export default function CreateAdminPinModal() {
 
                                                         <div className="space-y-2">
                                                             <div className="flex items-center gap-2">
-                                                                <Hash className="h-4 w-4 text-primary" />
+                                                                <Hash className="h-4 w-4 " />
                                                                 <Label htmlFor="title" className="text-sm font-medium">
                                                                     Title
                                                                 </Label>
@@ -550,7 +550,7 @@ export default function CreateAdminPinModal() {
 
                                                         <div className="space-y-2">
                                                             <div className="flex items-center gap-2">
-                                                                <ImageIcon className="h-4 w-4 text-primary" />
+                                                                <ImageIcon className="h-4 w-4 " />
                                                                 <Label className="text-sm font-medium">Pin Cover Image</Label>
                                                             </div>
                                                             <div className="flex flex-col gap-2">
@@ -593,7 +593,7 @@ export default function CreateAdminPinModal() {
 
                                                         <div className="space-y-2">
                                                             <div className="flex items-center gap-2">
-                                                                <LinkIcon className="h-4 w-4 text-primary" />
+                                                                <LinkIcon className="h-4 w-4 " />
                                                                 <Label htmlFor="url" className="text-sm font-medium">
                                                                     URL / LINK
                                                                 </Label>
@@ -604,7 +604,7 @@ export default function CreateAdminPinModal() {
 
                                                         <div className="space-y-2">
                                                             <div className="flex items-center gap-2">
-                                                                <Calendar className="h-4 w-4 text-primary" />
+                                                                <Calendar className="h-4 w-4 " />
                                                                 <Label htmlFor="startDate" className="text-sm font-medium">
                                                                     Start Date
                                                                 </Label>
@@ -630,7 +630,7 @@ export default function CreateAdminPinModal() {
 
                                                         <div className="space-y-2">
                                                             <div className="flex items-center gap-2">
-                                                                <Calendar className="h-4 w-4 text-primary" />
+                                                                <Calendar className="h-4 w-4 " />
                                                                 <Label htmlFor="endDate" className="text-sm font-medium">
                                                                     End Date
                                                                 </Label>
@@ -663,7 +663,7 @@ export default function CreateAdminPinModal() {
                                                     >
                                                         <div className="space-y-2">
                                                             <div className="flex items-center gap-2">
-                                                                <Layers className="h-4 w-4 text-primary" />
+                                                                <Layers className="h-4 w-4 " />
                                                                 <Label htmlFor="description" className="text-sm font-medium">
                                                                     Description
                                                                 </Label>
@@ -693,7 +693,7 @@ export default function CreateAdminPinModal() {
                                                                         className="space-y-2"
                                                                     >
                                                                         <div className="flex items-center gap-2">
-                                                                            <Coins className="h-4 w-4 text-primary" />
+                                                                            <Coins className="h-4 w-4 " />
                                                                             <Label htmlFor="perUserTokenAmount" className="text-sm font-medium">
                                                                                 Collection limit
                                                                             </Label>
@@ -741,7 +741,7 @@ export default function CreateAdminPinModal() {
                                                     >
                                                         <div className="space-y-2">
                                                             <div className="flex items-center gap-2">
-                                                                <Target className="h-4 w-4 text-primary" />
+                                                                <Target className="h-4 w-4 " />
                                                                 <Label htmlFor="radius" className="text-sm font-medium">
                                                                     Radius (meters)
                                                                 </Label>
@@ -769,7 +769,7 @@ export default function CreateAdminPinModal() {
 
                                                         <div className="space-y-2">
                                                             <div className="flex items-center gap-2">
-                                                                <Layers className="h-4 w-4 text-primary" />
+                                                                <Layers className="h-4 w-4 " />
                                                                 <Label htmlFor="pinNumber" className="text-sm font-medium">
                                                                     Number of pins
                                                                 </Label>
@@ -917,7 +917,7 @@ function ManualLatLanInputField() {
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-primary" />
+                        <MapPin className="h-4 w-4 " />
                         <Label className="text-sm font-medium">Latitude</Label>
                     </div>
                     <Input type="number" step={0.0000000000000000001} {...register("lat", { valueAsNumber: true })} />
@@ -925,7 +925,7 @@ function ManualLatLanInputField() {
                 </div>
                 <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-primary" />
+                        <MapPin className="h-4 w-4 " />
                         <Label className="text-sm font-medium">Longitude</Label>
                     </div>
                     <Input step={0.0000000000000000001} type="number" {...register("lng", { valueAsNumber: true })} />
@@ -938,9 +938,9 @@ function ManualLatLanInputField() {
             <Card>
                 <CardContent className="p-4">
                     <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-primary" />
+                        <MapPin className="h-4 w-4 " />
                         <p className="font-medium">Pin Location</p>
-                        <MapPin className="h-4 w-4 text-primary" />
+                        <MapPin className="h-4 w-4 " />
                         <p className="font-medium">Pin Location</p>
                     </div>
                     <div className="mt-2 grid gap-1 text-sm">

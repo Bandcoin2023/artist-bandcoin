@@ -27,7 +27,7 @@ const CustomPlayer: React.FC<CustomPlayerProps> = ({ url }) => {
             />
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
                 <button
-                    className="rounded-full bg-white bg-opacity-70 p-4 text-primary transition-colors hover:bg-opacity-90"
+                    className="rounded-full bg-white bg-opacity-70 p-4  transition-colors hover:bg-opacity-90"
                     onClick={togglePlayPause}
                 >
                     {playing ? <Pause size={32} /> : <Play size={32} />}

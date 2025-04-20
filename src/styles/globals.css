@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,28 +5,49 @@
 @layer base {
   :root {
     /* Light mode colors */
-    --background: 60 33% 98%; /* Light background */
-    --foreground: 60 10% 10%; /* Dark text */
-    --card: 60 40% 98%; /* Light card background */
-    --card-foreground: 60 10% 10%; /* Dark card text */
-    --popover: 60 33% 98%; /* Light popover */
-    --popover-foreground: 60 10% 10%; /* Dark popover text */
-    --primary: 62 50% 95%; /* Primary color (soft green) */
-    --primary-foreground: 60 10% 10%; /* Dark text on primary color */
-    --secondary: 60 14% 88%; /* Secondary color (light pastel) */
-    --secondary-foreground: 60 10% 10%; /* Dark text on secondary */
-    --muted: 60 14% 88%; /* Muted color (light gray) */
-    --muted-foreground: 60 5% 40%; /* Muted text (darker gray) */
-    --accent: 60 72% 52%; /* Accent color (same as primary) */
-    --accent-foreground: 60 10% 10%; /* Dark text on accent color */
-    --destructive: 0 84.2% 60.2%; /* Red (for destructive actions) */
-    --destructive-foreground: 60 33% 98%; /* Light text on destructive elements */
-    --border: 60 40% 80%; /* Light border color */
-    --input: 60 30% 55%; /* Light input background */
-    --ring: 60 72% 52%; /* Focus ring (same as primary) */
+    --background: 60 33% 98%;
+    /* Light background */
+    --foreground: 60 10% 10%;
+    /* Dark text */
+    --card: 60 40% 98%;
+    /* Light card background */
+    --card-foreground: 60 10% 10%;
+    /* Dark card text */
+    --popover: 60 33% 98%;
+    /* Light popover */
+    --popover-foreground: 60 10% 10%;
+    /* Dark popover text */
+    --primary: 62 50% 95%;
+    /* Primary color (soft green) */
+    --primary-foreground: 60 10% 10%;
+    /* Dark text on primary color */
+    --secondary: 60 14% 88%;
+    /* Secondary color (light pastel) */
+    --secondary-foreground: 60 10% 10%;
+    /* Dark text on secondary */
+    --muted: 60 14% 88%;
+    /* Muted color (light gray) */
+    --muted-foreground: 60 5% 40%;
+    /* Muted text (darker gray) */
+    --accent: 60 72% 52%;
+    /* Accent color (same as primary) */
+    --accent-foreground: 60 10% 10%;
+    /* Dark text on accent color */
+    --destructive: 0 84.2% 60.2%;
+    /* Red (for destructive actions) */
+    --destructive-foreground: 60 33% 98%;
+    /* Light text on destructive elements */
+    --border: 60 40% 80%;
+    /* Light border color */
+    --input: 60 30% 55%;
+    /* Light input background */
+    --ring: 60 72% 52%;
+    /* Focus ring (same as primary) */
     --radius: 0.75rem;
-    --success:  120 100% 50%; /* Success color */
-    --warning:  45 100% 50%; /* Warning color */
+    --success: 120 100% 50%;
+    /* Success color */
+    --warning: 45 100% 50%;
+    /* Warning color */
 
     /* Chart colors with yellowish tint */
     --chart-1: 60 72% 52%;
@@ -37,94 +57,109 @@
     --chart-5: 75 84% 56%;
 
     /* Sidebar colors with yellowish tint */
-    --sidebar-background: 60 33% 96%; /* Lighter sidebar background */
-    --sidebar-foreground: 60 10% 10%; /* Dark sidebar text */
-    --sidebar-primary: 60 72% 52%; /* Sidebar primary color */
-    --sidebar-primary-foreground: 60 10% 10%; /* Dark sidebar primary text */
-    --sidebar-accent: 45 84% 56%; /* Sidebar accent color */
-    --sidebar-accent-foreground: 60 10% 10%; /* Dark sidebar accent text */
-    --sidebar-border: 60 14% 88%; /* Sidebar border */
-    --sidebar-ring: 60 72% 52%; /* Sidebar focus ring */
+    --sidebar-background: 60 33% 96%;
+    /* Lighter sidebar background */
+    --sidebar-foreground: 60 10% 10%;
+    /* Dark sidebar text */
+    --sidebar-primary: 60 72% 52%;
+    /* Sidebar primary color */
+    --sidebar-primary-foreground: 60 10% 10%;
+    /* Dark sidebar primary text */
+    --sidebar-accent: 45 84% 56%;
+    /* Sidebar accent color */
+    --sidebar-accent-foreground: 60 10% 10%;
+    /* Dark sidebar accent text */
+    --sidebar-border: 60 14% 88%;
+    /* Sidebar border */
+    --sidebar-ring: 60 72% 52%;
+    /* Sidebar focus ring */
   }
-
 .dark {
-  /* Base Dark Mode Colors */
-  --background: 230 35% 8%;
-  /* Deep midnight blue */
-  --foreground: 260 20% 88%;
-  /* Soft lavender text */
-  --card: 230 30% 10%;
-  /* Slightly lighter deep blue */
-  --card-foreground: 260 20% 88%;
-  /* Soft lavender card text */
-  --popover: 230 35% 9%;
-  /* Dark blue popover */
-  --popover-foreground: 260 20% 88%;
-  /* Soft lavender popover text */
+  /* COOL TEAL/MINT DARK MODE COLOR SCHEME */
 
-  /* Primary & Secondary */
-  --primary: 180 90% 45%;
-  /* Bright cyan primary */
-  --primary-foreground: 230 35% 8%;
+  /* Base Dark Mode Colors */
+  --background: 200 50% 10%;
+  /* Deep blue-gray background */
+  --foreground: 180 10% 95%;
+  /* Cool white text */
+  --card: 200 45% 13%;
+  /* Slightly lighter card background */
+  --card-foreground: 180 10% 95%;
+  /* Cool white card text */
+  --popover: 200 50% 10%;
+  /* Match background for popovers */
+  --popover-foreground: 180 10% 95%;
+  /* Cool white popover text */
+
+  /* Primary & Secondary - Teal/Mint Focus */
+  --primary: 165 80% 40%;
+  /* Vibrant teal primary */
+  --primary-foreground: 200 50% 10%;
   /* Dark text on primary */
-  --secondary: 230 25% 20%;
-  /* Muted navy blue */
-  --secondary-foreground: 260 20% 88%;
-  /* Soft lavender text */
+  --secondary: 190 30% 20%;
+  /* Muted blue-teal secondary */
+  --secondary-foreground: 180 10% 95%;
+  /* Cool white text on secondary */
 
   /* Muted & Accent */
-  --muted: 230 20% 16%;
-  /* Muted deep navy */
-  --muted-foreground: 230 10% 55%;
-  /* Muted gray-blue text */
-  --accent: 270 80% 60%;
-  /* Vibrant purple accent */
-  --accent-foreground: 230 35% 8%;
+  --muted: 200 30% 15%;
+  /* Subtle dark blue-gray */
+  --muted-foreground: 180 10% 65%;
+  /* Soft teal-gray text */
+  --accent: 155 70% 60%;
+  /* Bright mint accent */
+  --accent-foreground: 200 50% 10%;
   /* Dark text on accent */
 
   /* Destructive */
-  --destructive: 0 75% 50%;
-  /* Strong red */
-  --destructive-foreground: 260 20% 88%;
-  /* Soft lavender text on destructive */
+  --destructive: 350 80% 55%;
+  /* Bright red for destructive */
+  --destructive-foreground: 180 10% 95%;
+  /* Cool white text on destructive */
 
   /* Borders, Inputs, and Rings */
-  --border: 230 25% 18%;
-  /* Subtle navy blue border */
-  --input: 230 25% 16%;
-  /* Dark navy blue input */
-  --ring: 180 90% 45%;
-  /* Cyan focus ring */
+  --border: 200 30% 18%;
+  /* Subtle dark border */
+  --input: 200 30% 15%;
+  /* Input matching muted */
+  --ring: 165 80% 40%;
+  /* Ring matching primary teal */
 
-  /* Dark Mode Chart Colors */
-  --chart-1: 180 90% 45%;
-  /* Bright cyan */
-  --chart-2: 270 80% 60%;
-  /* Vibrant purple */
-  --chart-3: 140 75% 45%;
-  /* Neon green */
-  --chart-4: 50 90% 50%;
-  /* Warm golden yellow */
-  --chart-5: 210 85% 55%;
-  /* Electric blue */
+  /* Success & Warning */
+  --success: 160 70% 40%;
+  /* Emerald success */
+  --warning: 35 90% 55%;
+  /* Amber warning */
+
+  /* Dark Mode Chart Colors - Teal palette */
+  --chart-1: 165 80% 40%;
+  /* Teal (primary) */
+  --chart-2: 155 70% 60%;
+  /* Mint (accent) */
+  --chart-3: 185 70% 50%;
+  /* Cyan */
+  --chart-4: 140 60% 45%;
+  /* Green */
+  --chart-5: 210 70% 60%;
+  /* Sky blue */
 
   /* Sidebar Colors */
-  --sidebar-background: 230 35% 10%;
-  /* Slightly lighter than main background */
-  --sidebar-foreground: 260 20% 88%;
-  /* Soft lavender sidebar text */
-  --sidebar-primary: 180 90% 45%;
-  /* Bright cyan sidebar primary */
-  --sidebar-primary-foreground: 230 35% 8%;
+  --sidebar-background: 205 55% 8%;
+  /* Slightly darker than main background */
+  --sidebar-foreground: 180 10% 95%;
+  /* Cool white sidebar text */
+  --sidebar-primary: 165 80% 40%;
+  /* Teal sidebar primary */
+  --sidebar-primary-foreground: 200 50% 10%;
   /* Dark sidebar primary text */
-  --sidebar-accent: 270 80% 60%;
-  /* Vibrant purple sidebar accent */
-  --sidebar-accent-foreground: 230 35% 8%;
+  --sidebar-accent: 155 70% 60%;
+  /* Mint sidebar accent */
+  --sidebar-accent-foreground: 200 50% 10%;
   /* Dark sidebar accent text */
-  --sidebar-border: 230 25% 18%;
-  /* Subtle navy blue border */
-  --sidebar-ring: 180 90% 45%;
-  /* Cyan sidebar focus ring */
+  --sidebar-border: 200 30% 18%;
+  /* Subtle dark border */
+  --sidebar-ring: 165 80% 40%;
+  /* Teal sidebar focus ring */
 }
 }
 
@@ -135,13 +170,14 @@
 
   body {
     @apply bg-background text-foreground;
-    
-    
+
+
     font-feature-settings:
       "rlig" 1,
       "calt" 1;
   }
 }
+
 ::-webkit-scrollbar {
   width: 7px;
 }
@@ -163,29 +199,32 @@
 }
 
 @layer utilities {
-    .scrollbar-hide {
-        -ms-overflow-style: none;
-        /* For Internet Explorer and Edge */
-        scrollbar-width: none;
-        /* For Firefox */
-      }
-        .hexagon-mask {
-          clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-        }
-      .scrollbar-hide::-webkit-scrollbar {
-        display: none;
-        /* For Chrome, Safari, and Opera */
-      }
-            .animate-shimmer {
-              animation: shimmer 2s infinite;
-            }
-      
-            @keyframes shimmer {
-              100% {
-                transform: translateX(100%);
-              }
-            }
-      
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    /* For Internet Explorer and Edge */
+    scrollbar-width: none;
+    /* For Firefox */
+  }
+
+  .hexagon-mask {
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+    /* For Chrome, Safari, and Opera */
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
 }
 
 @layer components {
@@ -193,7 +232,7 @@
     @apply relative inline-flex;
   }
 
-  .avatar > div {
+  .avatar>div {
     @apply block aspect-square overflow-hidden;
   }
 

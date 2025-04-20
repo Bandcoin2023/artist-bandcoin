@@ -367,7 +367,7 @@ const MapOptionModal = () => {
                                                         variant="outline"
                                                         className="flex items-center gap-2 h-auto py-3 justify-start"
                                                         onClick={() => {
-                                                            router.push(`maps/pins/${data.pinId}`).finally(() => handleClose())
+                                                            router.push(`/maps/pins/${data.pinId}`).finally(() => handleClose())
                                                         }}
                                                     >
                                                         <div className="bg-primary/10 p-2 rounded-full">
@@ -738,7 +738,7 @@ function PinInfoUpdate({
     isLoading?: boolean
 }) {
     const [coverUrl, setCover] = React.useState("")
-    const { setIsOpen, setIsForm, isPinCut, setIsPinCut } = useMapOptionsModalStore()
+    const { setIsOpen, setIsForm, isPinCut, setIsPinCut, isOpen } = useMapOptionsModalStore()
     const utils = api.useUtils()
     const [isPageAsset, setIsPageAsset] = useState<boolean>()
     const [selectedToken, setSelectedToken] = useState<AssetType & { bal: number }>()
@@ -772,7 +772,9 @@ function PinInfoUpdate({
     })
 
     const tiers = api.fan.member.getAllMembership.useQuery()
-    const assets = api.fan.asset.myAssets.useQuery(undefined, {})
+    const assets = api.fan.asset.myAssets.useQuery(undefined, {
+        enabled: isOpen
+    })
 
     const update = api.maps.pin.updatePin.useMutation({
         onSuccess: async (updatedData) => {

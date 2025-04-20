@@ -1,10 +1,9 @@
-import CreatorLayout from "~/components/layout/root/CreatorLayout";
 
 const Post = () => {
     return (
-        <CreatorLayout>
-            <h1>Post</h1>
-        </CreatorLayout>
+
+        <h1>Post</h1>
+
     );
 }
 export default Post;

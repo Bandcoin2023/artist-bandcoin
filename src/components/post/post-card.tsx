@@ -5,14 +5,7 @@ import { motion } from "framer-motion"
 import { Button } from "~/components/shadcn/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "~/components/shadcn/ui/card"
 import { Badge } from "~/components/shadcn/ui/badge"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "~/components/shadcn/ui/dropdown-menu"
-import { Heart, MessageCircle, Share2, MoreHorizontal, Lock, Globe, Bookmark, Flag, ChevronDown, ChevronUp, CreditCard, Loader2, LockOpen } from 'lucide-react'
+import { Heart, MessageCircle, Share2, Lock, Globe, Bookmark, Flag, ChevronDown, ChevronUp, CreditCard, Loader2, LockOpen } from 'lucide-react'
 import { cn } from "~/lib/utils"
 import MediaGallery from "./media-gallary"
 import type { Media, Post } from "@prisma/client"
@@ -21,6 +14,8 @@ import CustomAvatar from "../common/custom-avatar"
 import { useShareModalStore } from "../store/share-modal-store"
 import { CommentSection } from "./comment/post-comment-section"
 import { Preview } from "../common/quill-preview"
+import { PostContextMenu } from "../common/post-context-menu"
+import Link from "next/link"
 
 
 interface PostCardProps {
@@ -64,7 +59,8 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
     const [expanded, setExpanded] = useState(false)
     const [showAllMedia, setShowAllMedia] = useState(false)
     const [showComments, setShowComments] = useState(false)
-    const postUrl = `/artist/${creator.id}/${post.id}`;
+    const [deletePostId, setDeletePostId] = useState<number | null>(null)
+    const postUrl = `/artist/post/${post.id}`;
     const { data: liked } = api.fan.post.isLiked.useQuery(post.id);
 
     const { setIsOpen: setShareModalOpen, setData } = useShareModalStore()
@@ -123,15 +119,20 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
 
+
         >
-            <Card className="overflow-hidden border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
+            <Card className={cn("overflow-hidden  border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow", deletePostId === post.id && "animate-pulse border-red-300")}>
                 <CardHeader className="p-4 pb-0">
                     <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
-                            <CustomAvatar url={creator.profileUrl} />
+                            <Link href={`/artist/${creator.id}`}>
+                                <CustomAvatar url={creator.profileUrl} />
+                            </Link>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <span className="font-semibold">{creator.name}</span>
+                                    <Link href={`/artist/${creator.id}`}>
+                                        <span className="font-semibold">{creator.name}</span>
+                                    </Link>
                                     <Badge variant={locked ? "outline" : "secondary"} className="text-xs">
                                         {locked ? show ? <LockOpen className="w-3 h-3 mr-1" /> : <Lock className="w-3 h-3 mr-1" /> : <Globe className="w-3 h-3 mr-1" />}
                                         {locked ? show ? "Unlocked" : "Locked" : "Public"}
@@ -140,12 +141,14 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
                                 <p className="text-xs ">{formatDate(post.createdAt.toString())}</p>
                             </div>
                         </div>
-
+                        <PostContextMenu creatorId={creator.id} postId={post.id}
+                            setDeletePostId={setDeletePostId}
+                        />
 
                     </div>
                 </CardHeader>
 
-                <CardContent className="p-4">
+                <CardContent className="p-1 md:p-4 ">
                     <div className="space-y-4">
                         {!show ? (
                             <LockedContent
@@ -154,17 +157,22 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
                             />
                         ) : (
                             <>
-                                {post.heading && post.heading !== "Heading" && <h2 className="text-xl font-bold">{post.heading}</h2>}
+                                {post.heading && post.heading !== "Heading" &&
+                                    <Link href={postUrl}>
+                                        <h2 className="text-xl font-bold">{post.heading}</h2>
+                                    </Link>
+                                }
                                 <div>
                                     {post.content && post.content.length > 400 && !expanded ? (
                                         <>
-                                            <p className="text-gray-800 dark:text-gray-200"><Preview value={post.content.substring(0, 400)} /></p>
+                                            <Link href={postUrl} >
+                                                <p className="text-gray-800 dark:text-gray-200 cursor-pointer"><Preview value={post.content.substring(0, 400)} /></p></Link>
                                             <Button variant="link" size="sm" className="px-0 h-auto" onClick={toggleExpand}>
                                                 See more
                                             </Button>
                                         </>
                                     ) : (
-                                        <p className="text-gray-800 dark:text-gray-200"><Preview value={post.content} /></p>
+                                        <Link href={postUrl}> <p className="text-gray-800 dark:text-gray-200 cursor-pointer"><Preview value={post.content} /></p>  </Link>
                                     )}
 
                                     {expanded && post.content && post.content.length > 150 && (
@@ -175,7 +183,7 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
                                 </div>
 
                                 {media && media.length > 0 && (
-                                    <div className="space-y-2">
+                                    <div className="space-y-2   min-h-[300px] ">
                                         <MediaGallery
                                             media={displayMedia}
 

@@ -41,7 +41,9 @@ export function DashboardNav({ items, setOpen }: DashboardNavProps) {
             item.href && (
               <Tooltip key={index}>
                 <TooltipTrigger asChild>
-                  <Link href={item.disabled ? "/" : item.href} >
+                  <Link href={item.disabled ? "/" : item.href}
+                    key={item.href}
+                  >
                     <Button
                       className={cn(
                         "  flex    w-full items-center shadow-sm  justify-start   gap-2 overflow-hidden rounded-md text-sm font-medium hover:text-[#dbdd2c]",

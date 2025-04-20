@@ -42,7 +42,7 @@ function Asset({ asset, isNFT = true, isPinned = false }: { asset: AdminAssetWit
                                         </Badge>
                                     )}
                                     {isNFT && (
-                                        <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                                        <Badge variant="secondary" className="bg-primary ">
                                             <Gem className="mr-1 h-3 w-3" />
                                             NFT
                                         </Badge>

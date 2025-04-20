@@ -39,7 +39,7 @@ const ShareModal = () => {
             props: {
                 url: fullUrl,
                 quote: "Checkout my post on Wadzzo",
-                hashtag: `#${env.NEXT_PUBLIC_ASSET_CODE?.toLocaleLowerCase() === "wadzzo" ? "Wadzzo" : "Bandcoin"}`,
+                hashtag: `#${env.NEXT_PUBLIC_ASSET_CODE?.toLocaleLowerCase() === "wadzzo" ? "Wadzzo" : env.NEXT_PUBLIC_ASSET_CODE === "Bandcoin" ? "Bandcoin" : "ACTIONVERSE"}`,
             },
             icon: (
                 <svg
@@ -60,7 +60,7 @@ const ShareModal = () => {
             Component: TwitterShareButton,
             props: {
                 url: fullUrl,
-                title: `Checkout my post on ${env.NEXT_PUBLIC_ASSET_CODE?.toLocaleLowerCase() === "wadzzo" ? "Wadzzo" : "Bandcoin"}`,
+                title: `Checkout my post on ${env.NEXT_PUBLIC_ASSET_CODE?.toLocaleLowerCase() === "wadzzo" ? "Wadzzo" : env.NEXT_PUBLIC_ASSET_CODE === "Bandcoin" ? "Bandcoin" : "ACTIONVERSE"}`,
             },
             icon: <FaXTwitter className="transition-all duration-300" />,
             bgHover: "hover:bg-[#1d9bf0]",
@@ -71,7 +71,7 @@ const ShareModal = () => {
             Component: WhatsappShareButton,
             props: {
                 url: fullUrl,
-                title: `Checkout my post on ${env.NEXT_PUBLIC_ASSET_CODE?.toLocaleLowerCase() === "wadzzo" ? "Wadzzo" : "Bandcoin"}`,
+                title: `Checkout my post on ${env.NEXT_PUBLIC_ASSET_CODE?.toLocaleLowerCase() === "wadzzo" ? "Wadzzo" : env.NEXT_PUBLIC_ASSET_CODE === "Bandcoin" ? "Bandcoin" : "ACTIONVERSE"}`,
                 separator: ":: ",
             },
             icon: (
@@ -97,7 +97,7 @@ const ShareModal = () => {
             Component: TelegramShareButton,
             props: {
                 url: fullUrl,
-                title: `Checkout my post on ${env.NEXT_PUBLIC_ASSET_CODE?.toLocaleLowerCase() === "wadzzo" ? "Wadzzo" : "Bandcoin"}`,
+                title: `Checkout my post on ${env.NEXT_PUBLIC_ASSET_CODE?.toLocaleLowerCase() === "wadzzo" ? "Wadzzo" : env.NEXT_PUBLIC_ASSET_CODE === "Bandcoin" ? "Bandcoin" : "ACTIONVERSE"}`,
             },
             icon: (
                 <svg

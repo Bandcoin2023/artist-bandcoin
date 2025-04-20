@@ -9,12 +9,13 @@ import { useSession } from "next-auth/react"
 import { api } from "~/utils/api"
 import { cn } from "~/lib/utils"
 import Link from "next/link"
-import { MessageCircle, Send } from 'lucide-react'
+import { ArrowRight, MessageCircle, Send, StickyNote } from 'lucide-react'
 import CustomAvatar from "~/components/common/custom-avatar"
 import { AddReplyComment } from "../reply/add-post-reply"
 import ReplyCommentView from "../reply/post-reply-section"
 import { AddPostComment } from "./add-post-comment"
 import ContextMenu from "~/components/common/context-menu"
+import { Arrow } from "@radix-ui/react-select"
 
 interface CommentSectionProps {
     postId: number
@@ -46,7 +47,17 @@ export function CommentSection({ postId, initialCommentCount }: CommentSectionPr
                 <MessageCircle className="h-4 w-4" />
                 {isCommentsVisible ? "Hide comments" : `View comments (${initialCommentCount})`}
             </Button>
+            <Link href={`/artist/post/${postId}`}>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-2 mb-2 text-gray-600 underline mt-2"
 
+                >
+
+                    View Post <ArrowRight className="h-4 w-4" />
+                </Button>
+            </Link>
             <AnimatePresence>
                 {isCommentsVisible && (
                     <motion.div

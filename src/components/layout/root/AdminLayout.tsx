@@ -143,7 +143,7 @@ export default function AdminLayout({
                                                 <Button
                                                     size="icon"
                                                     className={cn(
-                                                        "h-12 w-12 hover:bg-foreground hover:text-primary  shadow-lg transition-transform hover:scale-109",
+                                                        "h-12 w-12 hover:bg-foreground hover:shadow-lg transition-transform hover:scale-109",
                                                         item.color,
                                                         "text-white", path === item.href ? "bg-foreground " : ""
 
@@ -159,7 +159,7 @@ export default function AdminLayout({
                                                     animate={{ opacity: 1, x: 0 }}
                                                     exit={{ opacity: 0, x: 20 }}
                                                     transition={{ delay: index * 0.05 + 0.2 }}
-                                                    className={cn("absolute left-full ml-3 top-2 hover:bg-foreground hover:text-primary -translate-y-1/2 whitespace-nowrap rounded-md bg-background px-2 py-1 text-sm font-medium shadow-sm", path === item.href ? "bg-foreground text-primary" : "")}
+                                                    className={cn("absolute left-full ml-3 top-2  hover:-translate-y-1/2 whitespace-nowrap rounded-md bg-background px-2 py-1 text-sm font-medium shadow-sm", path === item.href ? "bg-primary shaodw-sm shadow-foregound border-2 " : "")}
                                                 >
                                                     {item.label}
                                                 </motion.span>
