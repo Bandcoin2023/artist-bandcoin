@@ -9,12 +9,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/60 shadow-sm",
+        default: "bg-primary  hover:bg-primary/60 shadow-sm shadow-black",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/60",
         outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: " underline-offset-4 hover:underline",
 
         // System color variants
         accent: "bg-accent text-accent-foreground hover:bg-accent/80 shadow-sm shadow-primary",
@@ -42,13 +42,13 @@ const buttonVariants = cva(
         chart5: "bg-[hsl(var(--chart-5))] text-background hover:bg-[hsl(var(--chart-5))]/80",
 
         // Special effect variants using design system colors
-        glow: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/50 hover:shadow-primary/80",
+        glow: "bg-primary  hover:bg-primary/90 shadow-lg shadow-primary/50 hover:shadow-primary/80",
         glassmorphic: "bg-background/10 backdrop-blur-md border border-border/20 text-foreground hover:bg-background/20",
-        gradient: "bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary",
+        gradient: "bg-gradient-to-r from-primary to-accent  hover:from-accent hover:to-primary",
 
         // Light/dark mode adaptive variants
-        adaptive: "dark:bg-accent dark:text-accent-foreground dark:hover:bg-accent/80 bg-primary text-primary-foreground hover:bg-primary/80",
-        adaptiveOutline: "dark:border-2 dark:border-accent dark:text-accent dark:hover:bg-accent dark:hover:text-accent-foreground border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground",
+        adaptive: "dark:bg-accent dark:text-accent-foreground dark:hover:bg-accent/80 bg-primary  hover:bg-primary/80",
+        adaptiveOutline: "dark:border-2 dark:border-accent dark:text-accent dark:hover:bg-accent dark:hover:text-accent-foreground border-2 border-primary  hover:bg-primary hover:",
       },
 
       size: {

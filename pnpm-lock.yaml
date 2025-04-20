@@ -240,7 +240,7 @@ importers:
         specifier: ^11.11.17
         version: 11.18.2(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       isomorphic-dompurify:
-        specifier: ^2.21.0
+        specifier: ^2.22.0
         version: 2.22.0
       jsonwebtoken:
         specifier: ^9.0.2

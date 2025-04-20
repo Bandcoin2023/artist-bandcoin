@@ -440,12 +440,7 @@ export const trxRouter = createTRPCRouter({
       });
 
       const requiredPlatformAsset = await getplatformAssetNumberForXLM(0.5);
-      const creatorAcc = await StellarAccount.create(creator.storagePub);
-      const hasTrust = creatorAcc.hasTrustline(code, issuer);
 
-      if (hasTrust) {
-        return true;
-      }
       return await trustCustomPageAsset({
         signWith,
         code,

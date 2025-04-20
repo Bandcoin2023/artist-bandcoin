@@ -318,7 +318,7 @@ function PinsList({ groupsByCreator }: { groupsByCreator: Record<string, GroupPi
                                     <CardHeader className="cursor-pointer py-4" onClick={() => toggleCreatorExpanded(creatorId)}>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
-                                                <User className="h-5 w-5 text-primary" />
+                                                <User className="h-5 w-5 " />
                                                 <CardTitle className="text-lg">
                                                     {CREATOR_TERM}: {creatorName}
                                                 </CardTitle>

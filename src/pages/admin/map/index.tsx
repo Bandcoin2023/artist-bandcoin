@@ -397,9 +397,9 @@ function SideMapItem({
                   className="group cursor-pointer rounded-lg border border-border bg-card p-3 transition-all hover:border-primary hover:shadow-md"
                 >
                   <div className="flex items-start gap-3">
-                    <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                    <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 " />
                     <div className="flex-1">
-                      <h3 className="font-medium group-hover:text-primary">
+                      <h3 className="font-medium group-hover:">
                         {pin.locationGroup?.title ?? "Unnamed Location"}
                       </h3>
                       <div className="mt-2 flex items-center justify-between">

@@ -64,7 +64,6 @@ import {
 } from "~/components/shadcn/ui/tabs";
 import { Skeleton } from "~/components/shadcn/ui/skeleton";
 import CustomAvatar from "~/components/common/custom-avatar";
-import CreatorLayout from "~/components/layout/root/CreatorLayout";
 
 enum assetType {
   PAGEASSET = "PAGEASSET",
@@ -216,420 +215,420 @@ export default function GiftPage() {
 
   if (pageAssetbal.isLoading)
     return (
-      <CreatorLayout>
-        <GiftPageSkeleton />
-      </CreatorLayout>
+
+      <GiftPageSkeleton />
+
     );
 
   if (pageAssetbal.data) {
     return (
-      <CreatorLayout>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="flex h-full flex-col items-center px-4 py-8"
-        >
-          <div className="w-full max-w-3xl">
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.5 }}
-            >
-              <h1 className="mb-2 text-center text-3xl font-bold">
-                Gift Your Fans
-              </h1>
-              <p className="mb-6 text-center text-muted-foreground">
-                Show appreciation to your supporters with token gifts
-              </p>
-            </motion.div>
 
-            <Tabs
-              defaultValue="gift"
-              value={activeTab}
-              onValueChange={setActiveTab}
-              className="w-full"
-            >
-              <TabsList className="mb-6 grid grid-cols-2">
-                <TabsTrigger value="gift" className="flex items-center gap-2">
-                  <Gift className="h-4 w-4" />
-                  <span>Send Gift</span>
-                </TabsTrigger>
-                <TabsTrigger value="fans" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span>Your Fans</span>
-                </TabsTrigger>
-              </TabsList>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="flex h-full flex-col items-center px-4 py-8"
+      >
+        <div className="w-full max-w-3xl">
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+          >
+            <h1 className="mb-2 text-center text-3xl font-bold">
+              Gift Your Fans
+            </h1>
+            <p className="mb-6 text-center text-muted-foreground">
+              Show appreciation to your supporters with token gifts
+            </p>
+          </motion.div>
 
-              <TabsContent value="gift">
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 0.4 }}
-                >
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Gift className="h-5 w-5 text-purple-500" />
-                        Send Gift
-                      </CardTitle>
-                      <CardDescription>
-                        Send tokens to your fans as a token of appreciation
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <form
-                        onSubmit={handleSubmit(onSubmit)}
-                        className="space-y-4"
-                      >
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Recipient
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <div className="relative flex-1">
-                              <Input
-                                type="text"
-                                {...register("pubkey")}
-                                placeholder="Email or Pubkey"
-                                className="pr-10"
-                              />
-                              {z.string().email().safeParse(pubkey).success && (
-                                <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  type="button"
-                                  onClick={fetchPubKey}
-                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                                >
-                                  <RefreshCcw className="h-4 w-4" />
-                                </motion.button>
-                              )}
-                            </div>
+          <Tabs
+            defaultValue="gift"
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <TabsList className="mb-6 grid grid-cols-2">
+              <TabsTrigger value="gift" className="flex items-center gap-2">
+                <Gift className="h-4 w-4" />
+                <span>Send Gift</span>
+              </TabsTrigger>
+              <TabsTrigger value="fans" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span>Your Fans</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="gift">
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.4 }}
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Gift className="h-5 w-5 text-purple-500" />
+                      Send Gift
+                    </CardTitle>
+                    <CardDescription>
+                      Send tokens to your fans as a token of appreciation
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form
+                      onSubmit={handleSubmit(onSubmit)}
+                      className="space-y-4"
+                    >
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Recipient
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <Input
+                              type="text"
+                              {...register("pubkey")}
+                              placeholder="Email or Pubkey"
+                              className="pr-10"
+                            />
+                            {z.string().email().safeParse(pubkey).success && (
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                                type="button"
+                                onClick={fetchPubKey}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                              >
+                                <RefreshCcw className="h-4 w-4" />
+                              </motion.button>
+                            )}
                           </div>
-
-                          {pubkey && pubkey.length === 56 && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              className="overflow-hidden text-xs text-muted-foreground"
-                            >
-                              <p>Pubkey: {addrShort(pubkey)}</p>
-                            </motion.div>
-                          )}
                         </div>
 
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Select Asset
-                          </label>
-                          <Select
-                            onValueChange={(value) => {
-                              const parts = value.split(" ");
-                              if (parts.length === 4) {
-                                setSelectedAsset({
-                                  assetCode: parts[0] ?? "",
-                                  assetIssuer: parts[1] ?? "",
-                                  balance: Number.parseFloat(parts[2] ?? "0"),
-                                  assetType:
-                                    (parts[3] as assetType) ??
-                                    "defaultAssetType",
-                                });
-                              } else {
-                                setSelectedAsset(null);
-                              }
-                            }}
+                        {pubkey && pubkey.length === 56 && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="overflow-hidden text-xs text-muted-foreground"
                           >
-                            <SelectTrigger className="focus-visible:ring-0 focus-visible:ring-offset-0">
-                              <SelectValue placeholder="Select Asset" />
-                            </SelectTrigger>
-                            <SelectContent className="w-full">
-                              <SelectGroup>
-                                <SelectLabel className="text-center font-semibold text-purple-500">
-                                  PAGE ASSET
-                                </SelectLabel>
-                                <SelectItem
-                                  value={
-                                    pageAssetbal.data.assetCode +
-                                    " " +
-                                    pageAssetbal.data.assetCode +
-                                    " " +
-                                    pageAssetbal.data.balance +
-                                    " " +
-                                    "PAGEASSET"
-                                  }
-                                >
-                                  <div className="flex w-full items-center justify-between">
-                                    <span>{pageAssetbal.data.assetCode}</span>
-                                    <Badge variant="outline" className="ml-2">
-                                      {pageAssetbal.data.balance}
-                                    </Badge>
-                                  </div>
-                                </SelectItem>
+                            <p>Pubkey: {addrShort(pubkey)}</p>
+                          </motion.div>
+                        )}
+                      </div>
 
-                                <SelectLabel className="mt-2 text-center font-semibold text-purple-500">
-                                  PLATFORM ASSET
-                                </SelectLabel>
-                                <SelectItem
-                                  value={
-                                    PLATFORM_ASSET.code +
-                                    " " +
-                                    PLATFORM_ASSET.issuer +
-                                    " " +
-                                    platformAssetBalance +
-                                    " " +
-                                    "PLATFORMASSET"
-                                  }
-                                >
-                                  <div className="flex w-full items-center justify-between">
-                                    <span>{PLATFORM_ASSET.code}</span>
-                                    <Badge variant="outline" className="ml-2">
-                                      {platformAssetBalance}
-                                    </Badge>
-                                  </div>
-                                </SelectItem>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Select Asset
+                        </label>
+                        <Select
+                          onValueChange={(value) => {
+                            const parts = value.split(" ");
+                            if (parts.length === 4) {
+                              setSelectedAsset({
+                                assetCode: parts[0] ?? "",
+                                assetIssuer: parts[1] ?? "",
+                                balance: Number.parseFloat(parts[2] ?? "0"),
+                                assetType:
+                                  (parts[3] as assetType) ??
+                                  "defaultAssetType",
+                              });
+                            } else {
+                              setSelectedAsset(null);
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="focus-visible:ring-0 focus-visible:ring-offset-0">
+                            <SelectValue placeholder="Select Asset" />
+                          </SelectTrigger>
+                          <SelectContent className="w-full">
+                            <SelectGroup>
+                              <SelectLabel className="text-center font-semibold text-purple-500">
+                                PAGE ASSET
+                              </SelectLabel>
+                              <SelectItem
+                                value={
+                                  pageAssetbal.data.assetCode +
+                                  " " +
+                                  pageAssetbal.data.assetCode +
+                                  " " +
+                                  pageAssetbal.data.balance +
+                                  " " +
+                                  "PAGEASSET"
+                                }
+                              >
+                                <div className="flex w-full items-center justify-between">
+                                  <span>{pageAssetbal.data.assetCode}</span>
+                                  <Badge variant="outline" className="ml-2">
+                                    {pageAssetbal.data.balance}
+                                  </Badge>
+                                </div>
+                              </SelectItem>
 
-                                <SelectLabel className="mt-2 text-center font-semibold text-purple-500">
-                                  SHOP ASSET
-                                </SelectLabel>
-                                {!shopAssetbal.data ||
+                              <SelectLabel className="mt-2 text-center font-semibold text-purple-500">
+                                PLATFORM ASSET
+                              </SelectLabel>
+                              <SelectItem
+                                value={
+                                  PLATFORM_ASSET.code +
+                                  " " +
+                                  PLATFORM_ASSET.issuer +
+                                  " " +
+                                  platformAssetBalance +
+                                  " " +
+                                  "PLATFORMASSET"
+                                }
+                              >
+                                <div className="flex w-full items-center justify-between">
+                                  <span>{PLATFORM_ASSET.code}</span>
+                                  <Badge variant="outline" className="ml-2">
+                                    {platformAssetBalance}
+                                  </Badge>
+                                </div>
+                              </SelectItem>
+
+                              <SelectLabel className="mt-2 text-center font-semibold text-purple-500">
+                                SHOP ASSET
+                              </SelectLabel>
+                              {!shopAssetbal.data ||
                                 shopAssetbal.data.length < 2 ? (
-                                  <div className="flex w-full items-center justify-between p-2 text-sm text-muted-foreground">
-                                    <span>No Shop Asset Available!</span>
-                                  </div>
-                                ) : (
-                                  shopAssetbal.data.map((asset) =>
-                                    asset.asset_type === "credit_alphanum4" ||
+                                <div className="flex w-full items-center justify-between p-2 text-sm text-muted-foreground">
+                                  <span>No Shop Asset Available!</span>
+                                </div>
+                              ) : (
+                                shopAssetbal.data.map((asset) =>
+                                  asset.asset_type === "credit_alphanum4" ||
                                     (asset.asset_type === "credit_alphanum12" &&
                                       asset.asset_code !==
-                                        pageAssetbal.data.assetCode &&
+                                      pageAssetbal.data.assetCode &&
                                       asset.asset_issuer !==
-                                        pageAssetbal.data.assetIssuer) ? (
-                                      <SelectItem
-                                        key={asset.asset_code}
-                                        value={
-                                          asset.asset_code +
-                                          " " +
-                                          asset.asset_issuer +
-                                          " " +
-                                          asset.balance +
-                                          " " +
-                                          "SHOPASSET"
-                                        }
-                                      >
-                                        <div className="flex w-full items-center justify-between">
-                                          <span>{asset.asset_code}</span>
-                                          <Badge
-                                            variant="outline"
-                                            className="ml-2"
-                                          >
-                                            {asset.balance}
-                                          </Badge>
-                                        </div>
-                                      </SelectItem>
-                                    ) : null,
-                                  )
-                                )}
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                                      pageAssetbal.data.assetIssuer) ? (
+                                    <SelectItem
+                                      key={asset.asset_code}
+                                      value={
+                                        asset.asset_code +
+                                        " " +
+                                        asset.asset_issuer +
+                                        " " +
+                                        asset.balance +
+                                        " " +
+                                        "SHOPASSET"
+                                      }
+                                    >
+                                      <div className="flex w-full items-center justify-between">
+                                        <span>{asset.asset_code}</span>
+                                        <Badge
+                                          variant="outline"
+                                          className="ml-2"
+                                        >
+                                          {asset.balance}
+                                        </Badge>
+                                      </div>
+                                    </SelectItem>
+                                  ) : null,
+                                )
+                              )}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                        <AnimatePresence>
-                          {selectedAsset && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              className="space-y-2 overflow-hidden"
+                      <AnimatePresence>
+                        {selectedAsset && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="space-y-2 overflow-hidden"
+                          >
+                            <label className="text-sm font-medium">
+                              Amount of {selectedAsset.assetCode} to gift
+                            </label>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                placeholder={`Amount in ${selectedAsset.assetCode}`}
+                                {...register("amount", {
+                                  valueAsNumber: true,
+                                  min: 1,
+                                })}
+                                className="pr-16"
+                              />
+                              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                                <span className="text-sm text-muted-foreground">
+                                  {selectedAsset.assetCode}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">
+                                Available:
+                              </span>
+                              <span className="font-medium">
+                                {selectedAsset.balance}{" "}
+                                {selectedAsset.assetCode}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">
+                                Remaining after gift:
+                              </span>
+                              <span
+                                className={`font-medium ${remainingToken < 0 ? "text-red-500" : ""}`}
+                              >
+                                {remainingToken > 0 ? remainingToken : 0}{" "}
+                                {selectedAsset.assetCode}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">
+                                Transaction fee:
+                              </span>
+                              <span className="font-medium">
+                                {cost} {PLATFORM_ASSET.code}
+                              </span>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <Dialog
+                        open={isDialogOpen}
+                        onOpenChange={setIsDialogOpen}
+                      >
+                        <DialogTrigger asChild>
+                          <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <Button
+                              className="mt-4 w-full gap-2 shadow-sm shadow-foreground"
+                              disabled={
+                                xdr.isLoading || !isValid || !selectedAsset
+                              }
+                              type="button"
+                              size="lg"
                             >
-                              <label className="text-sm font-medium">
-                                Amount of {selectedAsset.assetCode} to gift
-                              </label>
-                              <div className="relative">
-                                <Input
-                                  type="number"
-                                  placeholder={`Amount in ${selectedAsset.assetCode}`}
-                                  {...register("amount", {
-                                    valueAsNumber: true,
-                                    min: 1,
-                                  })}
-                                  className="pr-16"
-                                />
-                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                  <span className="text-sm text-muted-foreground">
-                                    {selectedAsset.assetCode}
+                              <Gift className="h-4 w-4" />
+                              Send Gift
+                              <ArrowRight className="ml-1 h-4 w-4" />
+                            </Button>
+                          </motion.div>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                              <Sparkles className="h-5 w-5 text-purple-500" />
+                              Confirm Your Gift
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="mt-6 space-y-4">
+                            <div className="rounded-lg border bg-muted/30 p-4">
+                              <div className="space-y-3">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    Recipient:
+                                  </span>
+                                  <span className="font-medium">
+                                    {addrShort(getValues("pubkey"))}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    Amount:
+                                  </span>
+                                  <span className="font-medium">
+                                    {getValues("amount")}{" "}
+                                    {selectedAsset?.assetCode}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    Fee:
+                                  </span>
+                                  <span className="font-medium">
+                                    {cost} {PLATFORM_ASSET.code}
                                   </span>
                                 </div>
                               </div>
-
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">
-                                  Available:
-                                </span>
-                                <span className="font-medium">
-                                  {selectedAsset.balance}{" "}
-                                  {selectedAsset.assetCode}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">
-                                  Remaining after gift:
-                                </span>
-                                <span
-                                  className={`font-medium ${remainingToken < 0 ? "text-red-500" : ""}`}
-                                >
-                                  {remainingToken > 0 ? remainingToken : 0}{" "}
-                                  {selectedAsset.assetCode}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">
-                                  Transaction fee:
-                                </span>
-                                <span className="font-medium">
-                                  {cost} {PLATFORM_ASSET.code}
-                                </span>
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-
-                        <Dialog
-                          open={isDialogOpen}
-                          onOpenChange={setIsDialogOpen}
-                        >
-                          <DialogTrigger asChild>
-                            <motion.div
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                            >
-                              <Button
-                                className="mt-4 w-full gap-2 shadow-sm shadow-foreground"
-                                disabled={
-                                  xdr.isLoading || !isValid || !selectedAsset
-                                }
-                                type="button"
-                                size="lg"
-                              >
-                                <Gift className="h-4 w-4" />
-                                Send Gift
-                                <ArrowRight className="ml-1 h-4 w-4" />
-                              </Button>
-                            </motion.div>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                              <DialogTitle className="flex items-center gap-2">
-                                <Sparkles className="h-5 w-5 text-purple-500" />
-                                Confirm Your Gift
-                              </DialogTitle>
-                            </DialogHeader>
-                            <div className="mt-6 space-y-4">
-                              <div className="rounded-lg border bg-muted/30 p-4">
-                                <div className="space-y-3">
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">
-                                      Recipient:
-                                    </span>
-                                    <span className="font-medium">
-                                      {addrShort(getValues("pubkey"))}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">
-                                      Amount:
-                                    </span>
-                                    <span className="font-medium">
-                                      {getValues("amount")}{" "}
-                                      {selectedAsset?.assetCode}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">
-                                      Fee:
-                                    </span>
-                                    <span className="font-medium">
-                                      {cost} {PLATFORM_ASSET.code}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="text-center text-sm text-muted-foreground">
-                                This action cannot be undone. The gift will be
-                                sent immediately.
-                              </div>
                             </div>
-                            <DialogFooter className="w-full">
-                              <div className="flex w-full gap-4">
-                                <DialogClose asChild>
-                                  <Button
-                                    disabled={xdr.isLoading}
-                                    variant="outline"
-                                    onClick={() => setIsDialogOpen(false)}
-                                    className="w-full shadow-sm shadow-foreground"
-                                  >
-                                    Cancel
-                                  </Button>
-                                </DialogClose>
-                                <Button
-                                  disabled={xdr.isLoading || !isValid}
-                                  onClick={handleSubmit(onSubmit)}
-                                  className="w-full shadow-sm shadow-foreground"
-                                  type="submit"
-                                >
-                                  {xdr.isLoading ? (
-                                    <div className="flex items-center gap-2">
-                                      <span className="animate-spin">
-                                        <RefreshCcw className="h-4 w-4" />
-                                      </span>
-                                      <span>Processing...</span>
-                                    </div>
-                                  ) : (
-                                    <span>Confirm Gift</span>
-                                  )}
-                                </Button>
-                              </div>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      </form>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </TabsContent>
 
-              <TabsContent value="fans">
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 0.4 }}
-                >
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-purple-500" />
-                        Your Fans
-                      </CardTitle>
-                      <CardDescription>
-                        Select a fan to send them a gift
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="-mr-2 max-h-[400px] overflow-y-auto pr-2">
-                        <FansList handleFanAvatarClick={handleFanAvatarClick} />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </motion.div>
-      </CreatorLayout>
+                            <div className="text-center text-sm text-muted-foreground">
+                              This action cannot be undone. The gift will be
+                              sent immediately.
+                            </div>
+                          </div>
+                          <DialogFooter className="w-full">
+                            <div className="flex w-full gap-4">
+                              <DialogClose asChild>
+                                <Button
+                                  disabled={xdr.isLoading}
+                                  variant="outline"
+                                  onClick={() => setIsDialogOpen(false)}
+                                  className="w-full shadow-sm shadow-foreground"
+                                >
+                                  Cancel
+                                </Button>
+                              </DialogClose>
+                              <Button
+                                disabled={xdr.isLoading || !isValid}
+                                onClick={handleSubmit(onSubmit)}
+                                className="w-full shadow-sm shadow-foreground"
+                                type="submit"
+                              >
+                                {xdr.isLoading ? (
+                                  <div className="flex items-center gap-2">
+                                    <span className="animate-spin">
+                                      <RefreshCcw className="h-4 w-4" />
+                                    </span>
+                                    <span>Processing...</span>
+                                  </div>
+                                ) : (
+                                  <span>Confirm Gift</span>
+                                )}
+                              </Button>
+                            </div>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </form>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </TabsContent>
+
+            <TabsContent value="fans">
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.4 }}
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-purple-500" />
+                      Your Fans
+                    </CardTitle>
+                    <CardDescription>
+                      Select a fan to send them a gift
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="-mr-2 max-h-[400px] overflow-y-auto pr-2">
+                      <FansList handleFanAvatarClick={handleFanAvatarClick} />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </motion.div>
+
     );
   } else if (pageAssetbal.data === undefined) {
     return (

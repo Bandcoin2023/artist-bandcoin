@@ -13,6 +13,8 @@ import {
     Layers,
     ChevronLeft,
     ChevronRight,
+    ArrowRight,
+    Trophy,
 } from "lucide-react"
 import Image from "next/image"
 import { type ChangeEvent, useEffect, useRef, useState } from "react"
@@ -40,6 +42,7 @@ import { Card, CardContent } from "~/components/shadcn/ui/card"
 import { Separator } from "~/components/shadcn/ui/separator"
 import { useCreatorMapModalStore } from "../store/creator-map-modal-store"
 import { UploadS3Button } from "../common/upload-button"
+import { useCreateLocationBasedBountyStore } from "../store/create-locationbased-bounty-store"
 
 type AssetType = {
     id: number
@@ -105,7 +108,7 @@ export default function CreatePinModal() {
     const [remainingBalance, setRemainingBalance] = useState<number>(0)
     const [activeStep, setActiveStep] = useState<FormStep>("basic")
     const scrollContainerRef = useRef<HTMLDivElement>(null)
-
+    const { setData, setIsOpen: setBountyOpen } = useCreateLocationBasedBountyStore()
     // Format dates for input fields
     const formatDateForInput = (date: Date) => {
         return date.toISOString().split("T")[0]
@@ -151,7 +154,9 @@ export default function CreatePinModal() {
     const endDate = watch("endDate")
 
     // query
-    const assets = api.fan.asset.myAssets.useQuery(undefined, {})
+    const assets = api.fan.asset.myAssets.useQuery(undefined, {
+        enabled: isOpen,
+    })
     const tiers = api.fan.member.getAllMembership.useQuery()
 
     const assetsDropdown = match(assets)
@@ -167,7 +172,7 @@ export default function CreatePinModal() {
                 return (
                     <div className="space-y-2 w-full">
                         <div className="flex items-center gap-2">
-                            <Coins className="h-4 w-4 text-primary" />
+                            <Coins className="h-4 w-4 " />
                             <Label htmlFor="token-select" className="text-sm font-medium">
                                 Choose Token
                             </Label>
@@ -461,10 +466,28 @@ export default function CreatePinModal() {
                             className="flex flex-col h-full"
                         >
                             <DialogHeader className=" px-6 py-4">
-                                <DialogTitle className="flex items-center gap-2 text-xl">
-                                    <MapPin className="h-5 w-5 " />
-                                    Create Pin
-                                </DialogTitle>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <MapPin className="h-5 w-5" />
+                                        <DialogTitle className="text-xl font-bold">Create New Pin</DialogTitle>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setBountyOpen(true)
+                                            setIsOpen(false)
+                                            if (position?.lat !== undefined && position?.lng !== undefined) {
+                                                setData({ lat: position.lat, lng: position.lng })
+                                            }
+                                        }}
+                                        className="flex items-center gap-1 text-xs mr-2"
+                                    >
+                                        <Trophy className="h-3.5 w-3.5" />
+                                        Switch to Bounty
+                                        <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                                    </Button>
+                                </div>
                                 <DialogDescription>Create manual and specific pin hot spot</DialogDescription>
                             </DialogHeader>
 
@@ -475,7 +498,7 @@ export default function CreatePinModal() {
                                             <div
                                                 className={cn(
                                                     "w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm mb-1 ",
-                                                    activeStep === step ? "bg-primary text-primary-foreground shadow-sm shadow-foreground" : "bg-muted text-muted-foreground",
+                                                    activeStep === step ? "bg-primary  shadow-sm shadow-foreground" : "bg-muted text-muted-foreground",
                                                 )}
                                             >
                                                 {index + 1}

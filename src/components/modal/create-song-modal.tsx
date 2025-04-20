@@ -207,7 +207,7 @@ export default function CreateSongModal() {
                         </div>
                         <DialogDescription>Add a new song to your collection</DialogDescription>
 
-                        <Progress value={formProgress} className="mt-2" />
+                        <Progress value={formProgress} className="mt-2 h-2" />
 
                         <div className="w-full px-6 ">
                             <div className="flex items-center justify-between">
@@ -216,7 +216,7 @@ export default function CreateSongModal() {
                                         <div
                                             className={cn(
                                                 "w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm mb-1 ",
-                                                activeStep === step ? "bg-primary text-primary-foreground shadow-sm shadow-foreground" : "bg-muted text-muted-foreground",
+                                                activeStep === step ? "bg-primary  shadow-sm shadow-foreground" : "bg-muted text-muted-foreground",
                                             )}
                                         >
                                             {index + 1}

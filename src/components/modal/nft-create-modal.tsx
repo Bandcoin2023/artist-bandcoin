@@ -394,7 +394,7 @@ export default function NftCreateModal() {
                             Create Stored Item
                         </DialogTitle>
                         <DialogDescription>Create you nft  and place it to marketplace.</DialogDescription>
-                        <Progress value={formProgress} className="mt-2" />
+                        <Progress value={formProgress} className="mt-2 h-2" />
 
                         <div className="w-full px-6 ">
                             <div className="flex items-center justify-between">
@@ -403,7 +403,7 @@ export default function NftCreateModal() {
                                         <div
                                             className={cn(
                                                 "w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm mb-1 ",
-                                                activeStep === step ? "bg-primary text-primary-foreground shadow-sm shadow-foreground" : "bg-muted text-muted-foreground",
+                                                activeStep === step ? "bg-primary  shadow-sm shadow-foreground" : "bg-muted text-muted-foreground",
                                             )}
                                         >
                                             {index + 1}
@@ -478,7 +478,7 @@ export default function NftCreateModal() {
                                                                 <span className="text-sm text-muted-foreground">Upload Thumbnail</span>
                                                                 {uploading && (
                                                                     <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-                                                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                                                        <Loader2 className="h-6 w-6 animate-spin " />
                                                                     </div>
                                                                 )}
                                                             </Button>
@@ -833,7 +833,7 @@ function PlayableMedia({
         if (isLoading) {
             return (
                 <div className="flex items-center justify-center p-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <Loader2 className="h-8 w-8 animate-spin " />
                 </div>
             )
         }

@@ -5,7 +5,7 @@ import React from "react";
 import { cn } from "~/lib/utils";
 
 interface HexagonAvatarProps {
-  url: string | null;
+  url?: string | null;
   size?: number;
   className?: string;
   winnerCount?: number;
@@ -14,7 +14,7 @@ interface HexagonAvatarProps {
 export default function CustomAvatar({
   url,
 
-  size = 40,
+  size = 200,
   className,
   winnerCount,
 }: HexagonAvatarProps) {

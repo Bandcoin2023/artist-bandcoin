@@ -17,7 +17,7 @@ export default function SearchAndSort({ searchTerm, setSearchTerm, sortOption, s
 }) {
     const { setIsOpen } = useCreateBountyStore()
     return (
-        <div className=" flex flex-col   gap-4 items-center justify-between  bg-primary p-6 rounded-lg shadow-md">
+        <div className=" flex flex-col   gap-4 items-center justify-between  bg-secondary p-6 rounded-lg shadow-md">
             <h1 className="mb-8 text-4xl hidden md:block font-extrabold text-center ">
                 {setFilter ? " Discover Exciting Bounties" : "Your Bounties"}
             </h1>
@@ -42,17 +42,17 @@ export default function SearchAndSort({ searchTerm, setSearchTerm, sortOption, s
                         setFilter ?
                             <div className="flex justify-center items-center space-x-4">
                                 <Button
-                                    className={`shadow-sm shadow-black ${filter === "ALL" ? "border-[#dbdd2c] border-2 text-[#dbdd2c] font-bold" : "transparent shadow-black"}`}
+                                    className={`shadow-sm shadow-black ${filter === "ALL" ? "w-full border-2  font-bold text-[#dbdd2c] border-[#dbdd2c] bg-background" : "transparent shadow-black"}`}
                                     onClick={() => setFilter(filterEnum.ALL)}>
                                     ALL
                                 </Button>
                                 <Button
-                                    className={`shadow-sm shadow-black ${filter === "NOT_JOINED" ? "border-[#dbdd2c] border-2 text-[#dbdd2c] font-bold" : "transparent shadow-black"}`}
+                                    className={`shadow-sm shadow-black ${filter === "NOT_JOINED" ? "w-full border-2  font-bold text-[#dbdd2c] border-[#dbdd2c] bg-background" : "transparent shadow-black"}`}
                                     onClick={() => setFilter(filterEnum.NOT_JOINED)}>
                                     NOT JOINED
                                 </Button>
                                 <Button
-                                    className={`shadow-sm shadow-black ${filter === "JOINED" ? "border-[#dbdd2c] border-2 text-[#dbdd2c] font-bold" : "transparent shadow-black"}`}
+                                    className={`shadow-sm shadow-black ${filter === "JOINED" ? "w-full border-2  font-bold text-[#dbdd2c] border-[#dbdd2c] bg-background" : "transparent shadow-black"}`}
                                     onClick={() => setFilter(filterEnum.JOINED)}>
                                     JOINED
                                 </Button>

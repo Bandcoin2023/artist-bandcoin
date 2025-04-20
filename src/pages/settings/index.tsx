@@ -202,9 +202,10 @@ const AboutUser = ({ user }: { user: UserSettingsType }) => {
                                 className="rounded-full h-64 w-64 border-2 "
                             />
                             <UploadS3Button
-                                className="absolute top-16 right-0 bg-white h-8 w-8 rounded-full bg-white/80 hover:bg-white flex items-center justify-center lg:hidden"
+                                className="absolute -top-16 right-0 bg-white h-8 w-8 rounded-full bg-white/80 hover:bg-white flex items-center justify-center lg:hidden"
                                 endpoint="imageUploader"
-                                varient="input"
+                                id="profile-upload"
+                                variant="input"
                                 onClientUploadComplete={(res) => {
                                     const fileUrl = res.url;
                                     updateProfileMutation.mutate(fileUrl);
@@ -271,9 +272,10 @@ const AboutUser = ({ user }: { user: UserSettingsType }) => {
                                     className="rounded-full h-64 w-64 border-2 "
                                 />
                                 <UploadS3Button
-                                    className="absolute top-16 right-0 bg-white h-8 w-8 rounded-full bg-white/80 hover:bg-white"
+                                    className=""
+                                    id="profile-upload"
                                     endpoint="imageUploader"
-                                    varient="input"
+                                    variant="hidden"
                                     onClientUploadComplete={(res) => {
                                         const fileUrl = res.url;
                                         updateProfileMutation.mutate(fileUrl);
@@ -288,6 +290,16 @@ const AboutUser = ({ user }: { user: UserSettingsType }) => {
                                         })
                                     }}
                                 />
+                                <Button
+                                    size="icon"
+                                    variant="secondary"
+                                    className="absolute top-16 right-0 bg-white h-8 w-8 rounded-full bg-white/80 hover:bg-white"
+
+                                    onClick={() => document.getElementById("profile-upload")?.click()}
+
+                                >
+                                    <Camera className="h-4 w-4" />
+                                </Button>
                             </div>
                         </div>
                     </div>

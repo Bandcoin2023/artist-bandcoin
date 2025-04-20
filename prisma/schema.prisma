@@ -78,15 +78,16 @@ model NotificationObject {
 
 // ------------------------FAN SCHEMA-------------------------
 model Subscription {
-    id Int @id @default(autoincrement())
-
-    name     String
-    features String
-    price    Float // here price is the copy of creator page asset
-
-    creatorId String
-    creator   Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-
+    id            Int             @id @default(autoincrement())
+    name          String
+    description   String
+    features      String[] // Stored as JSON array
+    color         String          @default("bg-blue-500")
+    popular       Boolean         @default(false)
+    isActive      Boolean         @default(true)
+    price         Float // here price is the copy of creator page asset
+    creatorId     String
+    creator       Creator         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
     posts         Post[]
     assets        Asset[]
     LocationGroup LocationGroup[]
@@ -151,12 +152,16 @@ model Follow {
 }
 
 model Media {
-    id   Int       @id @default(autoincrement())
-    url  String
-    type MediaType
-
-    postId Int
-    post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+    id        Int       @id @default(autoincrement())
+    url       String
+    type      MediaType
+    title     String?
+    artist    String?
+    album     String?
+    thumbnail String?
+    duration  Int?
+    postId    Int
+    post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model CreatorPageAsset {
@@ -166,6 +171,8 @@ model CreatorPageAsset {
     issuer        String
     issuerPrivate String?
     thumbnail     String?
+    priceUSD      Float   @default(1)
+    price         Float   @default(2)
 
     limit Int
 
@@ -187,12 +194,17 @@ model Creator {
     storagePub    String
     storageSecret String
 
-    approved Boolean? // if undefined than it is sended for aproval, false means banned, true means aproved
+    aprovalSend Boolean
+    approved    Boolean? // if undefined than it is sended for aproval, false means banned, true means aproved
 
     // pageAsset
     pageAssetId Int?
 
-    customPageAssetCodeIssuer String? // CODE-ISSUER
+    customPageAssetCodeIssuer String? // CODE-ISSUER-ASSET-USD
+    //handle
+    website                   String?
+    twitter                   String?
+    instagram                 String?
 
     user               User                @relation(fields: [id], references: [id], onDelete: Cascade)
     posts              Post[]
@@ -206,8 +218,43 @@ model Creator {
     vanitySubscription VanitySubscription?
     Album              Album[]
     Song               Song[]
+    createdAt          DateTime            @default(now())
+    Appearance         Appearance[]
 
     @@index([bio, name])
+}
+
+model Appearance {
+    id        String   @id @default(cuid())
+    name      String
+    isDefault Boolean  @default(false)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    creatorId String? // Optional field to reference the creator
+    creator   Creator? @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+    widgets   Widget[]
+    theme     Json? // Store theme as JSON
+    isPublic  Boolean  @default(false)
+
+    @@index([creatorId])
+}
+
+model Widget {
+    id           String  @id @default(cuid())
+    widgetId     String // The type of widget (e.g., "stats", "profile", etc.)
+    size         String // "small", "medium", or "large"
+    order        Int
+    pinned       Boolean @default(false)
+    groupId      String? // For grouped widgets
+    customWidth  Float? // For custom width percentage in groups
+    appearanceId String
+    settings     Json? // Add this line
+
+    appearance Appearance @relation(fields: [appearanceId], references: [id], onDelete: Cascade)
+    createdAt  DateTime   @default(now())
+    updatedAt  DateTime   @updatedAt
+
+    @@index([appearanceId])
 }
 
 model VanitySubscription {
@@ -559,6 +606,9 @@ model Bounty {
     id                 Int                 @id @default(autoincrement())
     title              String
     description        String
+    latitude           Float?
+    longitude          Float?
+    radius             Float?
     priceInUSD         Float
     priceInBand        Float
     totalWinner        Int

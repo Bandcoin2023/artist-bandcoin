@@ -22,11 +22,10 @@ import { signOut, useSession } from "next-auth/react";
 export const LeftNavigation: NavItem[] = [
   { href: "/", icon: "dashboard", title: "HOMEPAGE" },
   { href: "/my-collection", icon: "collection", title: "MY COLLECTION" },
-  // Search: { path: "/search", icon: Search, text: "Search" },
   { href: "/music", icon: "music", title: "MUSIC" },
   { href: "/marketplace", icon: "store", title: "MARKETPLACE" },
   { href: "/bounty", icon: "bounty", title: "BOUNTY" },
-  { href: "/artist/home", icon: "creator", title: "ARTISTS" },
+  { href: "/artist/home", icon: "creator", title: "ARTIST" },
   { href: "/settings", icon: "setting", title: "SETTINGS" },
 ];
 
@@ -124,7 +123,7 @@ const MiniCalendar = () => {
             onClick={() => setSelectedDate(date)}
             className={cn(
               "h-6 w-6 rounded-full text-xs flex items-center justify-center",
-              isToday(date) ? "bg-primary text-primary-foreground font-bold" : "",
+              isToday(date) ? "bg-primary  font-bold" : "",
               isSelected(date) && !isToday(date) ? "bg-accent text-accent-foreground" : "",
               !isToday(date) && !isSelected(date) ? "hover:bg-muted" : ""
             )}
@@ -142,7 +141,7 @@ const MiniCalendar = () => {
             onClick={() => setSelectedDate(date)}
             className={cn(
               "h-6 w-6 rounded-full text-xs flex items-center justify-center",
-              isToday(date) ? "bg-primary text-primary-foreground font-bold" : "",
+              isToday(date) ? "bg-primary  font-bold" : "",
               isSelected(date) && !isToday(date) ? "bg-accent text-accent-foreground" : "",
               !isToday(date) && !isSelected(date) ? "hover:bg-muted" : ""
             )}
@@ -162,7 +161,7 @@ export default function Sidebar({ className }: SidebarProps) {
   return (
     <div
       className={cn(
-        ` h-[calc(100vh-10.8vh)] sticky top-[5.8rem] p-1 w-full overflow-hidden border-r  hidden transition-[width] duration-500 md:block`,
+        ` h-[calc(100vh-10.8vh)] sticky top-[5.8rem]  p-1 w-full overflow-hidden border-r  hidden transition-[width] duration-500 md:block`,
         !isMinimized ? "w-[280px]" : "w-[78px]",
         className,
       )}

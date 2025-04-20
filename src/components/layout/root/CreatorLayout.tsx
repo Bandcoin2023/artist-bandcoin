@@ -1,60 +1,51 @@
-"use client";
+"use client"
 
-import type React from "react";
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { cn } from "~/lib/utils";
-import type { NavItem } from "~/types/icon-types";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { Button } from "~/components/shadcn/ui/button";
-import { ToggleButton } from "~/components/common/toggle-button-admin";
-import { api } from "~/utils/api";
-import { usePathname, useRouter } from "next/navigation";
-import { useCreatorSidebar } from "~/hooks/use-creator-sidebar";
-import { Mode, useModeStore } from "~/components/store/mode-store";
-import CustomAvatar from "~/components/common/custom-avatar";
-import { addrShort } from "~/utils/utils";
-import { ModeSwitch } from "~/components/common/mode-switch";
-import Link from "next/link";
-import { Icons } from "../Left-sidebar/icons";
-import { CreatorListSkeleton } from "~/components/loading/creator-skeleton";
-import { SkeletonEffect } from "~/components/loading/skeleton-effect";
-import { useToast } from "~/components/shadcn/ui/use-toast";
-import TrendingSidebar from "~/components/post/trending-sidebar";
-import CreatorSidebar from "~/components/post/followed-creator";
-import { Card, CardContent, CardHeader } from "~/components/shadcn/ui/card";
+import type React from "react"
+import { useEffect, useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { cn } from "~/lib/utils"
+import type { NavItem } from "~/types/icon-types"
+import { ChevronDown, ChevronUp } from "lucide-react"
+import { Button } from "~/components/shadcn/ui/button"
+import { ToggleButton } from "~/components/common/toggle-button-admin"
+import { api } from "~/utils/api"
+import { usePathname, useRouter } from "next/navigation"
+import { useCreatorSidebar } from "~/hooks/use-creator-sidebar"
+import { Mode, useModeStore } from "~/components/store/mode-store"
+
+import { ModeSwitch } from "~/components/common/mode-switch"
+import Link from "next/link"
+import { Icons } from "../Left-sidebar/icons"
+import { useToast } from "~/components/shadcn/ui/use-toast"
+import TrendingSidebar from "~/components/post/trending-sidebar"
+import CreatorSidebar from "~/components/post/followed-creator"
+import { Card, CardContent, CardHeader } from "~/components/shadcn/ui/card"
+import JoinArtistPage from "~/components/creator/join-artist"
+import JoinArtistPageLoading from "~/components/loading/join-artist-loading"
+import PendingArtistPage from "~/components/creator/pending-artist"
+import { BannedCreatorCard } from "~/components/creator/ban-artist"
 
 export default function CreatorLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const router = useRouter();
-  const toast = useToast();
-  const [cursorVariant, setCursorVariant] = useState("default");
-  const creators = api.fan.creator.getAllCreator.useInfiniteQuery(
-    { limit: 10 },
-    {
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
-    },
-  );
-  const path = usePathname();
-  const toggleExpand = () => {
-    setIsExpanded(!isExpanded);
-  };
+  const [isExpanded, setIsExpanded] = useState(false)
+  const router = useRouter()
+  const toast = useToast()
+  const [cursorVariant, setCursorVariant] = useState("default")
 
-  const { isMinimized, toggle } = useCreatorSidebar();
-  const {
-    selectedMode,
-    toggleSelectedMode,
-    isTransitioning,
-    startTransition,
-    endTransition,
-  } = useModeStore();
+  const path = usePathname()
+  const toggleExpand = () => {
+    setIsExpanded(!isExpanded)
+  }
+
+  const { isMinimized, toggle } = useCreatorSidebar()
+  const { selectedMode, toggleSelectedMode, isTransitioning, startTransition, endTransition } = useModeStore()
   const creator = api.fan.creator.meCreator.useQuery(undefined, {
     refetchOnWindowFocus: false,
-  });
+  })
+  console.log(creator.data)
 
   // Animation variants for sidebar
   const sidebarVariants = {
@@ -74,7 +65,7 @@ export default function CreatorLayout({
         damping: 30,
       },
     },
-  };
+  }
 
   // Animation variants for sidebar content
   const contentVariants = {
@@ -100,7 +91,7 @@ export default function CreatorLayout({
         staggerDirection: -1,
       },
     },
-  };
+  }
 
   // Animation variants for sidebar items
   const itemVariants = {
@@ -122,27 +113,32 @@ export default function CreatorLayout({
         damping: 30,
       },
     },
-  };
+  }
 
-  // i want if user try to access creator page but he is on user page then it should redirect to user page
+  // Modified routing logic to allow navigation to organization/create
   useEffect(() => {
-    CreatorNavigation.map((item) => {
-      if (item.href === path && selectedMode === Mode.User) {
-        toggleSelectedMode();
-        toast.toast({
-          title: "Mode Changed",
-          description: "You are now in creator mode",
-          variant: "destructive",
-        });
+    // Skip redirection if user is trying to access the create page
+    if (path === "/artist/create") {
+      return
+    }
 
-      }
-    })
-  }, [creator.data?.id]);
+    if (path === "/artist/home" && selectedMode === Mode.ORG) {
+      router.push("/artist/profile")
+    } else {
+      CreatorNavigation.forEach((item) => {
+        if (item.href === path && selectedMode === Mode.USER) {
+          console.log("Redirecting to user page")
+          router.push("/artist/home")
+        }
+      })
+    }
+    console.log(selectedMode)
+  }, [path, selectedMode, router])
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden h-[calc(100vh-10.8vh)]">
       <div className="flex h-[calc(100vh-10.8vh)] gap-4 overflow-hidden">
-        {selectedMode === Mode.User ? (
+        {selectedMode === Mode.USER ? (
           <>
             <motion.div
               className="flex-grow overflow-y-auto scrollbar-hide"
@@ -150,9 +146,7 @@ export default function CreatorLayout({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="flex h-[calc(100vh-10.8vh)] w-full flex-col">
-                {children}
-              </div>
+              <div className="flex overflow-y-auto w-full flex-col">{children}</div>
             </motion.div>
             <AnimatePresence>
               <motion.div
@@ -177,7 +171,7 @@ export default function CreatorLayout({
                 />
               </motion.div>
             </AnimatePresence>
-            <div className="hidden h-[calc(100vh-21vh)]  bg-background md:block">
+            <div className="hidden h-[calc(100vh-10vh)]  bg-background md:block">
               <motion.div
                 className="sticky top-0 hidden h-full overflow-y-auto p-1 md:block"
                 initial={false}
@@ -194,21 +188,14 @@ export default function CreatorLayout({
                   <Card className="flex min-h-[72%]    w-full flex-col gap-2 overflow-x-hidden scrollbar-hide">
                     <CardHeader className="sticky top-0 bg-primary z-10 p-2">
                       <h3 className="font-medium   text-center ">Trending Creators</h3>
-
                     </CardHeader>
                     <CardContent className="p-1 ">
-
                       <TrendingSidebar />
-
                     </CardContent>
-
-
                   </Card>
                   <Card className="flex h-full  w-full flex-col gap-2 overflow-x-hidden  scrollbar-hide">
-
                     <CardHeader className="sticky top-0 bg-primary z-10 p-2">
                       <h3 className="font-medium  mb-3 text-center sticky top-0">Followed Creators</h3>
-
                     </CardHeader>
                     <CardContent>
                       <div className=" overflow-y-auto">
@@ -223,25 +210,34 @@ export default function CreatorLayout({
         ) : (
           <>
             <motion.div
-              className="flex-grow overflow-y-auto scrollbar-hide"
+              className="flex w-full overflow-y-auto  scrollbar-hide "
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              {creator.isLoading && selectedMode === Mode.Creator ? (
+              {/* Special case for the create page */}
+              {path === "/artist/create" ? (
+                <div className="flex h-screen overflow-y-auto w-full flex-col">{children}</div>
+              ) : creator.isLoading && selectedMode === Mode.ORG ? (
                 <div className="flex h-full w-full items-center justify-center">
-                  <div className="w-full max-w-4xl space-y-4 px-4">
-                    <SkeletonEffect variant="card" count={3} />
-                  </div>
+                  <JoinArtistPageLoading />
                 </div>
-              ) : creator.data?.id && selectedMode === Mode.Creator ? (
-                <div className="flex h-screen w-full flex-col">{children}</div>
+              ) : creator.data?.id && creator.data?.approved === true && selectedMode === Mode.ORG ? (
+                <div className="flex overflow-y-hidden  w-full flex-col ">{children}</div>
+              ) : creator.data?.aprovalSend && creator.data?.approved === null ? (
+                <div className="flex h-full w-full items-center justify-center">
+                  <PendingArtistPage createdAt={creator.data?.createdAt} />
+                </div>
+              ) : creator.data?.aprovalSend && creator.data?.approved === false ? (
+                <div className="flex h-full w-full items-center justify-center">
+                  <BannedCreatorCard creatorName={creator.data.name}
+
+                  />
+                </div>
               ) : (
                 !creator.data && (
                   <div className="flex h-full w-full items-center justify-center">
-                    <h1 className="text-3xl font-bold">
-                      You are not authorized to view this page
-                    </h1>
+                    <JoinArtistPage />
                   </div>
                 )
               )}
@@ -256,13 +252,10 @@ export default function CreatorLayout({
                   {isExpanded && (
                     <div className="absolute -left-4 bottom-12 -translate-x-1/2 md:bottom-10">
                       {CreatorNavigation.map((item, index) => {
-                        const Icon = Icons[item.icon as keyof typeof Icons];
+                        const Icon = Icons[item.icon as keyof typeof Icons]
 
                         return (
-                          <Link
-                            key={index}
-                            href={item.disabled ? "/artist/wallet" : item.href}
-                          >
+                          <Link key={index} href={item.disabled ? "/artist/wallet" : item.href}>
                             <motion.div
                               initial={{
                                 y: 0,
@@ -298,14 +291,12 @@ export default function CreatorLayout({
                               <Button
                                 size="icon"
                                 className={cn(
-                                  "hover:scale-109 h-12 w-12 shadow-lg transition-transform hover:bg-foreground hover:text-primary",
+                                  "hover:scale-109 h-12 w-12 shadow-lg transition-transform hover:bg-foreground hover:",
                                   item.color,
                                   "text-white",
                                   path === item.href ? "bg-foreground " : "",
                                 )}
-                                onClick={() =>
-                                  console.log(`Clicked ${item.label}`)
-                                }
+                                onClick={() => setIsExpanded(false)}
                               >
                                 <Icon />
                                 <span className="sr-only">{item.label}</span>
@@ -315,18 +306,13 @@ export default function CreatorLayout({
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: 20 }}
                                 transition={{ delay: index * 0.05 + 0.2 }}
-                                className={cn(
-                                  "absolute left-full top-2 ml-3 -translate-y-1/2 whitespace-nowrap rounded-md bg-background px-2 py-1 text-sm font-medium shadow-sm hover:bg-foreground hover:text-primary",
-                                  path === item.href
-                                    ? "bg-foreground text-primary"
-                                    : "",
-                                )}
+                                className={cn("absolute left-full ml-3 top-2  hover:-translate-y-1/2 whitespace-nowrap rounded-md bg-background px-2 py-1 text-sm font-medium shadow-sm", path === item.href ? "bg-primary shaodw-sm shadow-foregound border-2 " : "")}
                               >
                                 {item.label}
                               </motion.span>
                             </motion.div>
                           </Link>
-                        );
+                        )
                       })}
                     </div>
                   )}
@@ -340,7 +326,7 @@ export default function CreatorLayout({
                 >
                   <Button
                     size="icon"
-                    variant='destructive'
+                    variant="destructive"
                     onClick={toggleExpand}
                     className="h-10 w-10 rounded-sm border-2 border-[#dbdd2c] font-bold"
                   >
@@ -352,16 +338,10 @@ export default function CreatorLayout({
                         exit={{ opacity: 0, y: isExpanded ? 10 : -10 }}
                         transition={{ duration: 0.2 }}
                       >
-                        {isExpanded ? (
-                          <ChevronDown className="h-6 w-6" />
-                        ) : (
-                          <ChevronUp className="h-6 w-6" />
-                        )}
+                        {isExpanded ? <ChevronDown className="h-6 w-6" /> : <ChevronUp className="h-6 w-6" />}
                       </motion.div>
                     </AnimatePresence>
-                    <span className="sr-only">
-                      {isExpanded ? "Close menu" : "Open menu"}
-                    </span>
+                    <span className="sr-only">{isExpanded ? "Close menu" : "Open menu"}</span>
                   </Button>
                 </motion.div>
               </div>
@@ -373,7 +353,7 @@ export default function CreatorLayout({
         <ModeSwitch />
       </div>
     </div>
-  );
+  )
 }
 
 export const LeftNavigation: NavItem[] = [
@@ -384,15 +364,15 @@ export const LeftNavigation: NavItem[] = [
   { href: "/bounty", icon: "bounty", title: "BOUNTY" },
   { href: "/artist/home", icon: "creator", title: "ARTISTS" },
   { href: "/settings", icon: "setting", title: "SETTINGS" },
-];
+]
 
 type DockerItem = {
-  disabled?: boolean;
-  icon: React.ReactNode;
-  label: string;
-  color: string;
-  href: string;
-};
+  disabled?: boolean
+  icon: React.ReactNode
+  label: string
+  color: string
+  href: string
+}
 
 const CreatorNavigation: DockerItem[] = [
   {
@@ -401,19 +381,8 @@ const CreatorNavigation: DockerItem[] = [
     label: "PROFILE",
     color: "bg-blue-500",
   },
-  {
-    href: "/artist/post",
-    icon: "admin",
-    label: "POST",
-    color: "bg-purple-500",
-  },
+
   { href: "/artist/store", icon: "pins", label: "STORE", color: "bg-pink-500" },
-  // {
-  //   href: "/artist/music",
-  //   icon: "report",
-  //   label: "MUSIC",
-  //   color: "bg-amber-500",
-  // },
   {
     href: "/artist/gift",
     icon: "creator",
@@ -438,4 +407,5 @@ const CreatorNavigation: DockerItem[] = [
     label: "MAP",
     color: "bg-pink-500",
   },
-];
+]
+

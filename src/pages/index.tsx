@@ -22,6 +22,8 @@ import MarketAssetComponent from "~/components/common/market-asset";
 import PageAssetComponent from "~/components/common/page-asset";
 import { MoreAssetsSkeleton } from "~/components/common/grid-loading";
 import { useBuyModalStore } from "~/components/store/buy-modal-store";
+import { useSession } from "next-auth/react";
+import { useLoginRequiredModalStore } from "~/components/store/login-required-modal-store";
 
 // Global Variables
 const TABS = ["ALL", "BANDCOIN", "ARTISTS", "ARTIST TOKENS"];
@@ -41,6 +43,8 @@ const HomePage = () => {
     setIsOpen,
 
   } = useBuyModalStore()
+  const { setIsOpen: setLoginModalOpen } = useLoginRequiredModalStore()
+  const session = useSession()
   const fanAssets = api.marketplace.market.getLatestMarketNFT.useQuery(
     undefined,
     {
@@ -106,7 +110,7 @@ const HomePage = () => {
   // Early return if no data
   if (fanAssets.isLoading ?? RecentlyAddedMarketAssets.length === 0) {
     return (
-      <div className="h-[calc(100vh-10vh)]">
+      <div className="relative  flex h-[calc(100vh-10.8vh)] flex-col gap-4 overflow-y-auto scrollbar-hide">
         <div className="relative h-[56vh] overflow-hidden rounded-b-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-4 md:h-[42vh]">
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-black/60 via-black/40 to-black/90 backdrop-blur-md" />
           <div className="relative z-10 flex h-full flex-col rounded-md">
@@ -199,7 +203,7 @@ const HomePage = () => {
                   (marketasset, index) =>
                     marketasset && (
                       <motion.div
-                        key={marketasset.asset.id}
+                        key={`${marketasset.asset.code}-${index}`}
                         className="absolute   flex-shrink-0 cursor-pointer "
                         initial={{
                           scale: 0.8,
@@ -238,9 +242,14 @@ const HomePage = () => {
                               (prevIndex + index) %
                               RecentlyAddedMarketAssets.length,
                           );
-                          handleProductClick(marketasset as MarketAssetType);
-                          setIsOpen(true);
-                          setData(marketasset);
+                          if (session.status === "unauthenticated") {
+                            setLoginModalOpen(true);
+                          }
+                          else {
+                            handleProductClick(marketasset as MarketAssetType);
+                            setIsOpen(true);
+                            setData(marketasset);
+                          }
                         }}
                         exit={{ scale: 0.8, opacity: 0 }}
                         transition={{ duration: 0.5 }}
@@ -300,8 +309,13 @@ const HomePage = () => {
                                 handleProductClick(
                                   currentAsset as MarketAssetType,
                                 );
-                                setIsOpen(true);
-                                setData(currentAsset as MarketAssetType);
+                                if (session.status === "unauthenticated") {
+                                  setLoginModalOpen(true);
+                                }
+                                else {
+                                  setIsOpen(true);
+                                  setData(currentAsset as MarketAssetType);
+                                }
                               }}
                               className="w-full shadow-sm shadow-black "
                             >
@@ -353,8 +367,13 @@ const HomePage = () => {
                           (prevIndex + 0) % RecentlyAddedMarketAssets.length,
                       );
                       handleProductClick(currentAsset as MarketAssetType);
-                      setIsOpen(true);
-                      setData(currentAsset as MarketAssetType);
+                      if (session.status === "unauthenticated") {
+                        setLoginModalOpen(true);
+                      }
+                      else {
+                        setIsOpen(true);
+                        setData(currentAsset as MarketAssetType);
+                      }
                     }}
                     className="w-full border-2 shadow-sm shadow-black "
                   >
@@ -436,17 +455,17 @@ const FilterTabs = () => {
   };
   return (
     <Card className="rounded-none" >
-      <CardHeader className="w-full rounded-none bg-primary p-2 md:p-4">
+      <CardHeader className="w-full rounded-none  bg-secondary p-2 md:p-4">
         <CardTitle className="flex w-full gap-2 p-0 md:w-[50vw] md:gap-4 ">
           {TABS.map((tab) => (
             <Button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "flex  w-1/2 px-2 text-sm shadow-sm shadow-black transition-all duration-300 ease-in-out lg:px-10",
+                "flex  w-1/2 px-2 text-sm shadow-sm shadow-black transition-all duration-300 ease-in-out lg:px-10  hover:bg-background",
                 activeTab === tab
-                  ? "w-full border-2 font-bold text-[#dbdd2c]"
-                  : " ",
+                  ? "w-full border-2  font-bold text-[#dbdd2c] border-[#dbdd2c] bg-background"
+                  : "",
               )}
             >
               {tab}
@@ -538,6 +557,7 @@ const AllAssets = ({
   isFetchingNextPage,
   fetchNextPage,
 }: AllAssetsTypes) => {
+
   return (
     <div className="flex min-h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
       {isLoading && (
