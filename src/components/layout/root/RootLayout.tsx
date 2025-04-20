@@ -49,7 +49,7 @@ export default function Layout({
         >
             <MiniPlayerProvider>
 
-                <div className={clsx("flex h-screen w-full flex-col", className)}>
+                <div className={clsx("flex h-screen w-full flex-col")}>
                     <Header />
                     <div className="flex w-full scrollbar-hide ">
                         <div className="relative  bg-secondary  shadow-sm shadow-primary transition-all duration-500 ease-in-out">
