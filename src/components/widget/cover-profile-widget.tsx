@@ -326,7 +326,6 @@ export default function CoverProfileWidget({
 
             // Force another update after a short delay to ensure it's captured
             setTimeout(() => {
-
                 onSettingsChange(finalSettings)
             }, 100)
         }
