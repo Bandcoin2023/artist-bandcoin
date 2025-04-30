@@ -5,7 +5,7 @@ import { Button } from "~/components/shadcn/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/shadcn/ui/popover"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/shadcn/ui/tabs"
 import { ChevronDown, Maximize } from "lucide-react"
-import { HEIGHT_MAP, WIDTH_MAP, type WidgetHeight, type WidgetWidth } from "~/components/widget/utils/ widget-utils"
+import { HEIGHT_MAP, WIDTH_MAP, type WidgetHeight, type WidgetWidth } from "~/components/widget/utils/widget-utils"
 
 interface WidgetSizeSelectorProps {
     currentHeight: WidgetHeight
@@ -95,7 +95,7 @@ export default function WidgetSizeSelector({
                             {heightOptions.map((height) => (
                                 <Button
                                     key={height}
-                                    variant={currentHeight === height ? "default" : "outline"}
+                                    variant={currentHeight === height ? "accent" : "outline"}
                                     className="flex flex-col items-center justify-center p-2 h-auto"
                                     onClick={() => {
                                         onHeightChange(height)
@@ -104,7 +104,7 @@ export default function WidgetSizeSelector({
                                 >
                                     <div className="flex items-end justify-center w-full">
                                         <div
-                                            className="bg-primary/20 border border-primary/30 rounded-sm w-4"
+                                            className="bg-primary border border-foreground rounded-sm w-4"
                                             style={{
                                                 height: `${Math.max(12, HEIGHT_MAP[height] / 20)}px`,
                                             }}
@@ -122,7 +122,7 @@ export default function WidgetSizeSelector({
                             {widthOptions.map((width) => (
                                 <Button
                                     key={width}
-                                    variant={currentWidth === width ? "default" : "outline"}
+                                    variant={currentWidth === width ? "accent" : "outline"}
                                     className="flex flex-col items-center justify-center p-2 h-auto"
                                     onClick={() => {
                                         onWidthChange(width)
@@ -131,7 +131,7 @@ export default function WidgetSizeSelector({
                                 >
                                     <div className="flex items-center justify-center w-full">
                                         <div
-                                            className="bg-primary/20 border border-primary/30 rounded-sm h-4"
+                                            className="bg-primary border border-foreground rounded-sm h-4"
                                             style={{
                                                 width: `${Math.max(20, WIDTH_MAP[width] / 4)}px`,
                                             }}

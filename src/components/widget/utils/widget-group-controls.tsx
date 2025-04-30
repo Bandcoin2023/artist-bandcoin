@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "~/components/shadcn/ui/button"
 import { Input } from "~/components/shadcn/ui/input"
 import { Label } from "~/components/shadcn/ui/label"
 import { Slider } from "~/components/shadcn/ui/slider"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/shadcn/ui/popover"
 import { Unlink, ChevronDown, Divide } from "lucide-react"
+import { shouldUseColumnLayout } from "./widget-utils"
 
 interface WidgetGroupControlsProps {
     groupId: string
@@ -26,6 +27,22 @@ export default function WidgetGroupControls({
     const [isOpen, setIsOpen] = useState(false)
     const [proportionInput, setProportionInput] = useState(currentProportions.map((p) => Math.round(p * 100)).join(","))
     const [sliderValues, setSliderValues] = useState<number[]>(currentProportions.map((p) => p * 100))
+    const [isSmallScreen, setIsSmallScreen] = useState(false)
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsSmallScreen(shouldUseColumnLayout(window.innerWidth))
+        }
+
+        // Set initial value
+        handleResize()
+
+        // Add event listener
+        window.addEventListener("resize", handleResize)
+
+        // Clean up
+        return () => window.removeEventListener("resize", handleResize)
+    }, [])
 
     // Handle applying proportions from text input
     const handleApplyProportions = () => {
@@ -103,13 +120,17 @@ export default function WidgetGroupControls({
         const equalValue = 100 / widgetCount
         const newValues = Array(widgetCount).fill(equalValue)
         setSliderValues(newValues)
-        setProportionInput(newValues.map((v:
-            number
-        ) => Math.round(v)).join(","))
+        setProportionInput(newValues.map((v: number) => Math.round(v)).join(","))
     }
 
     return (
         <div className="flex items-center gap-2">
+            {isSmallScreen && (
+                <div className="text-xs text-muted-foreground mr-2">
+                    <span className="hidden sm:inline">Proportions applied on larger screens</span>
+                    <span className="sm:hidden">↔️ Rotate device to see side-by-side</span>
+                </div>
+            )}
             <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => onUngroup(groupId)}>
                 <Unlink className="h-3.5 w-3.5 mr-1" />
                 <span className="text-xs">Ungroup</span>

@@ -59,6 +59,10 @@ export const AssetSelectAllProperty = {
   tierId: true,
   tier: true,
   createdAt: true,
+  demoMediaUrl: true,
+  releaseDate: true,
+  fundEndDate: true,
+  percentage: true,
 };
 
 export const marketRouter = createTRPCRouter({

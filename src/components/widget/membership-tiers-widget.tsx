@@ -19,6 +19,7 @@ interface MembershipTiersWidgetProps {
     editMode?: boolean
     theme?: Theme
     creatorData: CreatorWithPageAsset
+    userView?: boolean
 }
 function SubscriptionPackagesSkeleton() {
     // Create an array of 3 items to represent the loading cards
@@ -72,8 +73,13 @@ function SubscriptionPackagesSkeleton() {
 
 
 
-export default function MembershipTiersWidget({ editMode, theme, creatorData }: MembershipTiersWidgetProps) {
-    const subscriptionPackages = api.fan.creator.getCreatorPackages.useQuery()
+export default function MembershipTiersWidget({ editMode, theme, creatorData,
+    userView = false,
+}: MembershipTiersWidgetProps) {
+
+    const subscriptionPackages = api.fan.creator.getCreatorPackages.useQuery({
+        id: creatorData?.id ?? ""
+    })
     const { openForCreate, openForEdit } = useAddSubsciptionModalStore()
     const [expandedPackage, setExpandedPackage] = useState<number | null>(null)
     const togglePackageExpansion = (id: number) => {
@@ -83,16 +89,60 @@ export default function MembershipTiersWidget({ editMode, theme, creatorData }: 
             setExpandedPackage(id)
         }
     }
-    console.log("creatorcustomPage", creatorData)
-
-
 
     return (
         <div className="mb-8 h-full">
+            <div className="w-full sticky top-0 z-50 bg-secondary border-b-2 p-2 md:p-4 ">
+                <div className="flex justify-between items-center ">
+                    <h2 className="text-xl font-bold">Subscription Packages</h2>
+                    {
+                        (subscriptionPackages.data?.length ?? 0) > 0 && !userView && (
+                            <div className="flex justify-between items-center">
+                                <Button size="sm" onClick={() => openForCreate({
+                                    customPageAsset: creatorData?.customPageAssetCodeIssuer,
+                                    pageAsset: creatorData.pageAsset,
+                                })}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Create New Package
+                                </Button>
+                            </div>
+                        )
+                    }
+                </div>
+            </div>
+
+            {
+                subscriptionPackages.data?.length === 0 &&
+                (
+                    <div className="h-full w-full ">
+                        {!userView ? (
+                            <div className="text-center py-12  rounded-lg h-full">
+                                <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-medium mb-2">No Subscription Packages Found</h3>
+                                <p className="text-muted-foreground mb-4">Start creating subscription packages for your followers</p>
+                                <Button onClick={() => openForCreate({
+                                    customPageAsset: creatorData?.customPageAssetCodeIssuer,
+                                    pageAsset: creatorData.pageAsset,
+                                })}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Create New Package
+                                </Button>
+                            </div>
+                        ) : (
+
+                            <div className="h-full w-full flex items-center  justify-center flex-col text-lg font-bold">
+                                <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-medium mb-2">Creator  hasn{"'t"} any Subscription Packages to show </h3>
+                            </div>
+                        )
+
+                        }
+                    </div>
+                )
+            }
 
             <div className="grid grid-cols-1 px-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-center justify-center w-full">
                 {subscriptionPackages.isLoading && <SubscriptionPackagesSkeleton />}
-
                 {subscriptionPackages.data?.map((pkg) => (
                     <Card
                         key={pkg.id}
@@ -141,7 +191,7 @@ export default function MembershipTiersWidget({ editMode, theme, creatorData }: 
                         </CardHeader>
                         <CardContent className="space-y-4 pb-2">
                             {
-                                subscriptionPackages.data && subscriptionPackages.data?.length > 0 && (
+                                subscriptionPackages.data && subscriptionPackages.data?.length > 0 && !userView && (
                                     <div className="flex items-center justify-between p-2">
                                         <h2 className="text-xl font-bold">Subscription Packages</h2>
                                         <Button size="sm" onClick={() => openForCreate({
@@ -154,22 +204,7 @@ export default function MembershipTiersWidget({ editMode, theme, creatorData }: 
                                     </div>
                                 )
                             }
-                            {
-                                subscriptionPackages.data?.length === 0 && (
-                                    <div className="text-center py-12 bg-muted/30 rounded-lg">
-                                        <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                        <h3 className="text-lg font-medium mb-2">No Subscription Packages Found</h3>
-                                        <p className="text-muted-foreground mb-4">Start creating subscription packages for your followers</p>
-                                        <Button onClick={() => openForCreate({
-                                            customPageAsset: creatorData?.customPageAssetCodeIssuer,
-                                            pageAsset: creatorData.pageAsset,
-                                        })}>
-                                            <Plus className="h-4 w-4 mr-2" />
-                                            Create New Package
-                                        </Button>
-                                    </div>
-                                )
-                            }
+
                             <ul className="space-y-2">
                                 {pkg.features
                                     .slice(0, expandedPackage === pkg.id ? pkg.features.length : 3)

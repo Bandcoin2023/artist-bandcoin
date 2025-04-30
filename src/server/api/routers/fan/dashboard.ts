@@ -74,6 +74,33 @@ export const dashboardRouter = createTRPCRouter({
 
         return dashboards
     }),
+    getAllFromPubkey: protectedProcedure.input(z.object({
+        id: z.string(),
+    })).query(async ({ ctx, input }) => {
+        const dashboards = await ctx.db.appearance.findMany({
+            where: {
+                OR: [{ creatorId: input.id }, { isPublic: true }],
+            },
+            include: {
+                widgets: {
+                    orderBy: {
+                        order: "asc",
+                    },
+                },
+            },
+        })
+
+        console.log(
+            "Retrieved dashboards with themes:",
+            dashboards.map((d) => ({
+                id: d.id,
+                name: d.name,
+                hasTheme: !!d.theme,
+            })),
+        )
+
+        return dashboards
+    }),
 
     getDefault: publicProcedure.query(async ({ ctx }) => {
         return ctx.db.appearance.findFirst({
@@ -125,7 +152,41 @@ export const dashboardRouter = createTRPCRouter({
 
         return dashboard
     }),
+    getByPublicKey: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+        console.log("Fetching dashboard with ID:", input.id)
 
+        const dashboard = await ctx.db.appearance.findFirst({
+            where: {
+                id: input.id,
+                OR: [{ creatorId: ctx.session.user.id }, { isPublic: true }],
+            },
+            include: {
+                widgets: {
+                    orderBy: {
+                        order: "asc",
+                    },
+                },
+            },
+        })
+
+        if (!dashboard) {
+            throw new Error("Dashboard not found")
+        }
+
+        console.log("Dashboard found:", dashboard.name)
+        console.log("Dashboard theme:", dashboard.theme)
+        console.log("Widget count:", dashboard.widgets.length)
+        console.log(
+            "Widget settings:",
+            dashboard.widgets.map((w) => ({
+                id: w.widgetId,
+                settings: w.settings,
+                settingsType: w.settings ? typeof w.settings : "undefined",
+            })),
+        )
+
+        return dashboard
+    }),
     save: protectedProcedure.input(dashboardSchema).mutation(async ({ ctx, input }) => {
         const { id, name, widgets, theme, isDefault, isPublic } = input
 
@@ -140,6 +201,7 @@ export const dashboardRouter = createTRPCRouter({
                 },
             })
         }
+        console.log("public", isPublic)
 
         if (id) {
             // Update existing dashboard
@@ -164,6 +226,7 @@ export const dashboardRouter = createTRPCRouter({
                         create: widgets.map((widget) => {
                             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                             const settings = widget.settings ? JSON.parse(JSON.stringify(widget.settings)) : {}
+                            console.log("Widget settings:", settings)
                             return {
                                 widgetId: widget.id,
                                 size: widget.size,

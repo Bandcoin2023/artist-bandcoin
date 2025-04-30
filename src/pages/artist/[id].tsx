@@ -1,795 +1,1290 @@
 "use client"
 
-import React, { useEffect } from "react"
-import { useState, useRef } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { useParams, useRouter, useSearchParams } from "next/navigation"
-import {
-    ImageIcon,
-    Grid3X3,
-    Calendar,
-    Twitter,
-    Instagram,
-    Globe,
-    CheckCircle2,
-    Heart,
-    Share2,
-    ChevronUp,
-    ChevronDown,
-    Menu,
-    Users,
-    X,
-} from "lucide-react"
+import type React from "react"
+import { useState, useEffect, useRef } from "react"
+import { Save, Plus, X, GripVertical, Link2, Edit, Check, User, Trash2 } from 'lucide-react'
 
 import { Button } from "~/components/shadcn/ui/button"
+import { Card, CardContent } from "~/components/shadcn/ui/card"
+import { toast } from "~/components/shadcn/ui/use-toast"
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "~/components/shadcn/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/shadcn/ui/tabs"
-import { Badge } from "~/components/shadcn/ui/badge"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/shadcn/ui/card"
-import { Separator } from "~/components/shadcn/ui/separator"
+import { Input } from "~/components/shadcn/ui/input"
+import { Label } from "~/components/shadcn/ui/label"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/shadcn/ui/tooltip"
+import { Switch } from "~/components/shadcn/ui/switch"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "~/components/shadcn/ui/dialog"
+
+// Import components that can be added to dashboard
+import StatsWidget from "~/components/widget/stats-widget"
+import ProfileWidget from "~/components/widget/profile-widget"
+import NFTGalleryWidget from "~/components/widget/nft-gallery-widget"
+import RecentPostsWidget from "~/components/widget/recent-posts-widget"
+import ChartWidget from "~/components/widget/chart-widget"
+import CalendarWidget from "~/components/widget/calendar-widget"
+import TodoWidget from "~/components/widget/todo-widget"
+import CustomHTMLWidget from "~/components/widget/custom-html-widget"
+
+// Import new widgets
+import MusicPlayerWidget from "~/components/widget/music-player-widget"
+import TourDatesWidget from "~/components/widget/tour-dates-widget"
+import MembershipTiersWidget from "~/components/widget/membership-tiers-widget"
+import MerchandiseWidget from "~/components/widget/merchandise-widget"
+import BandMembersWidget from "~/components/widget/band-members-widget"
+import VideoGalleryWidget from "~/components/widget/video-gallery-widget"
+import NewsletterWidget from "~/components/widget/newsletter-widget"
+import LyricsWidget from "~/components/widget/lyrics-widget"
+import FanCommunityWidget from "~/components/widget/fan-community-widget"
+import CoverProfileWidget from "~/components/widget/cover-profile-widget"
+
+// Import the new utility functions and components
+import {
+    getWidgetDimensions,
+    createDefaultWidgetSettings,
+    generateGroupId,
+    type WidgetHeight,
+    type WidgetWidth,
+    getGridSpan,
+    getResponsiveHeight,
+    shouldUseColumnLayout,
+} from "~/components/widget/utils/widget-utils"
+import WidgetSizeSelector from "~/components/widget/utils/widget-size-selector"
+import WidgetGroupControls from "~/components/widget/utils/widget-group-controls"
+
+// Update imports at the top to include the new types
+import { api } from "~/utils/api" // Adjust this import based on your tRPC setup
+import type {
+    CreatorWithPageAsset,
+    GroupResizeState,
+    SavedLayout,
+    WidgetDefinition,
+    WidgetItem,
+    WidgetSettings,
+} from "~/types/artist/dashboard"
 import { cn } from "~/lib/utils"
-import { api } from "~/utils/api"
-import ArtistProfileSkeleton from "~/components/creator/artist-profile-loading"
+import { useRouter } from "next/router"
 import NotFound from "~/pages/404"
-import CustomAvatar from "~/components/common/custom-avatar"
-import { useSession } from "next-auth/react"
-import PostCard from "~/components/post/post-card"
-import toast from "react-hot-toast"
-import { Skeleton } from "~/components/shadcn/ui/skeleton"
-import { MoreAssetsSkeleton } from "~/components/common/grid-loading"
-import MarketAssetComponent from "~/components/common/market-asset"
-import { getAssetBalanceFromBalance } from "~/lib/stellar/marketplace/test/acc"
-import { clientsign } from "package/connect_wallet"
-import { clientSelect } from "~/lib/stellar/fan/utils"
+import Loading from "~/components/common/loading"
+// Update the DEFAULT_LAYOUT to include default settings for each widget
+const DEFAULT_LAYOUT: WidgetItem[] = [
+    {
+        id: "cover-profile",
+        size: "large",
+        order: 1,
+        settings: createDefaultWidgetSettings("cover-profile"),
+    },
+    {
+        id: "membership-tiers",
+        size: "large",
+        order: 4,
+        settings: createDefaultWidgetSettings("membership-tiers"),
+    },
+    {
+        id: "stats",
+        size: "large",
+        order: 5,
+        settings: createDefaultWidgetSettings("stats"),
+    },
+    {
+        id: "nft-gallery",
+        size: "large",
+        order: 9,
+        settings: createDefaultWidgetSettings("nft-gallery"),
+    },
+    {
+        id: "recent-posts",
+        size: "large",
+        order: 10,
+        settings: createDefaultWidgetSettings("recent-posts"),
+    },
+]
 
-export default function ArtistProfile() {
+// Available components for adding to dashboard
+const AVAILABLE_WIDGETS: WidgetDefinition[] = [
+    {
+        id: "cover-profile",
+        title: "Cover & Profile",
+        description: "Display cover photo and profile information",
+        component: CoverProfileWidget,
+        icon: "user",
+        special: true,
+    },
+    {
+        id: "profile",
+        title: "Profile Card",
+        description: "Display artist profile information",
+        component: ProfileWidget,
+        icon: "user",
+    },
+    {
+        id: "stats",
+        title: "Statistics",
+        description: "Show key performance metrics",
+        component: StatsWidget,
+        icon: "stats",
+    },
+    {
+        id: "recent-posts",
+        title: "Recent Posts",
+        description: "Show your latest posts",
+        component: RecentPostsWidget,
+        icon: "posts",
+    },
+    {
+        id: "nft-gallery",
+        title: "NFT Gallery",
+        description: "Display your NFT collection",
+        component: NFTGalleryWidget,
+        icon: "gallery",
+    },
+    {
+        id: "chart",
+        title: "Analytics Chart",
+        description: "Visualize your data with charts",
+        component: ChartWidget,
+        icon: "chart",
+    },
+    {
+        id: "calendar",
+        title: "Calendar",
+        description: "Schedule and view upcoming events",
+        component: CalendarWidget,
+        icon: "calendar",
+    },
+    {
+        id: "todo",
+        title: "To-Do List",
+        description: "Manage your tasks",
+        component: TodoWidget,
+        icon: "todo",
+    },
+    {
+        id: "custom-html",
+        title: "Custom HTML",
+        description: "Add custom HTML content",
+        component: CustomHTMLWidget,
+        icon: "code",
+    },
+    {
+        id: "music-player",
+        title: "Music Player",
+        description: "Play your music with controls and playlist",
+        component: MusicPlayerWidget,
+        icon: "music",
+    },
+    {
+        id: "tour-dates",
+        title: "Tour Dates",
+        description: "Display upcoming shows and tour information",
+        component: TourDatesWidget,
+        icon: "calendar",
+    },
+    {
+        id: "membership-tiers",
+        title: "Membership Tiers",
+        description: "Showcase membership options for fans",
+        component: MembershipTiersWidget,
+        icon: "users",
+    },
+    {
+        id: "merchandise",
+        title: "Merchandise",
+        description: "Display and sell merchandise to fans",
+        component: MerchandiseWidget,
+        icon: "shopping",
+    },
+    {
+        id: "band-members",
+        title: "Band Members",
+        description: "Introduce the band members to your fans",
+        component: BandMembersWidget,
+        icon: "users",
+    },
+    {
+        id: "video-gallery",
+        title: "Video Gallery",
+        description: "Showcase your music videos and performances",
+        component: VideoGalleryWidget,
+        icon: "video",
+    },
+    {
+        id: "newsletter",
+        title: "Newsletter Signup",
+        description: "Collect email subscriptions from fans",
+        component: NewsletterWidget,
+        icon: "mail",
+    },
+    {
+        id: "lyrics",
+        title: "Lyrics",
+        description: "Share lyrics to your songs",
+        component: LyricsWidget,
+        icon: "file-text",
+    },
+    {
+        id: "fan-community",
+        title: "Fan Community",
+        description: "Engage with your fan community",
+        component: FanCommunityWidget,
+        icon: "users",
+    },
+]
 
-    // ihave /organization/1
-    // iwant to get the id
-    // so i use useParams() to get the id
-    const params = useParams()
-    const id = Array.isArray(params?.id) ? params.id[0] : params?.id
+// Map height keys to pixel values
+const HEIGHT_MAP: Record<WidgetHeight, number> = {
+    SS: 100,
+    S: 200,
+    M: 300,
+    L: 450,
+    XL: 600,
+    "2XL": 800,
+    "3XL": 1000,
+    "4XL": 1200,
+}
+
+export default function SingleCreatorViewPage() {
+    // State variables
     const router = useRouter()
-    const session = useSession()
-    const [activeTab, setActiveTab] = useState("posts")
-    const contentRef = useRef<HTMLDivElement>(null)
-    const [isScrolled, setIsScrolled] = useState(false)
-    const [scrollProgress, setScrollProgress] = useState(0)
-    const [showShareOptions, setShowShareOptions] = useState(false)
-    const [singLoading, setSingLoading] = useState(false)
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-    const [expandedPackage, setExpandedPackage] = useState<number | null>(null)
-    // API calls
-    const creator = api.fan.creator.getCreator.useQuery({ id: id ?? "" })
-    const subscriptionPackages = api.fan.creator.getCreatorPackages.useQuery({ id: id ?? "" })
-    const isFollowing = api.fan.member.isFollower.useQuery({ creatorId: id ?? "" })
-    const accBalances = api.wallate.acc.getUserPubAssetBallances.useQuery(undefined, {
-        enabled: !!session.data?.user?.id,
+    const id = router.query.id as string
+    const [widgets, setWidgets] = useState<WidgetItem[]>(DEFAULT_LAYOUT)
+    const [editMode, setEditMode] = useState(false)
+    const [layoutName, setLayoutName] = useState("My Dashboard")
+    const [layoutId, setLayoutId] = useState("")
+    const [userView, setUserView] = useState(true)
+    const [newLayoutName, setNewLayoutName] = useState("")
+    const [makePublic, setMakePublic] = useState(false)
+    const [draggedWidget, setDraggedWidget] = useState<string | null>(null)
+    const [dragOverWidget, setDragOverWidget] = useState<string | null>(null)
+    const [selectedWidgets, setSelectedWidgets] = useState<string[]>([])
+    const [isLayoutSaved, setIsLayoutSaved] = useState(false)
+
+    const [selectionMode, setSelectionMode] = useState(false)
+    const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([])
+    const [isLoading, setIsLoading] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
+
+    const [resizingWidget, setResizingWidget] = useState<string | null>(null)
+    const [resizeStartX, setResizeStartX] = useState(0)
+    const [resizeStartY, setResizeStartY] = useState(0)
+
+    const widgetRefs = useRef<Record<string, HTMLDivElement | null>>({})
+    const groupRefs = useRef<Record<string, HTMLDivElement | null>>({})
+    const dashboardContainerRef = useRef<HTMLDivElement>(null)
+
+    // Group resizing state
+    const [resizingGroup, setResizingGroup] = useState<GroupResizeState | null>(null)
+
+    // Add a new state for profile editing mode
+    const [isProfileEditMode, setIsProfileEditMode] = useState(false)
+
+    // Add a state to track if user's layout is loaded
+    const [userLayoutLoaded, setUserLayoutLoaded] = useState(false)
+
+    // Add a window resize listener to handle responsive heights
+    // Add this near the top of the component with other state variables
+    const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200)
+
+    // Add tRPC hooks
+    const utils = api.useUtils()
+    const creator = api.fan.creator.getCreator.useQuery({
+        id: id,
+    }, {
+        enabled: !!id,
+    })
+    const dashboardsQuery = api.fan.dashboard.getAllFromPubkey.useQuery({
+        id: id,
+    }
+        , {
+            onSuccess: (data) => {
+                if (data && data.length > 0 && !userLayoutLoaded) {
+                    // Find user's last saved layout
+                    const userLayouts = data.filter((d) => !d.isDefault)
+                    const defaultLayout = data.find((d) => d.isDefault)
+
+                    // Transform the data to match the expected format
+                    const transformLayout = (layout: (typeof data)[0] | undefined) => {
+                        if (!layout) return undefined
+
+                        return {
+                            id: layout.id,
+                            name: layout.name,
+                            isDefault: layout.isDefault,
+                            isPublic: layout.isPublic,
+                            widgets: layout.widgets.map((widget) => ({
+                                widgetId: widget.widgetId,
+                                size: widget.size as "small" | "medium" | "large",
+                                order: widget.order,
+                                pinned: widget.pinned,
+                                groupId: widget.groupId,
+                                customWidth: widget.customWidth ?? undefined,
+                                settings: widget.settings as Record<string, unknown> | null | undefined,
+                            })),
+                        }
+                    }
+
+                    // If user has layouts, load the most recent one
+                    if (userLayouts.length > 0) {
+                        // Sort by updated date descending
+                        const sortedLayouts = [...userLayouts].sort(
+                            (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+                        )
+
+                        const transformedLayout = transformLayout(sortedLayouts[0])
+                        if (transformedLayout) {
+                            loadUserLayout(transformedLayout)
+                            setUserLayoutLoaded(true)
+                        }
+                    }
+                    // If no user layouts but there's a default layout, load that
+                    else if (defaultLayout && !userLayoutLoaded) {
+                        const transformedDefaultLayout = transformLayout(defaultLayout)
+                        if (transformedDefaultLayout) {
+                            loadUserLayout(transformedDefaultLayout)
+                            setUserLayoutLoaded(true)
+                        }
+                    }
+
+                    // Transform all layouts for the list
+                    const transformedLayouts = data.map((dashboard) => ({
+                        id: dashboard.id,
+                        name: dashboard.name,
+                        isDefault: dashboard.isDefault,
+                        isPublic: dashboard.isPublic,
+                        widgets: dashboard.widgets.map((widget) => ({
+                            id: widget.widgetId,
+                            size: widget.size as "small" | "medium" | "large",
+                            order: widget.order,
+                            pinned: widget.pinned,
+                            groupId: widget.groupId ?? undefined,
+                            customWidth: widget.customWidth ?? undefined,
+                            settings: widget.settings as WidgetSettings | undefined,
+                        })),
+                    }))
+
+                    setSavedLayouts(transformedLayouts)
+                }
+            },
+        })
+
+    // Use mutations for all operations that modify data
+    const dashboardByIdMutation = api.fan.dashboard.getById.useMutation()
+    const saveDashboardMutation = api.fan.dashboard.save.useMutation({
+        onSuccess: () => {
+            utils.fan.dashboard.getAll.invalidate()
+        },
+    })
+    const deleteDashboardMutation = api.fan.dashboard.delete.useMutation({
+        onSuccess: () => {
+            utils.fan.dashboard.getAll.invalidate()
+        },
     })
 
-    const allCreatedPost = api.fan.post.getPosts.useInfiniteQuery(
-        {
-            pubkey: id ?? "",
-            limit: 10,
-        },
-        {
-            getNextPageParam: (lastPage) => lastPage.nextCursor,
-            enabled: !!creator.data,
-        },
-    )
+    // Update the loadUserLayout function to ensure default sizes are applied when settings are missing
+    const loadUserLayout = (
+        dashboard:
+            | {
+                id: string
+                name: string
+                widgets: {
+                    widgetId: string
+                    size: "small" | "medium" | "large"
+                    order: number
+                    pinned: boolean
+                    groupId?: string | null
+                    customWidth?: number | null
+                    settings?: Record<string, unknown> | null
+                }[]
+                isDefault: boolean
+                isPublic: boolean
+            }
+            | undefined,
+    ) => {
+        if (!dashboard) return // Early return if dashboard is undefined
 
-    const creatorNFT = api.marketplace.market.getCreatorNftsByCreatorID.useInfiniteQuery(
-        { limit: 10, creatorId: id ?? "" },
-        {
-            getNextPageParam: (lastPage) => lastPage.nextCursor,
-        },
-    )
-    // Toggle sidebar on mobile
-    const toggleSidebar = () => {
-        setIsSidebarOpen(!isSidebarOpen)
+        try {
+            console.log("Loading user layout:", dashboard.name)
+            console.log(
+                "Widget settings from database:",
+                dashboard.widgets.map((w) => ({
+                    id: w.widgetId,
+                    settings: w.settings,
+                    settingsType: w.settings ? typeof w.settings : "undefined",
+                })),
+            )
+
+            // Transform the data from Prisma format to our app format
+            const widgetsData: WidgetItem[] = dashboard.widgets.map((widget) => {
+                // Ensure settings is properly handled
+                let processedSettings: WidgetSettings | undefined = undefined
+
+                if (widget.settings) {
+                    // If settings is a string (JSON string), parse it
+                    if (typeof widget.settings === "string") {
+                        try {
+                            processedSettings = JSON.parse(widget.settings) as WidgetSettings
+                        } catch (e) {
+                            console.error(`Error parsing settings for widget ${widget.widgetId}:`, e)
+                            processedSettings = createDefaultWidgetSettings(widget.widgetId)
+                        }
+                    }
+                    // If settings is already an object, use it directly
+                    else if (typeof widget.settings === "object") {
+                        processedSettings = widget.settings as WidgetSettings
+                    }
+                } else {
+                    // If no settings found, create default settings for this widget type
+                    processedSettings = createDefaultWidgetSettings(widget.widgetId)
+                }
+
+                if (!processedSettings?.height) {
+                    processedSettings = processedSettings ?? {}
+                    processedSettings.height = "L" as WidgetHeight
+                }
+
+                if (!processedSettings?.width) {
+                    processedSettings = processedSettings ?? {}
+                    processedSettings.width = "L" as WidgetWidth
+                }
+
+                console.log(`Processed settings for widget ${widget.widgetId}:`, processedSettings)
+
+                return {
+                    id: widget.widgetId,
+                    size: widget.size,
+                    order: widget.order,
+                    pinned: widget.pinned,
+                    groupId: widget.groupId ?? undefined,
+                    customWidth: widget.customWidth ?? undefined,
+                    settings: processedSettings,
+                }
+            })
+
+            console.log("Transformed widgets data:", widgetsData)
+
+            setWidgets(widgetsData)
+            setLayoutName(dashboard.name)
+            setLayoutId(dashboard.id)
+            setIsLayoutSaved(true)
+        } catch (error) {
+            console.error("Error loading user layout:", error)
+            // Silently fail and use default layout
+        }
     }
 
-    const follow = api.fan.member.followCreator.useMutation({
-        onSuccess: () => toast.success("Followed"),
-    });
-    const followMutation = api.fan.trx.followCreatorTRX.useMutation({
-        onSuccess: async (xdr) => {
-            if (xdr) {
-                if (xdr === true) {
-                    toast.success("User already has trust in page asset");
-                    follow.mutate({ creatorId: id ?? "" });
-                } else {
-                    setSingLoading(true);
-                    try {
-                        const res = await clientsign({
-                            presignedxdr: xdr,
-                            pubkey: session.data?.user.id,
-                            walletType: session.data?.user.walletType,
-                            test: clientSelect(),
-                        });
+    // Replace loadLayout with tRPC version
+    const loadLayout = async (id: string) => {
+        try {
+            setIsLoading(true)
 
-                        if (res) {
-                            follow.mutate({ creatorId: id ?? "" });
-                        } else toast.error("Transaction failed while signing.");
-                    } catch (e) {
-                        toast.error("Transaction failed while signing.");
-                        console.error(e);
-                    } finally {
-                        setSingLoading(false);
+            // Use dashboard query
+            const result = await dashboardByIdMutation.mutateAsync({ id })
+
+            if (result) {
+                // Debug the raw data from the database
+                console.log("Raw dashboard data from database:", result)
+                console.log(
+                    "Raw widget settings from database:",
+                    result.widgets.map((w) => ({ id: w.widgetId, settings: w.settings })),
+                )
+
+                const dashboard = result
+
+                // Transform the data from Prisma format to our app format
+                const widgetsData: WidgetItem[] = dashboard.widgets.map((widget) => {
+                    console.log(`Loading widget ${widget.widgetId} with settings:`, widget.settings)
+
+                    // Process settings, ensuring defaults are applied when missing
+                    let processedSettings: WidgetSettings | undefined = undefined
+
+                    if (widget.settings) {
+                        processedSettings = widget.settings as WidgetSettings
+                    } else {
+                        processedSettings = createDefaultWidgetSettings(widget.widgetId)
                     }
-                }
-            } else {
-                toast.error("Can't get xdr");
-            }
-        },
-        onError: (e) => toast.error(e.message),
-    });
-    const unfollowMutation = api.fan.member.unFollowCreator.useMutation({
-        onSuccess: () => {
-            toast.success(`You have unfollowed ${creator.data?.name}`)
-            isFollowing.refetch()
-            creator.refetch()
-        },
-        onError: (error) => {
-            toast.error(`Error unfollowing creator: ${error.message}`)
-        },
-    })
 
-    // Handle follow/unfollow
-    const handleFollowToggle = () => {
-        if (!session.data) {
-            toast.error("Please sign in to follow creators")
-            router.push("/login")
+                    // Ensure height and width are set to defaults if missing
+                    if (!processedSettings.height) {
+                        processedSettings.height = "L" as WidgetHeight
+                    }
+                    if (!processedSettings.width) {
+                        processedSettings.width = "L" as WidgetWidth
+                    }
+
+                    return {
+                        id: widget.widgetId,
+                        size: widget.size as "small" | "medium" | "large",
+                        order: widget.order,
+                        pinned: widget.pinned,
+                        groupId: widget.groupId ?? undefined,
+                        customWidth: widget.customWidth ?? undefined,
+                        settings: processedSettings,
+                    }
+                })
+
+                // Force a re-render of the entire dashboard to ensure settings are applied
+                setTimeout(() => {
+                    console.log("Forcing re-render of dashboard with widgets:", widgetsData)
+                    console.log(
+                        "Widget settings before re-render:",
+                        widgetsData.map((w) => ({ id: w.id, settings: w.settings })),
+                    )
+                    setWidgets([...widgetsData])
+                }, 50)
+
+                // Update current layout instead of creating a new one
+                setWidgets(widgetsData)
+                setLayoutName(dashboard.name)
+                setLayoutId(dashboard.id)
+                setIsLayoutSaved(true)
+
+
+                // After data is loaded, apply custom widths to DOM elements in the next render cycle
+                setTimeout(() => {
+                    applyGroupWidgetSizes(widgetsData)
+                }, 100)
+
+                toast({
+                    title: "Layout loaded",
+                    description: `Dashboard layout "${dashboard.name}" has been loaded`,
+                })
+            }
+        } catch (error) {
+            console.error("Error loading layout:", error)
+            toast({
+                title: "Error",
+                description: "Failed to load layout. Please try again.",
+                variant: "destructive",
+            })
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    // Replace deleteLayout with tRPC version
+    const deleteLayout = async (id: string) => {
+        try {
+            await deleteDashboardMutation.mutateAsync({ id })
+
+            // Remove from local state
+            setSavedLayouts(savedLayouts.filter((layout) => layout.id !== id))
+
+            // If we deleted the current layout, reset to default
+            if (id === layoutId) {
+                setWidgets(DEFAULT_LAYOUT)
+                setLayoutName("My Dashboard")
+                setLayoutId("")
+                setIsLayoutSaved(false)
+            }
+
+            toast({
+                title: "Layout deleted",
+                description: "The dashboard layout has been deleted",
+            })
+        } catch (error) {
+            console.error("Error deleting layout:", error)
+            toast({
+                title: "Error",
+                description: "Failed to delete layout",
+                variant: "destructive",
+            })
+        }
+    }
+
+    // Replace saveLayout with tRPC version
+    const handleSaveLayout = async () => {
+        if (!newLayoutName.trim()) {
+            toast({
+                title: "Error",
+                description: "Please enter a name for your layout",
+                variant: "destructive",
+            })
             return
         }
 
-        if (isFollowing.data) {
-            unfollowMutation.mutate({ creatorId: id ?? "" })
-        } else {
-            followMutation.mutate({ creatorId: id ?? "" })
-        }
-    }
-    const togglePackageExpansion = (id: number) => {
-        if (expandedPackage === id) {
-            setExpandedPackage(null)
-        } else {
-            setExpandedPackage(id)
-        }
-    }
-    useEffect(() => {
-        const handleScroll = () => {
-            console.log("calling")
-            if (contentRef.current) {
-                const scrollPosition = contentRef.current.scrollTop
-                const scrollThreshold = 100
+        try {
+            setIsSaving(true)
 
-                if (scrollPosition > scrollThreshold) {
-                    setIsScrolled(true)
-                    setScrollProgress(Math.min(1, (scrollPosition - scrollThreshold) / 50))
-                } else {
-                    setIsScrolled(false)
-                    setScrollProgress(0)
+            // Log all widget settings before saving
+            console.log("All widget settings before saving:",
+                widgets.map(w => ({
+                    id: w.id,
+                    settings: w.settings
+                }))
+            );
+
+            // Transform the widgets to ensure they match the expected type
+            const transformedWidgets = widgets.map((widget) => {
+                // Create a clean copy of the settings object
+                const settings = widget.settings ? { ...widget.settings } : {};
+
+                // For cover-profile widget, ensure coverHeight is explicitly included
+                if (widget.id === "cover-profile" && widget.settings) {
+                    console.log("Cover-profile widget settings before transform:", widget.settings);
+                    settings.coverHeight = widget.settings.coverHeight ?? 180;
+                    console.log("Cover-profile widget settings after transform:", settings);
+                }
+
+                return {
+                    id: widget.id,
+                    size: widget.size,
+                    order: widget.order,
+                    pinned: widget.pinned ?? false,
+                    groupId: widget.groupId,
+                    customWidth: widget.customWidth,
+                    settings: settings, // Use the direct object reference
+                };
+            });
+
+            // Log the transformed widgets
+            console.log("Transformed widgets for saving:",
+                transformedWidgets.map(w => ({
+                    id: w.id,
+                    settings: w.settings
+                }))
+            );
+
+            const dashboardData = {
+                id: layoutId ?? undefined,
+                name: newLayoutName,
+                widgets: transformedWidgets,
+                isDefault: makePublic,
+                isPublic: makePublic,
+            }
+
+            const result = await saveDashboardMutation.mutateAsync(dashboardData)
+
+            // Update local state
+            setLayoutName(newLayoutName)
+            setLayoutId(result.id)
+
+            setNewLayoutName("")
+            setMakePublic(false)
+            setIsLayoutSaved(true)
+            setEditMode(false)
+            setSelectionMode(false)
+            setSelectedWidgets([])
+
+            // Refresh the list of saved layouts
+            utils.fan.dashboard.getAll.invalidate()
+
+            toast({
+                title: "Layout saved",
+                description: `Dashboard layout "${newLayoutName}" has been saved${makePublic ? " and set as default for all users" : ""}`,
+            })
+        } catch (error) {
+            console.error("Error saving layout:", error)
+            toast({
+                title: "Error",
+                description: "Failed to save layout",
+                variant: "destructive",
+            })
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+    // Add a function to toggle profile edit mode
+    const toggleProfileEditMode = () => {
+        setIsProfileEditMode(!isProfileEditMode)
+        // If turning on profile edit mode, turn off dashboard edit mode
+        if (!isProfileEditMode && editMode) {
+            setEditMode(false)
+            setSelectionMode(false)
+            setSelectedWidgets([])
+        }
+    }
+
+    // Handle widget resize
+    const handleWidgetResize = (widgetId: string, deltaX: number, deltaY: number) => {
+        const widget = widgets.find((w) => w.id === widgetId)
+        if (!widget) return
+
+        // For widgets in a group, adjust proportions
+        if (widget.groupId) {
+            const groupWidgets = widgets.filter((w) => w.groupId === widget.groupId)
+            const groupContainer = document.querySelector(`[data-group-id="${widget.groupId}"]`)
+
+            if (groupContainer) {
+                const containerWidth = groupContainer.clientWidth
+                const widgetEl = widgetRefs.current[widgetId]
+
+                if (widgetEl) {
+                    // Calculate new width as percentage of container
+                    const currentWidth = widgetEl.offsetWidth
+                    const newWidth = Math.max(100, currentWidth + deltaX)
+                    const widthPercent = (newWidth / containerWidth) * 100
+
+                    // Update DOM for smooth resizing
+                    widgetEl.style.width = `${widthPercent}%`
+
+                    // Adjust other widgets in the group
+                    const totalOtherWidgets = groupWidgets.length - 1
+                    if (totalOtherWidgets > 0) {
+                        const otherWidgetsCurrentWidth = 100 - widthPercent
+                        const widthPerOtherWidget = otherWidgetsCurrentWidth / totalOtherWidgets
+
+                        groupWidgets.forEach((w) => {
+                            if (w.id !== widgetId) {
+                                const el = document.querySelector(`[data-widget-id="${w.id}"]`)
+                                if (el) {
+                                    ; (el as HTMLElement).style.width = `${widthPerOtherWidget}%`
+                                }
+                            }
+                        })
+                    }
                 }
             }
         }
+        // For individual widgets, adjust height and width
+        else {
+            const widgetEl = widgetRefs.current[widgetId]
+            if (widgetEl) {
+                // Get current height and width from settings or default
+                const currentHeight = (widget.settings?.height as WidgetHeight) ?? "M"
+                const currentWidth = (widget.settings?.width as WidgetWidth) ?? "M"
 
-        // Add event listener to the content div instead of window
-        const currentContentRef = contentRef.current
-        if (currentContentRef) {
-            currentContentRef.addEventListener("scroll", handleScroll)
+                // Calculate new height
+                const currentHeightPx = widgetEl.offsetHeight
+                const newHeight = Math.max(100, currentHeightPx + deltaY)
+
+                // Find closest height preset
+                let newHeightKey: WidgetHeight = "M"
+                if (newHeight < 150) newHeightKey = "SS"
+                else if (newHeight < 250) newHeightKey = "S"
+                else if (newHeight < 350) newHeightKey = "M"
+                else if (newHeight < 500) newHeightKey = "L"
+                else if (newHeight < 700) newHeightKey = "XL"
+                else if (newHeight < 900) newHeightKey = "2XL"
+                else if (newHeight < 1100) newHeightKey = "3XL"
+                else newHeightKey = "4XL"
+
+                // Calculate new width if deltaX is significant
+                let newWidthKey = currentWidth
+                if (Math.abs(deltaX) > 50) {
+                    const containerWidth = widgetEl.parentElement?.parentElement?.offsetWidth ?? 1200
+                    const currentWidthPx = widgetEl.offsetWidth
+                    const newWidth = Math.max(200, currentWidthPx + deltaX)
+                    const widthRatio = newWidth / containerWidth
+
+                    if (widthRatio <= 0.2) newWidthKey = "SS"
+                    else if (widthRatio <= 0.3) newWidthKey = "S"
+                    else if (widthRatio <= 0.4) newWidthKey = "M"
+                    else if (widthRatio <= 0.55) newWidthKey = "L"
+                    else if (widthRatio <= 0.7) newWidthKey = "XL"
+                    else if (widthRatio <= 0.8) newWidthKey = "2XL"
+                    else if (widthRatio <= 0.9) newWidthKey = "3XL"
+                    else newWidthKey = "4XL"
+                }
+
+                // Update widget element for smooth resizing
+                widgetEl.style.height = `${newHeight}px`
+
+                // Store the new height and width settings if they changed
+                if (currentHeight !== newHeightKey || currentWidth !== newWidthKey) {
+                    setWidgets(
+                        widgets.map((w) => {
+                            if (w.id === widgetId) {
+                                return {
+                                    ...w,
+                                    settings: {
+                                        ...w.settings,
+                                        height: newHeightKey,
+                                        width: newWidthKey,
+                                    },
+                                }
+                            }
+                            return w
+                        }),
+                    )
+                }
+            }
+        }
+    }
+
+
+
+
+
+    useEffect(() => {
+        // Load active layout from localStorage
+        const loadActiveLayout = () => {
+            try {
+                const activeLayoutData = localStorage.getItem("active-dashboard-layout")
+                if (activeLayoutData) {
+                    const { widgets, name } = JSON.parse(activeLayoutData) as {
+                        widgets: WidgetItem[]
+                        name: string
+                    }
+                    setWidgets(widgets)
+                    setLayoutName(name)
+                    setIsLayoutSaved(true)
+                }
+            } catch (error) {
+                console.error("Error loading active layout:", error)
+            }
         }
 
-        // Clean up
+        loadActiveLayout()
+    }, [])
+
+    // Add a useEffect to log the widgets state whenever it changes
+    useEffect(() => {
+        console.log("Widgets state updated:", widgets)
+        console.log(
+            "Widget settings in state:",
+            widgets.map((w) => ({ id: w.id, settings: w.settings })),
+        )
+    }, [widgets])
+
+    // Add this useEffect to handle window resizing
+    useEffect(() => {
+        const handleResize = () => {
+            setWindowWidth(window.innerWidth)
+        }
+
+        window.addEventListener("resize", handleResize)
         return () => {
-            if (currentContentRef) {
-                currentContentRef.removeEventListener("scroll", handleScroll)
-            }
+            window.removeEventListener("resize", handleResize)
         }
-    }, [params.id, contentRef.current])
-    // Handle share
-    const handleShare = () => {
-        if (navigator.share) {
-            navigator
-                .share({
-                    title: `${creator.data?.name} | Artist Profile`,
-                    url: window.location.href,
-                })
-                .catch((err) => {
-                    console.error("Error sharing:", err)
-                })
-        } else {
-            setShowShareOptions(!showShareOptions)
-            if (!showShareOptions) {
-                navigator.clipboard.writeText(window.location.href)
-                toast.success("Profile link copied to clipboard!")
-            }
+    }, [])
+
+    // Update the addWidget function to ensure default settings are applied
+    const addWidget = (widgetId: string) => {
+        if (widgets.some((w) => w.id === widgetId)) {
+            toast({
+                title: "Widget already added",
+                description: "This widget is already on your dashboard",
+            })
+            return
         }
+
+        const widgetToAdd = AVAILABLE_WIDGETS.find((w) => w.id === widgetId)
+        if (!widgetToAdd) return
+
+        // Create default settings for this widget type
+        const defaultSettings = createDefaultWidgetSettings(widgetId)
+
+        // Add the widget to the end of the list
+        const newWidget: WidgetItem = {
+            id: widgetId,
+            size: "large", // Changed from "medium" to "large" for consistency
+            order: widgets.length + 1,
+            pinned: widgetId === "cover-profile", // Pin the cover-profile widget
+            settings: defaultSettings,
+        }
+
+        setWidgets([...widgets, newWidget])
+
+        toast({
+            title: "Widget added",
+            description: `${widgetToAdd.title} has been added to your dashboard`,
+        })
     }
 
-    if (creator.isLoading) {
-        return <ArtistProfileSkeleton />
+
+
+
+    // Add a helper function to apply group widget sizes
+    const applyGroupWidgetSizes = (widgetsToApply = widgets) => {
+        // Get all unique group IDs
+        const groupIds = [...new Set(widgetsToApply.filter((w) => w.groupId).map((w) => w.groupId))]
+
+        // For each group, apply the custom widths
+        groupIds.forEach((groupId) => {
+            if (!groupId) return
+
+            const groupWidgets = widgetsToApply.filter((w) => w.groupId === groupId)
+
+            // Don't apply custom widths if we're in column layout mode
+            if (shouldUseColumnLayout(windowWidth)) {
+                groupWidgets.forEach((widget) => {
+                    const el = document.querySelector(`[data-widget-id="${widget.id}"]`)
+                    if (el) {
+                        ; (el as HTMLElement).style.width = "100%"
+                    }
+                })
+                return
+            }
+
+            groupWidgets.forEach((widget) => {
+                if (widget.customWidth) {
+                    const el = document.querySelector(`[data-widget-id="${widget.id}"]`)
+                    if (el) {
+                        ; (el as HTMLElement).style.width = `${widget.customWidth}%`
+                    }
+                }
+            })
+        })
     }
 
-    if (!creator.data) {
-        return <NotFound />
+    // Apply custom widths whenever widgets change
+    useEffect(() => {
+        // Apply custom widths for group widgets after a short delay to ensure DOM is ready
+        const timer = setTimeout(() => {
+            applyGroupWidgetSizes()
+        }, 100)
+
+        return () => clearTimeout(timer)
+    }, [widgets])
+
+    // Render widget content
+    const renderWidgetContent = (widgetId: string) => {
+        const widgetDefinition = AVAILABLE_WIDGETS.find((w) => w.id === widgetId)
+        if (!widgetDefinition) return null
+
+        const WidgetComponent = widgetDefinition.component
+        const widget = widgets.find((w) => w.id === widgetId)
+
+        // Debug the widget and its settings
+        console.log(`Rendering widget ${widgetId}:`, widget)
+
+        const widgetSettings = widget?.settings ?? {}
+        console.log(`Widget settings for ${widgetId}:`, widgetSettings)
+
+        // Pass showDefaultValues prop when in edit mode
+        const commonProps = {
+            editMode,
+            profileEditMode: isProfileEditMode,
+            userView,
+            widgetId,
+            settings: widgetSettings,
+            creatorData: creator.data as CreatorWithPageAsset,
+            setProfileEditMode: toggleProfileEditMode,
+            showDefaultValues: editMode, // Add this prop to show default values in edit mode
+        }
+
+        // Find the renderWidgetContent function and update the CoverProfileWidget section
+        if (widgetId === "cover-profile") {
+            const settingsKey = JSON.stringify(widgetSettings ?? {});
+            console.log(`CoverProfileWidget settings key: ${settingsKey}`);
+            console.log("Current cover-profile widget settings:", widgetSettings);
+
+            return (
+                <WidgetComponent
+                    key={`cover-profile-${settingsKey}`}
+                    {...commonProps}
+                    onSettingsChange={(newSettings) => {
+                        // Prevent unnecessary updates by comparing with current settings
+                        const currentSettings = widget?.settings ?? {};
+
+                        console.log("Cover-profile settings change requested:", newSettings);
+                        console.log("Current cover-profile settings:", currentSettings);
+
+                        // Ensure we preserve height and width settings
+                        const updatedSettings = {
+                            ...currentSettings,
+                            ...newSettings,
+                            height: newSettings.height ?? currentSettings.height ?? "L",
+                            width: newSettings.width ?? currentSettings.width ?? "L",
+                            // Explicitly include coverHeight to ensure it's saved
+                            coverHeight: newSettings.coverHeight ?? currentSettings.coverHeight ?? 180,
+                        };
+
+                        console.log("Final updated settings to be saved:", updatedSettings);
+
+                        setWidgets(
+                            widgets.map((w) => {
+                                if (w.id === widgetId) {
+                                    console.log(`Updating widget ${widgetId} with settings:`, updatedSettings);
+                                    return { ...w, settings: updatedSettings };
+                                }
+                                return w;
+                            })
+                        );
+                    }}
+                />
+            );
+        }
+
+        // Add a key prop to force re-render when settings change
+        return (
+            <WidgetComponent
+                key={`${widgetId}-${JSON.stringify(widgetSettings)}`}
+                {...commonProps}
+                onSettingsChange={(newSettings) => {
+                    // Prevent unnecessary updates by comparing with current settings
+                    const currentSettings = widget?.settings ?? {}
+
+                    console.log("Settings change requested:", newSettings)
+                    console.log("Current settings:", currentSettings)
+
+                    setWidgets(
+                        widgets.map((w) => {
+                            if (w.id === widgetId) {
+                                return { ...w, settings: { ...currentSettings, ...newSettings } }
+                            }
+                            return w
+                        }),
+                    )
+                }}
+            />
+        )
     }
+
+
+
+    // Fix for the referee pattern to avoid creating functions in render
+    const setWidgetRef = (el: HTMLDivElement | null, id: string): void => {
+        widgetRefs.current[id] = el
+    }
+
+    const setGroupRef = (el: HTMLDivElement | null, id: string): void => {
+        groupRefs.current[id] = el
+    }
+
+    // Group widgets by row for full-width handling
+    const getWidgetRows = () => {
+        const sortedWidgets = [...widgets].sort((a, b) => a.order - b.order)
+
+        // First, handle the pinned widgets (they always go at the top)
+        const pinnedWidgets = sortedWidgets.filter((w) => w.pinned)
+        const unpinnedWidgets = sortedWidgets.filter((w) => !w.pinned)
+
+        // Group widgets by their groupId
+        const groupedWidgets: Record<string, WidgetItem[]> = {}
+
+        unpinnedWidgets.forEach((widget) => {
+            if (widget.groupId) {
+                if (!groupedWidgets[widget.groupId]) {
+                    groupedWidgets[widget.groupId] = []
+                }
+                groupedWidgets[widget.groupId]?.push(widget)
+            }
+        })
+
+        // Process unpinned widgets to determine rows
+        let currentRow: (WidgetItem | WidgetItem[])[] = []
+        const rows: (WidgetItem | WidgetItem[])[][] = []
+
+        // Add pinned widgets as their own rows
+        pinnedWidgets.forEach((widget) => {
+            rows.push([widget])
+        })
+
+        // Process remaining widgets
+        let currentRowWidth = 0
+        const maxRowWidth = 12 // 12-column grid
+
+        unpinnedWidgets.forEach((widget) => {
+            // Skip widgets that are part of a group (we'll handle them separately)
+            if (widget.groupId && groupedWidgets[widget.groupId]) {
+                // Only process the first widget of each group to avoid duplicates
+                if (groupedWidgets[widget.groupId]?.[0]?.id !== widget.id) {
+                    return
+                }
+
+                // Calculate the total width of the group
+                const groupWidgets = groupedWidgets[widget.groupId]
+                const groupWidth = 12 // Groups always take full width
+
+                // If this group would exceed row width, start a new row
+                if (currentRowWidth + groupWidth > maxRowWidth && currentRow.length > 0) {
+                    rows.push([...currentRow])
+                    currentRow = []
+                    currentRowWidth = 0
+                }
+
+                // Add the group to the current row
+                currentRow.push(groupWidgets ?? [])
+                currentRowWidth += groupWidth
+
+                // Remove these widgets from groupedWidgets to mark them as processed
+                delete groupedWidgets[widget.groupId]
+            } else if (!widget.groupId) {
+                // Handle individual widgets
+                const widthKey = (widget.settings?.width as WidgetWidth) ?? "L"
+                // Get grid span directly from the utility function to ensure consistency
+                const widgetWidth = getGridSpan(widthKey)
+
+                // If this widget would exceed row width, start a new row
+                if (currentRowWidth + widgetWidth > maxRowWidth && currentRow.length > 0) {
+                    rows.push([...currentRow])
+                    currentRow = []
+                    currentRowWidth = 0
+                }
+
+                // Add widget to current row
+                currentRow.push(widget)
+                currentRowWidth += widgetWidth
+            }
+        })
+
+        // Add the last row if it has widgets
+        if (currentRow.length > 0) {
+            rows.push(currentRow)
+        }
+
+        return rows
+    }
+
+    const widgetRows = getWidgetRows()
+
+    if (creator.isLoading) return <Loading />
+    if (!creator.data) return <NotFound />
 
     return (
-        <div className="flex flex-col h-screen   bg-background">
-            {/* Header with Cover Image */}
-            <div className="w-full relative transition-all duration-500"
-                style={{
-                    height: isScrolled ? "0px" : "200px",
+        <div ref={dashboardContainerRef} className="flex flex-col h-full">
 
-                }}
-            >
-                <div className="relative w-full h-full">
-                    <Image
-                        src={
-                            creator.data.coverUrl?.length === 0 || creator.data.coverUrl === null
-                                ? "/placeholder.svg?height=400&width=1200"
-                                : creator.data.coverUrl
-                        }
-                        alt={`${creator.data.name}'s cover`}
-                        fill
-                        className="object-cover"
-                        priority
-                    />
+            <div className="dashboard-content flex-1 overflow-auto p-4">
+                <div className="flex flex-col gap-4">
+                    {widgetRows.map((row, rowIndex) => (
+                        <div key={rowIndex} className="grid gap-4 grid-cols-12 md:grid-cols-12 sm:grid-cols-6 xs:grid-cols-4">
+                            {row.map((item, itemIndex) => {
+                                // Handle grouped widgets
+                                if (Array.isArray(item)) {
+                                    const groupId = item[0]?.groupId
+                                    return (
+                                        <div
+                                            key={`group-${groupId}`}
+                                            className="col-span-12 bg-muted/20 rounded-lg p-2 relative"
+                                            ref={(el) => setGroupRef(el, groupId ?? "")}
+                                            data-group-id={groupId}
+                                        >
 
-
-                    {/* Mobile Menu Button */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 left-2 md:hidden z-20 text-white hover:bg-background/20"
-                        onClick={toggleSidebar}
-                    >
-                        <Menu className="h-5 w-5" />
-                    </Button>
-
-                    {/* Follow/Share Buttons */}
-                    <div className="absolute top-4 right-4 flex gap-2">
-                        {
-                            isFollowing.data?.isOwner ? null : (
-                                <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    className="gap-1"
-                                    onClick={handleFollowToggle}
-                                    disabled={followMutation.isLoading ?? unfollowMutation.isLoading}
-                                >
-                                    <Heart className={cn("h-4 w-4", isFollowing.data?.isFollower && "fill-current")} />
-                                    <span className="hidden sm:inline">{isFollowing.data?.isFollower ? "Following" : "Follow"}</span>
-                                </Button>
-                            )
-                        }
-
-                    </div>
-                    <header
-                        className={cn(
-                            "absolute top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-primary/20 shadow-md h-14 transition-all duration-500 flex items-center justify-between px-4",
-                            isScrolled ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0",
-                        )}
-                        style={{
-                            transform: isScrolled ? `translateY(0)` : `translateY(-100%)`,
-                            opacity: scrollProgress,
-                        }}
-                    >
-                        <div className="flex items-center gap-3">
-                            <CustomAvatar url={creator.data.profileUrl} className="h-9 w-9 border-2 border-background" />
-                            <div className="flex flex-col">
-                                <span className="font-semibold text-sm flex items-center gap-1">
-                                    {creator.data.name}
-                                    {creator.data.approved && <CheckCircle2 className="h-3 w-3 " />}
-                                </span>
-
-                            </div>
-
-                        </div>
-                        <Button variant="secondary" size="sm" className="gap-1" onClick={handleShare}>
-                            <Share2 className="h-4 w-4" />
-                            <span className="hidden sm:inline">Share</span>
-                        </Button>
-                    </header>
-                </div>
-            </div>
-
-            {/* Main Content Area with Responsive Sidebar */}
-            <div className="flex flex-1 overflow-hidden">
-                {/* Left Sidebar - Fixed on desktop, slide-in on mobile */}
-                <div
-                    className={cn(
-                        "w-[300px] shrink-0 border-r bg-card h-full absolute md:relative transition-transform duration-500 z-20",
-                        isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-                    )}
-                >
-                    {/* Close button for mobile sidebar */}
-                    <Button variant="ghost" size="icon" className="absolute top-2 right-2 md:hidden" onClick={toggleSidebar}>
-                        <X className="h-5 w-5" />
-                    </Button>
-
-                    <div className="h-full flex flex-col p-6 overflow-auto">
-                        <div className="flex flex-col items-center pt-4">
-                            {/* Profile Image */}
-                            <div className="relative">
-                                <CustomAvatar
-                                    url={creator.data?.profileUrl}
-                                    className="h-24 w-24 border-4 border-background shadow-xl"
-                                />
-
-                                {creator.data.approved && (
-                                    <div className="absolute bottom-1 right-1 bg-primary  rounded-full p-1 shadow-lg">
-                                        <CheckCircle2 className="h-4 w-4" />
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Profile Info */}
-                            <div className="mt-4 text-center w-full">
-                                <h1 className="text-xl md:text-2xl font-bold flex items-center justify-center gap-1">
-                                    {creator.data.name}
-                                    {creator.data.approved && <CheckCircle2 className="h-4 w-4 " />}
-                                </h1>
-
-                                <p className="mt-3 text-sm text-muted-foreground">
-                                    {creator.data?.bio && creator.data.bio.length > 0 ? creator.data.bio : "No bio provided"}
-                                </p>
-                            </div>
-                        </div>
-
-                        <Separator className="my-6" />
-
-                        {/* Profile Stats */}
-                        <div className="grid grid-cols-3 gap-2 w-full">
-                            <div className="text-center p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer">
-                                <p className="text-xl font-bold">{creator.data._count.followers ?? 0}</p>
-                                <p className="text-xs text-muted-foreground">Followers</p>
-                            </div>
-                            <div className="text-center p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer">
-                                <p className="text-xl font-bold">{creator.data._count.posts ?? 0}</p>
-                                <p className="text-xs text-muted-foreground">Posts</p>
-                            </div>
-                            <div className="text-center p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer">
-                                <p className="text-xl font-bold">{creator.data._count.assets ?? 0}</p>
-                                <p className="text-xs text-muted-foreground">NFTs</p>
-                            </div>
-                        </div>
-
-                        <Separator className="my-6" />
-
-                        {/* Social Links */}
-                        <div className="w-full space-y-3">
-                            {creator.data.website && (
-                                <div>
-                                    <Link
-                                        href={creator.data.website}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center text-sm text-muted-foreground hover: transition-colors"
-                                    >
-                                        <Globe className="h-4 w-4 mr-2" />
-                                        <span>{creator.data.website.replace(/(^\w+:|^)\/\//, "")}</span>
-                                    </Link>
-                                </div>
-                            )}
-                            {creator.data.twitter && (
-                                <div>
-                                    <Link
-                                        href={`https://twitter.com/${creator.data.twitter}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center text-sm text-muted-foreground hover:text-[#1DA1F2] transition-colors"
-                                    >
-                                        <Twitter className="h-4 w-4 mr-2" />
-                                        <span>@{creator.data.twitter}</span>
-                                    </Link>
-                                </div>
-                            )}
-                            {creator.data.instagram && (
-                                <div>
-                                    <Link
-                                        href={`https://instagram.com/${creator.data.instagram}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center text-sm text-muted-foreground hover:text-[#E1306C] transition-colors"
-                                    >
-                                        <Instagram className="h-4 w-4 mr-2" />
-                                        <span>@{creator.data.instagram}</span>
-                                    </Link>
-                                </div>
-                            )}
-
-                            <div className="flex items-center text-sm text-muted-foreground">
-                                <Calendar className="h-4 w-4 mr-2" />
-                                <span>Joined {new Date(creator.data.joinedAt).toLocaleDateString()}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Overlay for mobile sidebar */}
-                {isSidebarOpen && (
-                    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-10 md:hidden" onClick={toggleSidebar} />
-                )}
-
-                {/* Right Content Area - Scrollable */}
-                <div className="flex-1 relative"
-                    onScroll={(e) => {
-                        console.log(e.currentTarget.scrollTop)
-                        if (e.currentTarget.scrollTop > 100) {
-                            setShowShareOptions(false)
-                        }
-                    }
-                    }
-                >
-                    <div ref={contentRef} className="absolute inset-0 overflow-auto">
-                        <div className="p-6 pb-20">
-                            {/* Profile Header */}
-                            <div className="flex items-center justify-between mb-8">
-                                <h1 className="text-2xl md:text-3xl font-bold">{creator.data.name}{"'s"} Profile</h1>
-                                <div className="flex items-center gap-2">
-                                    {
-                                        isFollowing.data?.isOwner ? null : (
-                                            <Button
-                                                variant="secondary"
-                                                size="sm"
-                                                className="gap-1"
-                                                onClick={handleFollowToggle}
-                                                disabled={followMutation.isLoading ?? unfollowMutation.isLoading}
+                                            <div
+                                                className={`${shouldUseColumnLayout(windowWidth) ? "flex flex-col" : "flex flex-row"} pt-6 gap-2 w-full`}
                                             >
-                                                <Heart className={cn("h-4 w-4", isFollowing.data?.isFollower && "fill-current")} />
-                                                <span className="hidden sm:inline">{isFollowing.data?.isFollower ? "Following" : "Follow"}</span>
-                                            </Button>
-                                        )
-                                    }
-                                </div>
-                            </div>
+                                                {item.map((widget, widgetIndex) => {
+                                                    const widgetInfo = AVAILABLE_WIDGETS.find((w) => w.id === widget.id)
+                                                    if (!widgetInfo) return null
 
-                            {/* Stats Cards */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Followers</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="flex items-center">
-                                            <Users className="h-5 w-5 text-muted-foreground mr-2" />
-                                            <div className="text-2xl font-bold">{creator.data._count.followers ?? 0}</div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                                    // Use custom width if available, otherwise calculate based on size
+                                                    // For column layout, always use 100% width
+                                                    const widthPercentage = shouldUseColumnLayout(windowWidth)
+                                                        ? 100
+                                                        : (widget.customWidth ?? 100 / item.length)
 
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Posts</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="flex items-center">
-                                            <Grid3X3 className="h-5 w-5 text-muted-foreground mr-2" />
-                                            <div className="text-2xl font-bold">{creator.data._count.posts ?? 0}</div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                                    // Get height from settings
+                                                    const heightKey = (widget.settings?.height as WidgetHeight) ?? "M"
+                                                    const height = getResponsiveHeight(heightKey, windowWidth)
 
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm font-medium text-muted-foreground">Total NFTs</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="flex items-center">
-                                            <ImageIcon className="h-5 w-5 text-muted-foreground mr-2" />
-                                            <div className="text-2xl font-bold">{creator.data._count.assets ?? 0}</div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm font-medium text-muted-foreground">Joined</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="flex items-center">
-                                            <Calendar className="h-5 w-5 text-muted-foreground mr-2" />
-                                            <div className="text-sm font-medium">{new Date(creator.data.joinedAt).toLocaleDateString()}</div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-
-                            {/* Subscription Packages Section */}
-                            {subscriptionPackages.data && subscriptionPackages.data.length > 0 && (
-                                <div className="mb-8">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h2 className="text-xl font-bold">Subscription Packages</h2>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {subscriptionPackages.isLoading && <SubscriptionPackagesSkeleton />}
-
-                                        {subscriptionPackages.data.map((pkg) => (
-                                            <Card
-                                                key={pkg.id}
-                                                className={cn(
-                                                    "relative overflow-hidden h-full border-2 hover:shadow-md transition-all duration-200",
-                                                    pkg.popular ? "border-primary" : "border-border",
-                                                    !pkg.isActive && "opacity-60",
-                                                    expandedPackage === pkg.id && "ring-2 ring-primary",
-                                                )}
-                                            >
-                                                <div className={cn("h-2", pkg.color)} />
-                                                <CardHeader className="pb-2">
-                                                    <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <CardTitle>{pkg.name}</CardTitle>
-                                                            <div className="flex items-baseline mt-2">
-                                                                <span className="text-3xl font-bold">{pkg.price}</span>
-                                                                <span className="text-muted-foreground ml-1">
-                                                                    {creator.data?.pageAsset
-                                                                        ? creator.data?.pageAsset.code
-                                                                        : creator.data?.customPageAssetCodeIssuer?.split("-")[0]}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    {pkg.popular && (
-                                                        <div className="absolute top-0 right-0">
-                                                            <div className="bg-primary  text-xs font-bold px-3 py-1 rounded-bl-lg">
-                                                                POPULAR
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    <CardDescription className="mt-2">{pkg.description}</CardDescription>
-                                                </CardHeader>
-                                                <CardContent className="space-y-4 pb-2">
-                                                    <ul className="space-y-2">
-                                                        {pkg.features
-                                                            .slice(0, expandedPackage === pkg.id ? pkg.features.length : 3)
-                                                            .map((feature, i) => (
-                                                                <li key={i} className="flex items-start gap-2">
-                                                                    <CheckCircle2 className="h-5 w-5  shrink-0 mt-0.5" />
-                                                                    <span>{feature}</span>
-                                                                </li>
-                                                            ))}
-                                                    </ul>
-
-                                                    {pkg.features.length > 3 && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="w-full text-xs"
-                                                            onClick={() => togglePackageExpansion(pkg.id)}
-                                                        >
-                                                            {expandedPackage === pkg.id ? (
-                                                                <>
-                                                                    <ChevronUp className="h-4 w-4 mr-1" />
-                                                                    Show Less
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <ChevronDown className="h-4 w-4 mr-1" />
-                                                                    Show All Features
-                                                                </>
+                                                    return (
+                                                        <div
+                                                            key={widget.id}
+                                                            className={cn(
+                                                                "relative",
+                                                                dragOverWidget === widget.id ? "ring-2 ring-primary" : "",
+                                                                selectedWidgets.includes(widget.id) ? "ring-2 ring-destructive" : "",
+                                                                "transition-all duration-200",
+                                                                shouldUseColumnLayout(windowWidth) ? "mb-4" : "",
                                                             )}
-                                                        </Button>
-                                                    )}
-                                                </CardContent>
-                                                <CardFooter>
-                                                    <div className="flex items-center justify-between w-full">
-                                                        <Badge variant={pkg.isActive ? "default" : "outline"}>
-                                                            {pkg.isActive ? "Active" : "Inactive"}
-                                                        </Badge>
+                                                            style={{
+                                                                width: `${widthPercentage}%`,
+                                                            }}
+                                                            data-widget-id={widget.id}
+                                                            data-custom-width={widget.customWidth ?? ""}
 
-                                                    </div>
-                                                </CardFooter>
-                                            </Card>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                                        >
+                                                            <Card
+                                                                className={cn(
+                                                                    "flex flex-col relative",
+                                                                    widget.id === "cover-profile" ? "overflow-hidden h-auto" : "overflow-y-auto",
+                                                                )}
+                                                                style={
+                                                                    widget.id === "cover-profile"
+                                                                        ? { height: "auto", minHeight: "100%" }
+                                                                        : { height: `${height}px` }
+                                                                }
+                                                                ref={(el) => setWidgetRef(el, widget.id)}
+                                                            >
 
-                            {/* Content Tabs */}
-                            <div>
-                                <Tabs defaultValue="posts" value={activeTab} onValueChange={setActiveTab} className="w-full"
+                                                                <CardContent className={`p-0 ${editMode && !widget.pinned ? "pt-8" : ""}`}>
+                                                                    {renderWidgetContent(widget.id)}
+                                                                </CardContent>
+                                                            </Card>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )
+                                }
 
-                                >
-                                    <TabsList className="grid grid-cols-2 w-full sm:w-[300px] mb-6">
-                                        <TabsTrigger value="posts" className="flex items-center gap-2">
-                                            <Grid3X3 className="h-4 w-4" />
-                                            <span>Posts</span>
-                                        </TabsTrigger>
-                                        <TabsTrigger value="nfts" className="flex items-center gap-2">
-                                            <ImageIcon className="h-4 w-4" />
-                                            <span>NFTs</span>
-                                        </TabsTrigger>
-                                    </TabsList>
+                                // Handle individual widgets
+                                const widget = item
+                                const widgetInfo = AVAILABLE_WIDGETS.find((w) => w.id === widget.id)
+                                if (!widgetInfo) return null
 
-                                    {/* Posts Tab */}
-                                    <TabsContent value="posts" className="space-y-6 mb-8"
+                                // Get widget dimensions from settings
+                                const dimensions = getWidgetDimensions(widget)
+                                // Apply responsive height adjustment - but keep original height for cover-profile
+                                dimensions.height =
+                                    widget.id === "cover-profile"
+                                        ? HEIGHT_MAP[(widget.settings?.height as WidgetHeight) || "2XL"]
+                                        : getResponsiveHeight((widget.settings?.height as WidgetHeight) || "M", windowWidth)
+                                const isPinned = widget.pinned
+
+                                // Always use full width on small/medium devices, and always full width for cover-profile
+                                const useFullWidth = widget.id === "cover-profile" ? true : shouldUseColumnLayout(windowWidth)
+
+                                return (
+                                    <div
+                                        key={widget.id}
+                                        className={cn(
+                                            isPinned ?? useFullWidth ? "col-span-12" : `col-span-${dimensions.gridSpan}`,
+                                            dragOverWidget === widget.id ? "ring-2 ring-primary" : "",
+                                            selectedWidgets.includes(widget.id) ? "ring-2 ring-destructive" : "",
+                                            "transition-all duration-200 relative",
+                                        )}
+                                        style={{
+                                            gridColumn: isPinned ?? useFullWidth ? "span 12" : `span ${dimensions.gridSpan}`,
+                                        }}
 
                                     >
-                                        <div className="space-y-6">
-                                            {allCreatedPost.isLoading && (
-                                                <div className="space-y-4">
-                                                    {[1, 2, 3].map((i) => (
-                                                        <Card key={i} className="overflow-hidden">
-                                                            <CardHeader>
-                                                                <Skeleton className="h-6 w-1/3 mb-2" />
-                                                                <Skeleton className="h-4 w-1/4" />
-                                                            </CardHeader>
-                                                            <CardContent>
-                                                                <Skeleton className="h-4 w-full mb-2" />
-                                                                <Skeleton className="h-4 w-full mb-2" />
-                                                                <Skeleton className="h-4 w-2/3 mb-4" />
-                                                                <Skeleton className="h-48 w-full rounded-md mb-4" />
-                                                            </CardContent>
-                                                        </Card>
-                                                    ))}
-                                                </div>
+                                        <Card
+                                            className={cn(
+                                                "flex flex-col relative",
+                                                widget.id === "cover-profile" ? "overflow-hidden h-auto" : "overflow-y-auto",
                                             )}
+                                            style={
+                                                widget.id === "cover-profile"
+                                                    ? { height: "auto", minHeight: "100%" }
+                                                    : { height: `${dimensions.height}px` }
+                                            }
+                                            ref={(el) => setWidgetRef(el, widget.id)}
+                                        >
 
-                                            {allCreatedPost.data?.pages.map((page, i) => (
-                                                <React.Fragment key={i}>
-                                                    {page.posts.map((post) => {
-                                                        const locked = !!post.subscription
-
-                                                        // Determine if user has access to this content
-                                                        let hasAccess = !locked // Public posts are always accessible
-
-                                                        if (locked && post.subscription) {
-                                                            let pageAssetCode: string | undefined
-                                                            let pageAssetIssuer: string | undefined
-
-                                                            const customPageAsset = post.creator.customPageAssetCodeIssuer
-                                                            const pageAsset = post.creator.pageAsset
-
-                                                            if (pageAsset) {
-                                                                pageAssetCode = pageAsset.code
-                                                                pageAssetIssuer = pageAsset.issuer
-                                                            } else if (customPageAsset) {
-                                                                const [code, issuer] = customPageAsset.split("-")
-                                                                pageAssetCode = code
-                                                                pageAssetIssuer = issuer
-                                                            }
-
-                                                            const bal = getAssetBalanceFromBalance({
-                                                                balances: accBalances.data,
-                                                                code: pageAssetCode,
-                                                                issuer: pageAssetIssuer,
-                                                            })
-
-                                                            hasAccess = post.subscription.price <= (bal ?? 0) ||
-                                                                post.creatorId === session.data?.user?.id
-                                                        }
-
-                                                        return (
-                                                            <PostCard
-                                                                key={post.id}
-                                                                post={post}
-                                                                creator={post.creator}
-                                                                likeCount={post._count.likes}
-                                                                commentCount={post._count.comments}
-                                                                locked={locked}
-                                                                show={hasAccess}
-                                                                media={post.medias}
-                                                            />
-                                                        )
-                                                    }
-                                                    )}
-                                                </React.Fragment>
-                                            ))}
-
-
-                                            {allCreatedPost.hasNextPage && (
-                                                <Button
-                                                    variant="outline"
-                                                    className="w-full"
-                                                    onClick={() => allCreatedPost.fetchNextPage()}
-                                                    disabled={allCreatedPost.isFetchingNextPage}
-                                                >
-                                                    {allCreatedPost.isFetchingNextPage ? "Loading more..." : "Load More Posts"}
-                                                </Button>
-                                            )}
-
-                                            {allCreatedPost.data?.pages[0]?.posts.length === 0 && (
-                                                <div className="text-center py-12 bg-muted/30 rounded-lg">
-                                                    <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                                    <h3 className="text-lg font-medium mb-2">No Posts Yet</h3>
-                                                    <p className="text-muted-foreground mb-4">This creator hasn{"'t"} posted any content yet</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </TabsContent>
-
-                                    {/* NFTs Tab */}
-                                    <TabsContent value="nfts">
-                                        <div className="min-h-[calc(100vh-20vh)] flex flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
-                                            {creatorNFT.isLoading && (
-                                                <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 xl:grid-cols-5" />
-                                            )}
-
-                                            {creatorNFT.data?.pages[0]?.nfts.length === 0 && (
-                                                <div className="h-full flex items-center justify-center flex-col text-lg font-bold">
-                                                    <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                                    <h3 className="text-lg font-medium mb-2">No NFTs Found</h3>
-                                                    <p className="text-muted-foreground mb-4">This creator hasn{"'t "} created any NFTs yet</p>
-                                                </div>
-                                            )}
-
-                                            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 xl:grid-cols-5">
-                                                {creatorNFT.data?.pages.map((items, itemIndex) =>
-                                                    items.nfts.map((item, index) => (
-                                                        <MarketAssetComponent key={`music-${itemIndex}-${index}`} item={item} />
-                                                    )),
-                                                )}
-                                            </div>
-
-                                            {creatorNFT.hasNextPage && (
-                                                <Button
-                                                    className="flex w-1/2 items-center justify-center shadow-sm shadow-black md:w-1/4"
-                                                    onClick={() => creatorNFT.fetchNextPage()}
-                                                    disabled={creatorNFT.isFetchingNextPage}
-                                                >
-                                                    {creatorNFT.isFetchingNextPage ? "Loading more..." : "Load More"}
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </TabsContent>
-                                </Tabs>
-                            </div>
+                                            <CardContent className={`p-0 ${editMode && !isPinned ? "pt-8" : ""}`}>
+                                                {renderWidgetContent(widget.id)}
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                )
+                            })}
                         </div>
-                    </div>
+                    ))}
                 </div>
             </div>
+
+            {editMode && (
+                <div className="bg-muted/80 p-4 text-center">
+                    {selectionMode ? (
+                        <p className="text-sm">
+                            <strong>Selection Mode:</strong> Click on widgets to select them, then click{" "}
+                            <strong>Group Selected</strong> to group them together. Selected widgets: {selectedWidgets.length}
+                        </p>
+                    ) : (
+                        <p className="text-sm">
+                            Edit mode active. Drag to rearrange, use the size selector to resize, or remove widgets with the X button.
+                            Click <strong>Select Widgets</strong> to select and group widgets.
+                        </p>
+                    )}
+                </div>
+            )}
         </div>
     )
 }
-
-function SubscriptionPackagesSkeleton() {
-    // Create an array of 3 items to represent the loading cards
-    const skeletonCards = Array(3).fill(null)
-
-    return (
-        <>
-            {skeletonCards.map((_, index) => (
-                <div key={index}>
-                    <Card className="relative overflow-hidden h-full border-2 hover:shadow-md transition-all duration-200">
-                        <div className="h-2 bg-muted" />
-                        <CardHeader className="pb-2">
-                            <div className="flex justify-between items-start">
-                                <div className="w-full">
-                                    <Skeleton className="h-6 w-3/4 mb-2" />
-                                    <div className="flex items-baseline mt-2">
-                                        <Skeleton className="h-8 w-20" />
-                                        <Skeleton className="h-4 w-12 ml-1" />
-                                    </div>
-                                </div>
-                                <Skeleton className="h-8 w-8 rounded-full" />
-                            </div>
-                            <Skeleton className="h-4 w-full mt-2" />
-                        </CardHeader>
-                        <CardContent className="space-y-4 pb-2">
-                            <div className="space-y-2">
-                                {Array(4)
-                                    .fill(null)
-                                    .map((_, i) => (
-                                        <div key={i} className="flex items-start gap-2">
-                                            <Skeleton className="h-5 w-5 rounded-full shrink-0 mt-0.5" />
-                                            <Skeleton className="h-4 w-full" />
-                                        </div>
-                                    ))}
-                            </div>
-                            <Skeleton className="h-8 w-full" />
-                        </CardContent>
-                        <CardFooter>
-                            <div className="flex items-center justify-between w-full">
-                                <Skeleton className="h-5 w-16" />
-                                <Skeleton className="h-4 w-24" />
-                            </div>
-                        </CardFooter>
-                    </Card>
-                </div>
-            ))}
-        </>
-    )
-}
-
