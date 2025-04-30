@@ -7,18 +7,20 @@ import { useSession } from "next-auth/react"
 import { useNFTCreateModalStore } from "../store/nft-create-modal-store"
 import { MoreAssetsSkeleton } from "../common/grid-loading"
 import MarketAssetComponent from "../common/market-asset"
+import { CreatorWithPageAsset } from "~/types/artist/dashboard"
 
 interface NFTGalleryWidgetProps {
     editMode?: boolean
-
+    creatorData: CreatorWithPageAsset
+    userView?: boolean
 }
 
 
-export default function NFTGalleryWidget({ editMode }: NFTGalleryWidgetProps) {
+export default function NFTGalleryWidget({ editMode, creatorData, userView = false }: NFTGalleryWidgetProps) {
     const { setIsOpen: setIsNFTModalOpen } = useNFTCreateModalStore()
     const session = useSession()
     const creatorNFT = api.marketplace.market.getCreatorNftsByCreatorID.useInfiniteQuery(
-        { limit: 10, creatorId: session.data?.user.id ?? "" },
+        { limit: 10, creatorId: creatorData?.id ?? "" },
         {
             getNextPageParam: (lastPage) => lastPage.nextCursor,
         },
@@ -29,7 +31,7 @@ export default function NFTGalleryWidget({ editMode }: NFTGalleryWidgetProps) {
                 <div className="flex justify-between items-center ">
                     <h2 className="text-xl font-bold">Your NFT Collection</h2>
                     {
-                        (creatorNFT.data?.pages[0]?.nfts?.length ?? 0) > 0 && (
+                        (creatorNFT.data?.pages[0]?.nfts?.length ?? 0) > 0 && !userView && (
                             <div className="flex justify-between items-center">
                                 <Button size="sm" onClick={() => setIsNFTModalOpen(true)}>
                                     <Plus className="h-4 w-4 mr-2" />
@@ -46,10 +48,10 @@ export default function NFTGalleryWidget({ editMode }: NFTGalleryWidgetProps) {
 
                     <div className="min-h-[calc(100vh-20vh)] flex flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
                         {creatorNFT.isLoading && (
-                            <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 xl:grid-cols-5" />
+                            <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 xl:grid-cols-3" />
                         )}
 
-                        {creatorNFT.data?.pages[0]?.nfts.length === 0 && (
+                        {creatorNFT.data?.pages[0]?.nfts.length === 0 && !userView ? (
                             <div className="h-full flex items-center justify-center flex-col text-lg font-bold">
                                 <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                                 <h3 className="text-lg font-medium mb-2">No NFTs Found</h3>
@@ -59,9 +61,18 @@ export default function NFTGalleryWidget({ editMode }: NFTGalleryWidgetProps) {
                                     Create Your First NFT
                                 </Button>
                             </div>
-                        )}
+                        ) :
+                            creatorNFT.data?.pages[0]?.nfts.length === 0 && userView && (
+                                //for no post availabe
+                                <div className="h-full flex items-center justify-center flex-col text-lg font-bold">
+                                    <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                    <h3 className="text-lg font-medium mb-2">Creator  hasn{"'t"} any NFT to show </h3>
+                                </div>
 
-                        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 xl:grid-cols-5">
+                            )
+                        }
+
+                        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 xl:grid-cols-3">
                             {creatorNFT.data?.pages.map((items, itemIndex) =>
                                 items.nfts.map((item, index) => (
                                     <MarketAssetComponent key={`music-${itemIndex}-${index}`} item={item} />

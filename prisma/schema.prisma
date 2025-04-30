@@ -127,12 +127,12 @@ model Comment {
 }
 
 model User_Asset {
-    id     Int    @id @default(autoincrement())
-    userId String
-    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    assetId Int
-    asset   Asset @relation(fields: [assetId], references: [id], onDelete: NoAction)
+    id        Int     @id @default(autoincrement())
+    userId    String
+    user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    isRoyalty Boolean @default(false)
+    assetId   Int
+    asset     Asset   @relation(fields: [assetId], references: [id], onDelete: NoAction)
 
     buyAt DateTime @default(now())
 }
@@ -206,20 +206,21 @@ model Creator {
     twitter                   String?
     instagram                 String?
 
-    user               User                @relation(fields: [id], references: [id], onDelete: Cascade)
-    posts              Post[]
-    subscriptions      Subscription[]
-    assets             Asset[]
-    marketAssets       MarketAsset[]
-    pageAsset          CreatorPageAsset?
-    followers          Follow[]
-    LocationGroup      LocationGroup[]
-    Bounty             Bounty[]
-    vanitySubscription VanitySubscription?
-    Album              Album[]
-    Song               Song[]
-    createdAt          DateTime            @default(now())
-    Appearance         Appearance[]
+    user                User                  @relation(fields: [id], references: [id], onDelete: Cascade)
+    posts               Post[]
+    subscriptions       Subscription[]
+    assets              Asset[]
+    marketAssets        MarketAsset[]
+    pageAsset           CreatorPageAsset?
+    followers           Follow[]
+    LocationGroup       LocationGroup[]
+    Bounty              Bounty[]
+    vanitySubscription  VanitySubscription?
+    Album               Album[]
+    Song                Song[]
+    createdAt           DateTime              @default(now())
+    Appearance          Appearance[]
+    CreatorCustomDomain CreatorCustomDomain[]
 
     @@index([bio, name])
 }
@@ -426,14 +427,18 @@ model Asset {
     issuer        String
     issuerPrivate String?
 
-    mediaType MediaType
-    mediaUrl  String
-    thumbnail String
+    mediaType    MediaType
+    mediaUrl     String
+    thumbnail    String
+    demoMediaUrl String?
 
-    privacy ItemPrivacy @default(PUBLIC)
+    fundEndDate DateTime?
 
-    creatorId String? // if null then it is admin asset
-    creator   Creator? @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+    releaseDate DateTime?
+    privacy     ItemPrivacy @default(PUBLIC)
+    percentage  Float? // this is the percentage of the asset
+    creatorId   String? // if null then it is admin asset
+    creator     Creator?    @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
     tierId Int?
     tier   Subscription? @relation(fields: [tierId], references: [id], onDelete: SetNull)
@@ -444,9 +449,22 @@ model Asset {
     LocationGroup LocationGroup[]
     Redeem        Redeem[]
     createdAt     DateTime        @default(now())
+    royaltyReport RoyaltyReport[]
 
     @@unique([code, issuer])
     @@index([name, description])
+}
+
+model RoyaltyReport {
+    id        Int      @id @default(autoincrement())
+    mediaUrl  String
+    mediaName String
+    mediaSize Int
+    mediaType String
+    assetId   Int
+    asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 // this will eliminate asset buy modal overhead.
@@ -454,6 +472,7 @@ enum MarketType {
     SONG
     ADMIN
     FAN
+    ROYALTY // for creators
 }
 
 // this for creators;
@@ -754,4 +773,14 @@ model RedeemConsumer {
     code       String
     redeemCode Redeem   @relation(fields: [code], references: [code], onDelete: Cascade)
     redeemedAt DateTime @default(now())
+}
+
+model CreatorCustomDomain {
+    id String @id @default(cuid())
+
+    domain String @unique
+
+    creatorId String @unique
+
+    creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 }

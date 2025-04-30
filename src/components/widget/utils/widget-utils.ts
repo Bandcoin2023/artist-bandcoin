@@ -1,4 +1,4 @@
-import { WidgetItem, WidgetSettings } from "~/types/artist/dashboard";
+import type { WidgetItem, WidgetSettings } from "~/types/artist/dashboard"
 
 // Widget size definitions
 export type WidgetHeight = "SS" | "S" | "M" | "L" | "XL" | "2XL" | "3XL" | "4XL"
@@ -9,11 +9,27 @@ export const HEIGHT_MAP: Record<WidgetHeight, number> = {
     SS: 120, // Extra small height
     S: 200, // Small height
     M: 300, // Medium height
-    L: 400, // Large height
+    L: 500, // Large height
     XL: 600, // Extra large height
     "2XL": 800, // 2x Extra large height
     "3XL": 1000, // 3x Extra large height
     "4XL": 1200, // 4x Extra large height
+}
+
+// Add a new function to get responsive heights based on screen size
+export function getResponsiveHeight(heightKey: WidgetHeight, screenWidth: number): number {
+    const baseHeight = HEIGHT_MAP[heightKey] || HEIGHT_MAP.M
+
+    // Scale down heights for smaller screens
+    if (screenWidth < 640) {
+        // Mobile
+        return Math.max(baseHeight * 0.6, 100) // Minimum height of 100px
+    } else if (screenWidth < 1024) {
+        // Tablet
+        return Math.max(baseHeight * 0.8, 120) // Minimum height of 120px
+    }
+
+    return baseHeight // Default for desktop
 }
 
 export const WIDTH_MAP: Record<WidgetWidth, number> = {
@@ -68,13 +84,12 @@ export function getNextSize<T extends string>(current: T, options: T[]): T {
     return options[nextIndex] ?? current
 }
 
-// Update the getWidgetDimensions function to ensure it handles all width types correctly
+// Update the getWidgetDimensions function to ensure cover-profile is always full width
 export function getWidgetDimensions(widget: WidgetItem): {
     height: number
     width: string | number
     gridSpan: number
 } {
-
     // Special case for cover-profile widget
     if (widget.id === "cover-profile") {
         // For cover-profile, we'll use a larger default height
@@ -171,6 +186,30 @@ export function createDefaultWidgetSettings(widgetId: string): WidgetSettings {
         }
     }
 
+    if (widgetId === "stats") {
+        return {
+            height: "SS" as WidgetHeight,
+            width: "4XL" as WidgetWidth,
+        }
+    }
+    if (widgetId === "membership-tiers") {
+        return {
+            height: "L" as WidgetHeight,
+            width: "4XL" as WidgetWidth,
+        }
+    }
+    if (widgetId === "nft-gallery") {
+        return {
+            height: "2XL" as WidgetHeight,
+            width: "L" as WidgetWidth,
+        }
+    }
+    if (widgetId === "recent-posts") {
+        return {
+            height: "2XL" as WidgetHeight,
+            width: "L" as WidgetWidth,
+        }
+    }
     return defaultSettings
 }
 
@@ -235,4 +274,15 @@ export function optimizeWidgetLayout(widgets: WidgetItem[]): WidgetItem[] {
 // Generate a unique group ID
 export function generateGroupId(): string {
     return `group-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+}
+
+// Add a new function to determine if we should use column layout based on screen width
+export function shouldUseColumnLayout(screenWidth: number, widgetId?: string): boolean {
+    // Cover-profile should never use column layout
+    if (widgetId === "cover-profile") {
+        return false
+    }
+
+    // Use column layout for screens smaller than 1024px (typical tablet/mobile breakpoint)
+    return screenWidth < 1024
 }

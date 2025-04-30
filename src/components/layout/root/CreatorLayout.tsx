@@ -45,7 +45,7 @@ export default function CreatorLayout({
   const creator = api.fan.creator.meCreator.useQuery(undefined, {
     refetchOnWindowFocus: false,
   })
-  console.log(creator.data)
+
 
   // Animation variants for sidebar
   const sidebarVariants = {
@@ -134,7 +134,7 @@ export default function CreatorLayout({
     }
     console.log(selectedMode)
   }, [path, selectedMode, router])
-
+  console.log("pata........", (path.split("/")[2])?.length)
   return (
     <div className="relative overflow-hidden h-[calc(100vh-10.8vh)]">
       <div className="flex h-[calc(100vh-10.8vh)] gap-4 overflow-hidden">
@@ -148,64 +148,70 @@ export default function CreatorLayout({
             >
               <div className="flex overflow-y-auto w-full flex-col">{children}</div>
             </motion.div>
-            <AnimatePresence>
-              <motion.div
-                className={cn(
-                  "fixed right-[19rem] top-1/2 z-40 hidden rotate-180 rounded-sm md:block",
-                  isMinimized && "right-[.5rem] -rotate-180",
-                )}
-                initial={false}
-                animate={isMinimized ? "collapsed" : "expanded"}
-                transition={{
-                  duration: 0.5,
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 30,
-                }}
-              >
-                <ToggleButton
-                  isActive={!isMinimized}
-                  onToggle={toggle}
-                  onMouseEnter={() => setCursorVariant("hover")}
-                  onMouseLeave={() => setCursorVariant("default")}
-                />
-              </motion.div>
-            </AnimatePresence>
-            <div className="hidden h-[calc(100vh-10vh)]  bg-background md:block">
-              <motion.div
-                className="sticky top-0 hidden h-full overflow-y-auto p-1 md:block"
-                initial={false}
-                animate={isMinimized ? "collapsed" : "expanded"}
-                variants={sidebarVariants}
-                style={{ perspective: "1000px" }}
-              >
-                <motion.div
-                  className="no-scrollbar  flex gap-4 h-full w-full flex-col items-center justify-start py-2"
-                  initial={false}
-                  animate={isMinimized ? "collapsed" : "expanded"}
-                  variants={contentVariants}
-                >
-                  <Card className="flex min-h-[72%]    w-full flex-col gap-2 overflow-x-hidden scrollbar-hide">
-                    <CardHeader className="sticky top-0 bg-primary z-10 p-2">
-                      <h3 className="font-medium   text-center ">Trending Creators</h3>
-                    </CardHeader>
-                    <CardContent className="p-1 ">
-                      <TrendingSidebar />
-                    </CardContent>
-                  </Card>
-                  <Card className="flex h-full  w-full flex-col gap-2 overflow-x-hidden  scrollbar-hide">
-                    <CardHeader className="sticky top-0 bg-primary z-10 p-2">
-                      <h3 className="font-medium  mb-3 text-center sticky top-0">Followed Creators</h3>
-                    </CardHeader>
-                    <CardContent>
-                      <div className=" overflow-y-auto">
-                        <CreatorSidebar />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </motion.div>
-            </div>
+            {
+              path && (path.split("/")[2])?.length !== 56 && (
+                <>
+                  <AnimatePresence>
+                    <motion.div
+                      className={cn(
+                        "fixed right-[19rem] top-1/2 z-40 hidden rotate-180 rounded-sm md:block",
+                        isMinimized && "right-[.5rem] -rotate-180",
+                      )}
+                      initial={false}
+                      animate={isMinimized ? "collapsed" : "expanded"}
+                      transition={{
+                        duration: 0.5,
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                      }}
+                    >
+                      <ToggleButton
+                        isActive={!isMinimized}
+                        onToggle={toggle}
+                        onMouseEnter={() => setCursorVariant("hover")}
+                        onMouseLeave={() => setCursorVariant("default")}
+                      />
+                    </motion.div>
+                  </AnimatePresence>
+                  <div className="hidden h-[calc(100vh-10vh)]  bg-background md:block">
+                    <motion.div
+                      className="sticky top-0 hidden h-full overflow-y-auto p-1 md:block"
+                      initial={false}
+                      animate={isMinimized ? "collapsed" : "expanded"}
+                      variants={sidebarVariants}
+                      style={{ perspective: "1000px" }}
+                    >
+                      <motion.div
+                        className="no-scrollbar  flex gap-4 h-full w-full flex-col items-center justify-start py-2"
+                        initial={false}
+                        animate={isMinimized ? "collapsed" : "expanded"}
+                        variants={contentVariants}
+                      >
+                        <Card className="flex min-h-[72%]    w-full flex-col gap-2 overflow-x-hidden scrollbar-hide">
+                          <CardHeader className="sticky top-0 bg-primary z-10 p-2">
+                            <h3 className="font-medium   text-center ">Trending Creators</h3>
+                          </CardHeader>
+                          <CardContent className="p-1 ">
+                            <TrendingSidebar />
+                          </CardContent>
+                        </Card>
+                        <Card className="flex h-full  w-full flex-col gap-2 overflow-x-hidden  scrollbar-hide">
+                          <CardHeader className="sticky top-0 bg-primary z-10 p-2">
+                            <h3 className="font-medium  mb-3 text-center sticky top-0">Followed Creators</h3>
+                          </CardHeader>
+                          <CardContent>
+                            <div className=" overflow-y-auto">
+                              <CreatorSidebar />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    </motion.div>
+                  </div>
+                </>
+              )
+            }
           </>
         ) : (
           <>

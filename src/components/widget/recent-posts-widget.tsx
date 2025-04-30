@@ -15,16 +15,19 @@ import { CreatorWithPageAsset } from "~/types/artist/dashboard"
 interface RecentPostsWidgetProps {
     editMode?: boolean
     creatorData: CreatorWithPageAsset
+    userView?: boolean
 }
 
 
-export default function RecentPostsWidget({ editMode, creatorData }: RecentPostsWidgetProps) {
+export default function RecentPostsWidget({ editMode, creatorData,
+    userView = false,
+}: RecentPostsWidgetProps) {
     const session = useSession()
     const { setIsOpen: setIsPostModalOpen } = useCreatePostModalStore()
 
     const allCreatedPost = api.fan.post.getPosts.useInfiniteQuery(
         {
-            pubkey: session.data?.user.id ?? "",
+            pubkey: creatorData?.id ?? "",
             limit: 10,
         },
         {
@@ -39,7 +42,7 @@ export default function RecentPostsWidget({ editMode, creatorData }: RecentPosts
                 <div className="flex justify-between items-center">
                     <h2 className="text-xl font-bold">Your Posts</h2>
                     {
-                        (allCreatedPost.data?.pages[0]?.posts?.length ?? 0) > 0 && (
+                        (allCreatedPost.data?.pages[0]?.posts?.length ?? 0) > 0 && !userView && (
                             <div className="flex justify-between items-center">
                                 <Button size="sm" onClick={() => setIsPostModalOpen(true)}>
                                     <Plus className="h-4 w-4 mr-2" />
@@ -51,9 +54,9 @@ export default function RecentPostsWidget({ editMode, creatorData }: RecentPosts
                 </div>
             </CardHeader>
 
-            <CardContent className="p-0   overflow-y-auto">
+            <CardContent className="p-0   overflow-y-auto ">
 
-                <div className=" flex flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md ">
+                <div className=" min-h-[calc(100vh-20vh)] flex flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md ">
                     {allCreatedPost.isLoading && (
                         <div className="space-y-4 ">
                             {[1, 2].map((i) => (
@@ -72,7 +75,26 @@ export default function RecentPostsWidget({ editMode, creatorData }: RecentPosts
                             ))}
                         </div>
                     )}
+                    {allCreatedPost.data?.pages[0]?.posts.length === 0 && !userView ? (
+                        <div className="h-full flex items-center justify-center flex-col text-lg font-bold">
+                            <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-medium mb-2">No Posts Yet</h3>
+                            <p className="text-muted-foreground mb-4">Start creating content for your followers</p>
+                            <Button onClick={() => setIsPostModalOpen(true)}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create Your First Post
+                            </Button>
+                        </div>
+                    ) :
+                        allCreatedPost.data?.pages[0]?.posts.length === 0 && userView && (
+                            //for no post availabe
+                            <div className="h-full flex items-center justify-center flex-col text-lg font-bold">
+                                <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-medium mb-2">Creator  hasn{"'t"} any post to show </h3>
+                            </div>
 
+                        )
+                    }
                     {allCreatedPost.data?.pages.map((page, i) => (
                         <React.Fragment key={i}>
 
@@ -105,17 +127,7 @@ export default function RecentPostsWidget({ editMode, creatorData }: RecentPosts
                         </Button>
                     )}
 
-                    {allCreatedPost.data?.pages[0]?.posts.length === 0 && (
-                        <div className="h-full flex items-center justify-center flex-col text-lg font-bold">
-                            <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-medium mb-2">No Posts Yet</h3>
-                            <p className="text-muted-foreground mb-4">Start creating content for your followers</p>
-                            <Button onClick={() => setIsPostModalOpen(true)}>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Create Your First Post
-                            </Button>
-                        </div>
-                    )}
+
                 </div>
 
             </CardContent>

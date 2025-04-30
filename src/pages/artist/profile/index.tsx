@@ -1,1061 +1,2280 @@
 "use client"
 
-import React, { useEffect } from "react"
-import { useState, useRef } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import {
-    ImageIcon,
-    Grid3X3,
-    Calendar,
-    Twitter,
-    Instagram,
-    Globe,
-    CheckCircle2,
-    Edit,
-    Plus,
-    Eye,
-    Camera,
-    X,
-    DollarSign,
-    Menu,
-    Users,
-    ChevronUp,
-    ChevronDown,
-    ArrowDownFromLine,
-} from "lucide-react"
+import type React from "react"
+import { useState, useEffect, useRef } from "react"
+import { Save, Plus, X, GripVertical, Link2, Edit, Check, User, Trash2 } from 'lucide-react'
 
 import { Button } from "~/components/shadcn/ui/button"
+import { Card, CardContent } from "~/components/shadcn/ui/card"
+import { toast } from "~/components/shadcn/ui/use-toast"
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "~/components/shadcn/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/shadcn/ui/tabs"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/shadcn/ui/card"
 import { Input } from "~/components/shadcn/ui/input"
-import { Textarea } from "~/components/shadcn/ui/textarea"
 import { Label } from "~/components/shadcn/ui/label"
-import { Separator } from "~/components/shadcn/ui/separator"
-import { cn } from "~/lib/utils"
-import { api } from "~/utils/api"
-import ArtistDashboardSkeleton from "~/components/creator/artist-profile-loading"
-import NotFound from "~/pages/404"
-import CustomAvatar from "~/components/common/custom-avatar"
-import { useCreatePostModalStore } from "~/components/store/create-post-modal-store"
-import { useSession } from "next-auth/react"
-import PostCard from "~/components/post/post-card"
-import { UploadS3Button } from "~/components/common/upload-button"
-import toast from "react-hot-toast"
-import { useAddSubsciptionModalStore } from "~/components/store/add-subscription-modal-store"
-import { Skeleton } from "~/components/shadcn/ui/skeleton"
-import { MoreAssetsSkeleton } from "~/components/common/grid-loading"
-import MarketAssetComponent from "~/components/common/market-asset"
-import { useNFTCreateModalStore } from "~/components/store/nft-create-modal-store"
-import { Badge } from "~/components/shadcn/ui/badge"
-import { SubscriptionContextMenu } from "~/components/common/subscripton-context"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/shadcn/ui/tooltip"
+import { Switch } from "~/components/shadcn/ui/switch"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "~/components/shadcn/ui/dialog"
 
-const isValidUrl = (string: string) => {
-    try {
-        const url = new URL(string)
-        return url.protocol === "http:" || url.protocol === "https:"
-    } catch (_) {
-        return false
-    }
+// Import components that can be added to dashboard
+import StatsWidget from "~/components/widget/stats-widget"
+import ProfileWidget from "~/components/widget/profile-widget"
+import NFTGalleryWidget from "~/components/widget/nft-gallery-widget"
+import RecentPostsWidget from "~/components/widget/recent-posts-widget"
+import ChartWidget from "~/components/widget/chart-widget"
+import CalendarWidget from "~/components/widget/calendar-widget"
+import TodoWidget from "~/components/widget/todo-widget"
+import CustomHTMLWidget from "~/components/widget/custom-html-widget"
+
+// Import new widgets
+import MusicPlayerWidget from "~/components/widget/music-player-widget"
+import TourDatesWidget from "~/components/widget/tour-dates-widget"
+import MembershipTiersWidget from "~/components/widget/membership-tiers-widget"
+import MerchandiseWidget from "~/components/widget/merchandise-widget"
+import BandMembersWidget from "~/components/widget/band-members-widget"
+import VideoGalleryWidget from "~/components/widget/video-gallery-widget"
+import NewsletterWidget from "~/components/widget/newsletter-widget"
+import LyricsWidget from "~/components/widget/lyrics-widget"
+import FanCommunityWidget from "~/components/widget/fan-community-widget"
+import CoverProfileWidget from "~/components/widget/cover-profile-widget"
+
+// Import the new utility functions and components
+import {
+    getWidgetDimensions,
+    createDefaultWidgetSettings,
+    generateGroupId,
+    type WidgetHeight,
+    type WidgetWidth,
+    getGridSpan,
+    getResponsiveHeight,
+    shouldUseColumnLayout,
+} from "~/components/widget/utils/widget-utils"
+import WidgetSizeSelector from "~/components/widget/utils/widget-size-selector"
+import WidgetGroupControls from "~/components/widget/utils/widget-group-controls"
+
+// Update imports at the top to include the new types
+import { api } from "~/utils/api" // Adjust this import based on your tRPC setup
+import type {
+    CreatorWithPageAsset,
+    GroupResizeState,
+    SavedLayout,
+    WidgetDefinition,
+    WidgetItem,
+    WidgetSettings,
+} from "~/types/artist/dashboard"
+import { cn } from "~/lib/utils"
+import NotFound from "~/pages/404"
+import Loading from "~/components/common/loading"
+// Update the DEFAULT_LAYOUT to include default settings for each widget
+const DEFAULT_LAYOUT: WidgetItem[] = [
+    {
+        id: "cover-profile",
+        size: "large",
+        order: 1,
+        settings: createDefaultWidgetSettings("cover-profile"),
+    },
+    {
+        id: "membership-tiers",
+        size: "large",
+        order: 4,
+        settings: createDefaultWidgetSettings("membership-tiers"),
+    },
+    {
+        id: "stats",
+        size: "large",
+        order: 5,
+        settings: createDefaultWidgetSettings("stats"),
+    },
+    {
+        id: "nft-gallery",
+        size: "large",
+        order: 9,
+        settings: createDefaultWidgetSettings("nft-gallery"),
+    },
+    {
+        id: "recent-posts",
+        size: "large",
+        order: 10,
+        settings: createDefaultWidgetSettings("recent-posts"),
+    },
+]
+
+// Available components for adding to dashboard
+const AVAILABLE_WIDGETS: WidgetDefinition[] = [
+    {
+        id: "cover-profile",
+        title: "Cover & Profile",
+        description: "Display cover photo and profile information",
+        component: CoverProfileWidget,
+        icon: "user",
+        special: true,
+    },
+    {
+        id: "profile",
+        title: "Profile Card",
+        description: "Display artist profile information",
+        component: ProfileWidget,
+        icon: "user",
+    },
+    {
+        id: "stats",
+        title: "Statistics",
+        description: "Show key performance metrics",
+        component: StatsWidget,
+        icon: "stats",
+    },
+    {
+        id: "recent-posts",
+        title: "Recent Posts",
+        description: "Show your latest posts",
+        component: RecentPostsWidget,
+        icon: "posts",
+    },
+    {
+        id: "nft-gallery",
+        title: "NFT Gallery",
+        description: "Display your NFT collection",
+        component: NFTGalleryWidget,
+        icon: "gallery",
+    },
+    {
+        id: "chart",
+        title: "Analytics Chart",
+        description: "Visualize your data with charts",
+        component: ChartWidget,
+        icon: "chart",
+    },
+    {
+        id: "calendar",
+        title: "Calendar",
+        description: "Schedule and view upcoming events",
+        component: CalendarWidget,
+        icon: "calendar",
+    },
+    {
+        id: "todo",
+        title: "To-Do List",
+        description: "Manage your tasks",
+        component: TodoWidget,
+        icon: "todo",
+    },
+    {
+        id: "custom-html",
+        title: "Custom HTML",
+        description: "Add custom HTML content",
+        component: CustomHTMLWidget,
+        icon: "code",
+    },
+    {
+        id: "music-player",
+        title: "Music Player",
+        description: "Play your music with controls and playlist",
+        component: MusicPlayerWidget,
+        icon: "music",
+    },
+    {
+        id: "tour-dates",
+        title: "Tour Dates",
+        description: "Display upcoming shows and tour information",
+        component: TourDatesWidget,
+        icon: "calendar",
+    },
+    {
+        id: "membership-tiers",
+        title: "Membership Tiers",
+        description: "Showcase membership options for fans",
+        component: MembershipTiersWidget,
+        icon: "users",
+    },
+    {
+        id: "merchandise",
+        title: "Merchandise",
+        description: "Display and sell merchandise to fans",
+        component: MerchandiseWidget,
+        icon: "shopping",
+    },
+    {
+        id: "band-members",
+        title: "Band Members",
+        description: "Introduce the band members to your fans",
+        component: BandMembersWidget,
+        icon: "users",
+    },
+    {
+        id: "video-gallery",
+        title: "Video Gallery",
+        description: "Showcase your music videos and performances",
+        component: VideoGalleryWidget,
+        icon: "video",
+    },
+    {
+        id: "newsletter",
+        title: "Newsletter Signup",
+        description: "Collect email subscriptions from fans",
+        component: NewsletterWidget,
+        icon: "mail",
+    },
+    {
+        id: "lyrics",
+        title: "Lyrics",
+        description: "Share lyrics to your songs",
+        component: LyricsWidget,
+        icon: "file-text",
+    },
+    {
+        id: "fan-community",
+        title: "Fan Community",
+        description: "Engage with your fan community",
+        component: FanCommunityWidget,
+        icon: "users",
+    },
+]
+
+// Map height keys to pixel values
+const HEIGHT_MAP: Record<WidgetHeight, number> = {
+    SS: 100,
+    S: 200,
+    M: 300,
+    L: 450,
+    XL: 600,
+    "2XL": 800,
+    "3XL": 1000,
+    "4XL": 1200,
 }
 
-export default function ArtistDashboard() {
-    const session = useSession()
+export default function DashboardBuilder() {
+    // State variables
+    const [widgets, setWidgets] = useState<WidgetItem[]>(DEFAULT_LAYOUT)
+    const [editMode, setEditMode] = useState(false)
+    const [layoutName, setLayoutName] = useState("My Dashboard")
+    const [layoutId, setLayoutId] = useState("")
+    const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false)
+    const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(true)
+    const [newLayoutName, setNewLayoutName] = useState("")
+    const [makePublic, setMakePublic] = useState(false)
+    const [draggedWidget, setDraggedWidget] = useState<string | null>(null)
+    const [dragOverWidget, setDragOverWidget] = useState<string | null>(null)
+    const [selectedWidgets, setSelectedWidgets] = useState<string[]>([])
+    const [isLayoutSaved, setIsLayoutSaved] = useState(false)
+    const [widgetSearchQuery, setWidgetSearchQuery] = useState("")
+    const [selectionMode, setSelectionMode] = useState(false)
+    const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([])
+    const [isLoading, setIsLoading] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
 
-    const [activeTab, setActiveTab] = useState("posts")
-    const [isEditingProfile, setIsEditingProfile] = useState(false)
-    const [expandedPackage, setExpandedPackage] = useState<number | null>(null)
-    const [showSuccessMessage, setShowSuccessMessage] = useState(false)
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-    const [isScrolled, setIsScrolled] = useState(false)
-    const [scrollProgress, setScrollProgress] = useState(0)
-    const { setIsOpen: setIsPostModalOpen } = useCreatePostModalStore()
-    const { openForCreate, openForEdit } = useAddSubsciptionModalStore()
-    const { setIsOpen: setIsNFTModalOpen } = useNFTCreateModalStore()
+    const [resizingWidget, setResizingWidget] = useState<string | null>(null)
+    const [resizeStartX, setResizeStartX] = useState(0)
+    const [resizeStartY, setResizeStartY] = useState(0)
+    const [resizeStartWidth, setResizeStartWidth] = useState(0)
+    const [resizeStartHeight, setResizeStartHeight] = useState(0)
+    const widgetRefs = useRef<Record<string, HTMLDivElement | null>>({})
+    const groupRefs = useRef<Record<string, HTMLDivElement | null>>({})
+    const dashboardContainerRef = useRef<HTMLDivElement>(null)
 
-    const contentRef = useRef<HTMLDivElement>(null)
+    // Group resizing state
+    const [resizingGroup, setResizingGroup] = useState<GroupResizeState | null>(null)
 
-    // API calls
-    const creator = api.fan.creator.meCreator.useQuery()
-    const subscriptionPackages = api.fan.creator.getCreatorPackages.useQuery()
-    const updateProfileMutation = api.fan.creator.changeCreatorProfilePicture.useMutation({
+    // Add a new state for profile editing mode
+    const [isProfileEditMode, setIsProfileEditMode] = useState(false)
+
+    // Add a state to track if user's layout is loaded
+    const [userLayoutLoaded, setUserLayoutLoaded] = useState(false)
+
+    // Add a window resize listener to handle responsive heights
+    // Add this near the top of the component with other state variables
+    const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200)
+
+    // Add tRPC hooks
+    const utils = api.useUtils()
+    const creator = api.fan.creator.meCreator.useQuery(undefined, {
+        refetchOnWindowFocus: false,
+    })
+    const dashboardsQuery = api.fan.dashboard.getAll.useQuery(undefined, {
+        onSuccess: (data) => {
+            if (data && data.length > 0 && !userLayoutLoaded) {
+                // Find user's last saved layout
+                const userLayouts = data.filter((d) => !d.isDefault)
+                const defaultLayout = data.find((d) => d.isDefault)
+
+                // Transform the data to match the expected format
+                const transformLayout = (layout: (typeof data)[0] | undefined) => {
+                    if (!layout) return undefined
+
+                    return {
+                        id: layout.id,
+                        name: layout.name,
+                        isDefault: layout.isDefault,
+                        isPublic: layout.isPublic,
+                        widgets: layout.widgets.map((widget) => ({
+                            widgetId: widget.widgetId,
+                            size: widget.size as "small" | "medium" | "large",
+                            order: widget.order,
+                            pinned: widget.pinned,
+                            groupId: widget.groupId,
+                            customWidth: widget.customWidth ?? undefined,
+                            settings: widget.settings as Record<string, unknown> | null | undefined,
+                        })),
+                    }
+                }
+
+                // If user has layouts, load the most recent one
+                if (userLayouts.length > 0) {
+                    // Sort by updated date descending
+                    const sortedLayouts = [...userLayouts].sort(
+                        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+                    )
+
+                    const transformedLayout = transformLayout(sortedLayouts[0])
+                    if (transformedLayout) {
+                        loadUserLayout(transformedLayout)
+                        setUserLayoutLoaded(true)
+                    }
+                }
+                // If no user layouts but there's a default layout, load that
+                else if (defaultLayout && !userLayoutLoaded) {
+                    const transformedDefaultLayout = transformLayout(defaultLayout)
+                    if (transformedDefaultLayout) {
+                        loadUserLayout(transformedDefaultLayout)
+                        setUserLayoutLoaded(true)
+                    }
+                }
+
+                // Transform all layouts for the list
+                const transformedLayouts = data.map((dashboard) => ({
+                    id: dashboard.id,
+                    name: dashboard.name,
+                    isDefault: dashboard.isDefault,
+                    isPublic: dashboard.isPublic,
+                    widgets: dashboard.widgets.map((widget) => ({
+                        id: widget.widgetId,
+                        size: widget.size as "small" | "medium" | "large",
+                        order: widget.order,
+                        pinned: widget.pinned,
+                        groupId: widget.groupId ?? undefined,
+                        customWidth: widget.customWidth ?? undefined,
+                        settings: widget.settings as WidgetSettings | undefined,
+                    })),
+                }))
+
+                setSavedLayouts(transformedLayouts)
+            }
+        },
+    })
+
+    // Use mutations for all operations that modify data
+    const dashboardByIdMutation = api.fan.dashboard.getById.useMutation()
+    const saveDashboardMutation = api.fan.dashboard.save.useMutation({
         onSuccess: () => {
-            toast.success("Profile Picture changed successfully")
-            creator.refetch()
+            utils.fan.dashboard.getAll.invalidate()
         },
     })
-    const coverChangeMutation = api.fan.creator.changeCreatorCoverPicture.useMutation({
+    const deleteDashboardMutation = api.fan.dashboard.delete.useMutation({
         onSuccess: () => {
-            toast.success("Cover Changed Successfully")
-            creator.refetch()
-        },
-    })
-    const allCreatedPost = api.fan.post.getPosts.useInfiniteQuery(
-        {
-            pubkey: session.data?.user.id ?? "",
-            limit: 10,
-        },
-        {
-            getNextPageParam: (lastPage) => lastPage.nextCursor,
-
-        },
-    )
-    const creatorNFT = api.marketplace.market.getCreatorNftsByCreatorID.useInfiniteQuery(
-        { limit: 10, creatorId: session.data?.user.id ?? "" },
-        {
-            getNextPageParam: (lastPage) => lastPage.nextCursor,
-        },
-    )
-
-
-    // Profile editing state
-    const [editedProfile, setEditedProfile] = useState({
-        name: creator.data?.name ?? "",
-        bio: creator.data?.bio ?? "",
-        website: creator.data?.website ?? "",
-        twitter: creator.data?.twitter ?? "",
-        instagram: creator.data?.instagram ?? "",
-    })
-
-    const [formErrors, setFormErrors] = useState({
-        name: "",
-        bio: "",
-        website: "",
-        twitter: "",
-        instagram: "",
-    })
-
-    // Update profile info mutation
-    const UpdateCreatorProfileInfo = api.fan.creator.updateCreatorProfileInfo.useMutation({
-        onSuccess: () => {
-            toast.success("Profile Updated Successfully")
-            creator.refetch()
-            setShowSuccessMessage(true)
-            setTimeout(() => setShowSuccessMessage(false), 3000)
-        },
-        onError: (error) => {
-            toast.error(`Error updating profile: ${error.message}`)
+            utils.fan.dashboard.getAll.invalidate()
         },
     })
 
-    // Cancel profile editing
-    const cancelProfileEditing = () => {
-        setEditedProfile({
-            name: creator.data?.name ?? "",
-            bio: creator.data?.bio ?? "",
-            website: creator.data?.website ?? "",
-            twitter: creator.data?.twitter ?? "",
-            instagram: creator.data?.instagram ?? "",
-        })
-        setFormErrors({
-            name: "",
-            bio: "",
-            website: "",
-            twitter: "",
-            instagram: "",
-        })
-        setIsEditingProfile(false)
-    }
+    // Update the loadUserLayout function to ensure default sizes are applied when settings are missing
+    const loadUserLayout = (
+        dashboard:
+            | {
+                id: string
+                name: string
+                widgets: {
+                    widgetId: string
+                    size: "small" | "medium" | "large"
+                    order: number
+                    pinned: boolean
+                    groupId?: string | null
+                    customWidth?: number | null
+                    settings?: Record<string, unknown> | null
+                }[]
+                isDefault: boolean
+                isPublic: boolean
+            }
+            | undefined,
+    ) => {
+        if (!dashboard) return // Early return if dashboard is undefined
 
-    // Save profile changes
-    const saveProfileChanges = () => {
-        setIsEditingProfile(false)
-        UpdateCreatorProfileInfo.mutate({
-            name: editedProfile.name,
-            bio: editedProfile.bio,
-            website: editedProfile.website,
-            twitter: editedProfile.twitter,
-            instagram: editedProfile.instagram,
-        })
-    }
+        try {
+            console.log("Loading user layout:", dashboard.name)
+            console.log(
+                "Widget settings from database:",
+                dashboard.widgets.map((w) => ({
+                    id: w.widgetId,
+                    settings: w.settings,
+                    settingsType: w.settings ? typeof w.settings : "undefined",
+                })),
+            )
 
-    // Toggle package expansion
-    const togglePackageExpansion = (id: number) => {
-        if (expandedPackage === id) {
-            setExpandedPackage(null)
-        } else {
-            setExpandedPackage(id)
+            // Transform the data from Prisma format to our app format
+            const widgetsData: WidgetItem[] = dashboard.widgets.map((widget) => {
+                // Ensure settings is properly handled
+                let processedSettings: WidgetSettings | undefined = undefined
+
+                if (widget.settings) {
+                    // If settings is a string (JSON string), parse it
+                    if (typeof widget.settings === "string") {
+                        try {
+                            processedSettings = JSON.parse(widget.settings) as WidgetSettings
+                        } catch (e) {
+                            console.error(`Error parsing settings for widget ${widget.widgetId}:`, e)
+                            processedSettings = createDefaultWidgetSettings(widget.widgetId)
+                        }
+                    }
+                    // If settings is already an object, use it directly
+                    else if (typeof widget.settings === "object") {
+                        processedSettings = widget.settings as WidgetSettings
+                    }
+                } else {
+                    // If no settings found, create default settings for this widget type
+                    processedSettings = createDefaultWidgetSettings(widget.widgetId)
+                }
+
+                if (!processedSettings?.height) {
+                    processedSettings = processedSettings ?? {}
+                    processedSettings.height = "L" as WidgetHeight
+                }
+
+                if (!processedSettings?.width) {
+                    processedSettings = processedSettings ?? {}
+                    processedSettings.width = "L" as WidgetWidth
+                }
+
+                console.log(`Processed settings for widget ${widget.widgetId}:`, processedSettings)
+
+                return {
+                    id: widget.widgetId,
+                    size: widget.size,
+                    order: widget.order,
+                    pinned: widget.pinned,
+                    groupId: widget.groupId ?? undefined,
+                    customWidth: widget.customWidth ?? undefined,
+                    settings: processedSettings,
+                }
+            })
+
+            console.log("Transformed widgets data:", widgetsData)
+
+            setWidgets(widgetsData)
+            setLayoutName(dashboard.name)
+            setLayoutId(dashboard.id)
+            setIsLayoutSaved(true)
+        } catch (error) {
+            console.error("Error loading user layout:", error)
+            // Silently fail and use default layout
         }
     }
 
-    useEffect(() => {
-        const handleScroll = () => {
-            if (contentRef.current) {
-                const scrollPosition = contentRef.current.scrollTop
-                const scrollThreshold = 100
+    // Replace loadLayout with tRPC version
+    const loadLayout = async (id: string) => {
+        try {
+            setIsLoading(true)
 
-                if (scrollPosition > scrollThreshold) {
-                    setIsScrolled(true)
-                    setScrollProgress(Math.min(1, (scrollPosition - scrollThreshold) / 50))
-                } else {
-                    setIsScrolled(false)
-                    setScrollProgress(0)
+            // Use dashboard query
+            const result = await dashboardByIdMutation.mutateAsync({ id })
+
+            if (result) {
+                // Debug the raw data from the database
+                console.log("Raw dashboard data from database:", result)
+                console.log(
+                    "Raw widget settings from database:",
+                    result.widgets.map((w) => ({ id: w.widgetId, settings: w.settings })),
+                )
+
+                const dashboard = result
+
+                // Transform the data from Prisma format to our app format
+                const widgetsData: WidgetItem[] = dashboard.widgets.map((widget) => {
+                    console.log(`Loading widget ${widget.widgetId} with settings:`, widget.settings)
+
+                    // Process settings, ensuring defaults are applied when missing
+                    let processedSettings: WidgetSettings | undefined = undefined
+
+                    if (widget.settings) {
+                        processedSettings = widget.settings as WidgetSettings
+                    } else {
+                        processedSettings = createDefaultWidgetSettings(widget.widgetId)
+                    }
+
+                    // Ensure height and width are set to defaults if missing
+                    if (!processedSettings.height) {
+                        processedSettings.height = "L" as WidgetHeight
+                    }
+                    if (!processedSettings.width) {
+                        processedSettings.width = "L" as WidgetWidth
+                    }
+
+                    return {
+                        id: widget.widgetId,
+                        size: widget.size as "small" | "medium" | "large",
+                        order: widget.order,
+                        pinned: widget.pinned,
+                        groupId: widget.groupId ?? undefined,
+                        customWidth: widget.customWidth ?? undefined,
+                        settings: processedSettings,
+                    }
+                })
+
+                // Force a re-render of the entire dashboard to ensure settings are applied
+                setTimeout(() => {
+                    console.log("Forcing re-render of dashboard with widgets:", widgetsData)
+                    console.log(
+                        "Widget settings before re-render:",
+                        widgetsData.map((w) => ({ id: w.id, settings: w.settings })),
+                    )
+                    setWidgets([...widgetsData])
+                }, 50)
+
+                // Update current layout instead of creating a new one
+                setWidgets(widgetsData)
+                setLayoutName(dashboard.name)
+                setLayoutId(dashboard.id)
+                setIsLayoutSaved(true)
+                setIsLoadDialogOpen(false)
+
+                // After data is loaded, apply custom widths to DOM elements in the next render cycle
+                setTimeout(() => {
+                    applyGroupWidgetSizes(widgetsData)
+                }, 100)
+
+                toast({
+                    title: "Layout loaded",
+                    description: `Dashboard layout "${dashboard.name}" has been loaded`,
+                })
+            }
+        } catch (error) {
+            console.error("Error loading layout:", error)
+            toast({
+                title: "Error",
+                description: "Failed to load layout. Please try again.",
+                variant: "destructive",
+            })
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    // Replace deleteLayout with tRPC version
+    const deleteLayout = async (id: string) => {
+        try {
+            await deleteDashboardMutation.mutateAsync({ id })
+
+            // Remove from local state
+            setSavedLayouts(savedLayouts.filter((layout) => layout.id !== id))
+
+            // If we deleted the current layout, reset to default
+            if (id === layoutId) {
+                setWidgets(DEFAULT_LAYOUT)
+                setLayoutName("My Dashboard")
+                setLayoutId("")
+                setIsLayoutSaved(false)
+            }
+
+            toast({
+                title: "Layout deleted",
+                description: "The dashboard layout has been deleted",
+            })
+        } catch (error) {
+            console.error("Error deleting layout:", error)
+            toast({
+                title: "Error",
+                description: "Failed to delete layout",
+                variant: "destructive",
+            })
+        }
+    }
+
+    // Replace saveLayout with tRPC version
+    const handleSaveLayout = async () => {
+        if (!newLayoutName.trim()) {
+            toast({
+                title: "Error",
+                description: "Please enter a name for your layout",
+                variant: "destructive",
+            })
+            return
+        }
+
+        try {
+            setIsSaving(true)
+
+            // Log all widget settings before saving
+            console.log("All widget settings before saving:",
+                widgets.map(w => ({
+                    id: w.id,
+                    settings: w.settings
+                }))
+            );
+
+            // Transform the widgets to ensure they match the expected type
+            const transformedWidgets = widgets.map((widget) => {
+                // Create a clean copy of the settings object
+                const settings = widget.settings ? { ...widget.settings } : {};
+
+                // For cover-profile widget, ensure coverHeight is explicitly included
+                if (widget.id === "cover-profile" && widget.settings) {
+                    console.log("Cover-profile widget settings before transform:", widget.settings);
+                    settings.coverHeight = widget.settings.coverHeight ?? 180;
+                    console.log("Cover-profile widget settings after transform:", settings);
+                }
+
+                return {
+                    id: widget.id,
+                    size: widget.size,
+                    order: widget.order,
+                    pinned: widget.pinned ?? false,
+                    groupId: widget.groupId,
+                    customWidth: widget.customWidth,
+                    settings: settings, // Use the direct object reference
+                };
+            });
+
+            // Log the transformed widgets
+            console.log("Transformed widgets for saving:",
+                transformedWidgets.map(w => ({
+                    id: w.id,
+                    settings: w.settings
+                }))
+            );
+
+            const dashboardData = {
+                id: layoutId ?? undefined,
+                name: newLayoutName,
+                widgets: transformedWidgets,
+                isDefault: makePublic,
+                isPublic: makePublic,
+            }
+
+            const result = await saveDashboardMutation.mutateAsync(dashboardData)
+
+            // Update local state
+            setLayoutName(newLayoutName)
+            setLayoutId(result.id)
+            setIsSaveDialogOpen(false)
+            setNewLayoutName("")
+            setMakePublic(false)
+            setIsLayoutSaved(true)
+            setEditMode(false)
+            setSelectionMode(false)
+            setSelectedWidgets([])
+
+            // Refresh the list of saved layouts
+            utils.fan.dashboard.getAll.invalidate()
+
+            toast({
+                title: "Layout saved",
+                description: `Dashboard layout "${newLayoutName}" has been saved${makePublic ? " and set as default for all users" : ""}`,
+            })
+        } catch (error) {
+            console.error("Error saving layout:", error)
+            toast({
+                title: "Error",
+                description: "Failed to save layout",
+                variant: "destructive",
+            })
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+    // Add a function to toggle profile edit mode
+    const toggleProfileEditMode = () => {
+        setIsProfileEditMode(!isProfileEditMode)
+        // If turning on profile edit mode, turn off dashboard edit mode
+        if (!isProfileEditMode && editMode) {
+            setEditMode(false)
+            setSelectionMode(false)
+            setSelectedWidgets([])
+        }
+    }
+
+    // Handle widget resize
+    const handleWidgetResize = (widgetId: string, deltaX: number, deltaY: number) => {
+        const widget = widgets.find((w) => w.id === widgetId)
+        if (!widget) return
+
+        // For widgets in a group, adjust proportions
+        if (widget.groupId) {
+            const groupWidgets = widgets.filter((w) => w.groupId === widget.groupId)
+            const groupContainer = document.querySelector(`[data-group-id="${widget.groupId}"]`)
+
+            if (groupContainer) {
+                const containerWidth = groupContainer.clientWidth
+                const widgetEl = widgetRefs.current[widgetId]
+
+                if (widgetEl) {
+                    // Calculate new width as percentage of container
+                    const currentWidth = widgetEl.offsetWidth
+                    const newWidth = Math.max(100, currentWidth + deltaX)
+                    const widthPercent = (newWidth / containerWidth) * 100
+
+                    // Update DOM for smooth resizing
+                    widgetEl.style.width = `${widthPercent}%`
+
+                    // Adjust other widgets in the group
+                    const totalOtherWidgets = groupWidgets.length - 1
+                    if (totalOtherWidgets > 0) {
+                        const otherWidgetsCurrentWidth = 100 - widthPercent
+                        const widthPerOtherWidget = otherWidgetsCurrentWidth / totalOtherWidgets
+
+                        groupWidgets.forEach((w) => {
+                            if (w.id !== widgetId) {
+                                const el = document.querySelector(`[data-widget-id="${w.id}"]`)
+                                if (el) {
+                                    ; (el as HTMLElement).style.width = `${widthPerOtherWidget}%`
+                                }
+                            }
+                        })
+                    }
                 }
             }
         }
+        // For individual widgets, adjust height and width
+        else {
+            const widgetEl = widgetRefs.current[widgetId]
+            if (widgetEl) {
+                // Get current height and width from settings or default
+                const currentHeight = (widget.settings?.height as WidgetHeight) ?? "M"
+                const currentWidth = (widget.settings?.width as WidgetWidth) ?? "M"
 
-        // Add event listener to the content div instead of window
-        const currentContentRef = contentRef.current
-        if (currentContentRef) {
-            currentContentRef.addEventListener("scroll", handleScroll)
+                // Calculate new height
+                const currentHeightPx = widgetEl.offsetHeight
+                const newHeight = Math.max(100, currentHeightPx + deltaY)
+
+                // Find closest height preset
+                let newHeightKey: WidgetHeight = "M"
+                if (newHeight < 150) newHeightKey = "SS"
+                else if (newHeight < 250) newHeightKey = "S"
+                else if (newHeight < 350) newHeightKey = "M"
+                else if (newHeight < 500) newHeightKey = "L"
+                else if (newHeight < 700) newHeightKey = "XL"
+                else if (newHeight < 900) newHeightKey = "2XL"
+                else if (newHeight < 1100) newHeightKey = "3XL"
+                else newHeightKey = "4XL"
+
+                // Calculate new width if deltaX is significant
+                let newWidthKey = currentWidth
+                if (Math.abs(deltaX) > 50) {
+                    const containerWidth = widgetEl.parentElement?.parentElement?.offsetWidth ?? 1200
+                    const currentWidthPx = widgetEl.offsetWidth
+                    const newWidth = Math.max(200, currentWidthPx + deltaX)
+                    const widthRatio = newWidth / containerWidth
+
+                    if (widthRatio <= 0.2) newWidthKey = "SS"
+                    else if (widthRatio <= 0.3) newWidthKey = "S"
+                    else if (widthRatio <= 0.4) newWidthKey = "M"
+                    else if (widthRatio <= 0.55) newWidthKey = "L"
+                    else if (widthRatio <= 0.7) newWidthKey = "XL"
+                    else if (widthRatio <= 0.8) newWidthKey = "2XL"
+                    else if (widthRatio <= 0.9) newWidthKey = "3XL"
+                    else newWidthKey = "4XL"
+                }
+
+                // Update widget element for smooth resizing
+                widgetEl.style.height = `${newHeight}px`
+
+                // Store the new height and width settings if they changed
+                if (currentHeight !== newHeightKey || currentWidth !== newWidthKey) {
+                    setWidgets(
+                        widgets.map((w) => {
+                            if (w.id === widgetId) {
+                                return {
+                                    ...w,
+                                    settings: {
+                                        ...w.settings,
+                                        height: newHeightKey,
+                                        width: newWidthKey,
+                                    },
+                                }
+                            }
+                            return w
+                        }),
+                    )
+                }
+            }
+        }
+    }
+
+    // Handle widget resize end
+    const handleWidgetResizeEnd = (widgetId: string) => {
+        const widget = widgets.find((w) => w.id === widgetId)
+        if (!widget) return
+
+        // For widgets in a group, save the new proportions
+        if (widget.groupId) {
+            const groupWidgets = widgets.filter((w) => w.groupId === widget.groupId)
+            const finalWidths: number[] = []
+
+            groupWidgets.forEach((w) => {
+                const el = document.querySelector(`[data-widget-id="${w.id}"]`)
+                if (el) {
+                    const style = window.getComputedStyle(el)
+                    const widthStr = style.width
+                    let width = 0
+
+                    if (widthStr.endsWith("%")) {
+                        width = Number.parseFloat(widthStr)
+                    } else {
+                        const groupContainer = document.querySelector(`[data-group-id="${w.groupId}"]`)
+                        const containerWidth = groupContainer?.clientWidth ?? 1
+                        width = (Number.parseFloat(widthStr) / containerWidth) * 100
+                    }
+
+                    finalWidths.push(width)
+                } else {
+                    finalWidths.push(w.customWidth ?? 100 / groupWidgets.length)
+                }
+            })
+
+            // Update widgets with new widths
+            setWidgets(
+                widgets.map((w) => {
+                    const index = groupWidgets.findIndex((gw) => gw.id === w.id)
+                    if (index !== -1) {
+                        return {
+                            ...w,
+                            customWidth: Number.parseFloat((finalWidths[index] ?? 0).toFixed(2)),
+                        }
+                    }
+                    return w
+                }),
+            )
         }
 
-        // Clean up
-        return () => {
-            if (currentContentRef) {
-                currentContentRef.removeEventListener("scroll", handleScroll)
+        // Reset inline styles
+        const widgetEl = widgetRefs.current[widgetId]
+        if (widgetEl && !widget.groupId) {
+            // For cover-profile, maintain the height to avoid flicker
+            if (widget.id !== "cover-profile") {
+                widgetEl.style.height = ""
             }
+        }
+    }
+
+    // Handle group resizing
+    const handleGroupResizeStart = (e: React.MouseEvent, groupId: string, dividerIndex: number) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        if (!editMode) return
+
+        const groupContainer = groupRefs.current[groupId]
+        if (!groupContainer) return
+
+        // Get all widgets in this group
+        const groupWidgets = widgets.filter((w) => w.groupId === groupId)
+
+        // Get their current widths
+        const initialWidths = groupWidgets.map((w) => w.customWidth ?? 100 / groupWidgets.length)
+
+        setResizingGroup({
+            groupId,
+            dividerIndex,
+            startX: e.clientX,
+            initialWidths,
+        })
+
+        document.addEventListener("mousemove", handleGroupResizeMove)
+        document.addEventListener("mouseup", handleGroupResizeEnd)
+    }
+
+    const handleGroupResizeMove = (e: MouseEvent) => {
+        if (!resizingGroup) return
+
+        const { groupId, dividerIndex, startX, initialWidths } = resizingGroup
+
+        const groupContainer = groupRefs.current[groupId]
+        if (!groupContainer) return
+
+        const containerWidth = groupContainer.offsetWidth
+        const deltaX = e.clientX - startX
+        const deltaPercent = (deltaX / containerWidth) * 100
+
+        // Get all widgets in this group
+        const groupWidgets = widgets.filter((w) => w.groupId === groupId)
+
+        // Create a copy of the initial widths
+        const newWidths = [...initialWidths]
+
+        // Ensure we have valid indices
+        if (dividerIndex < 0 || dividerIndex >= newWidths.length - 1) return
+
+        // Adjust the widths of the widgets on either side of the divider
+        // Ensure minimum width of 10% and maximum of 90%
+        newWidths[dividerIndex] = Math.min(Math.max((initialWidths[dividerIndex] ?? 0) + deltaPercent, 10), 90)
+        newWidths[dividerIndex + 1] = Math.min(Math.max((initialWidths[dividerIndex + 1] ?? 0) - deltaPercent, 10), 90)
+
+        // Update the DOM for smooth resizing
+        const widgetElements = groupWidgets.map((w) => document.querySelector(`[data-widget-id="${w.id}"]`))
+
+        widgetElements.forEach((el, i) => {
+            if (el) {
+                el.setAttribute("style", `width: ${newWidths[i]}%`)
+            }
+        })
+    }
+
+    const handleGroupResizeEnd = () => {
+        if (!resizingGroup) return
+
+        const { groupId } = resizingGroup
+
+        // Get all widgets in this group
+        const groupWidgets = widgets.filter((w) => w.groupId === groupId)
+
+        // Get their final widths from the DOM
+        const finalWidths: number[] = []
+
+        groupWidgets.forEach((widget) => {
+            const el = document.querySelector(`[data-widget-id="${widget.id}"]`)
+            if (el) {
+                const style = window.getComputedStyle(el)
+                const widthStr = style.width
+                const containerWidth = groupRefs.current[groupId]?.offsetWidth ?? 1
+
+                // Convert width to percentage
+                let width = 0
+                if (widthStr.endsWith("%")) {
+                    width = Number.parseFloat(widthStr)
+                } else {
+                    width = (Number.parseFloat(widthStr) / containerWidth) * 100
+                }
+
+                finalWidths.push(width)
+            }
+        })
+
+        // Update the widgets with their new widths - ensure we're capturing precise values
+        setWidgets(
+            widgets.map((widget) => {
+                const index = groupWidgets.findIndex((w) => w.id === widget.id)
+                if (index !== -1) {
+                    return finalWidths[index] !== undefined
+                        ? { ...widget, customWidth: Number.parseFloat(finalWidths[index].toFixed(2)) }
+                        : widget
+                }
+                return widget
+            }),
+        )
+
+        setResizingGroup(null)
+        document.removeEventListener("mousemove", handleGroupResizeMove)
+        document.removeEventListener("mouseup", handleGroupResizeEnd)
+    }
+
+    const handleResizeMove = (e: MouseEvent) => {
+        if (!resizingWidget) return
+
+        const deltaX = e.clientX - resizeStartX
+        const deltaY = e.clientY - resizeStartY
+
+        handleWidgetResize(resizingWidget, deltaX, deltaY)
+    }
+
+    const handleResizeEnd = () => {
+        if (!resizingWidget) return
+
+        handleWidgetResizeEnd(resizingWidget)
+        setResizingWidget(null)
+
+        document.removeEventListener("mousemove", handleResizeMove)
+        document.removeEventListener("mouseup", handleResizeEnd)
+    }
+
+    useEffect(() => {
+        return () => {
+            document.removeEventListener("mousemove", handleResizeMove)
+            document.removeEventListener("mouseup", handleResizeEnd)
+            document.removeEventListener("mousemove", handleGroupResizeMove)
+            document.removeEventListener("mouseup", handleGroupResizeEnd)
         }
     }, [])
 
-    // Toggle sidebar on mobile
-    const toggleSidebar = () => {
-        setIsSidebarOpen(!isSidebarOpen)
+    useEffect(() => {
+        // Load active layout from localStorage
+        const loadActiveLayout = () => {
+            try {
+                const activeLayoutData = localStorage.getItem("active-dashboard-layout")
+                if (activeLayoutData) {
+                    const { widgets, name } = JSON.parse(activeLayoutData) as {
+                        widgets: WidgetItem[]
+                        name: string
+                    }
+                    setWidgets(widgets)
+                    setLayoutName(name)
+                    setIsLayoutSaved(true)
+                }
+            } catch (error) {
+                console.error("Error loading active layout:", error)
+            }
+        }
+
+        loadActiveLayout()
+    }, [])
+
+    // Add a useEffect to log the widgets state whenever it changes
+    useEffect(() => {
+        console.log("Widgets state updated:", widgets)
+        console.log(
+            "Widget settings in state:",
+            widgets.map((w) => ({ id: w.id, settings: w.settings })),
+        )
+    }, [widgets])
+
+    // Add this useEffect to handle window resizing
+    useEffect(() => {
+        const handleResize = () => {
+            setWindowWidth(window.innerWidth)
+        }
+
+        window.addEventListener("resize", handleResize)
+        return () => {
+            window.removeEventListener("resize", handleResize)
+        }
+    }, [])
+
+    // Update the addWidget function to ensure default settings are applied
+    const addWidget = (widgetId: string) => {
+        if (widgets.some((w) => w.id === widgetId)) {
+            toast({
+                title: "Widget already added",
+                description: "This widget is already on your dashboard",
+            })
+            return
+        }
+
+        const widgetToAdd = AVAILABLE_WIDGETS.find((w) => w.id === widgetId)
+        if (!widgetToAdd) return
+
+        // Create default settings for this widget type
+        const defaultSettings = createDefaultWidgetSettings(widgetId)
+
+        // Add the widget to the end of the list
+        const newWidget: WidgetItem = {
+            id: widgetId,
+            size: "large", // Changed from "medium" to "large" for consistency
+            order: widgets.length + 1,
+            pinned: widgetId === "cover-profile", // Pin the cover-profile widget
+            settings: defaultSettings,
+        }
+
+        setWidgets([...widgets, newWidget])
+
+        toast({
+            title: "Widget added",
+            description: `${widgetToAdd.title} has been added to your dashboard`,
+        })
     }
 
-    if (creator.isLoading) {
-        return <ArtistDashboardSkeleton />
+    const removeWidget = (widgetId: string) => {
+        // Don't allow removing pinned widgets
+        if (widgets.find((w) => w.id === widgetId)?.pinned) {
+            toast({
+                title: "Cannot remove",
+                description: "This widget is required and cannot be removed",
+                variant: "destructive",
+            })
+
+            return
+        }
+
+        const updatedWidgets = widgets.filter((w) => w.id !== widgetId)
+
+        // Reorder the remaining widgets
+        const reorderedWidgets = updatedWidgets.map((w, index) => ({
+            ...w,
+            order: index + 1,
+        }))
+
+        setWidgets(reorderedWidgets)
+        setSelectedWidgets(selectedWidgets.filter((id) => id !== widgetId))
+
+        toast({
+            title: "Widget removed",
+            description: "The widget has been removed from your dashboard",
+        })
     }
 
-    if (!creator.data) {
-        return <NotFound />
+    // Update widget size with specific values
+    const updateWidgetSize = (widgetId: string, dimension: "height" | "width", value: WidgetHeight | WidgetWidth) => {
+        setWidgets(
+            widgets.map((widget) => {
+                if (widget.id === widgetId) {
+                    const settings = widget.settings ?? {}
+
+                    if (dimension === "height") {
+                        return {
+                            ...widget,
+                            settings: {
+                                ...settings,
+                                height: value as WidgetHeight,
+                            },
+                        }
+                    } else {
+                        return {
+                            ...widget,
+                            settings: {
+                                ...settings,
+                                width: value as WidgetWidth,
+                            },
+                        }
+                    }
+                }
+                return widget
+            }),
+        )
     }
+
+    // Toggle selection mode
+    const toggleSelectionMode = () => {
+        setSelectionMode(!selectionMode)
+        if (!selectionMode) {
+            toast({
+                title: "Selection Mode Activated",
+                description: "Click on widgets to select them for grouping",
+            })
+        } else {
+            setSelectedWidgets([])
+        }
+    }
+
+    // Widget selection handling
+    const toggleWidgetSelection = (widgetId: string, e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation()
+            e.preventDefault()
+        }
+
+        if (!selectionMode) return
+
+        if (selectedWidgets.includes(widgetId)) {
+            setSelectedWidgets(selectedWidgets.filter((id) => id !== widgetId))
+        } else {
+            // Don't allow selecting pinned widgets
+            if (widgets.find((w) => w.id === widgetId)?.pinned) {
+                toast({
+                    title: "Cannot select",
+                    description: "Pinned widgets cannot be grouped",
+                    variant: "destructive",
+                })
+                return
+            }
+
+            // Don't allow selecting widgets that are already in a group
+            if (widgets.find((w) => w.id === widgetId)?.groupId) {
+                toast({
+                    title: "Cannot select",
+                    description: "Widgets that are already in a group cannot be selected",
+                })
+                return
+            }
+
+            setSelectedWidgets([...selectedWidgets, widgetId])
+        }
+    }
+
+    // Group selected widgets
+    const groupSelectedWidgets = () => {
+        if (selectedWidgets.length < 2) {
+            toast({
+                title: "Cannot group",
+                description: "Select at least two widgets to group them together",
+                variant: "destructive",
+            })
+            return
+        }
+
+        // Check if any selected widget is pinned
+        const hasPinnedWidget = widgets.some((w) => selectedWidgets.includes(w.id) && w.pinned)
+        if (hasPinnedWidget) {
+            toast({
+                title: "Cannot group",
+                description: "Pinned widgets cannot be grouped",
+                variant: "destructive",
+            })
+            return
+        }
+
+        // Create a new group ID
+        const groupId = generateGroupId()
+
+        // Calculate equal widths for each widget in the group
+        const widgetCount = selectedWidgets.length
+        const equalProportion = 1 / widgetCount
+
+        // Update widgets with the new group ID and custom widths
+        const updatedWidgets = widgets.map((widget) => {
+            if (selectedWidgets.includes(widget.id)) {
+                return {
+                    ...widget,
+                    groupId,
+                    customWidth: equalProportion * 100, // Set initial equal widths as percent
+                }
+            }
+            return widget
+        })
+
+        setWidgets(updatedWidgets)
+        setSelectedWidgets([])
+        setSelectionMode(false)
+
+        // Add this to the groupSelectedWidgets function, right before the toast
+        const proportionText =
+            selectedWidgets.length === 2
+                ? "50/50"
+                : selectedWidgets.length === 3
+                    ? "33/33/34"
+                    : `${Math.floor(100 / selectedWidgets.length)}% each`
+
+        toast({
+            title: "Widgets grouped",
+            description: `The selected widgets have been grouped with proportions: ${proportionText}. You can resize them or set specific proportions.`,
+        })
+    }
+
+    // Ungroup widgets
+    const ungroupWidgets = (groupId: string) => {
+        const updatedWidgets = widgets.map((widget) => {
+            if (widget.groupId === groupId) {
+                // Create a new object without the groupId and customWidth properties
+                const { groupId, customWidth, ...rest } = widget
+                return rest
+            }
+            return widget
+        })
+
+        setWidgets(updatedWidgets)
+        setSelectedWidgets([])
+
+        toast({
+            title: "Widgets ungrouped",
+            description: "The widgets have been ungrouped",
+        })
+    }
+
+    // Update the setGroupWidgetProportions function to work with arrays
+    const setGroupWidgetProportions = (groupId: string, proportions: number[]) => {
+        // Get all widgets in this group
+        const groupWidgets = widgets.filter((w) => w.groupId === groupId)
+
+        // Validate that we have the right number of values
+        if (proportions.length !== groupWidgets.length) {
+            toast({
+                title: "Invalid proportions",
+                description: `Please provide ${groupWidgets.length} values for the group`,
+                variant: "destructive",
+            })
+            return
+        }
+
+        // Validate that values sum to 1 (or close to it due to floating point)
+        const sum = proportions.reduce((a, b) => a + b, 0)
+        if (Math.abs(sum - 1) > 0.01) {
+            // Normalize the values to sum to 1
+            proportions = proportions.map((p) => p / sum)
+        }
+
+        // Update the widgets with the new proportions
+        setWidgets(
+            widgets.map((widget) => {
+                const groupIndex = groupWidgets.findIndex((w) => w.id === widget.id)
+                if (groupIndex !== -1) {
+                    return {
+                        ...widget,
+                        customWidth: (proportions[groupIndex] ?? 0) * 100, // Convert to percentage
+                    }
+                }
+                return widget
+            }),
+        )
+
+        toast({
+            title: "Proportions updated",
+            description: "Widget proportions have been updated",
+        })
+    }
+
+    // Drag and drop handlers
+    const handleDragStart = (e: React.DragEvent, widgetId: string) => {
+        if (!editMode || selectionMode) return
+
+        if (widgetId === "cover-profile") {
+            e.preventDefault()
+            return
+        }
+
+        // Don't allow dragging pinned widgets
+        if (widgets.find((w) => w.id === widgetId)?.pinned) {
+            e.preventDefault()
+            return
+        }
+
+        setDraggedWidget(widgetId)
+        e.dataTransfer.setData("text/plain", widgetId)
+        // For better drag preview
+        if (e.target instanceof HTMLElement) {
+            e.dataTransfer.setDragImage(e.target, 20, 20)
+        }
+    }
+
+    const handleDragOver = (e: React.DragEvent, widgetId: string) => {
+        if (!editMode || selectionMode || !draggedWidget || draggedWidget === widgetId) return
+
+        // Don't allow dropping before pinned widgets
+        if (widgets.find((w) => w.id === widgetId)?.pinned) {
+            return
+        }
+
+        e.preventDefault()
+        setDragOverWidget(widgetId)
+    }
+
+    const handleDrop = (e: React.DragEvent, targetWidgetId: string) => {
+        if (!editMode || selectionMode || !draggedWidget) return
+        e.preventDefault()
+
+        // Don't allow dropping before pinned widgets
+        if (widgets.find((w) => w.id === targetWidgetId)?.pinned) {
+            return
+        }
+
+        // Find the indices of the dragged and target widgets
+        const draggedIndex = widgets.findIndex((w) => w.id === draggedWidget)
+        const targetIndex = widgets.findIndex((w) => w.id === targetWidgetId)
+
+        if (draggedIndex === -1 || targetIndex === -1) return
+
+        // Create a new array with the reordered widgets
+        const newWidgets = [...widgets]
+        const [removed] = newWidgets.splice(draggedIndex, 1)
+        if (removed) {
+            newWidgets.splice(targetIndex, 0, removed)
+        }
+
+        // Update the order property
+        const reorderedWidgets = newWidgets.map((w, index) => ({
+            ...w,
+            order: index + 1,
+        }))
+
+        setWidgets(reorderedWidgets)
+        setDraggedWidget(null)
+        setDragOverWidget(null)
+    }
+
+    const handleDragEnd = () => {
+        setDraggedWidget(null)
+        setDragOverWidget(null)
+    }
+    // Helper functions for resize start and end
+    const startResize = () => {
+        document.body.classList.add("resizing")
+    }
+
+    const endResize = () => {
+        document.body.classList.remove("resizing")
+    }
+    // Add a helper function to apply group widget sizes
+    const applyGroupWidgetSizes = (widgetsToApply = widgets) => {
+        // Get all unique group IDs
+        const groupIds = [...new Set(widgetsToApply.filter((w) => w.groupId).map((w) => w.groupId))]
+
+        // For each group, apply the custom widths
+        groupIds.forEach((groupId) => {
+            if (!groupId) return
+
+            const groupWidgets = widgetsToApply.filter((w) => w.groupId === groupId)
+
+            // Don't apply custom widths if we're in column layout mode
+            if (shouldUseColumnLayout(windowWidth)) {
+                groupWidgets.forEach((widget) => {
+                    const el = document.querySelector(`[data-widget-id="${widget.id}"]`)
+                    if (el) {
+                        ; (el as HTMLElement).style.width = "100%"
+                    }
+                })
+                return
+            }
+
+            groupWidgets.forEach((widget) => {
+                if (widget.customWidth) {
+                    const el = document.querySelector(`[data-widget-id="${widget.id}"]`)
+                    if (el) {
+                        ; (el as HTMLElement).style.width = `${widget.customWidth}%`
+                    }
+                }
+            })
+        })
+    }
+
+    // Apply custom widths whenever widgets change
+    useEffect(() => {
+        // Apply custom widths for group widgets after a short delay to ensure DOM is ready
+        const timer = setTimeout(() => {
+            applyGroupWidgetSizes()
+        }, 100)
+
+        return () => clearTimeout(timer)
+    }, [widgets])
+
+    // Render widget content
+    const renderWidgetContent = (widgetId: string) => {
+        const widgetDefinition = AVAILABLE_WIDGETS.find((w) => w.id === widgetId)
+        if (!widgetDefinition) return null
+
+        const WidgetComponent = widgetDefinition.component
+        const widget = widgets.find((w) => w.id === widgetId)
+
+        // Debug the widget and its settings
+        console.log(`Rendering widget ${widgetId}:`, widget)
+
+        const widgetSettings = widget?.settings ?? {}
+        console.log(`Widget settings for ${widgetId}:`, widgetSettings)
+
+        // Pass showDefaultValues prop when in edit mode
+        const commonProps = {
+            editMode,
+            profileEditMode: isProfileEditMode,
+            onDragOver: (e: React.DragEvent) => handleDragOver(e, widgetId),
+            onDragEnter: (e: React.DragEvent) => setDragOverWidget(widgetId),
+            onDragLeave: (e: React.DragEvent) => setDragOverWidget(null),
+            onDrop: (e: React.DragEvent) => handleDrop(e, widgetId),
+            widgetId,
+            settings: widgetSettings,
+            creatorData: creator.data as CreatorWithPageAsset,
+            setProfileEditMode: toggleProfileEditMode,
+            showDefaultValues: editMode, // Add this prop to show default values in edit mode
+        }
+
+        // Find the renderWidgetContent function and update the CoverProfileWidget section
+        if (widgetId === "cover-profile") {
+            const settingsKey = JSON.stringify(widgetSettings ?? {});
+            console.log(`CoverProfileWidget settings key: ${settingsKey}`);
+            console.log("Current cover-profile widget settings:", widgetSettings);
+
+            return (
+                <WidgetComponent
+                    key={`cover-profile-${settingsKey}`}
+                    {...commonProps}
+                    onSettingsChange={(newSettings) => {
+                        // Prevent unnecessary updates by comparing with current settings
+                        const currentSettings = widget?.settings ?? {};
+
+                        console.log("Cover-profile settings change requested:", newSettings);
+                        console.log("Current cover-profile settings:", currentSettings);
+
+                        // Ensure we preserve height and width settings
+                        const updatedSettings = {
+                            ...currentSettings,
+                            ...newSettings,
+                            height: newSettings.height ?? currentSettings.height ?? "L",
+                            width: newSettings.width ?? currentSettings.width ?? "L",
+                            // Explicitly include coverHeight to ensure it's saved
+                            coverHeight: newSettings.coverHeight ?? currentSettings.coverHeight ?? 180,
+                        };
+
+                        console.log("Final updated settings to be saved:", updatedSettings);
+
+                        setWidgets(
+                            widgets.map((w) => {
+                                if (w.id === widgetId) {
+                                    console.log(`Updating widget ${widgetId} with settings:`, updatedSettings);
+                                    return { ...w, settings: updatedSettings };
+                                }
+                                return w;
+                            })
+                        );
+                    }}
+                />
+            );
+        }
+
+        // Add a key prop to force re-render when settings change
+        return (
+            <WidgetComponent
+                key={`${widgetId}-${JSON.stringify(widgetSettings)}`}
+                {...commonProps}
+                onSettingsChange={(newSettings) => {
+                    // Prevent unnecessary updates by comparing with current settings
+                    const currentSettings = widget?.settings ?? {}
+
+                    console.log("Settings change requested:", newSettings)
+                    console.log("Current settings:", currentSettings)
+
+                    setWidgets(
+                        widgets.map((w) => {
+                            if (w.id === widgetId) {
+                                return { ...w, settings: { ...currentSettings, ...newSettings } }
+                            }
+                            return w
+                        }),
+                    )
+                }}
+            />
+        )
+    }
+
+    // Toggle edit mode
+    const toggleEditMode = () => {
+        setEditMode(!editMode)
+        if (!editMode) {
+            setSelectionMode(false)
+            setSelectedWidgets([])
+        }
+    }
+
+    // Filter widgets for search
+    const filteredWidgets = (widgets: typeof AVAILABLE_WIDGETS) => {
+        if (!widgetSearchQuery) return widgets
+        return widgets.filter(
+            (widget) =>
+                widget.title.toLowerCase().includes(widgetSearchQuery.toLowerCase()) ??
+                widget.description.toLowerCase().includes(widgetSearchQuery.toLowerCase()),
+        )
+    }
+
+    // Fix for the referee pattern to avoid creating functions in render
+    const setWidgetRef = (el: HTMLDivElement | null, id: string): void => {
+        widgetRefs.current[id] = el
+    }
+
+    const setGroupRef = (el: HTMLDivElement | null, id: string): void => {
+        groupRefs.current[id] = el
+    }
+
+    // Group widgets by row for full-width handling
+    const getWidgetRows = () => {
+        const sortedWidgets = [...widgets].sort((a, b) => a.order - b.order)
+
+        // First, handle the pinned widgets (they always go at the top)
+        const pinnedWidgets = sortedWidgets.filter((w) => w.pinned)
+        const unpinnedWidgets = sortedWidgets.filter((w) => !w.pinned)
+
+        // Group widgets by their groupId
+        const groupedWidgets: Record<string, WidgetItem[]> = {}
+
+        unpinnedWidgets.forEach((widget) => {
+            if (widget.groupId) {
+                if (!groupedWidgets[widget.groupId]) {
+                    groupedWidgets[widget.groupId] = []
+                }
+                groupedWidgets[widget.groupId]?.push(widget)
+            }
+        })
+
+        // Process unpinned widgets to determine rows
+        let currentRow: (WidgetItem | WidgetItem[])[] = []
+        const rows: (WidgetItem | WidgetItem[])[][] = []
+
+        // Add pinned widgets as their own rows
+        pinnedWidgets.forEach((widget) => {
+            rows.push([widget])
+        })
+
+        // Process remaining widgets
+        let currentRowWidth = 0
+        const maxRowWidth = 12 // 12-column grid
+
+        unpinnedWidgets.forEach((widget) => {
+            // Skip widgets that are part of a group (we'll handle them separately)
+            if (widget.groupId && groupedWidgets[widget.groupId]) {
+                // Only process the first widget of each group to avoid duplicates
+                if (groupedWidgets[widget.groupId]?.[0]?.id !== widget.id) {
+                    return
+                }
+
+                // Calculate the total width of the group
+                const groupWidgets = groupedWidgets[widget.groupId]
+                const groupWidth = 12 // Groups always take full width
+
+                // If this group would exceed row width, start a new row
+                if (currentRowWidth + groupWidth > maxRowWidth && currentRow.length > 0) {
+                    rows.push([...currentRow])
+                    currentRow = []
+                    currentRowWidth = 0
+                }
+
+                // Add the group to the current row
+                currentRow.push(groupWidgets ?? [])
+                currentRowWidth += groupWidth
+
+                // Remove these widgets from groupedWidgets to mark them as processed
+                delete groupedWidgets[widget.groupId]
+            } else if (!widget.groupId) {
+                // Handle individual widgets
+                const widthKey = (widget.settings?.width as WidgetWidth) ?? "L"
+                // Get grid span directly from the utility function to ensure consistency
+                const widgetWidth = getGridSpan(widthKey)
+
+                // If this widget would exceed row width, start a new row
+                if (currentRowWidth + widgetWidth > maxRowWidth && currentRow.length > 0) {
+                    rows.push([...currentRow])
+                    currentRow = []
+                    currentRowWidth = 0
+                }
+
+                // Add widget to current row
+                currentRow.push(widget)
+                currentRowWidth += widgetWidth
+            }
+        })
+
+        // Add the last row if it has widgets
+        if (currentRow.length > 0) {
+            rows.push(currentRow)
+        }
+
+        return rows
+    }
+
+    const widgetRows = getWidgetRows()
+    if (creator.isLoading) return <Loading />
+    if (!creator.data) return <NotFound />
 
     return (
-        <div className="flex flex-col h-screen  bg-background">
-            {/* Success Message */}
-            {showSuccessMessage && (
-                <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5" />
-                    <span>Profile updated successfully!</span>
-                </div>
-            )}
-
-            {/* Header with Cover Image */}
-            <div className="w-full  relative transition-all duration-500"
-                style={{
-                    height: isScrolled ? "0px" : "200px",
-
-                }}
-            >
-                <div className="relative w-full h-full">
-                    <Image
-                        src={
-                            creator.data.coverUrl?.length === 0 || creator.data.coverUrl === null
-                                ? "/placeholder.svg?height=400&width=1200"
-                                : creator.data.coverUrl
-                        }
-                        alt={`${creator.data.name}'s cover`}
-                        fill
-                        className="object-cover"
-                        priority
-                    />
-
-
-                    {/* Mobile Menu Button */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 left-2 md:hidden z-20 text-white hover:bg-background/20"
-                        onClick={toggleSidebar}
-                    >
-                        <ArrowDownFromLine className="h-5 w-5" />
-                    </Button>
-
-                    {/* Edit Profile Button - Only visible when not editing */}
-                    {!isEditingProfile ? (
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            className="absolute top-4 right-4 gap-1"
-                            onClick={() => setIsEditingProfile(true)}
-                        >
-                            <Edit className="h-4 w-4" />
-                            <span className="hidden sm:inline">Edit Profile</span>
-                        </Button>
-                    ) : (
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            className="absolute bottom-4 right-4 gap-1"
-                            disabled={coverChangeMutation.isLoading}
-                            onClick={() => document.getElementById("cover-upload")?.click()}
-                        >
-                            <Camera className="h-4 w-4" />
-                            <span className="hidden sm:inline">Change Cover</span>
-                        </Button>
-                    )}
-
-                    {isEditingProfile && (
-                        <UploadS3Button
-                            endpoint="coverUploader"
-                            variant="hidden"
-                            id="cover-upload"
-                            onClientUploadComplete={(res) => {
-                                const fileUrl = res.url
-                                coverChangeMutation.mutate(fileUrl)
-                            }}
-                            onUploadError={(error: Error) => {
-                                toast.error(`ERROR! ${error.message}`)
-                            }}
-                        />
+        <div ref={dashboardContainerRef} className="flex flex-col h-full">
+            {/* Simplified Toolbar */}
+            <div className="border-b p-2 flex items-center justify-between">
+                <div className="flex items-center">
+                    <h2 className="text-xl font-bold mr-4">{layoutName}</h2>
+                    {isLayoutSaved && (
+                        <span className="text-xs text-muted-foreground">{makePublic ? "Public" : "Private"} Dashboard</span>
                     )}
                 </div>
-                <header
-                    className={cn(
-                        "absolute top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-primary/20 shadow-md h-14 transition-all duration-500 flex items-center justify-between px-4",
-                        isScrolled ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0",
-                    )}
-                    style={{
-                        transform: isScrolled ? `translateY(0)` : `translateY(-100%)`,
-                        opacity: scrollProgress,
-                    }}
-                >
-                    <div className="flex items-center gap-3">
-                        <CustomAvatar url={creator.data.profileUrl} className="h-9 w-9 border-2 border-background" />
-                        <div className="flex flex-col">
-                            <span className="font-semibold text-sm flex items-center gap-1">
-                                {creator.data.name}
-                                {creator.data.approved && <CheckCircle2 className="h-3 w-3 " />}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                                {isEditingProfile ? "Editing Profile" : "Artist Dashboard"}
-                            </span>
+
+                <div className="flex items-center space-x-2">
+                    {!editMode && !isProfileEditMode ? (
+                        <div className="flex items-center gap-2">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button size="sm" variant="outline" onClick={toggleEditMode}>
+                                            <Edit className="h-4 w-4 mr-2" />
+                                            Customize Dashboard
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Rearrange widgets and customize your dashboard layout</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button size="sm" variant="outline" onClick={toggleProfileEditMode}>
+                                            <User className="h-4 w-4 mr-2" />
+                                            Edit Profile
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Update your profile information, cover image, and profile picture</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
-                    </div>
-                    {isEditingProfile ? (
-                        <div className="flex items-center gap-2 mb-8">
-                            <Button variant="outline" size="sm" className="gap-1" onClick={cancelProfileEditing}>
-                                <X className="h-3 w-3" />
-                                <span>Cancel</span>
+                    ) : isProfileEditMode ? (
+                        <div className="flex items-center gap-2">
+                            <Button size="sm" variant="default" onClick={toggleProfileEditMode}>
+                                <Save className="h-4 w-4 mr-2" />
+                                Save Profile
                             </Button>
-                            <Button
-                                size="sm"
-                                className="gap-1"
-                                onClick={saveProfileChanges}
-                                disabled={
-                                    UpdateCreatorProfileInfo.isLoading ??
-                                    !!formErrors.name ??
-                                    !!formErrors.bio ??
-                                    !!formErrors.website ??
-                                    !!formErrors.twitter ??
-                                    !!formErrors.instagram
-                                }
-                            >
-                                <CheckCircle2 className="h-3 w-3" />
-                                <span>{UpdateCreatorProfileInfo.isLoading ? "Saving..." : "Save"}</span>
+                            <Button size="sm" variant="outline" onClick={toggleProfileEditMode}>
+                                <X className="h-4 w-4 mr-2" />
+                                Cancel
                             </Button>
                         </div>
                     ) : (
-                        <Button variant="outline" size="sm" className="gap-1" onClick={() => setIsEditingProfile(true)}>
-                            <Edit className="h-3 w-3" />
-                            <span>Edit Profile</span>
-                        </Button>
+                        <>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button size="sm" variant={selectionMode ? "default" : "outline"} onClick={toggleSelectionMode}>
+                                            {selectionMode ? (
+                                                <>
+                                                    <Check className="h-4 w-4 mr-2" />
+                                                    Selecting ({selectedWidgets.length})
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Check className="h-4 w-4 mr-2" />
+                                                    Select Widgets
+                                                </>
+                                            )}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Select widgets to group them together</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+
+                            {selectionMode && selectedWidgets.length >= 2 && (
+                                <Button size="sm" variant="default" onClick={groupSelectedWidgets}>
+                                    <Link2 className="h-4 w-4 mr-2" />
+                                    Group Selected ({selectedWidgets.length})
+                                </Button>
+                            )}
+
+                            <Sheet open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+                                <SheetTrigger asChild>
+                                    <Button size="sm" variant="outline">
+                                        <Save className="h-4 w-4 mr-2" />
+                                        Save
+                                    </Button>
+                                </SheetTrigger>
+                                <SheetContent className="dashboard-sheet">
+                                    <SheetHeader>
+                                        <SheetTitle>Save Dashboard Layout</SheetTitle>
+                                        <SheetDescription>Save your current dashboard configuration.</SheetDescription>
+                                    </SheetHeader>
+                                    <div className="py-6">
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="layout-name">Layout Name</Label>
+                                                <Input
+                                                    id="layout-name"
+                                                    placeholder="My Custom Dashboard"
+                                                    value={newLayoutName}
+                                                    onChange={(e) => setNewLayoutName(e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="flex items-center space-x-2">
+                                                <Switch id="make-public" checked={makePublic} onCheckedChange={setMakePublic} />
+                                                <Label htmlFor="make-public">Make this the default layout for all users</Label>
+                                            </div>
+
+                                            <div className="text-sm text-muted-foreground">
+                                                {makePublic
+                                                    ? "This layout will be visible to all users who visit your page."
+                                                    : "This layout will only be saved for your own use."}
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end mt-6">
+                                            <Button onClick={handleSaveLayout} disabled={isSaving}>
+                                                {isSaving ? "Saving..." : "Save Layout"}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </SheetContent>
+                            </Sheet>
+
+                            <Dialog open={isLoadDialogOpen} onOpenChange={setIsLoadDialogOpen}>
+                                <DialogContent className="dashboard-sheet sm:max-w-md">
+                                    <DialogHeader>
+                                        <DialogTitle>Load Dashboard Layout</DialogTitle>
+                                        <DialogDescription>Select a saved dashboard layout to load.</DialogDescription>
+                                    </DialogHeader>
+
+                                    {isLoading ? (
+                                        <div className="py-6 text-center">Loading saved layouts...</div>
+                                    ) : savedLayouts.length === 0 ? (
+                                        <div className="py-6 text-center">No saved layouts found.</div>
+                                    ) : (
+                                        <div className="py-4">
+                                            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                                                {savedLayouts.map((layout) => (
+                                                    <div
+                                                        key={layout.id}
+                                                        className={`p-4 border rounded-md cursor-pointer hover:bg-muted/50 flex justify-between items-center ${layout.id === layoutId ? "border-primary" : ""
+                                                            }`}
+                                                        onClick={() => loadLayout(layout.id)}
+                                                    >
+                                                        <div>
+                                                            <div className="font-medium">{layout.name}</div>
+                                                            {layout.isDefault && (
+                                                                <div className="text-xs text-muted-foreground mt-1">Default layout</div>
+                                                            )}
+                                                        </div>
+
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                deleteLayout(layout.id)
+                                                            }}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setIsLoadDialogOpen(false)}>
+                                            Cancel
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
+                            <Sheet>
+                                <SheetTrigger asChild>
+                                    <Button size="sm">
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Add Widgets
+                                    </Button>
+                                </SheetTrigger>
+                                <SheetContent
+                                    side="right"
+                                    className="dashboard-sheet border-l border-border w-[400px] sm:w-[540px] z-50"
+                                >
+                                    <SheetHeader>
+                                        <SheetTitle>Add Widgets</SheetTitle>
+                                        <SheetDescription>Add widgets to your dashboard.</SheetDescription>
+                                    </SheetHeader>
+                                    <div className="py-6">
+                                        <div className="mb-4">
+                                            <Input
+                                                placeholder="Search widgets..."
+                                                value={widgetSearchQuery}
+                                                onChange={(e) => setWidgetSearchQuery(e.target.value)}
+                                                className="w-full"
+                                            />
+                                        </div>
+                                        <Tabs defaultValue="all">
+                                            <TabsList className="grid w-full grid-cols-3">
+                                                <TabsTrigger value="all">All</TabsTrigger>
+                                                <TabsTrigger value="content">Content</TabsTrigger>
+                                                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                                            </TabsList>
+                                            <TabsContent value="all" className="mt-4 h-[calc(100vh-180px)] overflow-y-auto pr-2">
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    {filteredWidgets(AVAILABLE_WIDGETS).map((widget) => (
+                                                        <Card
+                                                            key={widget.id}
+                                                            className={`dashboard-card cursor-pointer transition-all hover:shadow-md ${widgets.some((w) => w.id === widget.id) ? "border-primary bg-primary/5" : ""
+                                                                }`}
+                                                            onClick={() => {
+                                                                if (!widgets.some((w) => w.id === widget.id)) {
+                                                                    addWidget(widget.id)
+                                                                }
+                                                            }}
+                                                        >
+                                                            <div className="p-4">
+                                                                <div className="text-base flex items-center justify-between">
+                                                                    <span className="font-medium">{widget.title}</span>
+                                                                    {widgets.some((w) => w.id === widget.id) ? (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            className="h-8 px-2 text-xs"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                removeWidget(widget.id)
+                                                                            }}
+                                                                            disabled={widget.id === "cover-profile"}
+                                                                        >
+                                                                            <X className="h-4 w-4 mr-1" />
+                                                                            Remove
+                                                                        </Button>
+                                                                    ) : (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="default"
+                                                                            className="h-8 px-2 text-xs"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                addWidget(widget.id)
+                                                                            }}
+                                                                        >
+                                                                            <Plus className="h-4 w-4 mr-1" />
+                                                                            Add
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-sm text-muted-foreground mt-1">{widget.description}</p>
+                                                            </div>
+                                                        </Card>
+                                                    ))}
+                                                </div>
+                                            </TabsContent>
+                                            <TabsContent value="content" className="mt-4 h-[calc(100vh-180px)] overflow-y-auto pr-2">
+                                                {/* Content tab widgets */}
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    {filteredWidgets(
+                                                        AVAILABLE_WIDGETS.filter((w) =>
+                                                            [
+                                                                "cover-profile",
+                                                                "profile",
+                                                                "recent-posts",
+                                                                "nft-gallery",
+                                                                "music-player",
+                                                                "video-gallery",
+                                                                "lyrics",
+                                                            ].includes(w.id),
+                                                        ),
+                                                    ).map((widget) => (
+                                                        <Card
+                                                            key={widget.id}
+                                                            className={`dashboard-card cursor-pointer transition-all hover:shadow-md ${widgets.some((w) => w.id === widget.id) ? "border-primary bg-primary/5" : ""
+                                                                }`}
+                                                            onClick={() => {
+                                                                if (!widgets.some((w) => w.id === widget.id)) {
+                                                                    addWidget(widget.id)
+                                                                }
+                                                            }}
+                                                        >
+                                                            <div className="p-4">
+                                                                <div className="text-base flex items-center justify-between">
+                                                                    <span className="font-medium">{widget.title}</span>
+                                                                    {widgets.some((w) => w.id === widget.id) ? (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            className="h-8 px-2 text-xs"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                removeWidget(widget.id)
+                                                                            }}
+                                                                            disabled={widget.id === "cover-profile"}
+                                                                        >
+                                                                            <X className="h-4 w-4 mr-1" />
+                                                                            Remove
+                                                                        </Button>
+                                                                    ) : (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="default"
+                                                                            className="h-8 px-2 text-xs"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                addWidget(widget.id)
+                                                                            }}
+                                                                        >
+                                                                            <Plus className="h-4 w-4 mr-1" />
+                                                                            Add
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-sm text-muted-foreground mt-1">{widget.description}</p>
+                                                            </div>
+                                                        </Card>
+                                                    ))}
+                                                </div>
+                                            </TabsContent>
+                                            <TabsContent value="analytics" className="mt-4 h-[calc(100vh-180px)] overflow-y-auto pr-2">
+                                                {/* Analytics tab widgets */}
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    {filteredWidgets(
+                                                        AVAILABLE_WIDGETS.filter((w) => ["stats", "chart", "calendar", "todo"].includes(w.id)),
+                                                    ).map((widget) => (
+                                                        <Card
+                                                            key={widget.id}
+                                                            className={`dashboard-card cursor-pointer transition-all hover:shadow-md ${widgets.some((w) => w.id === widget.id) ? "border-primary bg-primary/5" : ""
+                                                                }`}
+                                                            onClick={() => {
+                                                                if (!widgets.some((w) => w.id === widget.id)) {
+                                                                    addWidget(widget.id)
+                                                                }
+                                                            }}
+                                                        >
+                                                            <div className="p-4">
+                                                                <div className="text-base flex items-center justify-between">
+                                                                    <span className="font-medium">{widget.title}</span>
+                                                                    {widgets.some((w) => w.id === widget.id) ? (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            className="h-8 px-2 text-xs"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                removeWidget(widget.id)
+                                                                            }}
+                                                                        >
+                                                                            <X className="h-4 w-4 mr-1" />
+                                                                            Remove
+                                                                        </Button>
+                                                                    ) : (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="default"
+                                                                            className="h-8 px-2 text-xs"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                addWidget(widget.id)
+                                                                            }}
+                                                                        >
+                                                                            <Plus className="h-4 w-4 mr-1" />
+                                                                            Add
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-sm text-muted-foreground mt-1">{widget.description}</p>
+                                                            </div>
+                                                        </Card>
+                                                    ))}
+                                                </div>
+                                            </TabsContent>
+                                        </Tabs>
+                                    </div>
+                                </SheetContent>
+                            </Sheet>
+
+                            <Button size="sm" variant="outline" onClick={toggleEditMode}>
+                                <X className="h-4 w-4 mr-2" />
+                                Cancel
+                            </Button>
+                        </>
                     )}
-                </header>
+                </div>
             </div>
 
-            {/* Main Content Area with Responsive Sidebar */}
-            <div className="flex flex-1 overflow-hidden ">
-                {/* Left Sidebar - Fixed on desktop, slide-in on mobile */}
-                <div
-                    className={cn(
-                        "w-[300px] shrink-0 border-r bg-card h-full absolute md:relative transition-transform duration-500 z-40",
-                        isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-                    )}
-                >
-                    {/* Close button for mobile sidebar */}
-                    <Button variant="ghost" size="icon" className="absolute top-2 right-2 md:hidden" onClick={toggleSidebar}>
-                        <X className="h-5 w-5" />
-                    </Button>
+            {/* Dashboard Grid */}
+            <div className="dashboard-content flex-1 overflow-auto p-4">
+                <div className="flex flex-col gap-4">
+                    {widgetRows.map((row, rowIndex) => (
+                        <div key={rowIndex} className="grid gap-4 grid-cols-12 md:grid-cols-12 sm:grid-cols-6 xs:grid-cols-4">
+                            {row.map((item, itemIndex) => {
+                                // Handle grouped widgets
+                                if (Array.isArray(item)) {
+                                    const groupId = item[0]?.groupId
 
-                    <div className="h-full flex flex-col p-6 overflow-auto pb-32">
-                        <div className="flex flex-col items-center pt-4">
-                            {/* Profile Image */}
-                            <div className="relative">
-                                <CustomAvatar
-                                    url={creator.data?.profileUrl}
-                                    className="h-24 w-24 border-4 border-background shadow-xl"
-                                />
-
-                                {creator.data.approved && (
-                                    <div className="absolute bottom-1 right-1 bg-primary  rounded-full p-1 shadow-lg">
-                                        <CheckCircle2 className="h-4 w-4" />
-                                    </div>
-                                )}
-
-                                {/* Edit Profile Image Button */}
-                                {isEditingProfile && (
-                                    <>
-                                        <Button
-                                            variant="secondary"
-                                            size="sm"
-                                            className="absolute -bottom-2 -right-2 h-8 w-8 p-0 rounded-full"
-                                            disabled={updateProfileMutation.isLoading}
-                                            onClick={() => document.getElementById("profile-upload")?.click()}
+                                    return (
+                                        <div
+                                            key={`group-${groupId}`}
+                                            className="col-span-12 bg-muted/20 rounded-lg p-2 relative"
+                                            ref={(el) => setGroupRef(el, groupId ?? "")}
+                                            data-group-id={groupId}
                                         >
-                                            <Camera className="h-4 w-4" />
-                                        </Button>
-                                        <UploadS3Button
-                                            endpoint="profileUploader"
-                                            variant="hidden"
-                                            id="profile-upload"
-                                            onClientUploadComplete={(res) => {
-                                                const fileUrl = res.url
-                                                updateProfileMutation.mutate(fileUrl)
-                                            }}
-                                            onUploadError={(error: Error) => {
-                                                toast.error(`ERROR! ${error.message}`)
-                                            }}
-                                        />
-                                    </>
-                                )}
-                            </div>
+                                            {editMode && (
+                                                <div className="absolute right-2 top-2 z-10 flex gap-2">
+                                                    <WidgetGroupControls
+                                                        groupId={groupId ?? ""}
+                                                        widgetCount={item.length}
+                                                        onUngroup={ungroupWidgets}
+                                                        onSetProportions={(groupId, proportions) => {
+                                                            setGroupWidgetProportions(groupId, proportions)
+                                                        }}
+                                                        currentProportions={item.map((w) => (w.customWidth ?? 100) / 100)}
+                                                    />
+                                                </div>
+                                            )}
+                                            <div
+                                                className={`${shouldUseColumnLayout(windowWidth) ? "flex flex-col" : "flex flex-row"} pt-6 gap-2 w-full`}
+                                            >
+                                                {item.map((widget, widgetIndex) => {
+                                                    const widgetInfo = AVAILABLE_WIDGETS.find((w) => w.id === widget.id)
+                                                    if (!widgetInfo) return null
 
-                            {/* Profile Info */}
-                            <div className="mt-4 text-center w-full">
-                                {isEditingProfile ? (
-                                    <Input
-                                        value={editedProfile.name}
-                                        onChange={(e) => {
-                                            const value = e.target.value
-                                            setEditedProfile({ ...editedProfile, name: value })
-                                            setFormErrors({
-                                                ...formErrors,
-                                                name: value.length > 99 ? "Name must be less than 99 characters" : "",
-                                            })
-                                        }}
-                                        className={cn("text-center font-bold text-xl mb-1", formErrors.name && "border-destructive")}
-                                        maxLength={99}
-                                    />
-                                ) : (
-                                    <h1 className="text-xl md:text-2xl font-bold flex items-center justify-center gap-1">
-                                        {creator.data.name}
-                                        {creator.data.approved && <CheckCircle2 className="h-4 w-4 " />}
-                                    </h1>
-                                )}
+                                                    // Use custom width if available, otherwise calculate based on size
+                                                    // For column layout, always use 100% width
+                                                    const widthPercentage = shouldUseColumnLayout(windowWidth)
+                                                        ? 100
+                                                        : (widget.customWidth ?? 100 / item.length)
 
-                                {isEditingProfile ? (
-                                    <div className="mt-3">
-                                        <Label htmlFor="bio" className="text-sm">
-                                            Bio
-                                        </Label>
-                                        <Textarea
-                                            id="bio"
-                                            value={editedProfile.bio}
-                                            onChange={(e) => {
-                                                const value = e.target.value
-                                                setEditedProfile({ ...editedProfile, bio: value })
-                                                const wordCount = value.trim().split(/\s+/).length
-                                                setFormErrors({
-                                                    ...formErrors,
-                                                    bio: wordCount > 200 ? "Bio must be less than 200 words" : "",
-                                                })
-                                            }}
-                                            className={cn("mt-1 resize-none", formErrors.bio && "border-destructive")}
-                                            rows={3}
-                                        />
-                                        {formErrors.bio && <p className="text-xs text-destructive mt-1">{formErrors.bio}</p>}
-                                    </div>
-                                ) : (
-                                    <p className="mt-3 text-sm text-muted-foreground">
-                                        {creator.data?.bio && creator.data.bio.length > 0 ? creator.data.bio : "No bio provided"}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
+                                                    // Get height from settings
+                                                    const heightKey = (widget.settings?.height as WidgetHeight) ?? "M"
+                                                    const height = getResponsiveHeight(heightKey, windowWidth)
 
-                        <Separator className="my-6" />
+                                                    return (
+                                                        <div
+                                                            key={widget.id}
+                                                            className={cn(
+                                                                "relative",
+                                                                dragOverWidget === widget.id ? "ring-2 ring-primary" : "",
+                                                                selectedWidgets.includes(widget.id) ? "ring-2 ring-destructive" : "",
+                                                                "transition-all duration-200",
+                                                                shouldUseColumnLayout(windowWidth) ? "mb-4" : "",
+                                                            )}
+                                                            style={{
+                                                                width: `${widthPercentage}%`,
+                                                            }}
+                                                            data-widget-id={widget.id}
+                                                            data-custom-width={widget.customWidth ?? ""}
+                                                            draggable={editMode && !selectionMode && !widget.pinned}
+                                                            onDragStart={(e) => handleDragStart(e, widget.id)}
+                                                            onDragOver={(e) => handleDragOver(e, widget.id)}
+                                                            onDrop={(e) => handleDrop(e, widget.id)}
+                                                            onDragEnd={handleDragEnd}
+                                                            onClick={(e) => selectionMode && toggleWidgetSelection(widget.id, e)}
+                                                        >
+                                                            <Card
+                                                                className={cn(
+                                                                    "flex flex-col relative",
+                                                                    widget.id === "cover-profile" ? "overflow-hidden h-auto" : "overflow-y-auto",
+                                                                )}
+                                                                style={
+                                                                    widget.id === "cover-profile"
+                                                                        ? { height: "auto", minHeight: "100%" }
+                                                                        : { height: `${height}px` }
+                                                                }
+                                                                ref={(el) => setWidgetRef(el, widget.id)}
+                                                            >
+                                                                {editMode && !widget.pinned && (
+                                                                    <>
+                                                                        <div className="absolute left-0 top-0 right-0 bg-muted/80 p-1 flex items-center justify-between z-10">
+                                                                            <div className="flex items-center">
+                                                                                <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
+                                                                                <span className="text-xs ml-1">{widgetInfo.title}</span>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-1">
 
-                        {/* Profile Stats */}
-                        <div className="grid grid-cols-3 gap-2 w-full">
-                            <div className="text-center p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer">
-                                <p className="text-xl font-bold">{creator.data._count.followers ?? 0}</p>
-                                <p className="text-xs text-muted-foreground">Followers</p>
-                            </div>
-                            <div className="text-center p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer">
-                                <p className="text-xl font-bold">{creator.data._count.posts ?? 0}</p>
-                                <p className="text-xs text-muted-foreground">Posts</p>
-                            </div>
-                            <div className="text-center p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer">
-                                <p className="text-xl font-bold">{creator.data._count.assets ?? 0}</p>
-                                <p className="text-xs text-muted-foreground">NFTs</p>
-                            </div>
-                        </div>
-
-                        <Separator className="my-6" />
-
-                        {/* Social Links */}
-                        {isEditingProfile ? (
-                            <div className="w-full space-y-4">
-                                <div>
-                                    <Label htmlFor="website" className="text-sm">
-                                        Website
-                                    </Label>
-                                    <div className="flex items-center mt-1">
-                                        <Globe className="h-4 w-4 mr-2 text-muted-foreground" />
-                                        <Input
-                                            id="website"
-                                            value={editedProfile.website}
-                                            onChange={(e) => {
-                                                const value = e.target.value
-                                                setEditedProfile({ ...editedProfile, website: value })
-
-                                                // URL validation
-                                                if (value && !isValidUrl(value)) {
-                                                    setFormErrors({
-                                                        ...formErrors,
-                                                        website: "Please enter a valid URL",
-                                                    })
-                                                } else {
-                                                    setFormErrors({
-                                                        ...formErrors,
-                                                        website: "",
-                                                    })
-                                                }
-                                            }}
-                                            placeholder="https://yourwebsite.com"
-                                            className={formErrors.website ? "border-destructive" : ""}
-                                        />
-                                    </div>
-                                    {formErrors.website && <p className="text-xs text-destructive mt-1">{formErrors.website}</p>}
-                                </div>
-                                <div>
-                                    <Label htmlFor="twitter" className="text-sm">
-                                        Twitter
-                                    </Label>
-                                    <div className="flex items-center mt-1">
-                                        <Twitter className="h-4 w-4 mr-2 text-muted-foreground" />
-                                        <Input
-                                            id="twitter"
-                                            value={editedProfile.twitter}
-                                            onChange={(e) => {
-                                                const value = e.target.value.replace(/^@/, "") // Remove @ if user types it
-                                                setEditedProfile({ ...editedProfile, twitter: value })
-
-                                                // Twitter handle validation
-                                                if (value && !/^[A-Za-z0-9_]{1,15}$/.test(value)) {
-                                                    setFormErrors({
-                                                        ...formErrors,
-                                                        twitter: "Twitter handle must be 1-15 alphanumeric characters or underscores",
-                                                    })
-                                                } else {
-                                                    setFormErrors({
-                                                        ...formErrors,
-                                                        twitter: "",
-                                                    })
-                                                }
-                                            }}
-                                            placeholder="username"
-                                            className={formErrors.twitter ? "border-destructive" : ""}
-                                        />
-                                    </div>
-                                    {formErrors.twitter && <p className="text-xs text-destructive mt-1">{formErrors.twitter}</p>}
-                                </div>
-                                <div>
-                                    <Label htmlFor="instagram" className="text-sm">
-                                        Instagram
-                                    </Label>
-                                    <div className="flex items-center mt-1">
-                                        <Instagram className="h-4 w-4 mr-2 text-muted-foreground" />
-                                        <Input
-                                            id="instagram"
-                                            value={editedProfile.instagram}
-                                            onChange={(e) => {
-                                                const value = e.target.value.replace(/^@/, "") // Remove @ if user types it
-                                                setEditedProfile({ ...editedProfile, instagram: value })
-
-                                                // Instagram handle validation
-                                                if (value && !/^[A-Za-z0-9._]{1,30}$/.test(value)) {
-                                                    setFormErrors({
-                                                        ...formErrors,
-                                                        instagram: "Instagram handle must be 1-30 alphanumeric characters, periods, or underscores",
-                                                    })
-                                                } else {
-                                                    setFormErrors({
-                                                        ...formErrors,
-                                                        instagram: "",
-                                                    })
-                                                }
-                                            }}
-                                            placeholder="username"
-                                            className={formErrors.instagram ? "border-destructive" : ""}
-                                        />
-                                    </div>
-                                    {formErrors.instagram && <p className="text-xs text-destructive mt-1">{formErrors.instagram}</p>}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="w-full space-y-3">
-                                {creator.data.website && (
-                                    <div>
-                                        <Link
-                                            href={creator.data.website}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center text-sm text-muted-foreground hover: transition-colors"
-                                        >
-                                            <Globe className="h-4 w-4 mr-2" />
-                                            <span>{creator.data.website.replace(/(^\w+:|^)\/\//, "")}</span>
-                                        </Link>
-                                    </div>
-                                )}
-                                {creator.data.twitter && (
-                                    <div>
-                                        <Link
-                                            href={`https://twitter.com/${creator.data.twitter}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center text-sm text-muted-foreground hover:text-[#1DA1F2] transition-colors"
-                                        >
-                                            <Twitter className="h-4 w-4 mr-2" />
-                                            <span>@{creator.data.twitter}</span>
-                                        </Link>
-                                    </div>
-                                )}
-                                {creator.data.instagram && (
-                                    <div>
-                                        <Link
-                                            href={`https://instagram.com/${creator.data.instagram}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center text-sm text-muted-foreground hover:text-[#E1306C] transition-colors"
-                                        >
-                                            <Instagram className="h-4 w-4 mr-2" />
-                                            <span>@{creator.data.instagram}</span>
-                                        </Link>
-                                    </div>
-                                )}
-
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                    <Calendar className="h-4 w-4 mr-2" />
-                                    <span>Joined {new Date(creator.data.joinedAt).toLocaleDateString()}</span>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Edit Profile Buttons */}
-                        {isEditingProfile && (
-                            <div className="flex gap-2 mt-6 w-full mb-8">
-                                <Button variant="outline" className="flex-1" onClick={cancelProfileEditing}>
-                                    Cancel
-                                </Button>
-                                <Button
-                                    className="flex-1"
-                                    onClick={saveProfileChanges}
-                                    disabled={
-                                        UpdateCreatorProfileInfo.isLoading ??
-                                        !!formErrors.name ??
-                                        !!formErrors.bio ??
-                                        !!formErrors.website ??
-                                        !!formErrors.twitter ??
-                                        !!formErrors.instagram
-                                    }
-                                >
-                                    {UpdateCreatorProfileInfo.isLoading ? "Saving..." : "Save"}
-                                </Button>
-                            </div>
-                        )}
-
-                        {/* Sidebar Footer */}
-                        <div className="mt-auto pt-6">
-                            <Button variant="outline" className="w-full" asChild>
-                                <Link href={`/artist/${creator.data.id}`}>
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    View Public Profile
-                                </Link>
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Overlay for mobile sidebar */}
-                {isSidebarOpen && (
-                    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-10 md:hidden" onClick={toggleSidebar} />
-                )}
-
-                {/* Right Content Area - Scrollable */}
-                <div className="flex-1 relative">
-                    <div ref={contentRef} className="absolute inset-0 overflow-auto">
-                        <div className="p-1 md:p-6 pb-20">
-                            {/* Dashboard Header */}
-                            <div className="flex items-center justify-between mb-8">
-                                <h1 className="text-2xl md:text-3xl font-bold">Artist Dashboard</h1>
-                                <div className="flex items-center gap-2">
-                                    <Button size="sm" className="h-9 md:h-10" onClick={() => setIsPostModalOpen(true)}>
-                                        <Plus className="h-4 w-4 mr-2" />
-                                        <span className="hidden sm:inline">Create Post</span>
-                                        <span className="sm:hidden">Post</span>
-                                    </Button>
-                                </div>
-                            </div>
-
-                            {/* Stats Cards */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Followers</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="flex items-center">
-                                            <Users className="h-5 w-5 text-muted-foreground mr-2" />
-                                            <div className="text-2xl font-bold">{creator.data._count.followers ?? 0}</div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Posts</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="flex items-center">
-                                            <Grid3X3 className="h-5 w-5 text-muted-foreground mr-2" />
-                                            <div className="text-2xl font-bold">{creator.data._count.posts ?? 0}</div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm font-medium text-muted-foreground">Total NFTs</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="flex items-center">
-                                            <ImageIcon className="h-5 w-5 text-muted-foreground mr-2" />
-                                            <div className="text-2xl font-bold">{creator.data._count.assets ?? 0}</div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm font-medium text-muted-foreground">Monthly Revenue</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="flex items-center">
-                                            <DollarSign className="h-5 w-5 text-muted-foreground mr-2" />
-                                            <div className="text-2xl font-bold">-</div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                            {/* Subscription Packages Section */}
-                            <div className="mb-8">
-                                {
-                                    subscriptionPackages.data && subscriptionPackages.data?.length > 0 && (
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h2 className="text-xl font-bold">Subscription Packages</h2>
-                                            <Button size="sm" onClick={() => openForCreate({
-                                                customPageAsset: creator.data?.customPageAssetCodeIssuer,
-                                                pageAsset: creator.data?.pageAsset,
-                                            })}>
-                                                <Plus className="h-4 w-4 mr-2" />
-                                                Create New Package
-                                            </Button>
+                                                                                <WidgetSizeSelector
+                                                                                    currentHeight={(widget.settings?.height as WidgetHeight) ?? "M"}
+                                                                                    currentWidth={(widget.settings?.width as WidgetWidth) ?? "M"}
+                                                                                    onHeightChange={(height) => updateWidgetSize(widget.id, "height", height)}
+                                                                                    onWidthChange={(width) => updateWidgetSize(widget.id, "width", width)}
+                                                                                />
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    variant="ghost"
+                                                                                    className="h-6 w-6 p-0 text-destructive"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation()
+                                                                                        removeWidget(widget.id)
+                                                                                    }}
+                                                                                >
+                                                                                    <X className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </>
+                                                                )}
+                                                                <CardContent className={`p-0 ${editMode && !widget.pinned ? "pt-8" : ""}`}>
+                                                                    {renderWidgetContent(widget.id)}
+                                                                </CardContent>
+                                                            </Card>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
                                         </div>
                                     )
                                 }
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {subscriptionPackages.isLoading && <SubscriptionPackagesSkeleton />}
-                                    {
-                                        subscriptionPackages.data?.length === 0 && (
-                                            <div className="text-center py-12 bg-muted/30 rounded-lg">
-                                                <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                                <h3 className="text-lg font-medium mb-2">No Subscription Packages Found</h3>
-                                                <p className="text-muted-foreground mb-4">Start creating subscription packages for your followers</p>
-                                                <Button onClick={() => openForCreate({
-                                                    customPageAsset: creator.data?.customPageAssetCodeIssuer,
-                                                    pageAsset: creator.data?.pageAsset,
-                                                })}>
-                                                    <Plus className="h-4 w-4 mr-2" />
-                                                    Create New Package
-                                                </Button>
-                                            </div>
-                                        )
-                                    }
-                                    {subscriptionPackages.data?.map((pkg) => (
+                                // Handle individual widgets
+                                const widget = item
+                                const widgetInfo = AVAILABLE_WIDGETS.find((w) => w.id === widget.id)
+                                if (!widgetInfo) return null
+
+                                // Get widget dimensions from settings
+                                const dimensions = getWidgetDimensions(widget)
+                                // Apply responsive height adjustment - but keep original height for cover-profile
+                                dimensions.height =
+                                    widget.id === "cover-profile"
+                                        ? HEIGHT_MAP[(widget.settings?.height as WidgetHeight) || "2XL"]
+                                        : getResponsiveHeight((widget.settings?.height as WidgetHeight) || "M", windowWidth)
+                                const isPinned = widget.pinned
+
+                                // Always use full width on small/medium devices, and always full width for cover-profile
+                                const useFullWidth = widget.id === "cover-profile" ? true : shouldUseColumnLayout(windowWidth)
+
+                                return (
+                                    <div
+                                        key={widget.id}
+                                        className={cn(
+                                            isPinned ?? useFullWidth ? "col-span-12" : `col-span-${dimensions.gridSpan}`,
+                                            dragOverWidget === widget.id ? "ring-2 ring-primary" : "",
+                                            selectedWidgets.includes(widget.id) ? "ring-2 ring-destructive" : "",
+                                            "transition-all duration-200 relative",
+                                        )}
+                                        style={{
+                                            gridColumn: isPinned ?? useFullWidth ? "span 12" : `span ${dimensions.gridSpan}`,
+                                        }}
+                                        draggable={editMode && !selectionMode && !widget.pinned}
+                                        onDragStart={(e) => handleDragStart(e, widget.id)}
+                                        onDragOver={(e) => handleDragOver(e, widget.id)}
+                                        onDrop={(e) => handleDrop(e, widget.id)}
+                                        onDragEnd={handleDragEnd}
+                                        onClick={(e) => selectionMode && toggleWidgetSelection(widget.id, e)}
+                                    >
                                         <Card
-                                            key={pkg.id}
                                             className={cn(
-                                                "relative overflow-hidden h-full border-2 hover:shadow-md transition-all duration-200",
-                                                pkg.popular ? "border-primary" : "border-border",
-                                                !pkg.isActive && "opacity-60",
-                                                expandedPackage === pkg.id && "ring-2 ring-primary",
+                                                "flex flex-col relative",
+                                                widget.id === "cover-profile" ? "overflow-hidden h-auto" : "overflow-y-auto",
                                             )}
+                                            style={
+                                                widget.id === "cover-profile"
+                                                    ? { height: "auto", minHeight: "100%" }
+                                                    : { height: `${dimensions.height}px` }
+                                            }
+                                            ref={(el) => setWidgetRef(el, widget.id)}
                                         >
-                                            <div className={cn("h-2", pkg.color)} />
-                                            <CardHeader className="pb-2 w-full">
-                                                <div className="flex justify-between w-full">
-                                                    <div className="flex flex-col w-full">
-                                                        <CardTitle className="w-full">
-                                                            <div className="flex items-center gap-2 justify-between  w-full">
-                                                                <span>  {pkg.name}</span>
-                                                                <SubscriptionContextMenu
-                                                                    creatorId={pkg.creatorId}
-                                                                    subscription={pkg}
-                                                                    pageAsset={creator.data?.pageAsset}
-                                                                    customPageAsset={creator.data?.customPageAssetCodeIssuer}
+                                            {editMode && !isPinned && (
+                                                <>
+                                                    <div className="absolute left-0 top-0 right-0 bg-muted/80 p-1 flex items-center justify-between z-10">
+                                                        <div className="flex items-center">
+                                                            {
+                                                                widget.id !== "cover-profile" && (
+                                                                    <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
+                                                                )
+                                                            }
+                                                            <span className="text-xs ml-1">{widgetInfo.title}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            {
+                                                                widget.id !== "cover-profile" && (
+                                                                    <>
+                                                                        <WidgetSizeSelector
+                                                                            currentHeight={(widget.settings?.height as WidgetHeight) ?? "M"}
+                                                                            currentWidth={(widget.settings?.width as WidgetWidth) ?? "M"}
+                                                                            onHeightChange={(height) => updateWidgetSize(widget.id, "height", height)}
+                                                                            onWidthChange={(width) => updateWidgetSize(widget.id, "width", width)}
+                                                                        />
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="ghost"
+                                                                            className="h-6 w-6 p-0 text-destructive"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                removeWidget(widget.id)
+                                                                            }}
+                                                                        >
+                                                                            <X className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </>
+                                                                )}
 
-                                                                />
-                                                            </div>
-
-                                                        </CardTitle>
-                                                        <div className="flex items-baseline mt-2">
-                                                            <span className="text-3xl font-bold">{pkg.price}</span>
-                                                            <span className="text-muted-foreground ml-1">
-                                                                {creator.data?.pageAsset
-                                                                    ? creator.data?.pageAsset.code
-                                                                    : creator.data?.customPageAssetCodeIssuer?.split("-")[0]}
-                                                            </span>
                                                         </div>
                                                     </div>
-                                                </div>
-                                                {pkg.popular && (
-                                                    <div className="absolute top-0 right-0">
-                                                        <div className="bg-primary  text-xs font-bold px-3 py-1 rounded-bl-lg">
-                                                            POPULAR
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                <CardDescription className="mt-2">{pkg.description}</CardDescription>
-                                            </CardHeader>
-                                            <CardContent className="space-y-4 pb-2">
-                                                <ul className="space-y-2">
-                                                    {pkg.features
-                                                        .slice(0, expandedPackage === pkg.id ? pkg.features.length : 3)
-                                                        .map((feature, i) => (
-                                                            <li key={i} className="flex items-start gap-2">
-                                                                <CheckCircle2 className="h-5 w-5  shrink-0 mt-0.5" />
-                                                                <span>{feature}</span>
-                                                            </li>
-                                                        ))}
-                                                </ul>
-
-                                                {pkg.features.length > 3 && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="w-full text-xs"
-                                                        onClick={() => togglePackageExpansion(pkg.id)}
-                                                    >
-                                                        {expandedPackage === pkg.id ? (
-                                                            <>
-                                                                <ChevronUp className="h-4 w-4 mr-1" />
-                                                                Show Less
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <ChevronDown className="h-4 w-4 mr-1" />
-                                                                Show All Features
-                                                            </>
-                                                        )}
-                                                    </Button>
-                                                )}
+                                                </>
+                                            )}
+                                            <CardContent className={`p-0 ${editMode && !isPinned ? "pt-8" : ""}`}>
+                                                {renderWidgetContent(widget.id)}
                                             </CardContent>
-                                            <CardFooter>
-                                                <div className="flex items-center justify-between w-full">
-                                                    <Badge variant={pkg.isActive ? "default" : "outline"}>
-                                                        {pkg.isActive ? "Active" : "Inactive"}
-                                                    </Badge>
-                                                </div>
-                                            </CardFooter>
                                         </Card>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Content Tabs */}
-                            <div>
-                                <Tabs defaultValue="posts" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                                    <TabsList className="grid grid-cols-2 w-full sm:w-[300px] mb-6">
-                                        <TabsTrigger value="posts" className="flex items-center gap-2">
-                                            <Grid3X3 className="h-4 w-4" />
-                                            <span>Posts</span>
-                                        </TabsTrigger>
-                                        <TabsTrigger value="nfts" className="flex items-center gap-2">
-                                            <ImageIcon className="h-4 w-4" />
-                                            <span>NFTs</span>
-                                        </TabsTrigger>
-                                    </TabsList>
-
-                                    {/* Posts Tab */}
-                                    <TabsContent value="posts" className="space-y-6  mb-16 ">
-                                        <div className="flex justify-between items-center">
-                                            <h2 className="text-xl font-bold">Your Posts</h2>
-                                            <Button size="sm" onClick={() => setIsPostModalOpen(true)}>
-                                                <Plus className="h-4 w-4 mr-2" />
-                                                Create New Post
-                                            </Button>
-                                        </div>
-
-                                        <div className="space-y-6 ">
-                                            {allCreatedPost.isLoading && (
-                                                <div className="space-y-4 ">
-                                                    {[1, 2, 3].map((i) => (
-                                                        <Card key={i} className="overflow-hidden">
-                                                            <CardHeader>
-                                                                <Skeleton className="h-6 w-1/3 mb-2" />
-                                                                <Skeleton className="h-4 w-1/4" />
-                                                            </CardHeader>
-                                                            <CardContent>
-                                                                <Skeleton className="h-4 w-full mb-2" />
-                                                                <Skeleton className="h-4 w-full mb-2" />
-                                                                <Skeleton className="h-4 w-2/3 mb-4" />
-                                                                <Skeleton className="h-48 w-full rounded-md mb-4" />
-                                                            </CardContent>
-                                                        </Card>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            {allCreatedPost.data?.pages.map((page, i) => (
-                                                <React.Fragment key={i}>
-                                                    {page.posts.map((post) => (
-
-                                                        <PostCard
-                                                            key={post.id}
-                                                            post={post}
-                                                            creator={post.creator}
-                                                            likeCount={post._count.likes}
-                                                            commentCount={post._count.comments}
-                                                            locked={post.subscription ? true : false}
-                                                            show={true}
-                                                            media={post.medias}
-                                                        />
-
-                                                    ))}
-                                                </React.Fragment>
-                                            ))}
-
-                                            {allCreatedPost.hasNextPage && (
-                                                <Button
-                                                    variant="outline"
-                                                    className="w-full"
-                                                    onClick={() => allCreatedPost.fetchNextPage()}
-                                                    disabled={allCreatedPost.isFetchingNextPage}
-                                                >
-                                                    {allCreatedPost.isFetchingNextPage ? "Loading more..." : "Load More Posts"}
-                                                </Button>
-                                            )}
-
-                                            {allCreatedPost.data?.pages[0]?.posts.length === 0 && (
-                                                <div className="text-center py-12 bg-muted/30 rounded-lg">
-                                                    <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                                    <h3 className="text-lg font-medium mb-2">No Posts Yet</h3>
-                                                    <p className="text-muted-foreground mb-4">Start creating content for your followers</p>
-                                                    <Button onClick={() => setIsPostModalOpen(true)}>
-                                                        <Plus className="h-4 w-4 mr-2" />
-                                                        Create Your First Post
-                                                    </Button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </TabsContent>
-
-                                    {/* NFTs Tab */}
-                                    <TabsContent value="nfts">
-                                        <div className="flex justify-between items-center mb-6">
-                                            <h2 className="text-xl font-bold">Your NFT Collection</h2>
-                                            <Button onClick={() => setIsNFTModalOpen(true)}>
-                                                <Plus className="h-4 w-4 mr-2" />
-                                                Create New NFT
-                                            </Button>
-                                        </div>
-
-                                        <div className="min-h-[calc(100vh-20vh)] flex flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
-                                            {creatorNFT.isLoading && (
-                                                <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 xl:grid-cols-5" />
-                                            )}
-
-                                            {creatorNFT.data?.pages[0]?.nfts.length === 0 && (
-                                                <div className="h-full flex items-center justify-center flex-col text-lg font-bold">
-                                                    <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                                    <h3 className="text-lg font-medium mb-2">No NFTs Found</h3>
-                                                    <p className="text-muted-foreground mb-4">Start creating your NFT collection</p>
-                                                    <Button onClick={() => setIsNFTModalOpen(true)}>
-                                                        <Plus className="h-4 w-4 mr-2" />
-                                                        Create Your First NFT
-                                                    </Button>
-                                                </div>
-                                            )}
-
-                                            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 xl:grid-cols-5">
-                                                {creatorNFT.data?.pages.map((items, itemIndex) =>
-                                                    items.nfts.map((item, index) => (
-                                                        <MarketAssetComponent key={`music-${itemIndex}-${index}`} item={item} />
-                                                    )),
-                                                )}
-                                            </div>
-
-                                            {creatorNFT.hasNextPage && (
-                                                <Button
-                                                    className="flex w-1/2 items-center justify-center shadow-sm shadow-black md:w-1/4"
-                                                    onClick={() => creatorNFT.fetchNextPage()}
-                                                    disabled={creatorNFT.isFetchingNextPage}
-                                                >
-                                                    {creatorNFT.isFetchingNextPage ? "Loading more..." : "Load More"}
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </TabsContent>
-                                </Tabs>
-                            </div>
+                                    </div>
+                                )
+                            })}
                         </div>
-                    </div>
+                    ))}
                 </div>
             </div>
+
+            {editMode && (
+                <div className="bg-muted/80 p-4 text-center">
+                    {selectionMode ? (
+                        <p className="text-sm">
+                            <strong>Selection Mode:</strong> Click on widgets to select them, then click{" "}
+                            <strong>Group Selected</strong> to group them together. Selected widgets: {selectedWidgets.length}
+                        </p>
+                    ) : (
+                        <p className="text-sm">
+                            Edit mode active. Drag to rearrange, use the size selector to resize, or remove widgets with the X button.
+                            Click <strong>Select Widgets</strong> to select and group widgets.
+                        </p>
+                    )}
+                </div>
+            )}
         </div>
     )
 }
-
-function SubscriptionPackagesSkeleton() {
-    // Create an array of 3 items to represent the loading cards
-    const skeletonCards = Array(3).fill(null)
-
-    return (
-        <>
-            {skeletonCards.map((_, index) => (
-                <div key={index}>
-                    <Card className="relative overflow-hidden h-full border-2 hover:shadow-md transition-all duration-200">
-                        <div className="h-2 bg-muted" />
-                        <CardHeader className="pb-2">
-                            <div className="flex justify-between items-start">
-                                <div className="w-full">
-                                    <Skeleton className="h-6 w-3/4 mb-2" />
-                                    <div className="flex items-baseline mt-2">
-                                        <Skeleton className="h-8 w-20" />
-                                        <Skeleton className="h-4 w-12 ml-1" />
-                                    </div>
-                                </div>
-                                <Skeleton className="h-8 w-8 rounded-full" />
-                            </div>
-                            <Skeleton className="h-4 w-full mt-2" />
-                        </CardHeader>
-                        <CardContent className="space-y-4 pb-2">
-                            <div className="space-y-2">
-                                {Array(4)
-                                    .fill(null)
-                                    .map((_, i) => (
-                                        <div key={i} className="flex items-start gap-2">
-                                            <Skeleton className="h-5 w-5 rounded-full shrink-0 mt-0.5" />
-                                            <Skeleton className="h-4 w-full" />
-                                        </div>
-                                    ))}
-                            </div>
-                            <Skeleton className="h-8 w-full" />
-                        </CardContent>
-                        <CardFooter>
-                            <div className="flex items-center justify-between w-full">
-                                <Skeleton className="h-5 w-16" />
-                                <Skeleton className="h-4 w-24" />
-                            </div>
-                        </CardFooter>
-                    </Card>
-                </div>
-            ))}
-        </>
-    )
-}
-
