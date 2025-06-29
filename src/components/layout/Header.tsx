@@ -2,7 +2,7 @@ import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { twMerge } from "tailwind-merge";
 
-import { Bell, Menu, Plus, ShoppingBag, ShoppingCart } from "lucide-react";
+import { ArrowRight, Bell, Menu, Plus, ShoppingBag, ShoppingCart, Sparkles, Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import Link from "next/link";
@@ -66,6 +66,44 @@ function Header() {
                                 <div className="flex h-full w-full flex-col items-center justify-between p-2 no-scrollbar">
                                     <div className="flex w-full overflow-x-hidden flex-col py-2">
                                         <DashboardNav items={LeftNavigation} />
+                                    </div>
+                                    <div className="relative">
+                                        <Button
+
+                                            className="
+              relative text-xl font-bold
+              bg-black
+              border-2 border-accent dark:border-primary
+              text-accent dark:text-primary
+              hover:text-white dark:hover:text-black
+              transition-all duration-300
+              overflow-hidden
+              group
+              neon-studio-button
+              backdrop-blur-sm
+              hover:px-6
+            "
+                                        >
+                                            {/* Always-Active Background Animations */}
+                                            <div className="absolute inset-0 bg-gradient-to-r from-accent/0 via-accent/20 to-accent/0 dark:from-primary/0 dark:via-primary/30 dark:to-primary/0 animate-neon-sweep"></div>
+                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent animate-shimmer-fast"></div>
+                                            <div className="absolute inset-0 bg-gradient-to-l from-purple-500/0 via-purple-500/15 to-purple-500/0 dark:from-purple-400/0 dark:via-purple-400/20 dark:to-purple-400/0 animate-reverse-sweep"></div>
+
+                                            {/* Button Text with Icons */}
+                                            <div className="relative z-10 flex items-center gap-3">
+                                                <Sparkles className="w-5 h-5 animate-spin-slow" />
+                                                <span className="tracking-wider font-semibold">TRY STUDIO</span>
+                                                <div className="flex items-center gap-1">
+                                                    <Zap className="w-4 h-4 animate-pulse" />
+                                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                                                </div>
+                                            </div>
+
+                                            {/* Hover Fill Effect */}
+                                            <div className="absolute inset-0 bg-accent dark:bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-center"></div>
+                                        </Button>
+
+
                                     </div>
                                     <div className="flex w-full flex-col items-center">
                                         <LeftBottom />
@@ -168,7 +206,11 @@ const HeaderButtons = () => {
                 )}
                 <Bell />
             </Button>
+            {/* Main Neon Try Studio Button */}
+
+
         </div>
+
     );
 };
 

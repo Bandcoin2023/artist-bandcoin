@@ -74,93 +74,94 @@
     --sidebar-ring: 60 72% 52%;
     /* Sidebar focus ring */
   }
-.dark {
-  /* COOL TEAL/MINT DARK MODE COLOR SCHEME */
 
-  /* Base Dark Mode Colors */
-  --background: 200 50% 10%;
-  /* Deep blue-gray background */
-  --foreground: 180 10% 95%;
-  /* Cool white text */
-  --card: 200 45% 13%;
-  /* Slightly lighter card background */
-  --card-foreground: 180 10% 95%;
-  /* Cool white card text */
-  --popover: 200 50% 10%;
-  /* Match background for popovers */
-  --popover-foreground: 180 10% 95%;
-  /* Cool white popover text */
+  .dark {
+    /* COOL TEAL/MINT DARK MODE COLOR SCHEME */
 
-  /* Primary & Secondary - Teal/Mint Focus */
-  --primary: 165 80% 40%;
-  /* Vibrant teal primary */
-  --primary-foreground: 200 50% 10%;
-  /* Dark text on primary */
-  --secondary: 190 30% 20%;
-  /* Muted blue-teal secondary */
-  --secondary-foreground: 180 10% 95%;
-  /* Cool white text on secondary */
+    /* Base Dark Mode Colors */
+    --background: 200 50% 10%;
+    /* Deep blue-gray background */
+    --foreground: 180 10% 95%;
+    /* Cool white text */
+    --card: 200 45% 13%;
+    /* Slightly lighter card background */
+    --card-foreground: 180 10% 95%;
+    /* Cool white card text */
+    --popover: 200 50% 10%;
+    /* Match background for popovers */
+    --popover-foreground: 180 10% 95%;
+    /* Cool white popover text */
 
-  /* Muted & Accent */
-  --muted: 200 30% 15%;
-  /* Subtle dark blue-gray */
-  --muted-foreground: 180 10% 65%;
-  /* Soft teal-gray text */
-  --accent: 155 70% 60%;
-  /* Bright mint accent */
-  --accent-foreground: 200 50% 10%;
-  /* Dark text on accent */
+    /* Primary & Secondary - Teal/Mint Focus */
+    --primary: 165 80% 40%;
+    /* Vibrant teal primary */
+    --primary-foreground: 200 50% 10%;
+    /* Dark text on primary */
+    --secondary: 190 30% 20%;
+    /* Muted blue-teal secondary */
+    --secondary-foreground: 180 10% 95%;
+    /* Cool white text on secondary */
 
-  /* Destructive */
-  --destructive: 350 80% 55%;
-  /* Bright red for destructive */
-  --destructive-foreground: 180 10% 95%;
-  /* Cool white text on destructive */
+    /* Muted & Accent */
+    --muted: 200 30% 15%;
+    /* Subtle dark blue-gray */
+    --muted-foreground: 180 10% 65%;
+    /* Soft teal-gray text */
+    --accent: 155 70% 60%;
+    /* Bright mint accent */
+    --accent-foreground: 200 50% 10%;
+    /* Dark text on accent */
 
-  /* Borders, Inputs, and Rings */
-  --border: 200 30% 18%;
-  /* Subtle dark border */
-  --input: 200 30% 15%;
-  /* Input matching muted */
-  --ring: 165 80% 40%;
-  /* Ring matching primary teal */
+    /* Destructive */
+    --destructive: 350 80% 55%;
+    /* Bright red for destructive */
+    --destructive-foreground: 180 10% 95%;
+    /* Cool white text on destructive */
 
-  /* Success & Warning */
-  --success: 160 70% 40%;
-  /* Emerald success */
-  --warning: 35 90% 55%;
-  /* Amber warning */
+    /* Borders, Inputs, and Rings */
+    --border: 200 30% 18%;
+    /* Subtle dark border */
+    --input: 200 30% 15%;
+    /* Input matching muted */
+    --ring: 165 80% 40%;
+    /* Ring matching primary teal */
 
-  /* Dark Mode Chart Colors - Teal palette */
-  --chart-1: 165 80% 40%;
-  /* Teal (primary) */
-  --chart-2: 155 70% 60%;
-  /* Mint (accent) */
-  --chart-3: 185 70% 50%;
-  /* Cyan */
-  --chart-4: 140 60% 45%;
-  /* Green */
-  --chart-5: 210 70% 60%;
-  /* Sky blue */
+    /* Success & Warning */
+    --success: 160 70% 40%;
+    /* Emerald success */
+    --warning: 35 90% 55%;
+    /* Amber warning */
 
-  /* Sidebar Colors */
-  --sidebar-background: 205 55% 8%;
-  /* Slightly darker than main background */
-  --sidebar-foreground: 180 10% 95%;
-  /* Cool white sidebar text */
-  --sidebar-primary: 165 80% 40%;
-  /* Teal sidebar primary */
-  --sidebar-primary-foreground: 200 50% 10%;
-  /* Dark sidebar primary text */
-  --sidebar-accent: 155 70% 60%;
-  /* Mint sidebar accent */
-  --sidebar-accent-foreground: 200 50% 10%;
-  /* Dark sidebar accent text */
-  --sidebar-border: 200 30% 18%;
-  /* Subtle dark border */
-  --sidebar-ring: 165 80% 40%;
-  /* Teal sidebar focus ring */
-}
+    /* Dark Mode Chart Colors - Teal palette */
+    --chart-1: 165 80% 40%;
+    /* Teal (primary) */
+    --chart-2: 155 70% 60%;
+    /* Mint (accent) */
+    --chart-3: 185 70% 50%;
+    /* Cyan */
+    --chart-4: 140 60% 45%;
+    /* Green */
+    --chart-5: 210 70% 60%;
+    /* Sky blue */
+
+    /* Sidebar Colors */
+    --sidebar-background: 205 55% 8%;
+    /* Slightly darker than main background */
+    --sidebar-foreground: 180 10% 95%;
+    /* Cool white sidebar text */
+    --sidebar-primary: 165 80% 40%;
+    /* Teal sidebar primary */
+    --sidebar-primary-foreground: 200 50% 10%;
+    /* Dark sidebar primary text */
+    --sidebar-accent: 155 70% 60%;
+    /* Mint sidebar accent */
+    --sidebar-accent-foreground: 200 50% 10%;
+    /* Dark sidebar accent text */
+    --sidebar-border: 200 30% 18%;
+    /* Subtle dark border */
+    --sidebar-ring: 165 80% 40%;
+    /* Teal sidebar focus ring */
+  }
 }
 
 @layer base {
@@ -170,11 +171,7 @@
 
   body {
     @apply bg-background text-foreground;
-
-
-    font-feature-settings:
-      "rlig" 1,
-      "calt" 1;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
@@ -197,7 +194,26 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #f8f9ec;
 }
+.custom-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-color: var(--primary) var(--muted);
+  /* thumb and track */
+  scrollbar-width: small;
+}
 
+/* For WebKit browsers */
+.custom-scroll::-webkit-scrollbar {
+  height:12px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: #f8f7e6;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: lightgray;
+}
 @layer utilities {
   .scrollbar-hide {
     -ms-overflow-style: none;
@@ -225,6 +241,301 @@
     }
   }
 
+  /* NEON BUTTON STYLES - Adapted to your color scheme */
+
+  /* Neon Studio Button - Using your theme colors */
+  .neon-studio-button {
+    /* Light mode glow - using your accent color */
+    box-shadow: 0 0 10px hsl(var(--accent) / 0.4), 0 0 20px hsl(var(--accent) / 0.2), 0 0 30px hsl(var(--accent) / 0.1),
+      inset 0 0 10px hsl(var(--accent) / 0.05);
+    animation: neon-glow-light 3s ease-in-out infinite alternate;
+  }
+
+  .dark .neon-studio-button {
+    /* Dark mode glow - using your teal primary */
+    box-shadow: 0 0 15px hsl(var(--primary) / 0.7), 0 0 30px hsl(var(--primary) / 0.5), 0 0 45px
+      hsl(var(--primary) / 0.3), inset 0 0 15px hsl(var(--primary) / 0.1);
+    animation: neon-glow-dark 3s ease-in-out infinite alternate;
+  }
+
+  /* Background Animations */
+  @keyframes gradient-flow {
+    0% {
+      transform: translateX(-100%) rotate(0deg);
+    }
+    100% {
+      transform: translateX(100%) rotate(360deg);
+    }
+  }
+
+  @keyframes neon-sweep {
+    0% {
+      transform: translateX(-120%) skewX(-15deg);
+    }
+    100% {
+      transform: translateX(120%) skewX(-15deg);
+    }
+  }
+
+  @keyframes shimmer-fast {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes reverse-sweep {
+    0% {
+      transform: translateX(120%) skewX(15deg);
+    }
+    100% {
+      transform: translateX(-120%) skewX(15deg);
+    }
+  }
+
+  @keyframes text-shimmer {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  /* Glow Animations - Light Mode using your accent color */
+  @keyframes neon-glow-light {
+    from {
+      box-shadow: 0 0 10px hsl(var(--accent) / 0.4), 0 0 20px hsl(var(--accent) / 0.2), 0 0 30px
+        hsl(var(--accent) / 0.1);
+    }
+    to {
+      box-shadow: 0 0 15px hsl(var(--accent) / 0.6), 0 0 30px hsl(var(--accent) / 0.4), 0 0 45px
+        hsl(var(--accent) / 0.2);
+    }
+  }
+
+  /* Glow Animations - Dark Mode using your teal primary */
+  @keyframes neon-glow-dark {
+    from {
+      box-shadow: 0 0 15px hsl(var(--primary) / 0.7), 0 0 30px hsl(var(--primary) / 0.5), 0 0 45px
+        hsl(var(--primary) / 0.3);
+    }
+    to {
+      box-shadow: 0 0 20px hsl(var(--primary) / 0.9), 0 0 40px hsl(var(--primary) / 0.7), 0 0 60px
+        hsl(var(--primary) / 0.4);
+    }
+  }
+
+  /* Pulse Ring Animations */
+  @keyframes pulse-ring {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.3;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.6;
+    }
+  }
+
+  @keyframes pulse-ring-delayed {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.2;
+    }
+    50% {
+      transform: scale(1.08);
+      opacity: 0.4;
+    }
+  }
+
+  /* Animation Classes */
+  .animate-gradient-flow {
+    animation: gradient-flow 12s linear infinite;
+  }
+
+  .animate-neon-sweep {
+    animation: neon-sweep 4s linear infinite;
+  }
+
+  .animate-shimmer-fast {
+    animation: shimmer-fast 2.5s linear infinite;
+  }
+
+  .animate-reverse-sweep {
+    animation: reverse-sweep 5s linear infinite;
+  }
+
+  .animate-text-shimmer {
+    background-size: 200% 200%;
+    animation: text-shimmer 4s ease-in-out infinite;
+  }
+
+  .animate-pulse-ring {
+    animation: pulse-ring 3s ease-in-out infinite;
+  }
+
+  .animate-pulse-ring-delayed {
+    animation: pulse-ring-delayed 3s ease-in-out infinite 1.5s;
+  }
+
+  /* Grid Pattern - Using your theme colors */
+  .grid-pattern {
+    background-image: linear-gradient(hsl(var(--accent) / 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--accent) / 0.1) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: grid-drift 25s linear infinite;
+  }
+
+  .dark .grid-pattern {
+    background-image: linear-gradient(hsl(var(--primary) / 0.15) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.15) 1px, transparent 1px);
+  }
+
+  @keyframes grid-drift {
+    0% {
+      transform: translate(0, 0);
+    }
+    100% {
+      transform: translate(60px, 60px);
+    }
+  }
+
+  /* Floating Particles */
+  .particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(0.5px);
+  }
+
+  .particle-1 {
+    top: 25%;
+    left: 15%;
+    animation: float-gentle-1 8s ease-in-out infinite;
+  }
+
+  .particle-2 {
+    top: 65%;
+    right: 20%;
+    animation: float-gentle-2 10s ease-in-out infinite;
+  }
+
+  .particle-3 {
+    bottom: 30%;
+    left: 25%;
+    animation: float-gentle-3 12s ease-in-out infinite;
+  }
+
+  @keyframes float-gentle-1 {
+    0%,
+    100% {
+      transform: translateY(0px) translateX(0px);
+      opacity: 0.4;
+    }
+    33% {
+      transform: translateY(-15px) translateX(10px);
+      opacity: 0.8;
+    }
+    66% {
+      transform: translateY(10px) translateX(-5px);
+      opacity: 0.6;
+    }
+  }
+
+  @keyframes float-gentle-2 {
+    0%,
+    100% {
+      transform: translateY(0px) translateX(0px);
+      opacity: 0.3;
+    }
+    50% {
+      transform: translateY(20px) translateX(-15px);
+      opacity: 0.7;
+    }
+  }
+
+  @keyframes float-gentle-3 {
+    0%,
+    100% {
+      transform: translateY(0px) translateX(0px);
+      opacity: 0.5;
+    }
+    25% {
+      transform: translateY(-10px) translateX(15px);
+      opacity: 0.8;
+    }
+    75% {
+      transform: translateY(15px) translateX(-10px);
+      opacity: 0.4;
+    }
+  }
+
+  /* Icon Animations */
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes zap-flash {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.1);
+    }
+  }
+
+  /* Animation Classes */
+  .animate-spin-slow {
+    animation: spin-slow 4s linear infinite;
+  }
+
+  /* Enhanced button hover effects */
+  .neon-studio-button:hover .animate-spin-slow {
+    animation-duration: 1s;
+  }
+
+  .neon-studio-button .w-4.animate-pulse {
+    animation: zap-flash 1.5s ease-in-out infinite;
+  }
+
+  /* Icon glow effects for dark mode using your theme colors */
+  .dark .neon-studio-button svg {
+    filter: drop-shadow(0 0 2px hsl(var(--primary)));
+  }
+
+  .dark .neon-studio-button:hover svg {
+    filter: drop-shadow(0 0 4px hsl(var(--primary))) drop-shadow(0 0 8px hsl(var(--primary)));
+  }
+
+  /* Light mode icon effects using your accent color */
+  .neon-studio-button svg {
+    filter: drop-shadow(0 0 1px hsl(var(--accent)));
+  }
+
+  .neon-studio-button:hover svg {
+    filter: drop-shadow(0 0 3px hsl(var(--accent))) drop-shadow(0 0 6px hsl(var(--accent)));
+  }
 }
 
 @layer components {
@@ -232,7 +543,7 @@
     @apply relative inline-flex;
   }
 
-  .avatar>div {
+  .avatar > div {
     @apply block aspect-square overflow-hidden;
   }
 

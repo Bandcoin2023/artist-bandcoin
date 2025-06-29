@@ -36,6 +36,7 @@ export default function Layout({
     const isArtistRoutes = router.pathname.startsWith("/artist");
     const publicRoutes = ["/about", "/privacy", "/support", "/"];
     const isPublicRoute = publicRoutes.includes(router.pathname);
+    const isStudioRoute = router.pathname.startsWith("/artist/studio");
 
     const handleToggle = () => {
         toggle();
@@ -51,43 +52,55 @@ export default function Layout({
 
                 <div className={clsx("flex h-screen w-full flex-col")}>
                     <Header />
-                    <div className="flex w-full scrollbar-hide ">
-                        <div className="relative  bg-secondary  shadow-sm shadow-primary transition-all duration-500 ease-in-out">
-                            <Sidebar />
-                            <ChevronLeft
-                                className={cn(
-                                    "fixed left-[17rem] top-24 z-10 hidden cursor-pointer rounded-full border-2 bg-background text-3xl text-foreground shadow-sm shadow-black transition-all duration-500 ease-in-out md:block",
-                                    isMinimized && "left-[4.5rem] rotate-180",
-                                )}
-                                onClick={handleToggle}
-                            />
-                        </div>
+                    {
+                        isStudioRoute ? (
 
-                        {session.status === "authenticated" ? (
-                            <div className="w-full  overflow-y-auto    scrollbar-hide lg:pl-6">
-                                {isArtistRoutes ? (
-                                    <>
-                                        <CreatorLayout>{children}</CreatorLayout>
-                                    </>
-                                ) : (
-                                    <>{children}</>
-                                )}
-                                <ModalProvider />
-                                <Toaster />
-                            </div>
+                            session.status === "authenticated" ? <>{children}</> : (<div className="flex h-screen w-full items-center justify-center ">
+                                <ConnectWalletButton />
+                            </div>)
+
+
                         ) : (
-                            isPublicRoute ? (
-                                <div className="w-full   overflow-y-auto    scrollbar-hide lg:pl-6">
-                                    <>{children}</>
-                                    <LoginRequiredModal />
+                            <div className="flex w-full scrollbar-hide ">
+                                <div className="relative  bg-secondary  shadow-sm shadow-primary transition-all duration-500 ease-in-out">
+                                    <Sidebar />
+                                    <ChevronLeft
+                                        className={cn(
+                                            "fixed left-[17rem] top-24 z-10 hidden cursor-pointer rounded-full border-2 bg-background text-3xl text-foreground shadow-sm shadow-black transition-all duration-500 ease-in-out md:block",
+                                            isMinimized && "left-[4.5rem] rotate-180",
+                                        )}
+                                        onClick={handleToggle}
+                                    />
                                 </div>
-                            ) :
-                                (<div className="flex h-screen w-full items-center justify-center ">
-                                    <ConnectWalletButton />
-                                </div>)
-                        )}
-                    </div>
+
+                                {session.status === "authenticated" ? (
+                                    <div className="w-full  overflow-y-auto    scrollbar-hide lg:pl-6">
+                                        {isArtistRoutes ? (
+                                            <>
+                                                <CreatorLayout>{children}</CreatorLayout>
+                                            </>
+                                        ) : (
+                                            <>{children}</>
+                                        )}
+                                        <ModalProvider />
+                                        <Toaster />
+                                    </div>
+                                ) : (
+                                    isPublicRoute ? (
+                                        <div className="w-full   overflow-y-auto    scrollbar-hide lg:pl-6">
+                                            <>{children}</>
+                                            <LoginRequiredModal />
+                                        </div>
+                                    ) :
+                                        (<div className="flex h-screen w-full items-center justify-center ">
+                                            <ConnectWalletButton />
+                                        </div>)
+                                )}
+                            </div>
+                        )
+                    }
                 </div>
+
             </MiniPlayerProvider>
         </ThemeProvider>
     );

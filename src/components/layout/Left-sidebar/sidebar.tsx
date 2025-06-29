@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion"
 
-import { ChevronLeft, LogOut, Sun, Moon, Cloud, Star, ChevronRight } from "lucide-react";
+import { ChevronLeft, LogOut, Sun, Moon, Cloud, Star, ChevronRight, Sparkles, Zap, ArrowRight } from "lucide-react";
 
 import { useSidebar } from "~/hooks/use-sidebar";
 
@@ -18,6 +18,7 @@ import { env } from "~/env";
 import { NavItem } from "~/types/icon-types";
 import { Button } from "~/components/shadcn/ui/button";
 import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/router";
 
 export const LeftNavigation: NavItem[] = [
   { href: "/", icon: "dashboard", title: "HOMEPAGE" },
@@ -157,7 +158,7 @@ const MiniCalendar = () => {
 export default function Sidebar({ className }: SidebarProps) {
   const { isMinimized, toggle } = useSidebar();
   const session = useSession();
-
+  const router = useRouter();
   return (
     <div
       className={cn(
@@ -167,13 +168,56 @@ export default function Sidebar({ className }: SidebarProps) {
       )}
     >
       <div className=" flex  h-full   w-full  flex-col items-center justify-between   py-2   no-scrollbar  ">
-        <div className="flex  w-full overflow-x-hidden   flex-col  ">
-          <DashboardNav items={LeftNavigation} />
+        <div className="flex w-full flex-col items-center justify-between gap-4">
+          <div className="flex  w-full overflow-x-hidden   flex-col  ">
+            <DashboardNav items={LeftNavigation} />
 
-          {/* Mini Calendar - Only show when sidebar is expanded */}
+            {/* Mini Calendar - Only show when sidebar is expanded */}
 
+          </div>
+          <div className={`relative w-full flex items-center justify-center ${isMinimized ? "hidden" : "flex"}`}>
+            <Button
+
+              className="
+              relative text-xl font-bold
+              bg-black
+              border-2 border-accent dark:border-primary
+              text-accent dark:text-primary
+              hover:text-white dark:hover:text-black
+              transition-all duration-300
+              overflow-hidden
+              group
+              neon-studio-button
+              backdrop-blur-sm
+              hover:px-6
+            "
+              onClick={() =>
+                router.push("/artist/studio")
+              }
+
+            >
+              {/* Always-Active Background Animations */}
+              <div className="absolute inset-0 bg-gradient-to-r from-accent/0 via-accent/20 to-accent/0 dark:from-primary/0 dark:via-primary/30 dark:to-primary/0 animate-neon-sweep"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent animate-shimmer-fast"></div>
+              <div className="absolute inset-0 bg-gradient-to-l from-purple-500/0 via-purple-500/15 to-purple-500/0 dark:from-purple-400/0 dark:via-purple-400/20 dark:to-purple-400/0 animate-reverse-sweep"></div>
+
+              {/* Button Text with Icons */}
+              <div className="relative z-10 flex items-center gap-3">
+                <Sparkles className="w-5 h-5 animate-spin-slow" />
+                <span className="tracking-wider font-semibold">TRY STUDIO</span>
+                <div className="flex items-center gap-1">
+                  <Zap className="w-4 h-4 animate-pulse" />
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                </div>
+              </div>
+
+              {/* Hover Fill Effect */}
+              <div className="absolute inset-0 bg-accent dark:bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-center"></div>
+            </Button>
+
+
+          </div>
         </div>
-
         <div
           className={`${isMinimized ? "hidden" : "flex"} w-full flex-col items-center`}
         >
@@ -214,7 +258,7 @@ export function LeftBottom() {
     <div className="flex w-full flex-col justify-center gap-4 p-1">
 
 
-      <MiniCalendar />
+      {/* <MiniCalendar /> */}
 
 
       <div className="flex  items-center justify-center">
