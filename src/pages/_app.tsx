@@ -11,7 +11,7 @@ import dynamic from "next/dynamic";
 import { Titillium_Web } from "next/font/google";
 import "~/styles/globals.css";
 import Layout from "~/components/layout/root/RootLayout";
-import { Toaster } from "~/components/shadcn/ui/toaster";
+import { Toaster } from "~/components/shadcn/ui/sonner"
 
 const queryClient = new QueryClient();
 

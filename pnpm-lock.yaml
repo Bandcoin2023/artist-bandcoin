@@ -23,6 +23,9 @@ importers:
       '@creit-tech/xbull-wallet-connect':
         specifier: github:Creit-Tech/xBull-Wallet-Connect
         version: '@creit.tech/xbull-wallet-connect@https://codeload.github.com/Creit-Tech/xBull-Wallet-Connect/tar.gz/79c0d93d8e11faf246d0dc80dcbac6976d71e244'
+      '@google/genai':
+        specifier: ^1.7.0
+        version: 1.7.0(encoding@0.1.13)
       '@headlessui/react':
         specifier: ^1.7.19
         version: 1.7.19(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -1289,6 +1292,15 @@ packages:
   '@google-cloud/storage@7.16.0':
     resolution: {integrity: sha512-7/5LRgykyOfQENcm6hDKP8SX/u9XxE5YOiWOkgkwcoO+cG8xT/cyOvp9wwN3IxfdYgpHs8CE7Nq2PKX2lNaEXw==}
     engines: {node: '>=14'}
+
+  '@google/genai@1.7.0':
+    resolution: {integrity: sha512-s/OZLkrIfBwc+SFFaZoKdEogkw4in0YRTGc4Q483jnfchNBWzrNe560eZEfGJHQRPn6YfzJgECCx0sqEOMWvYw==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      '@modelcontextprotocol/sdk': ^1.11.0
+    peerDependenciesMeta:
+      '@modelcontextprotocol/sdk':
+        optional: true
 
   '@grpc/grpc-js@1.13.3':
     resolution: {integrity: sha512-FTXHdOoPbZrBjlVLHuKbDZnsTxXv2BlHF57xw6LuThXacXvtkahEPED0CKMk6obZDf65Hv4k3z62eyPNpvinIg==}
@@ -7987,6 +7999,11 @@ packages:
   zod-error@1.5.0:
     resolution: {integrity: sha512-zzopKZ/skI9iXpqCEPj+iLCKl9b88E43ehcU+sbRoHuwGd9F1IDVGQ70TyO6kmfiRL1g4IXkjsXK+g1gLYl4WQ==}
 
+  zod-to-json-schema@3.24.6:
+    resolution: {integrity: sha512-h/z3PKvcTcTetyjl1fkj79MHNEjm+HpD6NXheWjzOekY7kV+lwDYnHw+ivHkijnCSMz1yJaWBD9vu/Fcmk+vEg==}
+    peerDependencies:
+      zod: ^3.24.1
+
   zod-validation-error@1.5.0:
     resolution: {integrity: sha512-/7eFkAI4qV0tcxMBB/3+d2c1P6jzzZYdYSlBuAklzMuCrJu5bzJfHS0yVAS87dRHVlhftd6RFJDIvv03JgkSbw==}
     engines: {node: '>=16.0.0'}
@@ -9220,6 +9237,18 @@ snapshots:
       - encoding
       - supports-color
     optional: true
+
+  '@google/genai@1.7.0(encoding@0.1.13)':
+    dependencies:
+      google-auth-library: 9.15.1(encoding@0.1.13)
+      ws: 8.18.1
+      zod: 3.24.3
+      zod-to-json-schema: 3.24.6(zod@3.24.3)
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - supports-color
+      - utf-8-validate
 
   '@grpc/grpc-js@1.13.3':
     dependencies:
@@ -13575,7 +13604,6 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
-    optional: true
 
   gcp-metadata@6.1.1(encoding@0.1.13):
     dependencies:
@@ -13585,7 +13613,6 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
-    optional: true
 
   geojson-vt@4.0.2: {}
 
@@ -13708,7 +13735,6 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
-    optional: true
 
   google-gax@4.6.0(encoding@0.1.13):
     dependencies:
@@ -13729,8 +13755,7 @@ snapshots:
       - supports-color
     optional: true
 
-  google-logging-utils@0.0.2:
-    optional: true
+  google-logging-utils@0.0.2: {}
 
   gopd@1.2.0: {}
 
@@ -13747,7 +13772,6 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
-    optional: true
 
   gzip-size@6.0.0:
     dependencies:
@@ -14189,8 +14213,7 @@ snapshots:
     dependencies:
       call-bound: 1.0.4
 
-  is-stream@2.0.1:
-    optional: true
+  is-stream@2.0.1: {}
 
   is-stream@3.0.0: {}
 
@@ -14319,7 +14342,6 @@ snapshots:
   json-bigint@1.0.0:
     dependencies:
       bignumber.js: 9.3.0
-    optional: true
 
   json-buffer@3.0.1: {}
 
@@ -14372,7 +14394,6 @@ snapshots:
       buffer-equal-constant-time: 1.0.1
       ecdsa-sig-formatter: 1.0.11
       safe-buffer: 5.2.1
-    optional: true
 
   jwks-rsa@3.2.0:
     dependencies:
@@ -14394,7 +14415,6 @@ snapshots:
     dependencies:
       jwa: 2.0.0
       safe-buffer: 5.2.1
-    optional: true
 
   kdbush@4.0.2: {}
 
@@ -17502,6 +17522,10 @@ snapshots:
   yocto-queue@1.2.1: {}
 
   zod-error@1.5.0:
+    dependencies:
+      zod: 3.24.3
+
+  zod-to-json-schema@3.24.6(zod@3.24.3):
     dependencies:
       zod: 3.24.3
 
