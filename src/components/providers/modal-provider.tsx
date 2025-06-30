@@ -19,6 +19,7 @@ import ShareModal from "../modal/share-post-modal";
 import CreateLocationBasedBountyModal from "../modal/create-locationbased-bounty";
 import { CreatePostModal } from "../modal/create-post-modal";
 import AddSubscriptionModal from "../modal/create-subscription-modal";
+import ExportCreateSongModal from "../modal/export-create-song-modal";
 
 const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -50,7 +51,7 @@ const ModalProvider = () => {
       <CreateLocationBasedBountyModal />
       <CreatePostModal />
       <AddSubscriptionModal />
-
+      <ExportCreateSongModal />
 
     </>
   );

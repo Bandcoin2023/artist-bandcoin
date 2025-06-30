@@ -76,14 +76,12 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
     return (
       <div className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50`}>
         <div
-          className={`flex items-center space-x-3 px-6 py-3 rounded-2xl backdrop-blur-xl border shadow-2xl ${isDark ? "bg-gray-900/90 border-gray-700" : "bg-white/90 border-gray-200"
+          className={`flex items-center space-x-3 px-6 py-3 rounded-2xl backdrop-blur-xl border shadow-2xl 
             }`}
         >
           <button
             onClick={onStop}
-            className={`p-2 rounded-xl transition-colors ${isDark
-                ? "text-gray-300 hover:text-white hover:bg-gray-700"
-                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            className={`p-2 rounded-xl transition-colors 
               }`}
           >
             <Square className="w-5 h-5" />
@@ -99,17 +97,15 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
           <button
             onClick={onToggleLoop}
             className={`p-2 rounded-xl transition-colors ${playbackState.loop
-                ? "bg-violet-500 text-white shadow-md"
-                : isDark
-                  ? "text-gray-300 hover:text-white hover:bg-gray-700"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              && "bg-violet-500 text-white shadow-md"
+
               }`}
           >
             <Repeat className="w-5 h-5" />
           </button>
 
           <div
-            className={`text-sm font-mono px-3 py-2 rounded-xl ${isDark ? "bg-gray-800 text-gray-300" : "bg-gray-100 text-gray-600"}`}
+            className={`text-sm font-mono px-3 py-2 rounded-xl `}
           >
             {formatTime(playbackState.currentTime)}
           </div>
@@ -120,18 +116,14 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
 
   return (
     <div
-      className={`h-20 px-6 flex items-center justify-between border-t backdrop-blur-xl ${isDark ? "bg-gray-900/80 border-gray-800" : "bg-white/80 border-gray-200"
-        } shadow-lg`}
+      className={`h-20 px-6 flex items-center justify-between border-t backdrop-blur-xl  shadow-lg`}
     >
       {/* Left: Transport Controls */}
       <div className="flex items-center space-x-4">
-        <div className={`flex items-center space-x-1 rounded-2xl p-1 ${isDark ? "bg-gray-800" : "bg-gray-100"}`}>
+        <div className={`flex items-center space-x-1 rounded-2xl p-1 `}>
           <button
             onClick={() => onSeek(0)}
-            className={`p-2 rounded-xl transition-colors ${isDark
-                ? "text-gray-300 hover:text-white hover:bg-gray-700"
-                : "text-gray-600 hover:text-gray-900 hover:bg-white"
-              }`}
+            className={`p-2 rounded-xl transition-colors `}
             title="Go to start"
           >
             <SkipBack className="w-5 h-5" />
@@ -139,10 +131,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
 
           <button
             onClick={onStop}
-            className={`p-2 rounded-xl transition-colors ${isDark
-                ? "text-gray-300 hover:text-white hover:bg-gray-700"
-                : "text-gray-600 hover:text-gray-900 hover:bg-white"
-              }`}
+            className={`p-2 rounded-xl transition-colors `}
             title="Stop"
           >
             <Square className="w-5 h-5" />
@@ -158,10 +147,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
 
           <button
             onClick={() => onSeek(playbackState.duration)}
-            className={`p-2 rounded-xl transition-colors ${isDark
-                ? "text-gray-300 hover:text-white hover:bg-gray-700"
-                : "text-gray-600 hover:text-gray-900 hover:bg-white"
-              }`}
+            className={`p-2 rounded-xl transition-colors`}
             title="Go to end"
           >
             <SkipForward className="w-5 h-5" />
@@ -170,10 +156,8 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
           <button
             onClick={onToggleLoop}
             className={`p-2 rounded-xl transition-colors ${playbackState.loop
-                ? "bg-violet-500 text-white shadow-md"
-                : isDark
-                  ? "text-gray-300 hover:text-white hover:bg-gray-700"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-white"
+              && "bg-violet-500 text-white shadow-md"
+
               }`}
             title={playbackState.loop ? "Disable loop" : "Enable loop"}
           >
@@ -182,7 +166,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
         </div>
 
         <div
-          className={`text-sm font-mono px-4 py-3 rounded-2xl ${isDark ? "bg-gray-800 text-gray-300" : "bg-gray-100 text-gray-600"}`}
+          className={`text-sm font-mono px-4 py-3 rounded-2xl `}
         >
           <div className="flex items-center space-x-3">
             <span className="text-violet-400 font-semibold">{formatTime(playbackState.currentTime)}</span>
@@ -208,8 +192,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
             step="0.01"
             value={playbackState.currentTime}
             onChange={(e) => onSeek(Number.parseFloat(e.target.value))}
-            className={`w-full h-3 rounded-full appearance-none cursor-pointer ${isDark ? "bg-gray-700" : "bg-gray-200"
-              }`}
+            className={`w-full h-3 rounded-full appearance-none cursor-pointer `}
           />
           <div
             className="absolute top-1 left-0 h-3 bg-gradient-to-r from-violet-500 to-purple-500 rounded-full pointer-events-none"
@@ -224,7 +207,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
       <div className="flex items-center space-x-4">
         {/* Master Volume */}
         <div className="flex items-center space-x-3">
-          <Volume2 className={`w-5 h-5 ${isDark ? "text-gray-300" : "text-gray-600"}`} />
+          <Volume2 className={`w-5 h-5`} />
           <input
             type="range"
             min="0"
@@ -235,18 +218,16 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
             className="w-24 h-2"
             title={`Master Volume: ${Math.round(masterVolume * 100)}%`}
           />
-          <span className={`text-xs w-10 text-right ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+          <span className={`text-xs w-10 text-right `}>
             {Math.round(masterVolume * 100)}%
           </span>
         </div>
 
         {/* Zoom Controls */}
-        <div className={`flex items-center space-x-1 rounded-2xl p-1 ${isDark ? "bg-gray-800" : "bg-gray-100"}`}>
+        <div className={`flex items-center space-x-1 rounded-2xl p-1 `}>
           <button
             onClick={() => onZoomChange(Math.max(10, pixelsPerSecond - 10))}
-            className={`p-2 rounded-xl transition-colors ${isDark
-                ? "text-gray-300 hover:text-white hover:bg-gray-700"
-                : "text-gray-600 hover:text-gray-900 hover:bg-white"
+            className={`p-2 rounded-xl transition-colors 
               }`}
             title="Zoom out"
           >
@@ -254,7 +235,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
           </button>
 
           <span
-            className={`text-xs px-3 py-1 rounded-xl ${isDark ? "bg-gray-700 text-gray-300" : "bg-white text-gray-600"}`}
+            className={`text-xs px-3 py-1 rounded-xl `}
           >
             {pixelsPerSecond}px/s
           </span>
@@ -262,8 +243,8 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
           <button
             onClick={() => onZoomChange(Math.min(200, pixelsPerSecond + 10))}
             className={`p-2 rounded-xl transition-colors ${isDark
-                ? "text-gray-300 hover:text-white hover:bg-gray-700"
-                : "text-gray-600 hover:text-gray-900 hover:bg-white"
+              ? "text-gray-300 hover:text-white hover:bg-gray-700"
+              : "text-gray-600 hover:text-gray-900 hover:bg-white"
               }`}
             title="Zoom in"
           >
@@ -272,38 +253,14 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
         </div>
 
         {/* Snap to Grid */}
-        <button
-          onClick={onSnapToggle}
-          className={`p-2 rounded-2xl transition-all duration-200 ${snapToGrid
-              ? "bg-violet-500 text-white shadow-md"
-              : isDark
-                ? "text-gray-300 hover:text-white hover:bg-gray-800"
-                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-            }`}
-          title={snapToGrid ? "Disable snap to grid" : "Enable snap to grid"}
-        >
-          <Grid3X3 className="w-4 h-4" />
-        </button>
 
         {/* Action Buttons */}
         <div className="flex items-center space-x-2">
-          <button
-            onClick={handleSave}
-            className={`p-2 rounded-2xl transition-colors ${isDark
-                ? "text-gray-300 hover:text-white hover:bg-gray-800"
-                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              }`}
-            title="Save project"
-          >
-            <Save className="w-4 h-4" />
-          </button>
+
 
           <button
             onClick={onExport}
-            className={`p-2 rounded-2xl transition-colors ${isDark
-                ? "text-gray-300 hover:text-white hover:bg-gray-800"
-                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              }`}
+            className={`p-2 rounded-2xl transition-colors `}
             title="Export audio"
           >
             <Download className="w-4 h-4" />
@@ -311,10 +268,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
 
           <button
             onClick={onToggleDarkMode}
-            className={`p-2 rounded-2xl transition-colors ${isDark
-                ? "text-gray-300 hover:text-white hover:bg-gray-800"
-                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              }`}
+            className={`p-2 rounded-2xl transition-colors`}
             title={isDark ? "Switch to light mode" : "Switch to dark mode"}
           >
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}

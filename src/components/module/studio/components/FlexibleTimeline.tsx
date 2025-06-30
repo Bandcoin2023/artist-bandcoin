@@ -482,6 +482,7 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
                           </div>
                         )}
                       </div>
+
                       {layout !== "compact" && (
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">

@@ -12,6 +12,11 @@ import { AlertTriangle, ArrowLeft, Lock, Shield } from "lucide-react"
 import { api } from "~/utils/api"
 import { Button } from "~/components/shadcn/ui/button"
 import { Arrow } from "@radix-ui/react-select"
+import ExportSongModal from "~/components/modal/export-create-song-modal"
+import { ExportOptionsModal } from "~/components/modal/export-options-modal"
+import { useExportCreateSongModalStore } from "~/components/store/export-create-song-modal-store"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "~/components/shadcn/ui/dialog"
+import { X, Play, Pause, Grid3X3, Home, Plus, Minus, RotateCcw, Upload, MousePointer, Keyboard, Music, Settings } from 'lucide-react';
 
 function App() {
     const {
@@ -36,9 +41,11 @@ function App() {
         saveProject,
         newProject,
         exportProject,
+        exportToBandcoin,
     } = useAudio()
 
-
+    const [showExportOptionsModal, setShowExportOptionsModal] = useState(false)
+    const { isOpen, setIsOpen, audioBlob, setData } = useExportCreateSongModalStore()
     const [pixelsPerSecond, setPixelsPerSecond] = useState(21)
     const [snapToGrid, setSnapToGrid] = useState(true)
     const [masterVolume, setMasterVolumeState] = useState(0.8)
@@ -47,11 +54,46 @@ function App() {
     const [activePanel, setActivePanel] = useState<"library" | "mixer" | "ai" | "settings">("library")
     const [workspaceLayout, setWorkspaceLayout] = useState<"standard" | "compact" | "focus">("standard")
     const [isDark, setIsDark] = useState(false)
+    const [activeTab, setActiveTab] = useState('shortcuts');
+
     const { setTheme, theme } = useTheme()
     const toggleTheme = () => {
         setTheme(theme === "dark" ? "light" : "dark")
         setIsDark((prev) => !prev)
     }
+
+    const tips = {
+        shortcuts: [
+            { icon: <MousePointer className="w-4 h-4" />, key: 'Shift + Scroll', action: 'Scroll timeline horizontally' },
+            { icon: <Play className="w-4 h-4" />, key: 'Space', action: 'Play/Pause playback' },
+            { icon: <Keyboard className="w-4 h-4" />, key: '1-4', action: 'Switch between panels' },
+            { icon: <Grid3X3 className="w-4 h-4" />, key: 'G', action: 'Toggle grid view' },
+            { icon: <Plus className="w-4 h-4" />, key: '+', action: 'Zoom in timeline' },
+            { icon: <Minus className="w-4 h-4" />, key: '-', action: 'Zoom out timeline' },
+            { icon: <RotateCcw className="w-4 h-4" />, key: 'L', action: 'Toggle loop mode' },
+            { icon: <Home className="w-4 h-4" />, key: 'Home', action: 'Jump to beginning' },
+            { icon: <Keyboard className="w-4 h-4" />, key: 'End', action: 'Jump to end' },
+
+        ],
+        workflow: [
+            { icon: <Upload className="w-4 h-4" />, title: 'Import Audio', desc: 'Drag and drop audio files directly onto the timeline or use the import button' },
+            { icon: <MousePointer className="w-4 h-4" />, title: 'Precise Movement', desc: 'Hold Shift while dragging to move songs horizontally with precision' },
+            { icon: <Music className="w-4 h-4" />, title: 'Layer Tracks', desc: 'Use multiple panels to create complex compositions with layered audio' },
+            { icon: <Settings className="w-4 h-4" />, title: 'Grid Snap', desc: 'Enable grid mode (G) for precise timing and alignment' },
+        ],
+        advanced: [
+            { title: 'Multi-selection', desc: 'Hold Ctrl/Cmd and click to select multiple audio clips for batch operations' },
+            { title: 'Quick Preview', desc: 'Click anywhere on the timeline to instantly preview from that position' },
+            { title: 'Zoom Navigation', desc: 'Use mouse wheel + Ctrl to zoom in/out at cursor position' },
+            { title: 'Panel Organization', desc: 'Drag panel tabs to reorder your workspace layout' },
+        ]
+    };
+
+    const tabs = [
+        { id: 'shortcuts', label: 'Shortcuts', icon: <Keyboard className="w-4 h-4" /> },
+        { id: 'workflow', label: 'Workflow', icon: <Music className="w-4 h-4" /> },
+        { id: 'advanced', label: 'Advanced', icon: <Settings className="w-4 h-4" /> },
+    ];
     const creator = api.fan.creator.meCreator.useQuery(undefined, {
         refetchOnWindowFocus: false,
     })
@@ -91,14 +133,35 @@ function App() {
 
     const handleExport = useCallback(async () => {
         if (tracks.length === 0) {
-            alert("No tracks to export. Add some audio files to the timeline first.")
+            toast.error("No tracks to export. Add some audio files to the timeline first.")
             return
         }
 
         setIsLoading(true)
         try {
-            await exportProject()
-            alert("Project exported successfully!")
+            const audioBlob = await exportProject()
+
+            toast.success("Project exported successfully!")
+        } catch (error) {
+            toast.error(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`)
+        } finally {
+            setIsLoading(false)
+        }
+    }, [tracks.length, exportProject])
+
+    const handleExportToBandcoin = useCallback(async () => {
+        if (tracks.length === 0) {
+
+            toast.error("No tracks to export. Add some audio files to the timeline first.")
+            return
+        }
+
+        setIsLoading(true)
+        try {
+            const audioBlob = await exportToBandcoin()
+            setData(audioBlob)
+            setShowExportOptionsModal(false)
+            setIsOpen(true)
         } catch (error) {
             console.error("Export failed:", error)
             alert(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`)
@@ -107,26 +170,20 @@ function App() {
         }
     }, [tracks.length, exportProject])
 
+
     const handleDragStart = useCallback((audioFile: AudioFile) => {
         setDraggedAudioFile(audioFile)
     }, [])
 
-    const handleSaveProject = useCallback(
-        (name: string) => {
-            saveProject(name)
-            alert(`Project "${name}" saved successfully!`)
-        },
-        [saveProject],
-    )
 
-    const handleLoadProject = useCallback((projectId: string) => {
-        alert("Load project functionality would restore saved project state.")
-    }, [])
+    const handleExportClick = useCallback(() => {
+        if (tracks.length === 0) {
+            toast.error("No tracks to export. Add some audio files to the timeline first.")
+            return
+        }
 
-    const handleNewProject = useCallback(() => {
-        newProject()
-    }, [newProject])
-
+        setShowExportOptionsModal(true)
+    }, [tracks.length])
     const handleAIAudioGenerated = useCallback(
         async (audioBlob: Blob, title: string) => {
             try {
@@ -239,8 +296,131 @@ function App() {
 
                 {/* Quick Actions */}
                 <div className="flex items-center space-x-3">
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline">Show Tips</Button>
+                        </DialogTrigger>
 
+                        <DialogContent className=" rounded-lg">
+                            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200">
+                                    {/* Header */}
+                                    <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-white/20 rounded-lg">
+                                                    <Music className="w-6 h-6" />
+                                                </div>
+                                                <div>
+                                                    <h2 className="text-2xl font-bold">Pro Tips & Shortcuts</h2>
+                                                    <p className="text-blue-100 text-sm">Master your music workflow</p>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    {/* Tabs */}
+                                    <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                                        {tabs.map((tab) => (
+                                            <button
+                                                key={tab.id}
+                                                onClick={() => setActiveTab(tab.id)}
+                                                className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${activeTab === tab.id
+                                                    ? 'text-blue-600 border-b-2 border-blue-600 bg-white dark:bg-gray-900'
+                                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                                                    }`}
+                                            >
+                                                {tab.icon}
+                                                {tab.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="p-6 max-h-96 overflow-y-auto">
+                                        {activeTab === 'shortcuts' && (
+                                            <div className="space-y-3">
+                                                <div className="mb-4">
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Keyboard Shortcuts</h3>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">Speed up your workflow with these handy shortcuts</p>
+                                                </div>
+                                                {tips.shortcuts.map((tip, index) => (
+                                                    <div key={index} className="flex items-center gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                                        <div className="flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-lg">
+                                                            {tip.icon}
+                                                        </div>
+                                                        <div className="flex items-center gap-3 flex-1">
+                                                            <kbd className="px-2 py-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded text-sm font-mono">
+                                                                {tip.key}
+                                                            </kbd>
+                                                            <span className="text-gray-700 dark:text-gray-300">{tip.action}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {activeTab === 'workflow' && (
+                                            <div className="space-y-4">
+                                                <div className="mb-4">
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Workflow Tips</h3>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">Optimize your creative process</p>
+                                                </div>
+                                                {tips.workflow.map((tip, index) => (
+                                                    <div key={index} className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-lg">
+                                                                {tip.icon}
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-semibold text-gray-900 dark:text-white mb-1">{tip.title}</h4>
+                                                                <p className="text-sm text-gray-600 dark:text-gray-400">{tip.desc}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {activeTab === 'advanced' && (
+                                            <div className="space-y-4">
+                                                <div className="mb-4">
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Advanced Techniques</h3>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">Pro-level features for power users</p>
+                                                </div>
+                                                {tips.advanced.map((tip, index) => (
+                                                    <div key={index} className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 border-l-4 border-blue-500">
+                                                        <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{tip.title}</h4>
+                                                        <p className="text-sm text-gray-600 dark:text-gray-400">{tip.desc}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Footer */}
+                                    <div className="bg-gray-50 dark:bg-gray-800 p-4 border-t border-gray-200 dark:border-gray-700">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+
+                                            </p>
+                                            <DialogClose>
+                                                <button
+
+                                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                                                >
+                                                    Got it!
+                                                </button>
+                                            </DialogClose>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                     <div className={`flex items-center rounded-xl p-1 ${isDark ? "bg-gray-800" : "bg-gray-100"}`}>
+
                         <button
                             onClick={() => setWorkspaceLayout("standard")}
                             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${workspaceLayout === "standard"
@@ -346,12 +526,26 @@ function App() {
                 onZoomChange={setPixelsPerSecond}
                 snapToGrid={snapToGrid}
                 onSnapToggle={() => setSnapToGrid(!snapToGrid)}
-                onExport={handleExport}
+                onExport={handleExportClick}
                 isDark={isDark}
                 onToggleDarkMode={toggleTheme}
                 layout={workspaceLayout}
             />
-
+            <ExportOptionsModal
+                isOpen={showExportOptionsModal}
+                setIsOpen={setShowExportOptionsModal}
+                onDownload={handleExport}
+                onExportToBandcoin={handleExportToBandcoin}
+                isExporting={isLoading}
+                trackCount={tracks.length}
+                isDark={isDark}
+            />
+            {/* <ExportSongModal
+                isOpen={showExportModal}
+                setIsOpen={setShowExportModal}
+                audioBlob={exportAudioBlob}
+                projectName="My Studio Project"
+            /> */}
             {/* Quick Help */}
             {workspaceLayout !== "focus" && (
                 <div

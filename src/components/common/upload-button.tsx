@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import toast from "react-hot-toast"
 import { api } from "~/utils/api"
 import axios, { AxiosError } from "axios"
@@ -62,7 +62,8 @@ export function UploadS3Button({
     className,
     label,
     showPreview = true,
-    ref
+    ref,
+    uploadedFile
 }: {
     id?: string
     endpoint: EndPointType
@@ -77,6 +78,7 @@ export function UploadS3Button({
     label?: string
     showPreview?: boolean
     ref?: React.Ref<HTMLInputElement>
+    uploadedFile?: File
 }) {
     const [progress, setProgress] = useState(0)
     const [file, setFile] = useState<File | null>(null)
@@ -84,6 +86,7 @@ export function UploadS3Button({
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
     const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle")
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const [uploadStarted, setUploadStarted] = useState(false)
 
     const url = api.s3.getSignedURL.useMutation({
         onSuccess: async (data) => {
@@ -147,7 +150,7 @@ export function UploadS3Button({
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0]
-
+        console.log("Selected file:", selectedFile)
         if (selectedFile) {
             const isOBJFile = selectedFile.name.endsWith(".obj") && selectedFile.type === ""
             const fileType = isOBJFile ? ".obj" : selectedFile.type
@@ -186,10 +189,82 @@ export function UploadS3Button({
         }
     }
 
-    const handleButtonClick = useCallback(() => {
-        fileInputRef.current?.click()
-    }, [])
+    const handleButtonClick = useCallback(async () => {
+        // If no selected file but uploadedFile is provided
+        if (!file && uploadedFile) {
+            let targetFile = uploadedFile
 
+            if (onBeforeUploadBegin) {
+                const processedFile = await onBeforeUploadBegin(uploadedFile)
+                if (!processedFile) return
+                targetFile = processedFile
+            }
+
+            setFile(targetFile)
+
+            const fileType = uploadedFile.name.endsWith(".obj") && uploadedFile.type === ""
+                ? ".obj"
+                : uploadedFile.type
+
+            if (uploadedFile.type.startsWith("image/") && showPreview) {
+                const reader = new FileReader()
+                reader.onload = (e) => {
+                    setPreviewUrl(e.target?.result as string)
+                }
+                reader.readAsDataURL(targetFile)
+            }
+
+            url.mutate({
+                fileSize: targetFile.size,
+                fileType: fileType,
+                checksum: await computeSHA256(targetFile),
+                endPoint: endpoint,
+                fileName: targetFile.name,
+            })
+            return
+        }
+
+        fileInputRef.current?.click()
+    }, [file, uploadedFile])
+
+    useEffect(() => {
+        const uploadInitialFile = async () => {
+            if (uploadedFile && !file && !uploadStarted) {
+                setUploadStarted(true)
+                let targetFile = uploadedFile
+
+                if (onBeforeUploadBegin) {
+                    const processedFile = await onBeforeUploadBegin(uploadedFile)
+                    if (!processedFile) return
+                    targetFile = processedFile
+                }
+
+                setFile(targetFile)
+
+                const fileType = uploadedFile.name.endsWith(".obj") && uploadedFile.type === ""
+                    ? ".obj"
+                    : uploadedFile.type
+
+                if (uploadedFile.type.startsWith("image/") && showPreview) {
+                    const reader = new FileReader()
+                    reader.onload = (e) => {
+                        setPreviewUrl(e.target?.result as string)
+                    }
+                    reader.readAsDataURL(targetFile)
+                }
+
+                url.mutate({
+                    fileSize: targetFile.size,
+                    fileType: fileType,
+                    checksum: await computeSHA256(targetFile),
+                    endPoint: endpoint,
+                    fileName: targetFile.name,
+                })
+            }
+        }
+
+        uploadInitialFile()
+    }, [uploadedFile])
     const renderButtonContent = () => {
         if (loading) {
             return (
@@ -241,6 +316,7 @@ export function UploadS3Button({
 
         return <Camera className="h-4 w-4" />
     }
+
 
     return (
         <div
