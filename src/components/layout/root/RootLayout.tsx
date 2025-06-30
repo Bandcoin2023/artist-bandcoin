@@ -55,7 +55,9 @@ export default function Layout({
                     {
                         isStudioRoute ? (
 
-                            session.status === "authenticated" ? <>{children}</> : (<div className="flex h-screen w-full items-center justify-center ">
+                            session.status === "authenticated" ? <>{children}
+                                <ModalProvider />
+                            </> : (<div className="flex h-screen w-full items-center justify-center ">
                                 <ConnectWalletButton />
                             </div>)
 

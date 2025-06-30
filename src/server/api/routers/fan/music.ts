@@ -84,6 +84,11 @@ export const musicRouter = createTRPCRouter({
                     select: {
                         name: true,
                     }
+                },
+                _count: {
+                    select: {
+                        songs: true, // Count the number of songs in the album
+                    }
                 }
             },
             // If cursor is provided, start after that album

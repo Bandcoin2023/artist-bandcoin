@@ -32,8 +32,8 @@ export const useAudio = () => {
   const startTimeRef = useRef<number>(0)
 
   const getProjectDuration = useCallback(() => {
-    if (tracks.length === 0) return 60
-    return Math.max(60, ...tracks.map((track) => track.endTime))
+    if (tracks.length === 0) return 0
+    return Math.max(0, ...tracks.map((track) => track.endTime))
   }, [tracks])
 
   const initAudioContext = useCallback(async () => {
@@ -555,6 +555,9 @@ export const useAudio = () => {
     setPlaybackState((prev) => ({ ...prev, currentTime: 0, isPlaying: false }))
     setMasterEQ({ low: 0, mid: 0, high: 0 })
   }, [tracks.length])
+
+
+
   const exportProject = useCallback(
     async (format: "wav" | "mp3" = "wav"): Promise<void> => {
       if (tracks.length === 0) {
@@ -657,6 +660,100 @@ export const useAudio = () => {
     },
     [tracks, audioFiles, masterEQ, initAudioContext, getProjectDuration],
   )
+  const exportToBandcoin = useCallback(
+    async (format: "wav" | "mp3" = "wav"): Promise<Blob> => {
+      if (tracks.length === 0) {
+        throw new Error("No tracks to export")
+      }
+
+      await initAudioContext()
+
+      const projectDuration = getProjectDuration()
+      const sampleRate = audioContextRef.current!.sampleRate
+      const numberOfChannels = 2 // Stereo
+      const length = Math.ceil(projectDuration * sampleRate)
+
+      // Create offline context for rendering
+      const offlineContext = new OfflineAudioContext(numberOfChannels, length, sampleRate)
+
+      // Create master gain and EQ nodes for offline context
+      const masterGain = offlineContext.createGain()
+      masterGain.gain.value = gainNodeRef.current?.gain.value ?? 0.8
+
+      const lowShelf = offlineContext.createBiquadFilter()
+      lowShelf.type = "lowshelf"
+      lowShelf.frequency.value = 100
+      lowShelf.gain.value = masterEQ.low
+
+      const midPeaking = offlineContext.createBiquadFilter()
+      midPeaking.type = "peaking"
+      midPeaking.frequency.value = 1000
+      midPeaking.Q.value = 1
+      midPeaking.gain.value = masterEQ.mid
+
+      const highShelf = offlineContext.createBiquadFilter()
+      highShelf.type = "highshelf"
+      highShelf.frequency.value = 8000
+      highShelf.gain.value = masterEQ.high
+
+      // Connect EQ chain
+      lowShelf.connect(midPeaking)
+      midPeaking.connect(highShelf)
+      highShelf.connect(masterGain)
+      masterGain.connect(offlineContext.destination)
+
+      // Process tracks
+      const soloedTracks = tracks.filter((track) => track.soloed)
+      const tracksToRender = soloedTracks.length > 0 ? soloedTracks : tracks.filter((track) => !track.muted)
+
+      // Group tracks by audio file to avoid conflicts
+      const tracksByAudioFile = new Map<string, Track[]>()
+      tracksToRender.forEach((track) => {
+        if (!tracksByAudioFile.has(track.audioFileId)) {
+          tracksByAudioFile.set(track.audioFileId, [])
+        }
+        tracksByAudioFile.get(track.audioFileId)!.push(track)
+      })
+
+      // Create sources for each track
+      tracksByAudioFile.forEach((tracksForFile, audioFileId) => {
+        const audioFile = audioFiles.find((f) => f.id === audioFileId)
+        if (!audioFile?.buffer) return
+
+        tracksForFile.forEach((track) => {
+          const source = offlineContext.createBufferSource()
+          const gainNode = offlineContext.createGain()
+
+          source.buffer = audioFile.buffer ?? null
+          source.connect(gainNode)
+          gainNode.connect(lowShelf)
+
+          gainNode.gain.value = track.volume
+
+          const sourceOffset = track.trimStart
+          const duration = Math.min(track.trimEnd - track.trimStart, track.endTime - track.startTime)
+
+          if (duration > 0 && audioFile.buffer && sourceOffset < audioFile.buffer.duration) {
+            try {
+              source.start(track.startTime, sourceOffset, duration)
+            } catch (e) {
+              console.warn("Failed to start offline audio source:", e)
+            }
+          }
+        })
+      })
+
+      // Render the audio
+      const renderedBuffer = await offlineContext.startRendering()
+
+      // Convert to WAV
+      const wavBuffer = audioBufferToWav(renderedBuffer)
+      const blob = new Blob([wavBuffer], { type: "audio/wav" })
+      return blob
+    },
+    [tracks, audioFiles, masterEQ, initAudioContext, getProjectDuration],
+  )
+
   const audioBufferToWav = (buffer: AudioBuffer): ArrayBuffer => {
     const length = buffer.length
     const numberOfChannels = buffer.numberOfChannels
@@ -752,5 +849,6 @@ export const useAudio = () => {
     saveProject,
     newProject,
     exportProject,
+    exportToBandcoin
   }
 }
