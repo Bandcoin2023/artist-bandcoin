@@ -20,6 +20,8 @@ import { useRouter } from "next/router";
 import CreatorLayout from "./CreatorLayout";
 import { MiniPlayerProvider } from "~/components/player/mini-player-provider";
 import LoginRequiredModal from "~/components/modal/login-required-modal";
+import { BottomPlayerProvider } from "~/components/player/context/bottom-player-context";
+import { StemPlayer } from "~/components/player/bottom-player";
 
 export default function Layout({
     children,
@@ -49,60 +51,62 @@ export default function Layout({
             disableTransitionOnChange
         >
             <MiniPlayerProvider>
+                <BottomPlayerProvider>
 
-                <div className={clsx("flex h-screen w-full flex-col")}>
-                    <Header />
-                    {
-                        isStudioRoute ? (
+                    <div className={clsx("flex h-screen w-full flex-col")}>
+                        <Header />
+                        {
+                            isStudioRoute ? (
 
-                            session.status === "authenticated" ? <>{children}
-                                <ModalProvider />
-                            </> : (<div className="flex h-screen w-full items-center justify-center ">
-                                <ConnectWalletButton />
-                            </div>)
+                                session.status === "authenticated" ? <>{children}
+                                    <ModalProvider />
+                                </> : (<div className="flex h-screen w-full items-center justify-center ">
+                                    <ConnectWalletButton />
+                                </div>)
 
 
-                        ) : (
-                            <div className="flex w-full scrollbar-hide ">
-                                <div className="relative  bg-secondary  shadow-sm shadow-primary transition-all duration-500 ease-in-out">
-                                    <Sidebar />
-                                    <ChevronLeft
-                                        className={cn(
-                                            "fixed left-[17rem] top-24 z-10 hidden cursor-pointer rounded-full border-2 bg-background text-3xl text-foreground shadow-sm shadow-black transition-all duration-500 ease-in-out md:block",
-                                            isMinimized && "left-[4.5rem] rotate-180",
-                                        )}
-                                        onClick={handleToggle}
-                                    />
-                                </div>
-
-                                {session.status === "authenticated" ? (
-                                    <div className="w-full  overflow-y-auto    scrollbar-hide lg:pl-6">
-                                        {isArtistRoutes ? (
-                                            <>
-                                                <CreatorLayout>{children}</CreatorLayout>
-                                            </>
-                                        ) : (
-                                            <>{children}</>
-                                        )}
-                                        <ModalProvider />
-                                        <Toaster />
+                            ) : (
+                                <div className="flex w-full scrollbar-hide ">
+                                    <div className="relative  bg-secondary  shadow-sm shadow-primary transition-all duration-500 ease-in-out">
+                                        <Sidebar />
+                                        <ChevronLeft
+                                            className={cn(
+                                                "fixed left-[17rem] top-24 z-10 hidden cursor-pointer rounded-full border-2 bg-background text-3xl text-foreground shadow-sm shadow-black transition-all duration-500 ease-in-out md:block",
+                                                isMinimized && "left-[4.5rem] rotate-180",
+                                            )}
+                                            onClick={handleToggle}
+                                        />
                                     </div>
-                                ) : (
-                                    isPublicRoute ? (
-                                        <div className="w-full   overflow-y-auto    scrollbar-hide lg:pl-6">
-                                            <>{children}</>
-                                            <LoginRequiredModal />
-                                        </div>
-                                    ) :
-                                        (<div className="flex h-screen w-full items-center justify-center ">
-                                            <ConnectWalletButton />
-                                        </div>)
-                                )}
-                            </div>
-                        )
-                    }
-                </div>
 
+                                    {session.status === "authenticated" ? (
+                                        <div className="w-full  overflow-y-auto    scrollbar-hide lg:pl-6">
+                                            {isArtistRoutes ? (
+                                                <>
+                                                    <CreatorLayout>{children}</CreatorLayout>
+                                                </>
+                                            ) : (
+                                                <>{children}</>
+                                            )}
+                                            <ModalProvider />
+                                            <Toaster />
+                                        </div>
+                                    ) : (
+                                        isPublicRoute ? (
+                                            <div className="w-full   overflow-y-auto    scrollbar-hide lg:pl-6">
+                                                <>{children}</>
+                                                <LoginRequiredModal />
+                                            </div>
+                                        ) :
+                                            (<div className="flex h-screen w-full items-center justify-center ">
+                                                <ConnectWalletButton />
+                                            </div>)
+                                    )}
+                                </div>
+                            )
+                        }
+                    </div>
+                    <StemPlayer />
+                </BottomPlayerProvider>
             </MiniPlayerProvider>
         </ThemeProvider>
     );

@@ -13,7 +13,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "~/components/shadcn/ui/use-toast"
 import { useCreateSongModalStore } from "~/components/store/create-song-modal"
 import { MarketAssetType } from "~/types/market/market-asset-type"
-import { SongItemType } from "~/types/song/song-item-types"
+import { SongItemType, StemTypeWithoutAssetId } from "~/types/song/song-item-types"
+import { useBottomPlayer } from "~/components/player/context/bottom-player-context"
 
 export default function Album() {
     const params = useParams()
@@ -23,7 +24,7 @@ export default function Album() {
     const [songToDelete, setSongToDelete] = useState<SongItemType | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
     const [deleteSuccess, setDeleteSuccess] = useState(false)
-
+    const { showPlayer } = useBottomPlayer()
     const deleteSongMutation = api.music.song.deleteAsong.useMutation({
         onSuccess: () => {
             setIsDeleting(false)
@@ -71,6 +72,22 @@ export default function Album() {
         setDeleteDialogOpen(true)
     }
 
+    const handlePlaySong = (song: {
+        tracks: StemTypeWithoutAssetId[];
+        title: string;
+        artist: string;
+        thumbnail: string
+        url: string
+    }) => {
+        if (song.tracks.length === 0) {
+            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
+
+        }
+        else {
+            showPlayer(song.tracks, song.title, song.artist, undefined, song.thumbnail)
+
+        }
+    }
     const confirmDelete = () => {
         if (!songToDelete) return
 
@@ -141,7 +158,10 @@ export default function Album() {
                         >
                             <Button
                                 variant="accent"
-                                onClick={() => setIsOpen(true)}
+                                onClick={() => {
+                                    setIsOpen(true)
+                                    setData(album.id)
+                                }}
                                 className="group px-6 py-2 rounded-full shadow-sm hover:shadow-xl transition-all duration-300"
                             >
                                 <Upload className="mr-2 h-5 w-5 transition-transform duration-300 group-hover:-translate-y-1" />
@@ -205,6 +225,13 @@ export default function Album() {
                                         <Button
                                             variant="accent"
                                             className="shadow-sm shadow-black px-6 py-2 gap-1 flex items-center justify-center group"
+                                            onClick={() => handlePlaySong({
+                                                tracks: song.asset.Stem,
+                                                title: song.asset.name,
+                                                artist: song.asset.creatorId ?? "ADMIN",
+                                                thumbnail: song.asset.thumbnail,
+                                                url: song.asset.mediaUrl
+                                            })}
                                         >
                                             <Play className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
                                             <span>PLAY</span>

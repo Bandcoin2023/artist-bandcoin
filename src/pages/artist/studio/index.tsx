@@ -42,10 +42,11 @@ function App() {
         newProject,
         exportProject,
         exportToBandcoin,
+        exportTrackAsBlob
     } = useAudio()
 
     const [showExportOptionsModal, setShowExportOptionsModal] = useState(false)
-    const { isOpen, setIsOpen, audioBlob, setData } = useExportCreateSongModalStore()
+    const { isOpen, setIsOpen, data, setData } = useExportCreateSongModalStore()
     const [pixelsPerSecond, setPixelsPerSecond] = useState(21)
     const [snapToGrid, setSnapToGrid] = useState(true)
     const [masterVolume, setMasterVolumeState] = useState(0.8)
@@ -159,7 +160,20 @@ function App() {
         setIsLoading(true)
         try {
             const audioBlob = await exportToBandcoin()
-            setData(audioBlob)
+            const tracksBlobs = await Promise.all(
+                tracks.map(async (track) => {
+                    return {
+                        ...track,
+                        blob: await exportTrackAsBlob(track)
+                    }
+                })
+            )
+
+            console.log("Exported tracks blobs:", tracksBlobs)
+            setData({
+                audioBlob,
+                TracksBlob: tracksBlobs
+            })
             setShowExportOptionsModal(false)
             setIsOpen(true)
         } catch (error) {

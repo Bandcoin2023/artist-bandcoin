@@ -22,6 +22,8 @@ export interface Track {
   trackIndex: number;
   color?: string;
   selected?: boolean;
+  blob?: Blob;
+  stemUrl?: string
 }
 
 export interface Project {

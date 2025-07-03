@@ -110,6 +110,7 @@ export default function CreateSongModal() {
     const [formProgress, setFormProgress] = useState(25)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const { albumId, isOpen, setIsOpen } = useCreateSongModalStore()
+    console.log("albumId", albumId, typeof albumId)
     const methods = useForm<SongFormType>({
         mode: "onChange",
         resolver: zodResolver(SongFormSchema),
@@ -453,6 +454,7 @@ function MediaStep() {
                                 <Button
                                     type="button"
                                     variant="outline"
+                                    id="coverImg"
                                     onClick={() => inputFile.current?.click()}
                                     className="w-full h-32 relative border-dashed flex flex-col items-center justify-center gap-2"
                                     disabled={uploading}
@@ -506,13 +508,16 @@ function MediaStep() {
 
                     <Input
                         id="coverImg"
+                        ref={inputFile}
                         type="file"
                         accept=".jpg, .png"
                         onChange={handleChange}
                         className="hidden"
                     />
                     {errors.coverImgUrl && <p className="text-sm text-destructive">{errors.coverImgUrl.message}</p>}
-                </div><Separator /><div className="space-y-4">
+                </div>
+                <Separator />
+                <div className="space-y-4">
                     <Label htmlFor="musicFile" className="flex items-center gap-2">
                         <Music className="h-4 w-4 " />
                         Music File
@@ -801,8 +806,15 @@ function SubmitButton({ albumId, setIsOpen }: {
                     .then((res) => {
                         if (res) {
                             setValue("tier", tier)
-                            const data = getValues()
-                            addSong.mutate({ ...data })
+                            if (!albumId) {
+                                toast.error("Please select an album to add the song")
+                                setIsSubmitting(false)
+                            }
+                            else {
+                                const data = getValues()
+                                addSong.mutate({ ...data, albumId: Number(albumId) })
+                            }
+
                         } else {
                             toast.error("Transaction Failed")
                             setIsSubmitting(false)

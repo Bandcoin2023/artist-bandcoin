@@ -42,7 +42,7 @@ export async function createUniAsset({
   ipfsHash: string;
 }) {
   const server = new Horizon.Server(STELLAR_URL);
-
+  console.log(pubkey, code, limit, signWith, homeDomain, storageSecret, ipfsHash);
   const extractHash = ipfsHash.split("/").pop();
 
   if (!extractHash) {

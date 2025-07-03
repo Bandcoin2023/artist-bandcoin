@@ -660,6 +660,50 @@ export const useAudio = () => {
     },
     [tracks, audioFiles, masterEQ, initAudioContext, getProjectDuration],
   )
+  // Export individual track as blob
+  const exportTrackAsBlob = useCallback(
+    async (track: Track): Promise<Blob> => {
+      await initAudioContext()
+
+      const audioFile = audioFiles.find((f) => f.id === track.audioFileId)
+      if (!audioFile?.buffer) {
+        throw new Error(`Audio file not found for track ${track.name}`)
+      }
+
+      const trackDuration = track.endTime - track.startTime
+      const sampleRate = audioContextRef.current!.sampleRate
+      const numberOfChannels = 2
+      const length = Math.ceil(trackDuration * sampleRate)
+
+      const offlineContext = new OfflineAudioContext(numberOfChannels, length, sampleRate)
+
+      const source = offlineContext.createBufferSource()
+      const gainNode = offlineContext.createGain()
+
+      source.buffer = audioFile.buffer
+      source.connect(gainNode)
+      gainNode.connect(offlineContext.destination)
+
+      gainNode.gain.value = track.volume
+
+      const sourceOffset = track.trimStart
+      const duration = Math.min(track.trimEnd - track.trimStart, trackDuration)
+
+      if (duration > 0 && sourceOffset < audioFile.buffer.duration) {
+        try {
+          source.start(0, sourceOffset, duration)
+        } catch (e) {
+          console.warn("Failed to start offline audio source for track:", e)
+        }
+      }
+
+      const renderedBuffer = await offlineContext.startRendering()
+      const wavBuffer = audioBufferToWav(renderedBuffer)
+      return new Blob([wavBuffer], { type: "audio/wav" })
+    },
+    [audioFiles, initAudioContext],
+  )
+
   const exportToBandcoin = useCallback(
     async (format: "wav" | "mp3" = "wav"): Promise<Blob> => {
       if (tracks.length === 0) {
@@ -849,6 +893,7 @@ export const useAudio = () => {
     saveProject,
     newProject,
     exportProject,
-    exportToBandcoin
+    exportToBandcoin,
+    exportTrackAsBlob
   }
 }

@@ -30,12 +30,16 @@ import { SongItemType, useModal } from "~/lib/state/play/use-modal-store";
 import { DeleteAssetByAdmin, DisableFromMarketButton, OtherButtons, SparkleEffect } from "../common/modal-common-button";
 import ShowThreeDModel from "../3d-model/model-show";
 import { useAssestInfoModalStore } from "../store/asset-info-modal-store";
+import { useBottomPlayer } from "../player/context/bottom-player-context";
+import { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
 
 export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
 
 export default function AssetInfoModal() {
     const { data, isOpen, setIsOpen } = useAssestInfoModalStore()
+    const { showPlayer } = useBottomPlayer()
+
     const session = useSession();
     const router = useRouter();
     const { selectedMenu, setSelectedMenu } = useAssetMenu();
@@ -44,6 +48,22 @@ export default function AssetInfoModal() {
         useCreatorStorageAcc();
 
 
+    const handlePlaySong = (song: {
+        tracks: StemTypeWithoutAssetId[];
+        title: string;
+        artist: string;
+        thumbnail: string
+        url: string
+    }) => {
+        if (song.tracks.length === 0) {
+            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
+
+        }
+        else {
+            showPlayer(song.tracks, song.title, song.artist, undefined, song.thumbnail)
+
+        }
+    }
     const handleClose = () => {
         setIsOpen(false);
     };
@@ -152,7 +172,13 @@ export default function AssetInfoModal() {
                                             )}
                                         {data.mediaType === "MUSIC" ? (
                                             <Button
-
+                                                onClick={() => handlePlaySong({
+                                                    tracks: data.Stem,
+                                                    title: data.name,
+                                                    artist: data.creatorId ?? "Admin",
+                                                    thumbnail: data.thumbnail,
+                                                    url: data.mediaUrl
+                                                })}
                                                 className="w-full shadow-sm shadow-foreground"
                                                 variant="accent"
                                             >
