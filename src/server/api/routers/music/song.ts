@@ -84,6 +84,7 @@ export const songRouter = createTRPCRouter({
                 customPageAssetCodeIssuer: true
               },
             },
+            Stem: true,
           },
         },
       },
@@ -186,6 +187,7 @@ export const songRouter = createTRPCRouter({
                     customPageAssetCodeIssuer: true,
                   },
                 },
+                Stem: true,
               },
             },
           },
@@ -338,6 +340,7 @@ export const songRouter = createTRPCRouter({
                     },
                   },
                 },
+                Stem: true,
               },
             },
           },
@@ -451,7 +454,14 @@ export const songRouter = createTRPCRouter({
           asset: { code: asset.code, issuer: asset.issuer },
         })),
       },
-      include: { asset: { select: AssetSelectAllProperty } },
+      include: {
+        asset: {
+          select: {
+            ...AssetSelectAllProperty,
+            Stem: true,
+          }
+        }
+      },
     });
     // return songs;
     console.log("foundSongs", foundSongs);

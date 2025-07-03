@@ -1,11 +1,8 @@
 "use client"
-
-import type React from "react"
 import { useForm, FormProvider, useFormContext } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
     Music,
-    ImageIcon,
     FileText,
     DollarSign,
     Loader2,
@@ -13,17 +10,17 @@ import {
     ChevronRight,
     Upload,
     Check,
-    X,
     Coins,
     Album,
     Plus,
     Grid3X3,
+    X,
+    ImageIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import { toast } from "react-hot-toast"
 import { z } from "zod"
 import { AccountSchema, clientSelect } from "~/lib/stellar/fan/utils"
-import { ipfsHashToUrl } from "~/utils/ipfs"
 import { Input } from "~/components/shadcn/ui/input"
 import { Label } from "~/components/shadcn/ui/label"
 import { Textarea } from "~/components/shadcn/ui/textarea"
@@ -39,12 +36,12 @@ import {
 } from "~/components/shadcn/ui/select"
 import Image from "next/image"
 import { Button } from "~/components/shadcn/ui/button"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, color } from "framer-motion"
 import { Card, CardContent, CardFooter, CardTitle } from "~/components/shadcn/ui/card"
 import { Badge } from "~/components/shadcn/ui/badge"
 import { Progress } from "~/components/shadcn/ui/progress"
 import { Separator } from "~/components/shadcn/ui/separator"
-import { UploadS3Button } from "../common/upload-button"
+import { MultiMusicUploadS3Button, UploadS3Button } from "../common/upload-button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader } from "../shadcn/ui/dialog"
 import { cn } from "~/lib/utils"
 import { PLATFORM_ASSET, PLATFORM_FEE, TrxBaseFeeInPlatformAsset } from "~/lib/stellar/constant"
@@ -54,6 +51,7 @@ import useNeedSign from "~/lib/hook"
 import { PaymentChoose, usePaymentMethodStore } from "../common/payment-options"
 import { clientsign } from "package/connect_wallet"
 import { useExportCreateSongModalStore } from "../store/export-create-song-modal-store"
+import { ipfsHashToUrl } from "~/utils/ipfs"
 
 export const ExportSongFormSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
@@ -102,6 +100,22 @@ export const ExportSongFormSchema = z.object({
         }),
     issuer: AccountSchema.optional(),
     tier: z.string().optional(),
+    tracks: z.array(
+        z.object({
+            id: z.string(),
+            name: z.string(),
+            startTime: z.number(),
+            endTime: z.number(),
+            volume: z.number(),
+            muted: z.boolean(),
+            soloed: z.boolean(),
+            trimStart: z.number(),
+            trimEnd: z.number(),
+            trackIndex: z.number(),
+            stemUrl: z.string(), // Optional URL for stem audio
+            color: z.string()
+        }),
+    ),
 })
 
 type ExportSongFormType = z.infer<typeof ExportSongFormSchema>
@@ -110,23 +124,12 @@ type FormStep = "basics" | "album" | "media" | "pricing" | "review"
 
 const FORM_STEPS: FormStep[] = ["basics", "album", "media", "pricing", "review"]
 
-
-
 export default function ExportCreateSongModal() {
     const [activeStep, setActiveStep] = useState<FormStep>("basics")
     const [formProgress, setFormProgress] = useState(20)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [progress, setProgress] = useState(0)
-    const { audioBlob, setData, isOpen, setIsOpen } = useExportCreateSongModalStore()
-    // 🔐 Single source of truth for upload state
-    const [audioUploadState, setAudioUploadState] = useState<{
-        status: "idle" | "uploading" | "completed" | "error"
-        url?: string
-        progress: number
-    }>({
-        status: "idle",
-        progress: 0,
-    })
+    const { data, setData, isOpen, setIsOpen } = useExportCreateSongModalStore()
+
 
     const [fileName] = useState(() => `${"exported-song"}-${Date.now()}.wav`)
 
@@ -144,11 +147,6 @@ export default function ExportCreateSongModal() {
         },
     })
 
-    // 🔐 Memoize file only once and prevent re-creation
-    const memoizedFile = useMemo(() => {
-        if (!audioBlob) return undefined
-        return new File([audioBlob], fileName, { type: "audio/wav" })
-    }, [audioBlob, fileName])
 
     // Update progress based on active step
     useEffect(() => {
@@ -158,62 +156,10 @@ export default function ExportCreateSongModal() {
 
     const uploadRef = useRef<boolean>(false)
 
-    // 🔐 Auto-upload audio blob when modal opens - ONLY ONCE with better control
-    useEffect(() => {
-        let uploadTriggered = false
 
-        const triggerUpload = async () => {
-            if (audioBlob && isOpen && audioUploadState.status === "idle" && !uploadTriggered) {
-                uploadTriggered = true
-                console.log("🎵 Starting audio upload...")
-                setAudioUploadState((prev) => ({ ...prev, status: "uploading" }))
-            }
-        }
-
-        triggerUpload()
-
-        // Cleanup function to reset the flag when modal closes
-        return () => {
-            if (!isOpen) {
-                uploadTriggered = false
-            }
-        }
-    }, [audioBlob, isOpen, audioUploadState.status, fileName])
 
     // Handle successful audio upload
-    const handleAudioUploadComplete = useCallback(
-        (res: { url: string }) => {
-            if (uploadRef.current) return // Prevent multiple completions
-            uploadRef.current = true
 
-            setAudioUploadState({
-                status: "completed",
-                url: res.url,
-                progress: 100,
-            })
-            methods.setValue("musicUrl", res.url)
-            toast.success("Audio uploaded successfully!")
-        },
-        [methods],
-    )
-
-    // Handle audio upload error
-    const handleAudioUploadError = useCallback((error: Error) => {
-        setAudioUploadState({
-            status: "error",
-            progress: 0,
-        })
-        toast.error(`ERROR! ${error.message}`)
-    }, [])
-
-    // Handle audio upload progress
-    const handleAudioUploadProgress = useCallback((progress: number) => {
-        setAudioUploadState((prev) => ({
-            ...prev,
-            progress,
-        }))
-        setProgress(progress)
-    }, [])
 
     // Navigation functions
     const goToNextStep = () => {
@@ -238,7 +184,7 @@ export default function ExportCreateSongModal() {
 
     // Check if current step is valid before allowing to proceed
     const canProceed = () => {
-        const { trigger } = methods
+        const { trigger, watch } = methods
         const fieldsToValidate: Record<FormStep, (keyof ExportSongFormType)[]> = {
             basics: ["name", "artist", "description", "tier"],
             album: [],
@@ -248,6 +194,20 @@ export default function ExportCreateSongModal() {
         }
 
         const validateStep = async () => {
+            if (activeStep === "media") {
+                // Check if all required media files are uploaded
+                const musicUrl = watch("musicUrl")
+                const coverImgUrl = watch("coverImgUrl")
+                const tracks = watch("tracks")
+
+                const hasMainAudio = !!musicUrl
+                const hasCoverImage = !!coverImgUrl
+                const hasAllTracks =
+                    !data.TracksBlob || data.TracksBlob.length === 0 || (tracks && tracks.length === data.TracksBlob.length)
+
+                return hasMainAudio && hasCoverImage && hasAllTracks
+            }
+
             const result = await trigger(fieldsToValidate[activeStep])
             return result
         }
@@ -265,7 +225,6 @@ export default function ExportCreateSongModal() {
     const handleClose = () => {
         setIsOpen(false)
         setActiveStep("basics")
-        setAudioUploadState({ status: "idle", progress: 0 })
         uploadRef.current = false // Reset upload ref
         methods.reset()
     }
@@ -285,25 +244,7 @@ export default function ExportCreateSongModal() {
                     transition={{ duration: 0.3 }}
                     className="flex flex-col h-full"
                 >
-                    {/* 🔐 Only render upload component when needed and prevent multiple instances */}
-                    {audioUploadState.status === "uploading" &&
-                        memoizedFile &&
-                        !audioUploadState.url &&
-                        !methods.watch("musicUrl") && (
-                            <div key="audio-upload-wrapper">
-                                <UploadS3Button
-                                    id="audioUpload"
-                                    endpoint="musicUploader"
-                                    variant="hidden"
-                                    className="w-full hidden"
-                                    label="Upload Music File"
-                                    uploadedFile={memoizedFile}
-                                    onUploadProgress={handleAudioUploadProgress}
-                                    onClientUploadComplete={handleAudioUploadComplete}
-                                    onUploadError={handleAudioUploadError}
-                                />
-                            </div>
-                        )}
+
 
                     <DialogHeader className="px-6 py-4">
                         <div className="flex items-center justify-between mb-4">
@@ -311,9 +252,7 @@ export default function ExportCreateSongModal() {
                                 <Upload className="h-5 w-5" />
                                 <CardTitle>Export to BANDCOIN</CardTitle>
                             </div>
-                            <div>
-                                <Badge>{progress}% completed</Badge>
-                            </div>
+
                         </div>
                         <DialogDescription>Export your track to BANDCOIN platform</DialogDescription>
                         <Progress value={formProgress} className="mt-2 h-2" />
@@ -355,7 +294,7 @@ export default function ExportCreateSongModal() {
                                 <AnimatePresence mode="wait">
                                     {activeStep === "basics" && <BasicsStep key="basics" />}
                                     {activeStep === "album" && <AlbumStep key="album" />}
-                                    {activeStep === "media" && <MediaStep key="media" audioUploadState={audioUploadState} />}
+                                    {activeStep === "media" && <MediaStep key="media" />}
                                     {activeStep === "pricing" && <PricingStep key="pricing" />}
                                     {activeStep === "review" && <ReviewStep key="review" />}
                                 </AnimatePresence>
@@ -389,7 +328,6 @@ export default function ExportCreateSongModal() {
     )
 }
 
-
 function BasicsStep({ audioBlob }: { audioBlob?: Blob }) {
     const {
         register,
@@ -410,9 +348,6 @@ function BasicsStep({ audioBlob }: { audioBlob?: Blob }) {
                 <h2 className="text-xl font-semibold">Basic Information</h2>
                 <p className="text-sm text-muted-foreground">Enter the basic details about your exported track</p>
             </div>
-
-
-
 
             <div className="space-y-4">
                 <div className="space-y-2">
@@ -710,32 +645,144 @@ function AlbumStep() {
         </motion.div>
     )
 }
-
-function MediaStep({
-    audioUploadState,
-}: {
-    audioUploadState: {
-        status: "idle" | "uploading" | "completed" | "error"
-        url?: string
-        progress: number
-    }
-}) {
+export function MediaStep() {
     const {
         setValue,
         watch,
         formState: { errors },
     } = useFormContext<ExportSongFormType>()
 
+    const { data } = useExportCreateSongModalStore()
+
+    // Upload states
+    const [audioUploadState, setAudioUploadState] = useState<{
+        status: "idle" | "uploading" | "completed" | "error"
+        url?: string
+        progress: number
+    }>({
+        status: "idle",
+        progress: 0,
+    })
+
+    const [tracksUploadState, setTracksUploadState] = useState<{
+        status: "idle" | "uploading" | "completed" | "error"
+        progress: number
+        completedCount: number
+        totalCount: number
+    }>({
+        status: "idle",
+        progress: 0,
+        completedCount: 0,
+        totalCount: 0,
+    })
+
+    // Cover image upload states
     const [file, setFile] = useState<File>()
     const [ipfs, setIpfs] = useState<string>()
     const [uploading, setUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState(0)
-    const inputFile = useRef<HTMLInputElement>(null)
 
     const musicUrl = watch("musicUrl")
     const coverImgUrl = watch("coverImgUrl")
+    const tracks = watch("tracks")
 
-    const uploadFile = async (fileToUpload: File) => {
+    // Memoize files to prevent re-creation
+    const memoizedAudioFile = useMemo(() => {
+        if (!data.audioBlob) return undefined
+        return new File([data.audioBlob], `exported-song-${Date.now()}.wav`, { type: "audio/wav" })
+    }, [data.audioBlob])
+
+    const memoizedTrackFiles = useMemo(() => {
+        if (!data.TracksBlob || data.TracksBlob.length === 0) return []
+        return data.TracksBlob.filter((track) => track.blob).map(
+            (track) => new File([track.blob!], `${track.name}-${track.id}.wav`, { type: "audio/wav" }),
+        )
+    }, [data.TracksBlob])
+
+    // Audio upload handlers
+    const handleAudioUploadComplete = useCallback(
+        (res: { url: string }) => {
+            setAudioUploadState({
+                status: "completed",
+                url: res.url,
+                progress: 100,
+            })
+            setValue("musicUrl", res.url)
+            toast.success("Main audio uploaded successfully!")
+        },
+        [setValue],
+    )
+
+    const handleAudioUploadError = useCallback((error: Error) => {
+        setAudioUploadState({
+            status: "error",
+            progress: 0,
+        })
+        toast.error(`Audio upload failed: ${error.message}`)
+    }, [])
+
+    const handleAudioUploadProgress = useCallback((progress: number) => {
+        setAudioUploadState((prev) => ({
+            ...prev,
+            progress,
+        }))
+    }, [])
+
+    // Tracks upload handlers
+    const handleTracksUploadComplete = useCallback(
+        (files: { url: string; name: string; size: number; type: string }[]) => {
+            setTracksUploadState({
+                status: "completed",
+                progress: 100,
+                completedCount: files.length,
+                totalCount: files.length,
+            })
+
+            // Map uploaded files back to tracks with URLs
+            const updatedTracks =
+                data.TracksBlob?.map((track) => {
+                    const uploadedFile = files.find((file) => file.name.includes(track.id))
+                    return {
+                        id: track.id,
+                        name: track.name,
+                        stemUrl: uploadedFile?.url ?? "",
+                        trackIndex: track.trackIndex,
+                        startTime: track.startTime,
+                        endTime: track.endTime,
+                        volume: track.volume,
+                        muted: track.muted,
+                        soloed: track.soloed,
+                        trimStart: track.trimStart,
+                        trimEnd: track.trimEnd,
+                        color: track.color ?? "#8B5CF6",
+                    }
+                }) ?? []
+
+            setValue("tracks", updatedTracks)
+            toast.success(`All ${files.length} tracks uploaded successfully!`)
+        },
+        [data.TracksBlob, setValue],
+    )
+
+    const handleTracksUploadError = useCallback((error: Error) => {
+        setTracksUploadState({
+            status: "error",
+            progress: 0,
+            completedCount: 0,
+            totalCount: 0,
+        })
+        toast.error(`Tracks upload failed: ${error.message}`)
+    }, [])
+
+    const handleTracksUploadProgress = useCallback((progress: number) => {
+        setTracksUploadState((prev) => ({
+            ...prev,
+            progress,
+        }))
+    }, [])
+
+    // Cover image upload
+    const uploadCoverImage = async (fileToUpload: File) => {
         try {
             setUploading(true)
             setUploadProgress(10)
@@ -772,7 +819,7 @@ function MediaStep({
         }
     }
 
-    const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleCoverImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files
         if (files && files.length > 0) {
             const file = files[0]
@@ -783,9 +830,40 @@ function MediaStep({
                 }
 
                 setFile(file)
-                await uploadFile(file)
+                await uploadCoverImage(file)
             }
         }
+    }
+
+    const startAudioUpload = () => {
+        if (memoizedAudioFile && audioUploadState.status === "idle") {
+            setAudioUploadState((prev) => ({ ...prev, status: "uploading" }))
+        }
+    }
+
+    const startTracksUpload = () => {
+        console.log("🎵 startTracksUpload called", {
+            memoizedTrackFilesLength: memoizedTrackFiles.length,
+            tracksUploadStatus: tracksUploadState.status,
+            files: memoizedTrackFiles.map((f) => ({ name: f.name, size: f.size })),
+        })
+
+        if (memoizedTrackFiles.length > 0 && tracksUploadState.status === "idle") {
+            console.log("🎵 Setting tracks upload state to uploading")
+            setTracksUploadState((prev) => ({
+                ...prev,
+                status: "uploading",
+                totalCount: memoizedTrackFiles.length,
+            }))
+        }
+    }
+
+    const canProceedToNext = () => {
+        return (
+            audioUploadState.status === "completed" &&
+            (memoizedTrackFiles.length === 0 || tracksUploadState.status === "completed") &&
+            coverImgUrl
+        )
     }
 
     return (
@@ -798,17 +876,11 @@ function MediaStep({
         >
             <div className="space-y-1">
                 <h2 className="text-xl font-semibold">Media Files</h2>
-                <p className="text-sm text-muted-foreground">
-                    {audioUploadState.status === "completed"
-                        ? "Your audio is ready! Add a cover image to complete your track"
-                        : audioUploadState.status === "uploading"
-                            ? "Uploading your audio file..."
-                            : "Preparing your media files..."}
-                </p>
+                <p className="text-sm text-muted-foreground">Upload your main audio file, individual tracks, and cover image</p>
             </div>
 
             <div className="space-y-6">
-                {/* Audio Upload Status */}
+                {/* Main Audio Upload */}
                 <div className="space-y-2">
                     <Label className="flex items-center gap-2">
                         <Music
@@ -823,7 +895,7 @@ function MediaStep({
                                             : "text-gray-400",
                             )}
                         />
-                        Audio File Status
+                        Main Audio File
                     </Label>
 
                     <Card
@@ -876,12 +948,12 @@ function MediaStep({
                                         )}
                                     >
                                         {audioUploadState.status === "completed"
-                                            ? "Audio file ready for export"
+                                            ? "Main audio ready"
                                             : audioUploadState.status === "uploading"
                                                 ? `Uploading... ${audioUploadState.progress}%`
                                                 : audioUploadState.status === "error"
                                                     ? "Upload failed"
-                                                    : "Preparing audio file..."}
+                                                    : "Ready to upload"}
                                     </p>
 
                                     {audioUploadState.status === "uploading" && (
@@ -895,84 +967,236 @@ function MediaStep({
                                         </audio>
                                     )}
                                 </div>
+                                {audioUploadState.status === "idle" && memoizedAudioFile && (
+                                    <Button onClick={startAudioUpload} size="sm">
+                                        Upload Main Audio
+                                    </Button>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Hidden upload component for main audio */}
+                    {audioUploadState.status === "uploading" && memoizedAudioFile && (
+                        <UploadS3Button
+                            endpoint="musicUploader"
+                            variant="hidden"
+                            uploadedFile={memoizedAudioFile}
+                            onUploadProgress={handleAudioUploadProgress}
+                            onClientUploadComplete={handleAudioUploadComplete}
+                            onUploadError={handleAudioUploadError}
+                        />
+                    )}
                 </div>
 
                 <Separator />
 
-                {/* Cover Image Upload - Only show when audio is ready */}
-                {audioUploadState.status === "completed" && (
-                    <div className="space-y-4">
-                        <Label htmlFor="coverImg" className="flex items-center gap-2">
-                            <ImageIcon className="h-4 w-4" />
-                            Cover Image
+                {/* Individual Tracks Upload */}
+                {memoizedTrackFiles.length > 0 && (
+                    <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                            <Music
+                                className={cn(
+                                    "h-4 w-4",
+                                    tracksUploadState.status === "completed"
+                                        ? "text-green-600"
+                                        : tracksUploadState.status === "uploading"
+                                            ? "text-blue-600"
+                                            : tracksUploadState.status === "error"
+                                                ? "text-red-600"
+                                                : "text-gray-400",
+                                )}
+                            />
+                            Individual Tracks ({memoizedTrackFiles.length} tracks)
                         </Label>
 
-                        <AnimatePresence>
-                            {!coverImgUrl ? (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => inputFile.current?.click()}
-                                    className="w-full h-32 relative border-dashed flex flex-col items-center justify-center gap-2"
-                                    disabled={uploading}
-                                >
-                                    {uploading ? (
-                                        <>
-                                            <Loader2 className="h-6 w-6 animate-spin" />
-                                            <span className="text-sm">Uploading... {uploadProgress}%</span>
-                                            <Progress value={uploadProgress} className="w-4/5" />
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Upload className="h-6 w-6 text-muted-foreground" />
-                                            <span className="text-sm text-muted-foreground">Click to upload cover image</span>
-                                            <span className="text-xs text-muted-foreground">JPG, PNG (max 1MB)</span>
-                                        </>
-                                    )}
-                                </Button>
-                            ) : (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="relative aspect-square rounded-md overflow-hidden border"
-                                >
-                                    <Image fill alt="Cover preview" src={coverImgUrl || "/placeholder.svg"} className="object-cover" />
-                                    <div className="absolute bottom-0 left-0 right-0 bg-background/80 py-1 px-2">
-                                        <Badge variant="outline" className="bg-green-100 text-green-800">
-                                            <Check className="h-3 w-3 mr-1" /> Uploaded
-                                        </Badge>
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        variant="destructive"
-                                        size="icon"
-                                        className="absolute top-1 right-1 h-6 w-6"
-                                        onClick={() => {
-                                            setValue("coverImgUrl", "")
-                                            setIpfs(undefined)
-                                        }}
-                                    >
-                                        <X className="h-3 w-3" />
-                                    </Button>
-                                </motion.div>
+                        <Card
+                            className={cn(
+                                "overflow-hidden",
+                                tracksUploadState.status === "completed"
+                                    ? "border-green-200 bg-green-50"
+                                    : tracksUploadState.status === "uploading"
+                                        ? "border-blue-200 bg-blue-50"
+                                        : tracksUploadState.status === "error"
+                                            ? "border-red-200 bg-red-50"
+                                            : "border-gray-200",
                             )}
-                        </AnimatePresence>
+                        >
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        className={cn(
+                                            "p-3 rounded-full",
+                                            tracksUploadState.status === "completed"
+                                                ? "bg-green-100"
+                                                : tracksUploadState.status === "uploading"
+                                                    ? "bg-blue-100"
+                                                    : tracksUploadState.status === "error"
+                                                        ? "bg-red-100"
+                                                        : "bg-gray-100",
+                                        )}
+                                    >
+                                        {tracksUploadState.status === "uploading" ? (
+                                            <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                                        ) : tracksUploadState.status === "completed" ? (
+                                            <Check className="h-5 w-5 text-green-600" />
+                                        ) : tracksUploadState.status === "error" ? (
+                                            <X className="h-5 w-5 text-red-600" />
+                                        ) : (
+                                            <Upload className="h-5 w-5 text-gray-400" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <p
+                                            className={cn(
+                                                "text-sm font-medium",
+                                                tracksUploadState.status === "completed"
+                                                    ? "text-green-800"
+                                                    : tracksUploadState.status === "uploading"
+                                                        ? "text-blue-800"
+                                                        : tracksUploadState.status === "error"
+                                                            ? "text-red-800"
+                                                            : "text-gray-600",
+                                            )}
+                                        >
+                                            {tracksUploadState.status === "completed"
+                                                ? `All ${tracksUploadState.completedCount} tracks uploaded`
+                                                : tracksUploadState.status === "uploading"
+                                                    ? `Uploading tracks... ${tracksUploadState.completedCount}/${tracksUploadState.totalCount}`
+                                                    : tracksUploadState.status === "error"
+                                                        ? "Tracks upload failed"
+                                                        : `${memoizedTrackFiles.length} tracks ready to upload`}
+                                        </p>
 
-                        <input
-                            ref={inputFile}
-                            id="coverImg"
-                            type="file"
-                            accept=".jpg, .png"
-                            onChange={handleChange}
-                            className="hidden"
-                        />
-                        {errors.coverImgUrl && <p className="text-sm text-destructive">{errors.coverImgUrl.message}</p>}
+                                        {tracksUploadState.status === "uploading" && (
+                                            <Progress value={tracksUploadState.progress} className="w-full mt-2" />
+                                        )}
+                                    </div>
+                                    {tracksUploadState.status === "idle" && (
+                                        <Button onClick={startTracksUpload} size="sm">
+                                            Upload All Tracks
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Hidden upload component for tracks */}
+                        {tracksUploadState.status === "uploading" && (
+                            <div className="hidden">
+                                <MultiMusicUploadS3Button
+                                    endpoint="multiMusicBlobUploader"
+                                    variant="button"
+                                    onUploadProgress={handleTracksUploadProgress}
+                                    onClientUploadComplete={handleTracksUploadComplete}
+                                    onUploadError={handleTracksUploadError}
+                                    preloadedFiles={memoizedTrackFiles}
+                                    showFileList={false}
+                                />
+                            </div>
+                        )}
                     </div>
+                )}
+
+                <Separator />
+
+                {/* Cover Image Upload - Only show when audio uploads are complete */}
+                {audioUploadState.status === "completed" &&
+                    (memoizedTrackFiles.length === 0 || tracksUploadState.status === "completed") && (
+                        <div className="space-y-4">
+                            <Label htmlFor="coverImg" className="flex items-center gap-2">
+                                <ImageIcon className="h-4 w-4" />
+                                Cover Image
+                            </Label>
+
+                            <AnimatePresence>
+                                {!coverImgUrl ? (
+                                    <div>
+                                        <input
+                                            id="coverImg"
+                                            type="file"
+                                            accept=".jpg, .png"
+                                            onChange={handleCoverImageChange}
+                                            className="hidden"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => document.getElementById("coverImg")?.click()}
+                                            className="w-full h-32 relative border-dashed flex flex-col items-center justify-center gap-2"
+                                            disabled={uploading}
+                                        >
+                                            {uploading ? (
+                                                <>
+                                                    <Loader2 className="h-6 w-6 animate-spin" />
+                                                    <span className="text-sm">Uploading... {uploadProgress}%</span>
+                                                    <Progress value={uploadProgress} className="w-4/5" />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Upload className="h-6 w-6 text-muted-foreground" />
+                                                    <span className="text-sm text-muted-foreground">Click to upload cover image</span>
+                                                    <span className="text-xs text-muted-foreground">JPG, PNG (max 1MB)</span>
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="relative aspect-square rounded-md overflow-hidden border"
+                                    >
+                                        <Image fill alt="Cover preview" src={coverImgUrl ?? "/placeholder.svg"} className="object-cover" />
+                                        <div className="absolute bottom-0 left-0 right-0 bg-background/80 py-1 px-2">
+                                            <Badge variant="outline" className="bg-green-100 text-green-800">
+                                                <Check className="h-3 w-3 mr-1" /> Uploaded
+                                            </Badge>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="icon"
+                                            className="absolute top-1 right-1 h-6 w-6"
+                                            onClick={() => {
+                                                setValue("coverImgUrl", "")
+                                                setIpfs(undefined)
+                                            }}
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </Button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {errors.coverImgUrl && <p className="text-sm text-destructive">{errors.coverImgUrl.message}</p>}
+                        </div>
+                    )}
+
+                {/* Progress Summary */}
+                {(audioUploadState.status !== "idle" || tracksUploadState.status !== "idle") && (
+                    <Card className="bg-muted/50">
+                        <CardContent className="p-4">
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span>Upload Progress</span>
+                                    <span>{canProceedToNext() ? "✅ Ready to continue" : "⏳ Uploading..."}</span>
+                                </div>
+                                <div className="space-y-1 text-xs text-muted-foreground">
+                                    <div>Main Audio: {audioUploadState.status}</div>
+                                    {memoizedTrackFiles.length > 0 && (
+                                        <div>
+                                            Tracks: {tracksUploadState.status} ({tracksUploadState.completedCount}/
+                                            {tracksUploadState.totalCount})
+                                        </div>
+                                    )}
+                                    <div>Cover Image: {coverImgUrl ? "✅" : "❌"}</div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                 )}
             </div>
         </motion.div>
@@ -1107,7 +1331,7 @@ function ReviewStep() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                     <div className="relative aspect-square rounded-md overflow-hidden border">
-                        <Image fill alt="Cover preview" src={coverImgUrl || "/placeholder.svg"} className="object-cover" />
+                        <Image fill alt="Cover preview" src={coverImgUrl ?? "/placeholder.svg"} className="object-cover" />
                     </div>
 
                     <audio controls className="w-full">
@@ -1133,7 +1357,7 @@ function ReviewStep() {
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 relative rounded overflow-hidden">
                                     <Image
-                                        src={selectedAlbum.coverImgUrl || "/placeholder.svg"}
+                                        src={selectedAlbum.coverImgUrl ?? "/placeholder.svg"}
                                         alt={selectedAlbum.name}
                                         fill
                                         className="object-cover"
@@ -1193,7 +1417,7 @@ function ExportSubmitButton({ setIsOpen }: { setIsOpen: (isOpen: boolean) => voi
 
     const totalFeees = Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE)
 
-    const addSong = api.fan.music.create.useMutation({
+    const addSong = api.fan.music.createSongWithStems.useMutation({
         onSuccess: () => {
             toast.success("Song exported to BANDCOIN successfully!")
             setIsSubmitting(false)
@@ -1201,7 +1425,7 @@ function ExportSubmitButton({ setIsOpen }: { setIsOpen: (isOpen: boolean) => voi
             setPaymentModalOpen(false)
         },
         onError: (error) => {
-            toast.error(error.message || "Failed to export song")
+            toast.error(error.message ?? "Failed to export song")
             setIsSubmitting(false)
         },
     })

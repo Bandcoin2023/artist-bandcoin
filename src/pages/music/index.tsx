@@ -16,7 +16,7 @@ import { MoreAssetsSkeleton } from "~/components/common/grid-loading";
 import { useMusicTabStore } from "~/components/store/tabs/music-tabs";
 import { addrShort } from "~/utils/utils";
 import { useMusicBuyModalStore } from "~/components/store/music-buy-store";
-import { SongItemType } from "~/types/song/song-item-types";
+import { SongItemType, StemTypeWithoutAssetId } from "~/types/song/song-item-types";
 import AlbumTab from "~/components/music/album/album-tab";
 import RecentAddedSongsTab from "~/components/music/recently-added-tab";
 import AllSongsTab from "~/components/music/all-song-tab";
@@ -37,6 +37,7 @@ import {
     DrawerTitle,
     DrawerTrigger,
 } from "~/components/shadcn/ui/drawer"
+import { useBottomPlayer } from "~/components/player/context/bottom-player-context";
 // Global Variables
 const TABS = ["ALL SONGS", "ALBUMS", "FAVORITES", "RECENTLY ADDED"];
 
@@ -178,14 +179,30 @@ const MusicTabs = () => {
 
 const RightSideItem = () => {
     const songs = api.music.song.getUserBuyedSongs.useQuery();
-    const selectedSong = songs.data?.[0];
+    const { showPlayer, currentSong } = useBottomPlayer()
+    const handlePlaySong = (song: {
+        tracks: StemTypeWithoutAssetId[];
+        title: string;
+        artist: string;
+        thumbnail: string
+        url: string
+    }) => {
+        if (song.tracks && song.tracks.length === 0) {
+            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
+
+        }
+        else {
+            showPlayer(song.tracks, song.title, song.artist, undefined, song.thumbnail)
+
+        }
+    }
     if (songs.isLoading) return <RightSideItemSkeleton />;
 
     return (
         <div className="flex h-[calc(100vh-12vh)] flex-col gap-2 overflow-y-auto">
             <Card className=" ">
                 <CardHeader className="rounded-sm bg-primary p-4 shadow-sm shadow-slate-300">
-                    <h1 className="text-center text-2xl font-bold  text-background">PLAYABLE SONG</h1>
+                    <h1 className="text-center text-2xl font-bold  ">PLAYABLE SONG</h1>
                 </CardHeader>
                 <CardContent className="h-[calc(100vh-45vh)] overflow-y-auto p-0 scrollbar-hide ">
                     {
@@ -225,6 +242,13 @@ const RightSideItem = () => {
                                 size="sm"
                                 variant="destructive"
                                 className="shadow-sm shadow-black"
+                                onClick={() => handlePlaySong({
+                                    tracks: song.asset.Stem,
+                                    title: song.asset.name,
+                                    artist: song.asset.creatorId ?? "ADMIN",
+                                    thumbnail: song.asset.thumbnail,
+                                    url: song.asset.mediaUrl
+                                })}
                             >
                                 <Play />
                             </Button>
@@ -234,13 +258,13 @@ const RightSideItem = () => {
             </Card>
             <Card className=" ">
                 <CardHeader className="rounded-sm bg-primary p-4 shadow-sm shadow-slate-300">
-                    <h1 className="text-center text-2xl font-bold  text-background">NOW PLAYTING</h1>
+                    <h1 className="text-center text-2xl font-bold ">NOW PLAYTING</h1>
                 </CardHeader>
                 <CardContent className=" mt-2 ">
-                    {selectedSong ? (
+                    {currentSong ? (
                         <div className="flex flex-col border-1 rounded-md  items-center justify-center shadow-sm shadow-slate-300">
                             <Image
-                                src={selectedSong.asset.thumbnail ?? "/placeholder.svg"}
+                                src={currentSong.thumbnail ?? "/placeholder.svg"}
                                 alt="Now Playing"
                                 width={60}
                                 height={60}
@@ -248,10 +272,10 @@ const RightSideItem = () => {
                             />
                             <div className="flex flex-col items-center justify-center">
                                 <h2 className="truncate text-lg font-semibold">
-                                    {selectedSong.asset.name}
+                                    {currentSong.title}
                                 </h2>
                                 <p className="truncate text-sm text-muted-foreground">
-                                    {selectedSong.asset.creatorId ?? "ADMIN"}
+                                    {addrShort(currentSong.artist ?? undefined, 5) || "ADMIN"}
                                 </p>
                             </div>
                         </div>

@@ -12,13 +12,16 @@ import {
 } from "@prisma/client";
 
 import { Horizon } from "@stellar/stellar-sdk";
+import { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
 export type AssetRightType = AssetType & { copies: number };
 
 export type SongItemType = Song & { asset: AssetType };
 export type AssetType = Omit<Asset, "issuerPrivate">;
 
 export type MarketAssetType = MarketAsset & {
-  asset: AssetType;
+  asset: AssetType & {
+    Stem: StemTypeWithoutAssetId[];
+  };
 };
 export type AdminAssetWithTag = AdminAsset & {
   tags: {

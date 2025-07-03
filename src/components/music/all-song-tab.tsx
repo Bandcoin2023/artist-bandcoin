@@ -7,6 +7,9 @@ import { Button } from "../shadcn/ui/button";
 import { Eye, Info, MoveRight, Play } from "lucide-react";
 import { useMusicBuyModalStore } from "../store/music-buy-store";
 import Link from "next/link";
+import { useBottomPlayer } from "../player/context/bottom-player-context";
+import { Track } from "../module/studio/types/audio";
+import { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
 
 const AllSongsTab = () => {
     const allSongs = api.music.song.getAllSong.useInfiniteQuery({
@@ -16,7 +19,23 @@ const AllSongsTab = () => {
     }
     );
 
+    const { showPlayer } = useBottomPlayer()
+    const handlePlaySong = (song: {
+        tracks: StemTypeWithoutAssetId[];
+        title: string;
+        artist: string;
+        thumbnail: string
+        url: string
+    }) => {
+        if (song.tracks.length === 0) {
+            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
 
+        }
+        else {
+            showPlayer(song.tracks, song.title, song.artist, undefined, song.thumbnail)
+
+        }
+    }
     const userAssets = api.wallate.acc.getAccountInfo.useQuery();
     const { setData, setIsOpen } = useMusicBuyModalStore()
     if (allSongs.isLoading) {
@@ -90,6 +109,14 @@ const AllSongsTab = () => {
                                             <Button
                                                 variant="destructive"
                                                 className="shadow-sm shadow-black px-6 py-2 gap-1 flex items-center justify-center"
+
+                                                onClick={() => handlePlaySong({
+                                                    tracks: song.asset.Stem,
+                                                    title: song.asset.name,
+                                                    artist: song.asset.creatorId ?? "ADMIN",
+                                                    thumbnail: song.asset.thumbnail,
+                                                    url: song.asset.mediaUrl
+                                                })}
                                             >
                                                 <Play className="h-6 w-6" />
                                                 <span>PLAY</span>

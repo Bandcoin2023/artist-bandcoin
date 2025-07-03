@@ -36,6 +36,8 @@ import ShowThreeDModel from "../3d-model/model-show";
 import { MarketAssetType } from "~/types/market/market-asset-type";
 import CopyToClip from "../common/copy_to_Clip";
 import { useBuyModalStore } from "../store/buy-modal-store";
+import { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
+import { useBottomPlayer } from "../player/context/bottom-player-context";
 
 export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
@@ -46,6 +48,7 @@ export default function BuyModal() {
     const session = useSession();
     const [step, setStep] = useState(1);
     const { data, isOpen, setIsOpen } = useBuyModalStore()
+    const { showPlayer } = useBottomPlayer()
 
     // const { setCurrentTrack, currentTrack, setIsPlaying, setCurrentAudioPlayingId } = usePlayer();
     const handleClose = () => {
@@ -65,7 +68,22 @@ export default function BuyModal() {
         setStep((prev) => prev - 1);
     };
 
+    const handlePlaySong = (song: {
+        tracks: StemTypeWithoutAssetId[];
+        title: string;
+        artist: string;
+        thumbnail: string
+        url: string
+    }) => {
+        if (song.tracks.length === 0) {
+            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
 
+        }
+        else {
+            showPlayer(song.tracks, song.title, song.artist, undefined, song.thumbnail)
+
+        }
+    }
     const copy = api.marketplace.market.getMarketAssetAvailableCopy.useQuery({
         id: data?.id,
     },
@@ -317,21 +335,13 @@ export default function BuyModal() {
                                     <div className="flex flex-col gap-2 w-full p-1  ">
                                         {data.asset.mediaType === "MUSIC" && hasTrustonAsset ? (
                                             <Button
-                                                onClick={() => {
-                                                    // setCurrentAudioPlayingId(data.Asset?.id ?? 0);
-                                                    // setIsPlaying(true);
-                                                    // setCurrentTrack({
-                                                    //     asset: data.Asset?.asset,
-                                                    //     albumId: 2,
-                                                    //     artist: " ",
-                                                    //     assetId: 1,
-                                                    //     createdAt: new Date(),
-                                                    //     price: 15,
-                                                    //     priceUSD: 50,
-                                                    //     id: 1,
-
-                                                    // } as SongItemType);
-                                                }}
+                                                onClick={() => handlePlaySong({
+                                                    tracks: data.asset.Stem,
+                                                    title: data.asset.name,
+                                                    artist: data.asset.creatorId ?? "ADMIN",
+                                                    thumbnail: data.asset.thumbnail,
+                                                    url: data.asset.mediaUrl
+                                                })}
                                                 size={"sm"}
                                                 className="w-full bg-[#39BD2B] text-white hover:bg-sky-700 "
 

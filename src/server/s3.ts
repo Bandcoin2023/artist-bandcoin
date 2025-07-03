@@ -72,6 +72,7 @@ export const endPoints = [
   "svgUploader",
   "coverUploader",
   "profileUploader",
+  "multiMusicBlobUploader",
 ] as const;
 export type EndPointType = (typeof endPoints)[number];
 
@@ -102,6 +103,11 @@ const uploaderType: Record<
   multiBlobUploader: {
     maxFileSize: "1024MB",
     maxFileCount: 5,
+    expireIn: 60 * 10,
+  },
+  multiMusicBlobUploader: {
+    maxFileSize: "4096MB",
+    maxFileCount: 100,
     expireIn: 60 * 10,
   },
   modelUploader: {

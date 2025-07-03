@@ -4,9 +4,11 @@ import { Play } from "lucide-react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { useBottomPlayer } from "~/components/player/context/bottom-player-context";
 import { Button } from "~/components/shadcn/ui/button";
 import { Card, CardContent, CardTitle } from "~/components/shadcn/ui/card";
 import { useMusicBuyModalStore } from "~/components/store/music-buy-store";
+import { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
 
 import { api } from "~/utils/api";
 import { addrShort } from "~/utils/utils";
@@ -17,6 +19,25 @@ export default function Album() {
     const params = useParams();
     const userAssets = api.wallate.acc.getAccountInfo.useQuery();
     const { setData, setIsOpen } = useMusicBuyModalStore()
+    const { showPlayer } = useBottomPlayer()
+
+    const handlePlaySong = (song: {
+        tracks: StemTypeWithoutAssetId[];
+        title: string;
+        artist: string;
+        thumbnail: string
+        url: string
+    }) => {
+        if (song.tracks && song.tracks.length === 0) {
+            console.log("No tracks available for this song");
+            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
+
+        }
+        else {
+            showPlayer(song.tracks, song.title, song.artist, "", song.thumbnail)
+
+        }
+    }
     const {
         data: album,
         isLoading,
@@ -114,6 +135,14 @@ export default function Album() {
                                     <Button
                                         variant="destructive"
                                         className="shadow-sm shadow-black px-6 py-2 gap-1 flex items-center justify-center"
+
+                                        onClick={() => handlePlaySong({
+                                            tracks: song.asset.Stem,
+                                            title: song.asset.name,
+                                            artist: song.asset.creatorId ?? "ADMIN",
+                                            thumbnail: song.asset.thumbnail,
+                                            url: song.asset.mediaUrl
+                                        })}
                                     >
                                         <Play className="h-6 w-6" />
                                         <span>PLAY</span>

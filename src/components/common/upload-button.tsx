@@ -462,6 +462,8 @@ function getAcceptString(endpoint: EndPointType) {
         application/pdf, 
         application/vnd.oasis.opendocument.spreadsheet
       `.trim()
+        case "multiMusicBlobUploader":
+            return `audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/aac,audio/flac,audio/alac,audio/aiff,audio/wma,audio/m4a`.trim()
     }
 }
 
@@ -818,3 +820,407 @@ export function MultiUploadS3Button({
     )
 }
 
+export function MultiMusicUploadS3Button({
+    endpoint = "multiMusicBlobUploader",
+    onBeforeUploadBegin,
+    onUploadProgress,
+    onClientUploadComplete,
+    onUploadError,
+    variant = "button",
+    className,
+    label,
+    showFileList = true,
+    maxFiles = 100,
+    preloadedFiles, // Add this prop
+}: {
+    endpoint?: EndPointType
+    onUploadProgress?: (p: number) => void
+    onClientUploadComplete?: (
+        files: {
+            url: string
+            name: string
+            size: number
+            type: string
+        }[],
+    ) => void
+    onBeforeUploadBegin?: (files: File[]) => Promise<File[]> | File[]
+    onUploadError?: (error: Error) => void
+    variant?: "button" | "input"
+    className?: string
+    label?: string
+    showFileList?: boolean
+    maxFiles?: number
+    preloadedFiles?: File[] // Add this prop
+}) {
+    const [progress, setProgress] = useState(0)
+    const [loading, setLoading] = useState(false)
+    const [files, setFiles] = useState<File[]>(preloadedFiles ?? [])
+    const [completedCount, setCompletedCount] = useState(0)
+    const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle")
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    // Auto-start upload when preloadedFiles are provided
+    useEffect(() => {
+        console.log("🎵 MultiMusicUploadS3Button useEffect triggered", {
+            preloadedFiles: preloadedFiles?.length,
+            uploadStatus,
+            hasFiles: preloadedFiles && preloadedFiles.length > 0,
+        })
+
+        if (preloadedFiles && preloadedFiles.length > 0 && uploadStatus === "idle") {
+            console.log("🎵 Starting auto-upload for preloaded files:", preloadedFiles)
+            setFiles(preloadedFiles)
+
+            // Auto-trigger upload
+            const triggerUpload = async () => {
+                let targetFiles = preloadedFiles
+
+                if (onBeforeUploadBegin) {
+                    const processedFile = await onBeforeUploadBegin(preloadedFiles)
+                    if (!processedFile) return
+                    targetFiles = processedFile
+                }
+
+                console.log("🎵 Processing files for upload:", targetFiles.length)
+
+                const filesMeta = await Promise.all(
+                    targetFiles.map(async (file) => {
+                        return {
+                            checksum: await computeSHA256(file),
+                            fileSize: file.size,
+                            fileName: file.name,
+                            fileType: file.type,
+                            endPoint: endpoint,
+                        }
+                    }),
+                )
+
+                console.log("🎵 Files metadata prepared:", filesMeta)
+
+                setCompletedCount(0)
+
+                singedUrls.mutate({
+                    files: filesMeta,
+                    endPoint: endpoint,
+                })
+            }
+
+            triggerUpload()
+        }
+    }, [preloadedFiles, uploadStatus])
+
+    const singedUrls = api.s3.getSignedMultiURLs.useMutation({
+        onSuccess: async (urls, variables) => {
+            setLoading(true)
+            setUploadStatus("uploading")
+            const finished: { url: string; name: string; size: number; type: string }[] = []
+            if (!files.length) return
+
+            try {
+                for (const file of files) {
+                    const data = urls.find((url) => url.fileName === file.name)
+                    if (!data) continue
+
+                    try {
+                        const res = await axios.put(data.uploadUrl, file, {
+                            headers: {
+                                "Content-Type": file.type,
+                            },
+                            onUploadProgress: (progressEvent) => {
+                                if (progressEvent.total) {
+                                    const percentage = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+                                    setProgress(percentage)
+                                    onUploadProgress?.(percentage)
+                                }
+                            },
+                        })
+
+                        if (res.status === 200) {
+                            finished.push({
+                                url: data.fileUrl,
+                                name: file.name,
+                                size: file.size,
+                                type: file.type,
+                            })
+                            setCompletedCount((prevCount) => prevCount + 1)
+                        }
+                    } catch (error) {
+                        if (error instanceof AxiosError) {
+                            console.error("Status:", error.response?.status)
+                            console.error("Message:", error.message)
+                            console.error("Response data:", error.response?.data)
+                            onUploadError?.(error)
+                        }
+                        console.error("Failed to upload file", error)
+                    }
+                }
+
+                if (finished.length === files.length) {
+                    setUploadStatus("success")
+                } else if (finished.length > 0) {
+                    // Partial success
+                    setUploadStatus("success")
+                    toast.success(`${finished.length} of ${files.length} files uploaded successfully`)
+                } else {
+                    setUploadStatus("error")
+                    toast.error("Failed to upload files")
+                }
+
+                onClientUploadComplete?.(finished)
+
+                // Reset after success animation
+                setTimeout(() => {
+                    if (finished.length === files.length) {
+                        setFiles([])
+                        setCompletedCount(0)
+                    }
+                    setUploadStatus("idle")
+                }, 2000)
+            } catch (error) {
+                setUploadStatus("error")
+                if (error instanceof Error) {
+                    onUploadError?.(error)
+                }
+
+                // Reset after error animation
+                setTimeout(() => {
+                    setUploadStatus("idle")
+                }, 2000)
+            } finally {
+                setLoading(false)
+            }
+        },
+        onError: (error) => {
+            setUploadStatus("error")
+            toast.error(error.message)
+            setTimeout(() => {
+                setUploadStatus("idle")
+            }, 2000)
+        },
+    })
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const fileInputs = event.target.files
+
+        if (fileInputs) {
+            let targetFiles = Array.from(fileInputs)
+
+            if (targetFiles.length > maxFiles) {
+                toast.error(`Maximum ${maxFiles} files allowed`)
+                targetFiles = targetFiles.slice(0, maxFiles)
+            }
+
+            if (onBeforeUploadBegin) {
+                const processedFile = await onBeforeUploadBegin(targetFiles)
+                if (!processedFile) {
+                    return
+                }
+                targetFiles = processedFile
+            }
+
+            const filesMeta = await Promise.all(
+                targetFiles.map(async (file) => {
+                    return {
+                        checksum: await computeSHA256(file),
+                        fileSize: file.size,
+                        fileName: file.name,
+                        fileType: file.type,
+                        endPoint: endpoint,
+                    }
+                }),
+            )
+
+            setFiles(targetFiles)
+            setCompletedCount(0)
+
+            singedUrls.mutate({
+                files: filesMeta,
+                endPoint: endpoint,
+            })
+        } else {
+            console.error("No file selected")
+        }
+    }
+
+    const handleButtonClick = useCallback(() => {
+        fileInputRef.current?.click()
+    }, [])
+
+    const removeFile = (index: number) => {
+        setFiles((prev) => prev.filter((_, i) => i !== index))
+    }
+
+    const renderButtonContent = () => {
+        if (loading) {
+            return (
+                <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>{progress}%</span>
+                    <span className="text-xs">
+                        ({completedCount}/{files.length})
+                    </span>
+                </div>
+            )
+        }
+
+        if (uploadStatus === "success") {
+            return (
+                <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4" />
+                    <span>Uploaded {completedCount} files</span>
+                </div>
+            )
+        }
+
+        if (uploadStatus === "error") {
+            return (
+                <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>Upload Failed</span>
+                </div>
+            )
+        }
+
+        return (
+            <div className="flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                <span>{label ?? "Upload Files"}</span>
+            </div>
+        )
+    }
+
+    const renderInputContent = () => {
+        if (loading) {
+            return <Loader2 className="h-4 w-4 animate-spin" />
+        }
+
+        if (uploadStatus === "success") {
+            return <Check className="h-4 w-4 text-green-500" />
+        }
+
+        if (uploadStatus === "error") {
+            return <AlertCircle className="h-4 w-4 text-red-500" />
+        }
+
+        return <Paperclip className="h-4 w-4" />
+    }
+
+    return (
+        <div className="grid items-center gap-2">
+            {variant === "button" && (
+                <motion.div whileTap={{ scale: 0.97 }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full">
+                    <Button
+                        type="button"
+                        variant={uploadStatus === "success" ? "outline" : "destructive"}
+                        className={cn(
+                            "relative shadow-sm shadow-black overflow-hidden transition-all duration-300",
+                            uploadStatus === "success" && "border-green-500 text-green-500",
+                            uploadStatus === "error" && "bg-red-600",
+                            className,
+                        )}
+                        onClick={handleButtonClick}
+                        disabled={loading}
+                    >
+                        {loading && (
+                            <motion.div
+                                className="absolute left-0 bottom-0 h-1 bg-primary-foreground"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${progress}%` }}
+                                transition={{ type: "tween" }}
+                            />
+                        )}
+                        {renderButtonContent()}
+                    </Button>
+                </motion.div>
+            )}
+
+            {variant === "input" && (
+                <motion.div
+                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.05 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                >
+                    <Button
+                        size="icon"
+                        variant={uploadStatus === "success" ? "outline" : "secondary"}
+                        className={cn(
+                            "relative overflow-hidden transition-all duration-300",
+                            uploadStatus === "success" && "border-green-500",
+                            uploadStatus === "error" && "border-red-500",
+                            className,
+                        )}
+                        type="button"
+                        onClick={handleButtonClick}
+                        disabled={loading}
+                    >
+                        {loading && (
+                            <motion.div
+                                className="absolute left-0 bottom-0 h-1 bg-primary"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${progress}%` }}
+                                transition={{ type: "tween" }}
+                            />
+                        )}
+                        {renderInputContent()}
+                    </Button>
+                </motion.div>
+            )}
+
+            <input
+                ref={fileInputRef}
+                id={`file-upload-${endpoint}`}
+                type="file"
+                accept={getAcceptString(endpoint)}
+                className="hidden"
+                multiple
+                onChange={handleFileChange}
+            />
+
+            {showFileList && files.length > 0 && (
+                <AnimatePresence>
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mt-2 border rounded-md overflow-hidden"
+                    >
+                        <div className="max-h-40 overflow-y-auto">
+                            {files.map((file, index) => (
+                                <motion.div
+                                    key={file.name + index}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 20 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    className={cn(
+                                        "flex items-center justify-between p-2 text-sm",
+                                        index % 2 === 0 ? "bg-muted/50" : "bg-background",
+                                    )}
+                                >
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        {getFileIcon(file.type, file.name)}
+                                        <span className="truncate max-w-[150px]">{file.name}</span>
+                                        <span className="text-xs text-muted-foreground">{formatFileSize(file.size)}</span>
+                                    </div>
+
+                                    {!loading && (
+                                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeFile(index)}>
+                                            <X className="h-3 w-3" />
+                                        </Button>
+                                    )}
+
+                                    {loading && index < completedCount && <Check className="h-4 w-4 text-green-500" />}
+
+                                    {loading && index >= completedCount && (
+                                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                    )}
+                                </motion.div>
+                            ))}
+                        </div>
+                    </motion.div>
+                </AnimatePresence>
+            )}
+        </div>
+    )
+}

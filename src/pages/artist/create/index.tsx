@@ -41,6 +41,7 @@ import { UploadS3Button } from "~/components/common/upload-button"
 import toast from "react-hot-toast"
 import { api } from "~/utils/api"
 import { useRouter } from "next/navigation"
+import { PLATFORM_ASSET } from "~/lib/stellar/constant"
 // Form validation schemas
 const ProfileSchema = z.object({
     displayName: z.string().min(1, "Display name is required").max(99, "Display name must be less than 100 characters"),
@@ -1595,7 +1596,7 @@ export default function ArtistOnboarding() {
                                                                 <p className="text-sm text-muted-foreground mt-1">
                                                                     Your vanity URL is{" "}
                                                                     <span className="font-medium ">free for the first month</span>. After
-                                                                    that, renewal costs <span className="font-medium ">500 Action</span>.
+                                                                    that, renewal costs <span className="font-medium ">500 {PLATFORM_ASSET.code}</span>.
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -1868,7 +1869,7 @@ export default function ArtistOnboarding() {
 
                                                             <div className="flex items-start gap-2 text-sm text-muted-foreground">
                                                                 <Sparkles className="h-4 w-4  mt-0.5" />
-                                                                <span>Free for the first month, then 500 Action to renew</span>
+                                                                <span>Free for the first month, then 500 {PLATFORM_ASSET.code} to renew</span>
                                                             </div>
                                                         </motion.div>
                                                     </div>

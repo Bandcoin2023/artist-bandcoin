@@ -63,6 +63,7 @@ export const AssetSelectAllProperty = {
   releaseDate: true,
   fundEndDate: true,
   percentage: true,
+  Stem: true,
 };
 
 export const marketRouter = createTRPCRouter({
@@ -352,6 +353,7 @@ export const marketRouter = createTRPCRouter({
             asset: {
               select: {
                 ...AssetSelectAllProperty,
+                Stem: true,
                 tier: {
                   select: {
                     price: true,
@@ -652,7 +654,10 @@ export const marketRouter = createTRPCRouter({
         cursor: cursor ? { id: cursor } : undefined,
         include: {
           asset: {
-            select: AssetSelectAllProperty,
+            select: {
+              ...AssetSelectAllProperty,
+              Stem: true,
+            }
           },
         },
         where: { asset: { creatorId: creatorId } },

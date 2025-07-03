@@ -1,11 +1,11 @@
 import { create } from "zustand";
-import { AssetType } from "~/types/market/market-asset-type";
+import { AssetType, AssetTypeWithStems } from "~/types/market/market-asset-type";
 
 interface AssetInfoModalProps {
     isOpen: boolean;
-    data?: AssetType;
+    data?: AssetTypeWithStems;
     setIsOpen: (isOpen: boolean) => void;
-    setData: (data: AssetType) => void;
+    setData: (data: AssetTypeWithStems) => void;
 }
 
 export const useAssestInfoModalStore = create<AssetInfoModalProps>((set) => ({

@@ -6,6 +6,8 @@ import { MoreAssetsSkeleton } from "../common/grid-loading";
 import { Button } from "../shadcn/ui/button";
 import { Play } from "lucide-react";
 import { useMusicBuyModalStore } from "../store/music-buy-store";
+import { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
+import { useBottomPlayer } from "../player/context/bottom-player-context";
 
 const RecentAddedSongsTab = () => {
     const RecentAddedSong = api.music.song.getRecentSong.useQuery({
@@ -13,6 +15,23 @@ const RecentAddedSongsTab = () => {
     });
     const userAssets = api.wallate.acc.getAccountInfo.useQuery();
     const { setData, setIsOpen } = useMusicBuyModalStore()
+    const { showPlayer } = useBottomPlayer()
+    const handlePlaySong = (song: {
+        tracks: StemTypeWithoutAssetId[];
+        title: string;
+        artist: string;
+        thumbnail: string
+        url: string
+    }) => {
+        if (song.tracks.length === 0) {
+            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
+
+        }
+        else {
+            showPlayer(song.tracks, song.title, song.artist, undefined, song.thumbnail)
+
+        }
+    }
     if (RecentAddedSong.isLoading) {
         return (
             <div className="flex min-h-[calc(100vh-20vh)]  flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
@@ -83,6 +102,20 @@ const RecentAddedSongsTab = () => {
                                         <Button
                                             variant="destructive"
                                             className="shadow-sm shadow-black px-6 py-2 gap-1 flex items-center justify-center"
+
+                                            onClick={() => handlePlaySong({
+                                                tracks: song.asset.Stem,
+                                                title: song.asset.name,
+                                                artist: song.asset.creatorId
+                                                    ? addrShort(song.asset.creatorId, 5)
+                                                    : "ADMIN",
+                                                thumbnail: song.asset.thumbnail ?? "/placeholder.svg",
+                                                url: song.asset.mediaUrl,
+                                            }
+                                            )}
+
+
+
                                         >
                                             <Play className="h-6 w-6" />
                                             <span>PLAY</span>

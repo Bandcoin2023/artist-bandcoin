@@ -450,9 +450,30 @@ model Asset {
     Redeem        Redeem[]
     createdAt     DateTime        @default(now())
     royaltyReport RoyaltyReport[]
+    Stem          Stem[]
 
     @@unique([code, issuer])
     @@index([name, description])
+}
+
+model Stem {
+    id          Int     @id @default(autoincrement())
+    audioFileId String? // Foreign key to the audio file
+    name        String // Name of the stem
+    startTime   Float // Start time in seconds
+    endTime     Float // End time in seconds
+    volume      Float // Volume level (0.0 to 1.0)
+    muted       Boolean @default(false) // Whether the stem is muted
+    soloed      Boolean @default(false) // Whether the stem is soloed
+    trimStart   Float // Optional trim start time in seconds
+    trimEnd     Float // Optional trim end time in seconds
+    trackIndex  Int // Index of the track in the audio file
+    steamUrl    String // URL of the stem audio file
+    color       String
+    assetId     Int
+    asset       Asset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
 }
 
 model RoyaltyReport {

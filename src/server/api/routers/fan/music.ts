@@ -9,6 +9,7 @@ import {
 } from "~/server/api/trpc";
 import { AssetSelectAllProperty } from "../marketplace/marketplace";
 import { AccountSchema } from "~/lib/stellar/fan/utils";
+import { ExportSongFormSchema } from "~/components/modal/export-create-song-modal";
 export const SongFormSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
     artist: z.string().min(2, "Artist must be at least 2 characters"),
@@ -152,7 +153,11 @@ export const musicRouter = createTRPCRouter({
                 songs: {
                     include: {
                         asset: {
-                            select: AssetSelectAllProperty,
+                            select: {
+                                ...AssetSelectAllProperty,
+                                Stem: true, // Include stems if available
+                            }
+
                         },
 
                     },
@@ -224,6 +229,88 @@ export const musicRouter = createTRPCRouter({
                         privacy,
                         tierId,
                         creatorId: userId,
+                    },
+                });
+            }
+        }),
+
+    createSongWithStems: creatorProcedure
+        .input(ExportSongFormSchema)
+        .mutation(async ({ input, ctx }) => {
+            const {
+                artist,
+                coverImgUrl,
+                albumId,
+                musicUrl,
+                description,
+                priceUSD,
+                price,
+                limit,
+                name,
+                code,
+                issuer,
+                tier,
+                tracks,
+            } = input;
+
+            if (issuer) {
+                const userId = ctx.session.user.id;
+
+
+                let tierId: number | undefined;
+                let privacy: ItemPrivacy = ItemPrivacy.PUBLIC;
+
+                if (!tier) {
+                    privacy = ItemPrivacy.PUBLIC;
+                } else if (tier == "public") {
+                    privacy = ItemPrivacy.PUBLIC;
+                } else if (tier == "private") {
+                    privacy = ItemPrivacy.PRIVATE;
+                } else {
+                    tierId = Number(tier);
+                    privacy = ItemPrivacy.TIER;
+                }
+
+                return await ctx.db.asset.create({
+                    data: {
+                        code,
+                        issuer: issuer.publicKey,
+                        issuerPrivate: issuer.secretKey,
+                        song: {
+                            create: {
+                                artist,
+                                price,
+                                albumId,
+                                priceUSD,
+                                creatorId: userId,
+                            },
+                        },
+                        marketItems: { create: { price, type: "SONG", placerId: userId } },
+                        mediaType: "MUSIC",
+                        name,
+                        mediaUrl: musicUrl,
+                        thumbnail: coverImgUrl,
+                        description: description,
+                        limit,
+                        privacy,
+                        tierId,
+
+                        creatorId: userId,
+                        Stem: {
+                            create: tracks.map((track) => ({
+                                name: track.name,
+                                startTime: track.startTime,
+                                endTime: track.endTime,
+                                volume: track.volume,
+                                muted: track.muted,
+                                soloed: track.soloed,
+                                trimStart: track.trimStart,
+                                trimEnd: track.trimEnd,
+                                trackIndex: track.trackIndex,
+                                steamUrl: track.stemUrl, // URL of the stem audio file
+                                color: track.color ?? "#8B5CF6", // Default color if not provided
+                            })),
+                        }
                     },
                 });
             }
