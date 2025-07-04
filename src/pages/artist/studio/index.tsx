@@ -5,18 +5,71 @@ import { FlexibleTimeline } from "~/components/module/studio/components/Flexible
 import { FloatingControls } from "~/components/module/studio/components/FloatingControls"
 import { useAudio } from "~/components/module/studio/hooks/useAudio"
 import type { AudioFile } from "~/components/module/studio/types/audio"
-import { useLyriaStatus } from "~/components/module/studio/hooks/use-lyria-status"
 import { toast } from "sonner"
 import { useTheme } from "next-themes"
 import { AlertTriangle, ArrowLeft, Lock, Shield } from "lucide-react"
 import { api } from "~/utils/api"
 import { Button } from "~/components/shadcn/ui/button"
-import { Arrow } from "@radix-ui/react-select"
-import ExportSongModal from "~/components/modal/export-create-song-modal"
 import { ExportOptionsModal } from "~/components/modal/export-options-modal"
 import { useExportCreateSongModalStore } from "~/components/store/export-create-song-modal-store"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "~/components/shadcn/ui/dialog"
-import { X, Play, Pause, Grid3X3, Home, Plus, Minus, RotateCcw, Upload, MousePointer, Keyboard, Music, Settings } from 'lucide-react';
+import { Dialog, DialogClose, DialogContent, DialogTrigger } from "~/components/shadcn/ui/dialog"
+import {
+    Play,
+    Grid3X3,
+    Home,
+    Plus,
+    Minus,
+    RotateCcw,
+    Upload,
+    MousePointer,
+    Keyboard,
+    Music,
+    Settings,
+} from "lucide-react"
+import JSZip from "jszip"
+
+// Add ZIP handling function
+const handleZipFile = async (
+    zipFile: File,
+    onFilesAdded: (files: File[], mode: "sequential" | "parallel") => Promise<void>,
+    mode: "sequential" | "parallel" = "parallel",
+) => {
+    try {
+        const zip = new JSZip()
+        const zipContent = await zip.loadAsync(zipFile)
+        const audioFiles: File[] = []
+
+        // Extract audio files from ZIP
+        for (const [filename, file] of Object.entries(zipContent.files)) {
+            if (file.dir) continue // Skip directories
+
+            const isAudioFile = filename.toLowerCase().match(/\.(mp3|wav|m4a|flac|ogg|aac)$/i)
+            if (!isAudioFile) continue
+
+            try {
+                const blob = await file.async("blob")
+                const audioFile = new File([blob], filename, { type: "audio/*" })
+                audioFiles.push(audioFile)
+            } catch (error) {
+                console.warn(`Failed to extract ${filename}:`, error)
+            }
+        }
+
+        if (audioFiles.length === 0) {
+            toast.error("No audio files found in the ZIP archive.")
+            return
+        }
+
+        // Add all audio files using the specified mode
+        await onFilesAdded(audioFiles, mode)
+
+        // Show success message
+        toast.success(`Successfully extracted ${audioFiles.length} audio files from ZIP archive.`)
+    } catch (error) {
+        console.error("Failed to extract ZIP file:", error)
+        toast.error("Failed to extract ZIP file. Please make sure it's a valid ZIP archive.")
+    }
+}
 
 function App() {
     const {
@@ -25,6 +78,8 @@ function App() {
         playbackState,
         masterEQ,
         loadAudioFile,
+        loadAudioFiles,
+        loadAudioFilesParallel,
         addTrack,
         updateTrack,
         deleteTrack,
@@ -42,7 +97,7 @@ function App() {
         newProject,
         exportProject,
         exportToBandcoin,
-        exportTrackAsBlob
+        exportTrackAsBlob,
     } = useAudio()
 
     const [showExportOptionsModal, setShowExportOptionsModal] = useState(false)
@@ -55,9 +110,10 @@ function App() {
     const [activePanel, setActivePanel] = useState<"library" | "mixer" | "ai" | "settings">("library")
     const [workspaceLayout, setWorkspaceLayout] = useState<"standard" | "compact" | "focus">("standard")
     const [isDark, setIsDark] = useState(false)
-    const [activeTab, setActiveTab] = useState('shortcuts');
+    const [activeTab, setActiveTab] = useState("shortcuts")
 
     const { setTheme, theme } = useTheme()
+
     const toggleTheme = () => {
         setTheme(theme === "dark" ? "light" : "dark")
         setIsDark((prev) => !prev)
@@ -65,60 +121,107 @@ function App() {
 
     const tips = {
         shortcuts: [
-            { icon: <MousePointer className="w-4 h-4" />, key: 'Shift + Scroll', action: 'Scroll timeline horizontally' },
-            { icon: <Play className="w-4 h-4" />, key: 'Space', action: 'Play/Pause playback' },
-            { icon: <Keyboard className="w-4 h-4" />, key: '1-4', action: 'Switch between panels' },
-            { icon: <Grid3X3 className="w-4 h-4" />, key: 'G', action: 'Toggle grid view' },
-            { icon: <Plus className="w-4 h-4" />, key: '+', action: 'Zoom in timeline' },
-            { icon: <Minus className="w-4 h-4" />, key: '-', action: 'Zoom out timeline' },
-            { icon: <RotateCcw className="w-4 h-4" />, key: 'L', action: 'Toggle loop mode' },
-            { icon: <Home className="w-4 h-4" />, key: 'Home', action: 'Jump to beginning' },
-            { icon: <Keyboard className="w-4 h-4" />, key: 'End', action: 'Jump to end' },
-
+            { icon: <MousePointer className="w-4 h-4" />, key: "Shift + Scroll", action: "Scroll timeline horizontally" },
+            { icon: <Play className="w-4 h-4" />, key: "Space", action: "Play/Pause playback" },
+            { icon: <Keyboard className="w-4 h-4" />, key: "1-4", action: "Switch between panels" },
+            { icon: <Grid3X3 className="w-4 h-4" />, key: "G", action: "Toggle grid view" },
+            { icon: <Plus className="w-4 h-4" />, key: "+", action: "Zoom in timeline" },
+            { icon: <Minus className="w-4 h-4" />, key: "-", action: "Zoom out timeline" },
+            { icon: <RotateCcw className="w-4 h-4" />, key: "L", action: "Toggle loop mode" },
+            { icon: <Home className="w-4 h-4" />, key: "Home", action: "Jump to beginning" },
+            { icon: <Keyboard className="w-4 h-4" />, key: "End", action: "Jump to end" },
         ],
         workflow: [
-            { icon: <Upload className="w-4 h-4" />, title: 'Import Audio', desc: 'Drag and drop audio files directly onto the timeline or use the import button' },
-            { icon: <MousePointer className="w-4 h-4" />, title: 'Precise Movement', desc: 'Hold Shift while dragging to move songs horizontally with precision' },
-            { icon: <Music className="w-4 h-4" />, title: 'Layer Tracks', desc: 'Use multiple panels to create complex compositions with layered audio' },
-            { icon: <Settings className="w-4 h-4" />, title: 'Grid Snap', desc: 'Enable grid mode (G) for precise timing and alignment' },
+            {
+                icon: <Upload className="w-4 h-4" />,
+                title: "Import Audio",
+                desc: "Drag and drop audio files or ZIP archives directly onto the timeline",
+            },
+            {
+                icon: <MousePointer className="w-4 h-4" />,
+                title: "Precise Movement",
+                desc: "Hold Shift while dragging to move songs horizontally with precision",
+            },
+            {
+                icon: <Music className="w-4 h-4" />,
+                title: "Layer Tracks",
+                desc: "Use multiple panels to create complex compositions with layered audio",
+            },
+            {
+                icon: <Settings className="w-4 h-4" />,
+                title: "Grid Snap",
+                desc: "Enable grid mode (G) for precise timing and alignment",
+            },
         ],
         advanced: [
-            { title: 'Multi-selection', desc: 'Hold Ctrl/Cmd and click to select multiple audio clips for batch operations' },
-            { title: 'Quick Preview', desc: 'Click anywhere on the timeline to instantly preview from that position' },
-            { title: 'Zoom Navigation', desc: 'Use mouse wheel + Ctrl to zoom in/out at cursor position' },
-            { title: 'Panel Organization', desc: 'Drag panel tabs to reorder your workspace layout' },
-        ]
-    };
+            { title: "Multi-selection", desc: "Hold Ctrl/Cmd and click to select multiple audio clips for batch operations" },
+            { title: "Quick Preview", desc: "Click anywhere on the timeline to instantly preview from that position" },
+            { title: "Zoom Navigation", desc: "Use mouse wheel + Ctrl to zoom in/out at cursor position" },
+            { title: "ZIP Import", desc: "Drop ZIP files containing audio to automatically extract and place tracks" },
+        ],
+    }
 
     const tabs = [
-        { id: 'shortcuts', label: 'Shortcuts', icon: <Keyboard className="w-4 h-4" /> },
-        { id: 'workflow', label: 'Workflow', icon: <Music className="w-4 h-4" /> },
-        { id: 'advanced', label: 'Advanced', icon: <Settings className="w-4 h-4" /> },
-    ];
+        { id: "shortcuts", label: "Shortcuts", icon: <Keyboard className="w-4 h-4" /> },
+        { id: "workflow", label: "Workflow", icon: <Music className="w-4 h-4" /> },
+        { id: "advanced", label: "Advanced", icon: <Settings className="w-4 h-4" /> },
+    ]
+
     const creator = api.fan.creator.meCreator.useQuery(undefined, {
         refetchOnWindowFocus: false,
     })
+
+    // Updated handleFilesAdded to support ZIP files and placement modes
     const handleFilesAdded = useCallback(
-        async (files: File[]) => {
+        async (files: File[], mode: "sequential" | "parallel" = "parallel") => {
+            if (files.length === 0) return
+
             setIsLoading(true)
-            const loadPromises = files.map(async (file) => {
-                try {
-                    await loadAudioFile(file)
-                } catch (error) {
-                    console.error("Error loading audio file:", error)
-                    alert(`Failed to load ${file.name}. Please make sure it's a valid audio file.`)
+
+            const audioFiles: File[] = []
+            const zipFiles: File[] = []
+
+            // Separate audio files and ZIP files
+            files.forEach((file) => {
+                if (file.name.toLowerCase().endsWith(".zip")) {
+                    zipFiles.push(file)
+                } else if (file.type.startsWith("audio/") || file.name.toLowerCase().match(/\.(mp3|wav|m4a|flac|ogg|aac)$/i)) {
+                    audioFiles.push(file)
                 }
             })
 
-            await Promise.all(loadPromises)
-            setIsLoading(false)
+            try {
+                // Handle regular audio files
+                if (audioFiles.length > 0) {
+                    console.log(`Loading ${audioFiles.length} audio files in ${mode} mode`)
+                    if (mode === "sequential") {
+                        await loadAudioFiles(audioFiles)
+                    } else {
+                        await loadAudioFilesParallel(audioFiles)
+                    }
+                }
+
+                // Handle ZIP files
+                for (const zipFile of zipFiles) {
+                    await handleZipFile(zipFile, handleFilesAdded, mode)
+                }
+
+                // Show success message
+                if (audioFiles.length > 0) {
+                    toast.success(`Successfully loaded ${audioFiles.length} audio files in ${mode} mode`)
+                }
+            } catch (error) {
+                console.error("Error loading files:", error)
+                toast.error("Failed to load some files. Please make sure they are valid audio files.")
+            } finally {
+                setIsLoading(false)
+            }
         },
-        [loadAudioFile],
+        [loadAudioFiles, loadAudioFilesParallel],
     )
 
     const handleRemoveAll = useCallback(() => {
         if (audioFiles.length === 0) return
-
         if (confirm(`Are you sure you want to remove all ${audioFiles.length} audio files?`)) {
             audioFiles.forEach((file) => removeAudioFile(file.id))
         }
@@ -139,65 +242,109 @@ function App() {
         }
 
         setIsLoading(true)
-        try {
-            const audioBlob = await exportProject()
 
+        try {
+            // Calculate if this is a large project
+            const projectDuration = Math.max(0, ...tracks.map((t) => t.endTime))
+            const isLargeProject = projectDuration > 300 || tracks.length > 10
+
+            if (isLargeProject) {
+                toast.info("Large project detected. This may take a few minutes...", {
+                    duration: 5000,
+                })
+            }
+
+            await exportProject()
             toast.success("Project exported successfully!")
         } catch (error) {
-            toast.error(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`)
+            console.error("Export failed:", error)
+
+            if (error instanceof Error && error.message.includes("memory")) {
+                toast.error("Export failed due to memory constraints. Try exporting smaller sections or reducing track count.")
+            } else {
+                toast.error(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`)
+            }
         } finally {
             setIsLoading(false)
         }
-    }, [tracks.length, exportProject])
+    }, [tracks, exportProject])
 
     const handleExportToBandcoin = useCallback(async () => {
         if (tracks.length === 0) {
-
             toast.error("No tracks to export. Add some audio files to the timeline first.")
             return
         }
 
         setIsLoading(true)
+
         try {
-            const audioBlob = await exportToBandcoin()
-            const tracksBlobs = await Promise.all(
-                tracks.map(async (track) => {
-                    return {
-                        ...track,
-                        blob: await exportTrackAsBlob(track)
-                    }
+            // Calculate if this is a large project
+            const projectDuration = Math.max(0, ...tracks.map((t) => t.endTime))
+            const isLargeProject = projectDuration > 300 || tracks.length > 10
+
+            if (isLargeProject) {
+                toast.info("Large project detected. Processing in chunks...", {
+                    duration: 5000,
                 })
-            )
+            }
+
+            const audioBlob = await exportToBandcoin()
+
+            // Process tracks with error handling for large files
+            const tracksBlobs = []
+            for (const track of tracks) {
+                try {
+                    const blob = await exportTrackAsBlob(track)
+                    tracksBlobs.push({
+                        ...track,
+                        blob,
+                    })
+                } catch (error) {
+                    console.warn(`Failed to export track ${track.name}:`, error)
+                    // Continue with other tracks even if one fails
+                    tracksBlobs.push({
+                        ...track,
+                        blob: new Blob([], { type: "audio/wav" }), // Empty blob as fallback
+                    })
+                }
+            }
 
             console.log("Exported tracks blobs:", tracksBlobs)
             setData({
                 audioBlob,
-                TracksBlob: tracksBlobs
+                TracksBlob: tracksBlobs,
             })
             setShowExportOptionsModal(false)
             setIsOpen(true)
+
+            toast.success("Export completed successfully!")
         } catch (error) {
             console.error("Export failed:", error)
-            alert(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`)
+
+            if (error instanceof Error && error.message.includes("memory")) {
+                toast.error(
+                    "Export failed due to memory constraints. Try reducing project size or splitting into smaller sections.",
+                )
+            } else {
+                toast.error(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`)
+            }
         } finally {
             setIsLoading(false)
         }
-    }, [tracks.length, exportProject])
-
+    }, [tracks, exportToBandcoin, exportTrackAsBlob, setData, setIsOpen])
 
     const handleDragStart = useCallback((audioFile: AudioFile) => {
         setDraggedAudioFile(audioFile)
     }, [])
-
 
     const handleExportClick = useCallback(() => {
         if (tracks.length === 0) {
             toast.error("No tracks to export. Add some audio files to the timeline first.")
             return
         }
-
         setShowExportOptionsModal(true)
     }, [tracks.length])
+
     const handleAIAudioGenerated = useCallback(
         async (audioBlob: Blob, title: string) => {
             try {
@@ -222,7 +369,6 @@ function App() {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.target instanceof HTMLInputElement) return
-
             switch (e.key.toLowerCase()) {
                 case " ":
                     e.preventDefault()
@@ -271,7 +417,6 @@ function App() {
                     break
             }
         }
-
         document.addEventListener("keydown", handleKeyDown)
         return () => document.removeEventListener("keydown", handleKeyDown)
     }, [playbackState.isPlaying, playbackState.duration, play, pause, seek, toggleLoop, snapToGrid, pixelsPerSecond])
@@ -279,31 +424,21 @@ function App() {
     if (creator.isLoading) {
         return <LoadingScreen isDark={isDark} />
     }
+
     if (!creator.data?.id) {
         return <AccessDenied isDark={isDark} />
     }
 
     return (
-        <div
-            className={`h-[calc(100vh-10vh)] flex flex-col  transition-colors duration-300`}
-        >
+        <div className={`h-[calc(100vh-10vh)] flex flex-col transition-colors duration-300`}>
             {/* Modern Header */}
-            <div
-                className={`h-16 px-6 flex items-center justify-between border-b backdrop-blur-xl bg-background shadow-sm`}
-            >
+            <div className={`h-16 px-6 flex items-center justify-between border-b backdrop-blur-xl bg-background shadow-sm`}>
                 <div className="flex items-center space-x-4">
-                    <Button
-                        variant="outline"
-                        onClick={() => (window.location.href = "/")}
-                    >
+                    <Button variant="outline" onClick={() => (window.location.href = "/")}>
                         <ArrowLeft /> Back
                     </Button>
                     <div>
-                        <h1
-                            className={`text-xl font-bold `}
-                        >
-                            BC STUDIO
-                        </h1>
+                        <h1 className={`text-xl font-bold`}>BC STUDIO</h1>
                         <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>Professional Audio Workstation</p>
                     </div>
                 </div>
@@ -314,8 +449,7 @@ function App() {
                         <DialogTrigger asChild>
                             <Button variant="outline">Show Tips</Button>
                         </DialogTrigger>
-
-                        <DialogContent className=" rounded-lg">
+                        <DialogContent className="rounded-lg">
                             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                                 <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200">
                                     {/* Header */}
@@ -330,7 +464,6 @@ function App() {
                                                     <p className="text-blue-100 text-sm">Master your music workflow</p>
                                                 </div>
                                             </div>
-
                                         </div>
                                     </div>
 
@@ -341,8 +474,8 @@ function App() {
                                                 key={tab.id}
                                                 onClick={() => setActiveTab(tab.id)}
                                                 className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${activeTab === tab.id
-                                                    ? 'text-blue-600 border-b-2 border-blue-600 bg-white dark:bg-gray-900'
-                                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                                                    ? "text-blue-600 border-b-2 border-blue-600 bg-white dark:bg-gray-900"
+                                                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                                                     }`}
                                             >
                                                 {tab.icon}
@@ -353,15 +486,22 @@ function App() {
 
                                     {/* Content */}
                                     <div className="p-6 max-h-96 overflow-y-auto">
-                                        {activeTab === 'shortcuts' && (
+                                        {activeTab === "shortcuts" && (
                                             <div className="space-y-3">
                                                 <div className="mb-4">
-                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Keyboard Shortcuts</h3>
-                                                    <p className="text-sm text-gray-600 dark:text-gray-400">Speed up your workflow with these handy shortcuts</p>
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                                                        Keyboard Shortcuts
+                                                    </h3>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                        Speed up your workflow with these handy shortcuts
+                                                    </p>
                                                 </div>
                                                 {tips.shortcuts.map((tip, index) => (
-                                                    <div key={index} className="flex items-center gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                                        <div className="flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-lg">
+                                                    <div
+                                                        key={index}
+                                                        className="flex items-center gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                                    >
+                                                        <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-lg">
                                                             {tip.icon}
                                                         </div>
                                                         <div className="flex items-center gap-3 flex-1">
@@ -375,14 +515,17 @@ function App() {
                                             </div>
                                         )}
 
-                                        {activeTab === 'workflow' && (
+                                        {activeTab === "workflow" && (
                                             <div className="space-y-4">
                                                 <div className="mb-4">
                                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Workflow Tips</h3>
                                                     <p className="text-sm text-gray-600 dark:text-gray-400">Optimize your creative process</p>
                                                 </div>
                                                 {tips.workflow.map((tip, index) => (
-                                                    <div key={index} className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">
+                                                    <div
+                                                        key={index}
+                                                        className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-colors"
+                                                    >
                                                         <div className="flex items-start gap-3">
                                                             <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-lg">
                                                                 {tip.icon}
@@ -397,14 +540,19 @@ function App() {
                                             </div>
                                         )}
 
-                                        {activeTab === 'advanced' && (
+                                        {activeTab === "advanced" && (
                                             <div className="space-y-4">
                                                 <div className="mb-4">
-                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Advanced Techniques</h3>
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                                                        Advanced Techniques
+                                                    </h3>
                                                     <p className="text-sm text-gray-600 dark:text-gray-400">Pro-level features for power users</p>
                                                 </div>
                                                 {tips.advanced.map((tip, index) => (
-                                                    <div key={index} className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 border-l-4 border-blue-500">
+                                                    <div
+                                                        key={index}
+                                                        className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 border-l-4 border-blue-500"
+                                                    >
                                                         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{tip.title}</h4>
                                                         <p className="text-sm text-gray-600 dark:text-gray-400">{tip.desc}</p>
                                                     </div>
@@ -416,14 +564,9 @@ function App() {
                                     {/* Footer */}
                                     <div className="bg-gray-50 dark:bg-gray-800 p-4 border-t border-gray-200 dark:border-gray-700">
                                         <div className="flex items-center justify-between">
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">
-
-                                            </p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400"></p>
                                             <DialogClose>
-                                                <button
-
-                                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
-                                                >
+                                                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
                                                     Got it!
                                                 </button>
                                             </DialogClose>
@@ -433,8 +576,8 @@ function App() {
                             </div>
                         </DialogContent>
                     </Dialog>
-                    <div className={`flex items-center rounded-xl p-1 ${isDark ? "bg-gray-800" : "bg-gray-100"}`}>
 
+                    <div className={`flex items-center rounded-xl p-1 ${isDark ? "bg-gray-800" : "bg-gray-100"}`}>
                         <button
                             onClick={() => setWorkspaceLayout("standard")}
                             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${workspaceLayout === "standard"
@@ -446,17 +589,6 @@ function App() {
                         >
                             Standard
                         </button>
-                        {/* <button
-              onClick={() => setWorkspaceLayout("compact")}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${workspaceLayout === "compact"
-                ? "bg-violet-500 text-white shadow-md"
-                : isDark
-                  ? "text-gray-300 hover:text-white hover:bg-gray-700"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-white"
-                }`}
-            >
-              Compact
-            </button> */}
                         <button
                             onClick={() => setWorkspaceLayout("focus")}
                             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${workspaceLayout === "focus"
@@ -469,8 +601,6 @@ function App() {
                             Focus
                         </button>
                     </div>
-
-
 
                     {isLoading && (
                         <div className="flex items-center space-x-2">
@@ -488,7 +618,9 @@ function App() {
             {/* Main Workspace */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Adaptive Sidebar */}
-                <div className={`${workspaceLayout === "focus" ? "w-20" : "w-[25rem]"} transition-all duration-300 flex-shrink-0`}>
+                <div
+                    className={`${workspaceLayout === "focus" ? "w-20" : "w-[25rem]"} transition-all duration-300 flex-shrink-0`}
+                >
                     <ModernSidebar
                         activePanel={activePanel}
                         onPanelChange={setActivePanel}
@@ -523,6 +655,7 @@ function App() {
                     snapToGrid={snapToGrid}
                     isDark={isDark}
                     layout={workspaceLayout}
+                    onFilesAdded={handleFilesAdded}
                 />
             </div>
 
@@ -544,7 +677,9 @@ function App() {
                 isDark={isDark}
                 onToggleDarkMode={toggleTheme}
                 layout={workspaceLayout}
+                isLoading={isLoading}
             />
+
             <ExportOptionsModal
                 isOpen={showExportOptionsModal}
                 setIsOpen={setShowExportOptionsModal}
@@ -554,19 +689,17 @@ function App() {
                 trackCount={tracks.length}
                 isDark={isDark}
             />
-            {/* <ExportSongModal
-                isOpen={showExportModal}
-                setIsOpen={setShowExportModal}
-                audioBlob={exportAudioBlob}
-                projectName="My Studio Project"
-            /> */}
+
             {/* Quick Help */}
             {workspaceLayout !== "focus" && (
                 <div
                     className={`fixed bottom-2 left-1/3 text-xs ${isDark ? "text-gray-500" : "text-gray-400"} pointer-events-none`}
                 >
                     <div className="space-y-1 text-right">
-                        <div>Space: Play/Pause • 1-4: Switch Panels • G: Grid • +/-: Zoom • L: Loop • Home/End: Navigate • Drag files to timeline</div>
+                        <div>
+                            Space: Play/Pause • 1-4: Switch Panels • G: Grid • +/-: Zoom • L: Loop • Home/End: Navigate • Drag
+                            files/ZIP to timeline
+                        </div>
                     </div>
                 </div>
             )}
@@ -589,21 +722,17 @@ const AccessDenied = ({ isDark }: { isDark: boolean }) => {
                             <Shield className={`w-10 h-10 ${isDark ? "text-red-400" : "text-red-500"}`} />
                         </div>
                     </div>
-
                     <h1 className={`text-2xl font-bold mb-4 ${isDark ? "text-white" : "text-gray-900"}`}>Access Restricted</h1>
-
                     <div
                         className={`flex items-center justify-center space-x-2 mb-4 ${isDark ? "text-amber-400" : "text-amber-600"}`}
                     >
                         <AlertTriangle className="w-5 h-5" />
                         <span className="font-medium">Creator Access Required</span>
                     </div>
-
                     <p className={`text-sm mb-6 leading-relaxed ${isDark ? "text-gray-300" : "text-gray-600"}`}>
                         BANDCOIN STUDIO is exclusively available to verified creators. This professional audio workstation requires
                         creator-level permissions to access its advanced features.
                     </p>
-
                     <div className={`rounded-lg p-4 mb-6 ${isDark ? "bg-gray-700/50" : "bg-gray-50"}`}>
                         <div className="flex items-center space-x-3">
                             <Lock className={`w-5 h-5 ${isDark ? "text-gray-400" : "text-gray-500"}`} />
@@ -615,7 +744,6 @@ const AccessDenied = ({ isDark }: { isDark: boolean }) => {
                             </div>
                         </div>
                     </div>
-
                     <div className="space-y-3">
                         <button
                             onClick={() => (window.location.href = "/artist/create")}
@@ -623,7 +751,6 @@ const AccessDenied = ({ isDark }: { isDark: boolean }) => {
                         >
                             Upgrade to Creator
                         </button>
-
                         <button
                             onClick={() => (window.location.href = "/")}
                             className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -632,7 +759,6 @@ const AccessDenied = ({ isDark }: { isDark: boolean }) => {
                             Back to Home
                         </button>
                     </div>
-
                     <div
                         className={`mt-6 pt-6 border-t text-xs ${isDark ? "border-gray-700 text-gray-500" : "border-gray-200 text-gray-400"}`}
                     >
@@ -656,7 +782,7 @@ const LoadingScreen = ({ isDark }: { isDark: boolean }) => {
         <div className={`min-h-screen flex items-center justify-center ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
             <div className="text-center">
                 <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>Verifying access permissions...</p>
+                <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>Loading...</p>
             </div>
         </div>
     )
