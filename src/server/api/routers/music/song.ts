@@ -191,6 +191,7 @@ export const songRouter = createTRPCRouter({
               },
             },
           },
+          orderBy: { createdAt: "desc" },
         })
 
         const stellarAcc = await StellarAccount.create(currentUserId)

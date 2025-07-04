@@ -4,7 +4,7 @@ import type React from "react"
 import { useRef, useEffect, useState, useCallback } from "react"
 import { Track as TrackComponent } from "./Track"
 import type { Track, AudioFile } from "../types/audio"
-import { Plus, Grid3X3, Volume2, VolumeX, Radio } from "lucide-react"
+import { Plus, Volume2, VolumeX, Radio } from 'lucide-react'
 import { Button } from "~/components/shadcn/ui/button"
 
 interface FlexibleTimelineProps {
@@ -22,6 +22,7 @@ interface FlexibleTimelineProps {
   snapToGrid: boolean
   isDark: boolean
   layout: "standard" | "compact" | "focus"
+  onFilesAdded?: (files: File[], mode: "sequential" | "parallel") => void
 }
 
 export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
@@ -39,6 +40,7 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
   snapToGrid,
   isDark,
   layout,
+  onFilesAdded,
 }) => {
   const tracksContainerRef = useRef<HTMLDivElement>(null)
   const timelineHeaderRef = useRef<HTMLDivElement>(null)
@@ -50,6 +52,7 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
   const [autoScroll, setAutoScroll] = useState(true)
   const [isUserScrolling, setIsUserScrolling] = useState(false)
   const userScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [placementMode, setPlacementMode] = useState<"sequential" | "parallel">("parallel")
 
   const formatTime = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -139,6 +142,7 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
       const snappedTime = snapToGrid ? Math.round(time * 4) / 4 : time
 
       try {
+        // Check if it's a single audio file drag from sidebar
         const audioFileData = e.dataTransfer.getData("application/x-audiofile")
         if (audioFileData) {
           const audioFileInfo = JSON.parse(audioFileData) as AudioFile
@@ -170,12 +174,59 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
               }
             }, 50)
           }
+          return
+        }
+
+        // Handle multiple files dropped from file system
+        const files = Array.from(e.dataTransfer.files).filter(
+          (file) =>
+            file.type.startsWith("audio/") || file.name.toLowerCase().match(/\.(mp3|wav|m4a|flac|ogg|aac|zip)$/i),
+        )
+
+        if (files.length > 0 && onFilesAdded) {
+          // Use the placement mode to determine how to place files
+          console.log(`Dropping ${files.length} files in ${placementMode} mode at time ${snappedTime.toFixed(2)}s, lane ${trackLane}`)
+
+          // Create a custom handler that places files according to the mode
+          const handleFilesForDrop = async (filesToProcess: File[], mode: "sequential" | "parallel") => {
+            const processedAudioFiles: AudioFile[] = []
+
+            // First, load all the files
+            for (const file of filesToProcess) {
+              if (file.name.toLowerCase().endsWith(".zip")) {
+                // Handle ZIP files by delegating to the existing handler
+                onFilesAdded([file], mode)
+                return
+              } else if (file.type.startsWith("audio/") || file.name.toLowerCase().match(/\.(mp3|wav|m4a|flac|ogg|aac)$/i)) {
+                // Load audio file using the existing loadAudioFile method
+                try {
+                  // We need to load the file first, but we can't directly call loadAudioFile here
+                  // Instead, we'll let the parent component handle the loading
+                  processedAudioFiles.push({
+                    id: Math.random().toString(36).substr(2, 9),
+                    name: file.name,
+                    file,
+                    duration: 0, // Will be set when loaded
+                    url: URL.createObjectURL(file),
+                  })
+                } catch (error) {
+                  console.error(`Failed to process ${file.name}:`, error)
+                }
+              }
+            }
+
+            // For now, delegate to the existing onFilesAdded handler
+            // but we'll enhance it to respect the drop position
+            onFilesAdded(filesToProcess, mode)
+          }
+
+          handleFilesForDrop(files, placementMode)
         }
       } catch (error) {
-        console.warn("Failed to parse dragged audio file data:", error)
+        console.warn("Failed to parse dragged data:", error)
       }
     },
-    [pixelsPerSecond, snapToGrid, onAddTrack, audioFiles, tracks, onTrackUpdate, layout],
+    [pixelsPerSecond, snapToGrid, onAddTrack, audioFiles, tracks, onTrackUpdate, layout, placementMode, onFilesAdded],
   )
 
   const handleTimelineClick = useCallback(
@@ -304,7 +355,7 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
       if (!acc[track.trackIndex]) {
         acc[track.trackIndex] = []
       }
-      (acc[track.trackIndex] ?? []).push(track)
+      ; (acc[track.trackIndex] ?? []).push(track)
       return acc
     },
     {} as Record<number, Track[]>,
@@ -364,36 +415,40 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
         {/* Fixed sidebar header */}
         <div className={`w-64 px-4 border-r border-border flex items-center justify-between flex-shrink-0`}>
           <div>
-            <span className={`text-sm font-semibold text-foreground`}>
-              Timeline ({tracks.length})
-            </span>
+            <span className={`text-sm font-semibold text-foreground`}>Timeline ({tracks.length})</span>
             {layout !== "compact" && (
               <div className="flex items-center gap-2">
                 <Button
-                  size='sm'
-                  variant='default'
+                  size="sm"
+                  variant="default"
                   onClick={() => setSplitMode(!splitMode)}
-                  className={`h-8 ${splitMode
-                    ? "bg-destructive text-white"
-                    : ""
-                    }`}
+                  className={`h-8 ${splitMode ? "bg-destructive text-white" : ""}`}
                 >
                   {splitMode ? "Split on" : "Split"}
                 </Button>
                 <Button
-                  size='sm'
-                  variant='default'
-
+                  size="sm"
+                  variant="default"
                   onClick={() => setAutoScroll(!autoScroll)}
-                  className={`h-8 ${autoScroll
-                    ? "bg-accent text-white"
-                    : ""
-                    }`}
+                  className={`h-8 ${autoScroll ? "bg-accent text-white" : ""}`}
                 >
                   {autoScroll ? "Scroll on" : "Scroll"}
                 </Button>
               </div>
             )}
+            {/* {layout !== "compact" && (
+              <div className="flex items-center gap-2 ml-4">
+                <span className="text-xs text-muted-foreground">Drop mode:</span>
+                <select
+                  value={placementMode}
+                  onChange={(e) => setPlacementMode(e.target.value as "sequential" | "parallel")}
+                  className="text-xs bg-background border border-border rounded px-2 py-1"
+                >
+                  <option value="sequential">Sequential</option>
+                  <option value="parallel">Parallel</option>
+                </select>
+              </div>
+            )} */}
           </div>
         </div>
 
@@ -414,8 +469,7 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
                 {gridLines.map((time) => (
                   <div
                     key={`grid-${time}`}
-                    className={`absolute top-0 bottom-0 w-px ${time % 1 === 0 ? "bg-border" : "bg-border/50"
-                      }`}
+                    className={`absolute top-0 bottom-0 w-px ${time % 1 === 0 ? "bg-border" : "bg-border/50"}`}
                     style={{ left: `${time * pixelsPerSecond}px` }}
                   />
                 ))}
@@ -430,9 +484,7 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
                     style={{ left: `${time * pixelsPerSecond}px` }}
                   >
                     <div className={`w-px h-4 bg-muted-foreground`} />
-                    <span className={`text-xs mt-1 font-mono text-muted-foreground`}>
-                      {formatTime(time)}
-                    </span>
+                    <span className={`text-xs mt-1 font-mono text-muted-foreground`}>{formatTime(time)}</span>
                   </div>
                 ))}
 
@@ -478,7 +530,7 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
                         </span>
                         {(tracksByLane[laneIndex]?.length ?? 0) > 1 && (
                           <div className={`text-xs text-muted-foreground`}>
-                            {(tracksByLane[laneIndex]?.length ?? 0)} segments
+                            {tracksByLane[laneIndex]?.length ?? 0} segments
                           </div>
                         )}
                       </div>
@@ -487,8 +539,7 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <Button
-                              size='sm'
-
+                              size="sm"
                               className={`h-5 w-5 rounded-full text-xs transition-colors ${laneTrack.muted
                                 ? "bg-destructive text-destructive-foreground shadow-md"
                                 : "bg-secondary text-secondary-foreground hover:bg-muted"
@@ -498,7 +549,7 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
                               {laneTrack.muted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
                             </Button>
                             <Button
-                              size='sm'
+                              size="sm"
                               className={`rounded-full h-5 w-5 text-xs font-bold transition-colors ${laneTrack.soloed
                                 ? "bg-accent text-warning-foreground shadow-md"
                                 : "bg-secondary text-secondary-foreground hover:bg-muted"
@@ -529,9 +580,7 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
                     </>
                   ) : (
                     <div className="flex-1 flex items-center justify-center">
-                      <span className={`text-xs text-muted-foreground`}>
-                        Lane {laneIndex + 1}
-                      </span>
+                      <span className={`text-xs text-muted-foreground`}>Lane {laneIndex + 1}</span>
                     </div>
                   )}
                 </div>
@@ -589,8 +638,7 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
                   {gridLines.map((time) => (
                     <div
                       key={`track-grid-${time}`}
-                      className={`absolute top-0 bottom-0 w-px ${time % 1 === 0 ? "bg-border/30" : "bg-muted/20"
-                        }`}
+                      className={`absolute top-0 bottom-0 w-px ${time % 1 === 0 ? "bg-border/30" : "bg-muted/20"}`}
                       style={{ left: `${time * pixelsPerSecond}px` }}
                     />
                   ))}
@@ -640,9 +688,7 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
                       >
                         <Plus className="w-8 h-8 text-primary-foreground" />
                       </div>
-                      <div className={`text-lg font-medium mb-2 text-foreground`}>
-                        No tracks yet
-                      </div>
+                      <div className={`text-lg font-medium mb-2 text-foreground`}>No tracks yet</div>
                       <div className={`text-sm text-muted-foreground`}>
                         Drag audio files from the sidebar to create tracks
                       </div>
@@ -657,6 +703,6 @@ export const FlexibleTimeline: React.FC<FlexibleTimelineProps> = ({
           </div>
         </div>
       </div>
-    </div >
+    </div>
   )
 }

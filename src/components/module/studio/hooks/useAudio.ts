@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react"
 import type { AudioFile, Track, PlaybackState } from "../types/audio"
+// import { exportTrackAsBlob } from "../utils/exportTrackAsBlob" // Declare the variable before using it
 
 export const useAudio = () => {
   const [audioFiles, setAudioFiles] = useState<AudioFile[]>([])
@@ -95,7 +96,6 @@ export const useAudio = () => {
     return waveformData
   }, [])
 
-
   const loadAudioFile = useCallback(
     async (file: File): Promise<AudioFile> => {
       await initAudioContext()
@@ -119,6 +119,139 @@ export const useAudio = () => {
       return audioFile
     },
     [initAudioContext, generateWaveformData],
+  )
+
+  const loadAudioFiles = useCallback(
+    async (files: File[]): Promise<AudioFile[]> => {
+      await initAudioContext()
+
+      const loadedFiles: AudioFile[] = []
+
+      for (const file of files) {
+        try {
+          const url = URL.createObjectURL(file)
+          const arrayBuffer = await file.arrayBuffer()
+          const audioBuffer = await audioContextRef.current!.decodeAudioData(arrayBuffer)
+          const waveformData = generateWaveformData(audioBuffer)
+
+          const audioFile: AudioFile = {
+            id: Math.random().toString(36).substr(2, 9),
+            name: file.name,
+            file,
+            duration: audioBuffer.duration,
+            buffer: audioBuffer,
+            url,
+            waveformData,
+          }
+
+          loadedFiles.push(audioFile)
+        } catch (error) {
+          console.error(`Failed to load audio file ${file.name}:`, error)
+        }
+      }
+
+      setAudioFiles((prev) => [...prev, ...loadedFiles])
+
+      // Automatically place files on timeline sequentially
+      const existingTracks = tracks
+      let currentTime = existingTracks.length > 0 ? Math.max(...existingTracks.map((t) => t.endTime)) + 0.5 : 0
+      const trackSpacing = 0.5 // 0.5 second gap between tracks
+
+      loadedFiles.forEach((audioFile, index) => {
+        // Find next available track index
+        const usedIndices = [...existingTracks, ...tracks].map((t) => t.trackIndex)
+        const nextIndex = usedIndices.length === 0 ? index : Math.max(...usedIndices, -1) + 1 + index
+
+        const track: Track = {
+          id: Math.random().toString(36).substr(2, 9),
+          audioFileId: audioFile.id,
+          name: audioFile.name.replace(/\.[^/.]+$/, ""),
+          startTime: currentTime,
+          endTime: currentTime + audioFile.duration,
+          volume: 1,
+          muted: false,
+          soloed: false,
+          trimStart: 0,
+          trimEnd: audioFile.duration,
+          trackIndex: nextIndex,
+          color: ["#8B5CF6", "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#EC4899"][nextIndex % 6],
+          selected: false,
+        }
+
+        setTracks((prev) => [...prev, track])
+
+        // Update current time for next track (sequential placement)
+        currentTime += audioFile.duration + trackSpacing
+      })
+
+      return loadedFiles
+    },
+    [initAudioContext, generateWaveformData, tracks],
+  )
+
+  // Add a function for placing files in parallel (same start time, different tracks)
+  const loadAudioFilesParallel = useCallback(
+    async (files: File[]): Promise<AudioFile[]> => {
+      await initAudioContext()
+
+      const loadedFiles: AudioFile[] = []
+
+      for (const file of files) {
+        try {
+          const url = URL.createObjectURL(file)
+          const arrayBuffer = await file.arrayBuffer()
+          const audioBuffer = await audioContextRef.current!.decodeAudioData(arrayBuffer)
+          const waveformData = generateWaveformData(audioBuffer)
+
+          const audioFile: AudioFile = {
+            id: Math.random().toString(36).substr(2, 9),
+            name: file.name,
+            file,
+            duration: audioBuffer.duration,
+            buffer: audioBuffer,
+            url,
+            waveformData,
+          }
+
+          loadedFiles.push(audioFile)
+        } catch (error) {
+          console.error(`Failed to load audio file ${file.name}:`, error)
+        }
+      }
+
+      setAudioFiles((prev) => [...prev, ...loadedFiles])
+
+      // Place all files starting at the same time on different tracks (parallel mode)
+      const existingTracks = tracks
+      const startTime = 0
+
+      loadedFiles.forEach((audioFile, index) => {
+        // Find next available track index, starting from existing tracks
+        const usedIndices = [...existingTracks, ...tracks].map((t) => t.trackIndex)
+        const nextIndex = usedIndices.length === 0 ? index : Math.max(...usedIndices, -1) + 1 + index
+
+        const track: Track = {
+          id: Math.random().toString(36).substr(2, 9),
+          audioFileId: audioFile.id,
+          name: audioFile.name.replace(/\.[^/.]+$/, ""),
+          startTime: startTime,
+          endTime: startTime + audioFile.duration,
+          volume: 1,
+          muted: false,
+          soloed: false,
+          trimStart: 0,
+          trimEnd: audioFile.duration,
+          trackIndex: nextIndex,
+          color: ["#8B5CF6", "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#EC4899"][nextIndex % 6],
+          selected: false,
+        }
+
+        setTracks((prev) => [...prev, track])
+      })
+
+      return loadedFiles
+    },
+    [initAudioContext, generateWaveformData, tracks],
   )
 
   const addTrack = useCallback(
@@ -354,12 +487,7 @@ export const useAudio = () => {
             track.endTime - Math.max(track.startTime, startTime),
           )
 
-          if (
-            trackStartTime >= 0 &&
-            duration > 0 &&
-            audioFile.buffer &&
-            sourceOffset < audioFile.buffer.duration
-          ) {
+          if (trackStartTime >= 0 && duration > 0 && audioFile.buffer && sourceOffset < audioFile.buffer.duration) {
             try {
               source.start(contextStartTime + trackStartTime, sourceOffset, duration)
               sourceNodesRef.current.set(track.id, source)
@@ -556,8 +684,6 @@ export const useAudio = () => {
     setMasterEQ({ low: 0, mid: 0, high: 0 })
   }, [tracks.length])
 
-
-
   const exportProject = useCallback(
     async (format: "wav" | "mp3" = "wav"): Promise<void> => {
       if (tracks.length === 0) {
@@ -569,12 +695,152 @@ export const useAudio = () => {
       const projectDuration = getProjectDuration()
       const sampleRate = audioContextRef.current!.sampleRate
       const numberOfChannels = 2 // Stereo
-      const length = Math.ceil(projectDuration * sampleRate)
 
-      // Create offline context for rendering
-      const offlineContext = new OfflineAudioContext(numberOfChannels, length, sampleRate)
+      // For large projects, use chunked processing
+      const isLargeProject = projectDuration > 300 || tracks.length > 10 // 5+ minutes or 10+ tracks
 
-      // Create master gain and EQ nodes for offline context
+      if (isLargeProject) {
+        await exportLargeProject(projectDuration, sampleRate, numberOfChannels)
+      } else {
+        await exportStandardProject(projectDuration, sampleRate, numberOfChannels)
+      }
+    },
+    [tracks, audioFiles, masterEQ, initAudioContext, getProjectDuration],
+  )
+
+  const exportToBandcoin = useCallback(
+    async (format: "wav" | "mp3" = "wav"): Promise<Blob> => {
+      if (tracks.length === 0) {
+        throw new Error("No tracks to export")
+      }
+
+      await initAudioContext()
+
+      const projectDuration = getProjectDuration()
+      const sampleRate = audioContextRef.current!.sampleRate
+      const numberOfChannels = 2 // Stereo
+
+      // For large projects, use chunked processing
+      const isLargeProject = projectDuration > 300 || tracks.length > 10
+
+      if (isLargeProject) {
+        return await exportLargeProjectAsBlob(projectDuration, sampleRate, numberOfChannels)
+      } else {
+        return await exportStandardProjectAsBlob(projectDuration, sampleRate, numberOfChannels)
+      }
+    },
+    [tracks, audioFiles, masterEQ, initAudioContext, getProjectDuration],
+  )
+
+  // Standard export for smaller projects
+  const exportStandardProject = async (projectDuration: number, sampleRate: number, numberOfChannels: number) => {
+    const length = Math.ceil(projectDuration * sampleRate)
+
+    // Create offline context for rendering
+    const offlineContext = new OfflineAudioContext(numberOfChannels, length, sampleRate)
+
+    // Create master gain and EQ nodes for offline context
+    const masterGain = offlineContext.createGain()
+    masterGain.gain.value = gainNodeRef.current?.gain.value ?? 0.8
+
+    const lowShelf = offlineContext.createBiquadFilter()
+    lowShelf.type = "lowshelf"
+    lowShelf.frequency.value = 100
+    lowShelf.gain.value = masterEQ.low
+
+    const midPeaking = offlineContext.createBiquadFilter()
+    midPeaking.type = "peaking"
+    midPeaking.frequency.value = 1000
+    midPeaking.Q.value = 1
+    midPeaking.gain.value = masterEQ.mid
+
+    const highShelf = offlineContext.createBiquadFilter()
+    highShelf.type = "highshelf"
+    highShelf.frequency.value = 8000
+    highShelf.gain.value = masterEQ.high
+
+    // Connect EQ chain
+    lowShelf.connect(midPeaking)
+    midPeaking.connect(highShelf)
+    highShelf.connect(masterGain)
+    masterGain.connect(offlineContext.destination)
+
+    // Process tracks
+    const soloedTracks = tracks.filter((track) => track.soloed)
+    const tracksToRender = soloedTracks.length > 0 ? soloedTracks : tracks.filter((track) => !track.muted)
+
+    // Group tracks by audio file to avoid conflicts
+    const tracksByAudioFile = new Map<string, Track[]>()
+    tracksToRender.forEach((track) => {
+      if (!tracksByAudioFile.has(track.audioFileId)) {
+        tracksByAudioFile.set(track.audioFileId, [])
+      }
+      tracksByAudioFile.get(track.audioFileId)!.push(track)
+    })
+
+    // Create sources for each track
+    tracksByAudioFile.forEach((tracksForFile, audioFileId) => {
+      const audioFile = audioFiles.find((f) => f.id === audioFileId)
+      if (!audioFile?.buffer) return
+
+      tracksForFile.forEach((track) => {
+        const source = offlineContext.createBufferSource()
+        const gainNode = offlineContext.createGain()
+
+        source.buffer = audioFile.buffer ?? null
+        source.connect(gainNode)
+        gainNode.connect(lowShelf)
+
+        gainNode.gain.value = track.volume
+
+        const sourceOffset = track.trimStart
+        const duration = Math.min(track.trimEnd - track.trimStart, track.endTime - track.startTime)
+
+        if (duration > 0 && audioFile.buffer && sourceOffset < audioFile.buffer.duration) {
+          try {
+            source.start(track.startTime, sourceOffset, duration)
+          } catch (e) {
+            console.warn("Failed to start offline audio source:", e)
+          }
+        }
+      })
+    })
+
+    // Render the audio
+    const renderedBuffer = await offlineContext.startRendering()
+
+    // Convert to WAV
+    const wavBuffer = audioBufferToWav(renderedBuffer)
+    const blob = new Blob([wavBuffer], { type: "audio/wav" })
+
+    // Download the file
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `music-studio-export-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.wav`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  // Chunked export for large projects
+  const exportLargeProject = async (projectDuration: number, sampleRate: number, numberOfChannels: number) => {
+    const chunkDuration = 30 // Process in 30-second chunks
+    const chunks: ArrayBuffer[] = []
+
+    console.log(`Exporting large project in chunks: ${Math.ceil(projectDuration / chunkDuration)} chunks`)
+
+    for (let startTime = 0; startTime < projectDuration; startTime += chunkDuration) {
+      const endTime = Math.min(startTime + chunkDuration, projectDuration)
+      const chunkLength = Math.ceil((endTime - startTime) * sampleRate)
+
+      console.log(`Processing chunk: ${startTime.toFixed(1)}s - ${endTime.toFixed(1)}s`)
+
+      // Create offline context for this chunk
+      const offlineContext = new OfflineAudioContext(numberOfChannels, chunkLength, sampleRate)
+
+      // Create master gain and EQ nodes
       const masterGain = offlineContext.createGain()
       masterGain.gain.value = gainNodeRef.current?.gain.value ?? 0.8
 
@@ -600,20 +866,21 @@ export const useAudio = () => {
       highShelf.connect(masterGain)
       masterGain.connect(offlineContext.destination)
 
-      // Process tracks
+      // Process tracks that intersect with this chunk
       const soloedTracks = tracks.filter((track) => track.soloed)
       const tracksToRender = soloedTracks.length > 0 ? soloedTracks : tracks.filter((track) => !track.muted)
 
-      // Group tracks by audio file to avoid conflicts
+      const relevantTracks = tracksToRender.filter((track) => track.startTime < endTime && track.endTime > startTime)
+
       const tracksByAudioFile = new Map<string, Track[]>()
-      tracksToRender.forEach((track) => {
+      relevantTracks.forEach((track) => {
         if (!tracksByAudioFile.has(track.audioFileId)) {
           tracksByAudioFile.set(track.audioFileId, [])
         }
         tracksByAudioFile.get(track.audioFileId)!.push(track)
       })
 
-      // Create sources for each track
+      // Create sources for each track in this chunk
       tracksByAudioFile.forEach((tracksForFile, audioFileId) => {
         const audioFile = audioFiles.find((f) => f.id === audioFileId)
         if (!audioFile?.buffer) return
@@ -628,38 +895,235 @@ export const useAudio = () => {
 
           gainNode.gain.value = track.volume
 
-          const sourceOffset = track.trimStart
-          const duration = Math.min(track.trimEnd - track.trimStart, track.endTime - track.startTime)
+          // Adjust timing for chunk
+          const trackStartInChunk = Math.max(0, track.startTime - startTime)
+          const trackEndInChunk = Math.min(endTime - startTime, track.endTime - startTime)
+          const sourceOffset = track.trimStart + Math.max(0, startTime - track.startTime)
+          const duration = Math.min(track.trimEnd - sourceOffset, trackEndInChunk - trackStartInChunk)
 
-          if (duration > 0 && audioFile.buffer && sourceOffset < audioFile.buffer.duration) {
+          if (duration > 0 && audioFile.buffer && sourceOffset < audioFile.buffer.duration && sourceOffset >= 0) {
             try {
-              source.start(track.startTime, sourceOffset, duration)
+              source.start(trackStartInChunk, sourceOffset, duration)
             } catch (e) {
-              console.warn("Failed to start offline audio source:", e)
+              console.warn("Failed to start offline audio source in chunk:", e)
             }
           }
         })
       })
 
-      // Render the audio
+      // Render this chunk
       const renderedBuffer = await offlineContext.startRendering()
-
-      // Convert to WAV
       const wavBuffer = audioBufferToWav(renderedBuffer)
-      const blob = new Blob([wavBuffer], { type: "audio/wav" })
+      chunks.push(wavBuffer)
 
-      // Download the file
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `music-studio-export-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.wav`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    },
-    [tracks, audioFiles, masterEQ, initAudioContext, getProjectDuration],
-  )
+      // Small delay to prevent blocking the UI
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    }
+
+    // Combine all chunks
+    console.log("Combining chunks...")
+    const combinedBuffer = combineWavBuffers(chunks)
+    const blob = new Blob([combinedBuffer], { type: "audio/wav" })
+
+    // Download the file
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `music-studio-export-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.wav`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  // Similar functions for blob export
+  const exportStandardProjectAsBlob = async (
+    projectDuration: number,
+    sampleRate: number,
+    numberOfChannels: number,
+  ): Promise<Blob> => {
+    // Same logic as exportStandardProject but return blob instead of downloading
+    const length = Math.ceil(projectDuration * sampleRate)
+    const offlineContext = new OfflineAudioContext(numberOfChannels, length, sampleRate)
+
+    // Create master gain and EQ nodes for offline context
+    const masterGain = offlineContext.createGain()
+    masterGain.gain.value = gainNodeRef.current?.gain.value ?? 0.8
+
+    const lowShelf = offlineContext.createBiquadFilter()
+    lowShelf.type = "lowshelf"
+    lowShelf.frequency.value = 100
+    lowShelf.gain.value = masterEQ.low
+
+    const midPeaking = offlineContext.createBiquadFilter()
+    midPeaking.type = "peaking"
+    midPeaking.frequency.value = 1000
+    midPeaking.Q.value = 1
+    midPeaking.gain.value = masterEQ.mid
+
+    const highShelf = offlineContext.createBiquadFilter()
+    highShelf.type = "highshelf"
+    highShelf.frequency.value = 8000
+    highShelf.gain.value = masterEQ.high
+
+    // Connect EQ chain
+    lowShelf.connect(midPeaking)
+    midPeaking.connect(highShelf)
+    highShelf.connect(masterGain)
+    masterGain.connect(offlineContext.destination)
+
+    // Process tracks
+    const soloedTracks = tracks.filter((track) => track.soloed)
+    const tracksToRender = soloedTracks.length > 0 ? soloedTracks : tracks.filter((track) => !track.muted)
+
+    // Group tracks by audio file
+    const tracksByAudioFile = new Map<string, Track[]>()
+    tracksToRender.forEach((track) => {
+      if (!tracksByAudioFile.has(track.audioFileId)) {
+        tracksByAudioFile.set(track.audioFileId, [])
+      }
+      tracksByAudioFile.get(track.audioFileId)!.push(track)
+    })
+
+    // Create sources for each track
+    tracksByAudioFile.forEach((tracksForFile, audioFileId) => {
+      const audioFile = audioFiles.find((f) => f.id === audioFileId)
+      if (!audioFile?.buffer) return
+
+      tracksForFile.forEach((track) => {
+        const source = offlineContext.createBufferSource()
+        const gainNode = offlineContext.createGain()
+
+        source.buffer = audioFile.buffer ?? null
+        source.connect(gainNode)
+        gainNode.connect(lowShelf)
+
+        gainNode.gain.value = track.volume
+
+        const sourceOffset = track.trimStart
+        const duration = Math.min(track.trimEnd - track.trimStart, track.endTime - track.startTime)
+
+        if (duration > 0 && audioFile.buffer && sourceOffset < audioFile.buffer.duration) {
+          try {
+            source.start(track.startTime, sourceOffset, duration)
+          } catch (e) {
+            console.warn("Failed to start offline audio source:", e)
+          }
+        }
+      })
+    })
+
+    // Render the audio
+    const renderedBuffer = await offlineContext.startRendering()
+    const wavBuffer = audioBufferToWav(renderedBuffer)
+    return new Blob([wavBuffer], { type: "audio/wav" })
+  }
+
+  const exportLargeProjectAsBlob = async (
+    projectDuration: number,
+    sampleRate: number,
+    numberOfChannels: number,
+  ): Promise<Blob> => {
+    const chunkDuration = 30 // Process in 30-second chunks
+    const chunks: ArrayBuffer[] = []
+
+    console.log(`Exporting large project as blob in chunks: ${Math.ceil(projectDuration / chunkDuration)} chunks`)
+
+    for (let startTime = 0; startTime < projectDuration; startTime += chunkDuration) {
+      const endTime = Math.min(startTime + chunkDuration, projectDuration)
+      const chunkLength = Math.ceil((endTime - startTime) * sampleRate)
+
+      console.log(`Processing chunk for blob: ${startTime.toFixed(1)}s - ${endTime.toFixed(1)}s`)
+
+      // Create offline context for this chunk
+      const offlineContext = new OfflineAudioContext(numberOfChannels, chunkLength, sampleRate)
+
+      // Create master gain and EQ nodes
+      const masterGain = offlineContext.createGain()
+      masterGain.gain.value = gainNodeRef.current?.gain.value ?? 0.8
+
+      const lowShelf = offlineContext.createBiquadFilter()
+      lowShelf.type = "lowshelf"
+      lowShelf.frequency.value = 100
+      lowShelf.gain.value = masterEQ.low
+
+      const midPeaking = offlineContext.createBiquadFilter()
+      midPeaking.type = "peaking"
+      midPeaking.frequency.value = 1000
+      midPeaking.Q.value = 1
+      midPeaking.gain.value = masterEQ.mid
+
+      const highShelf = offlineContext.createBiquadFilter()
+      highShelf.type = "highshelf"
+      highShelf.frequency.value = 8000
+      highShelf.gain.value = masterEQ.high
+
+      // Connect EQ chain
+      lowShelf.connect(midPeaking)
+      midPeaking.connect(highShelf)
+      highShelf.connect(masterGain)
+      masterGain.connect(offlineContext.destination)
+
+      // Process tracks that intersect with this chunk
+      const soloedTracks = tracks.filter((track) => track.soloed)
+      const tracksToRender = soloedTracks.length > 0 ? soloedTracks : tracks.filter((track) => !track.muted)
+
+      const relevantTracks = tracksToRender.filter((track) => track.startTime < endTime && track.endTime > startTime)
+
+      const tracksByAudioFile = new Map<string, Track[]>()
+      relevantTracks.forEach((track) => {
+        if (!tracksByAudioFile.has(track.audioFileId)) {
+          tracksByAudioFile.set(track.audioFileId, [])
+        }
+        tracksByAudioFile.get(track.audioFileId)!.push(track)
+      })
+
+      // Create sources for each track in this chunk
+      tracksByAudioFile.forEach((tracksForFile, audioFileId) => {
+        const audioFile = audioFiles.find((f) => f.id === audioFileId)
+        if (!audioFile?.buffer) return
+
+        tracksForFile.forEach((track) => {
+          const source = offlineContext.createBufferSource()
+          const gainNode = offlineContext.createGain()
+
+          source.buffer = audioFile.buffer ?? null
+          source.connect(gainNode)
+          gainNode.connect(lowShelf)
+
+          gainNode.gain.value = track.volume
+
+          // Adjust timing for chunk
+          const trackStartInChunk = Math.max(0, track.startTime - startTime)
+          const trackEndInChunk = Math.min(endTime - startTime, track.endTime - startTime)
+          const sourceOffset = track.trimStart + Math.max(0, startTime - track.startTime)
+          const duration = Math.min(track.trimEnd - sourceOffset, trackEndInChunk - trackStartInChunk)
+
+          if (duration > 0 && audioFile.buffer && sourceOffset < audioFile.buffer.duration && sourceOffset >= 0) {
+            try {
+              source.start(trackStartInChunk, sourceOffset, duration)
+            } catch (e) {
+              console.warn("Failed to start offline audio source in chunk:", e)
+            }
+          }
+        })
+      })
+
+      // Render this chunk
+      const renderedBuffer = await offlineContext.startRendering()
+      const wavBuffer = audioBufferToWav(renderedBuffer)
+      chunks.push(wavBuffer)
+
+      // Small delay to prevent blocking the UI
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    }
+
+    // Combine all chunks
+    console.log("Combining chunks for blob...")
+    const combinedBuffer = combineWavBuffers(chunks)
+    return new Blob([combinedBuffer], { type: "audio/wav" })
+  }
+
   // Export individual track as blob
   const exportTrackAsBlob = useCallback(
     async (track: Track): Promise<Blob> => {
@@ -704,99 +1168,51 @@ export const useAudio = () => {
     [audioFiles, initAudioContext],
   )
 
-  const exportToBandcoin = useCallback(
-    async (format: "wav" | "mp3" = "wav"): Promise<Blob> => {
-      if (tracks.length === 0) {
-        throw new Error("No tracks to export")
-      }
+  // Helper function to combine WAV buffers
+  const combineWavBuffers = (wavBuffers: ArrayBuffer[]): ArrayBuffer => {
+    if (wavBuffers.length === 0) {
+      throw new Error("No buffers to combine")
+    }
 
-      await initAudioContext()
+    if (wavBuffers.length === 1) {
+      return wavBuffers[0]!
+    }
 
-      const projectDuration = getProjectDuration()
-      const sampleRate = audioContextRef.current!.sampleRate
-      const numberOfChannels = 2 // Stereo
-      const length = Math.ceil(projectDuration * sampleRate)
+    // Calculate total data size (excluding headers)
+    let totalDataSize = 0
+    const dataViews = wavBuffers.map((buffer) => {
+      const view = new DataView(buffer)
+      const dataSize = view.getUint32(40, true) // Data chunk size
+      totalDataSize += dataSize
+      return { view, dataSize }
+    })
 
-      // Create offline context for rendering
-      const offlineContext = new OfflineAudioContext(numberOfChannels, length, sampleRate)
+    // Create new combined buffer
+    const combinedSize = 44 + totalDataSize // WAV header + all data
+    const combinedBuffer = new ArrayBuffer(combinedSize)
+    const combinedView = new DataView(combinedBuffer)
 
-      // Create master gain and EQ nodes for offline context
-      const masterGain = offlineContext.createGain()
-      masterGain.gain.value = gainNodeRef.current?.gain.value ?? 0.8
+    // Copy header from first buffer and update sizes
+    const firstView = dataViews[0]!.view
+    for (let i = 0; i < 44; i++) {
+      combinedView.setUint8(i, firstView.getUint8(i))
+    }
 
-      const lowShelf = offlineContext.createBiquadFilter()
-      lowShelf.type = "lowshelf"
-      lowShelf.frequency.value = 100
-      lowShelf.gain.value = masterEQ.low
+    // Update file size in header
+    combinedView.setUint32(4, combinedSize - 8, true)
+    // Update data chunk size in header
+    combinedView.setUint32(40, totalDataSize, true)
 
-      const midPeaking = offlineContext.createBiquadFilter()
-      midPeaking.type = "peaking"
-      midPeaking.frequency.value = 1000
-      midPeaking.Q.value = 1
-      midPeaking.gain.value = masterEQ.mid
+    // Combine all audio data
+    let offset = 44
+    dataViews.forEach(({ view, dataSize }) => {
+      const audioData = new Uint8Array(view.buffer, 44, dataSize)
+      new Uint8Array(combinedBuffer, offset, dataSize).set(audioData)
+      offset += dataSize
+    })
 
-      const highShelf = offlineContext.createBiquadFilter()
-      highShelf.type = "highshelf"
-      highShelf.frequency.value = 8000
-      highShelf.gain.value = masterEQ.high
-
-      // Connect EQ chain
-      lowShelf.connect(midPeaking)
-      midPeaking.connect(highShelf)
-      highShelf.connect(masterGain)
-      masterGain.connect(offlineContext.destination)
-
-      // Process tracks
-      const soloedTracks = tracks.filter((track) => track.soloed)
-      const tracksToRender = soloedTracks.length > 0 ? soloedTracks : tracks.filter((track) => !track.muted)
-
-      // Group tracks by audio file to avoid conflicts
-      const tracksByAudioFile = new Map<string, Track[]>()
-      tracksToRender.forEach((track) => {
-        if (!tracksByAudioFile.has(track.audioFileId)) {
-          tracksByAudioFile.set(track.audioFileId, [])
-        }
-        tracksByAudioFile.get(track.audioFileId)!.push(track)
-      })
-
-      // Create sources for each track
-      tracksByAudioFile.forEach((tracksForFile, audioFileId) => {
-        const audioFile = audioFiles.find((f) => f.id === audioFileId)
-        if (!audioFile?.buffer) return
-
-        tracksForFile.forEach((track) => {
-          const source = offlineContext.createBufferSource()
-          const gainNode = offlineContext.createGain()
-
-          source.buffer = audioFile.buffer ?? null
-          source.connect(gainNode)
-          gainNode.connect(lowShelf)
-
-          gainNode.gain.value = track.volume
-
-          const sourceOffset = track.trimStart
-          const duration = Math.min(track.trimEnd - track.trimStart, track.endTime - track.startTime)
-
-          if (duration > 0 && audioFile.buffer && sourceOffset < audioFile.buffer.duration) {
-            try {
-              source.start(track.startTime, sourceOffset, duration)
-            } catch (e) {
-              console.warn("Failed to start offline audio source:", e)
-            }
-          }
-        })
-      })
-
-      // Render the audio
-      const renderedBuffer = await offlineContext.startRendering()
-
-      // Convert to WAV
-      const wavBuffer = audioBufferToWav(renderedBuffer)
-      const blob = new Blob([wavBuffer], { type: "audio/wav" })
-      return blob
-    },
-    [tracks, audioFiles, masterEQ, initAudioContext, getProjectDuration],
-  )
+    return combinedBuffer
+  }
 
   const audioBufferToWav = (buffer: AudioBuffer): ArrayBuffer => {
     const length = buffer.length
@@ -894,6 +1310,8 @@ export const useAudio = () => {
     newProject,
     exportProject,
     exportToBandcoin,
-    exportTrackAsBlob
+    exportTrackAsBlob,
+    loadAudioFiles,
+    loadAudioFilesParallel,
   }
 }

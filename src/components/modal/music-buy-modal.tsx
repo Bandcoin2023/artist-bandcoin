@@ -106,11 +106,11 @@ export default function MusicBuyModal() {
     return (
         <>
             <Dialog open={isOpen} onOpenChange={handleClose}>
-                <DialogContent className="max-w-3xl     overflow-hidden p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-black [&>button]:bg-white [&>button]:text-black">
+                <DialogContent className="max-w-4xl     overflow-hidden p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-black [&>button]:bg-white [&>button]:text-black">
                     {step === 1 && (
                         <div className="grid grid-cols-1 md:grid-cols-7 ">
                             {/* Left Column - Product Image */}
-                            <Card className="  overflow-y-hidden max-h-[770px] min-h-[770px] scrollbar-hide   md:col-span-3 ">
+                            <Card className="  overflow-y-auto max-h-[770px] min-h-[770px] scrollbar-hide   md:col-span-3 ">
                                 <CardContent className="p-0 bg-primary rounded-sm flex flex-col justify-between h-full">
                                     {/* Image Container */}
                                     <div className="flex flex-col h-full">

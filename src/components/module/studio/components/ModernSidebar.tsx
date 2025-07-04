@@ -2,11 +2,55 @@
 
 import React, { useState } from "react"
 import { Badge } from "~/components/shadcn/ui/badge"
-import { Music, Sparkles, Sliders, Settings, Upload, X, Trash2, Clock, FileAudio } from "lucide-react"
+import { Music, Sparkles, Sliders, Upload, X, Trash2, Clock, FileAudio } from "lucide-react"
 import type { AudioFile } from "../types/audio"
 import { IntelligentAIPanel } from "../components/IntelligentAIPanel"
 import { AdaptiveMixer } from "../components/AdaptiveMixer"
 import { useLyriaStatus } from "../hooks/use-lyria-status"
+import JSZip from "jszip"
+
+// Add this function before the component
+const handleZipFile = async (
+  zipFile: File,
+  onFilesAdded: (files: File[]) => void,
+  onAudioGenerated: (audioBlob: Blob, title: string) => void,
+) => {
+  try {
+    const zip = new JSZip()
+    const zipContent = await zip.loadAsync(zipFile)
+    const audioFiles: File[] = []
+
+    // Extract audio files from ZIP
+    for (const [filename, file] of Object.entries(zipContent.files)) {
+      if (file.dir) continue // Skip directories
+
+      const isAudioFile = filename.toLowerCase().match(/\.(mp3|wav|m4a|flac|ogg|aac)$/i)
+      if (!isAudioFile) continue
+
+      try {
+        const blob = await file.async("blob")
+        const audioFile = new File([blob], filename, { type: "audio/*" })
+        audioFiles.push(audioFile)
+      } catch (error) {
+        console.warn(`Failed to extract ${filename}:`, error)
+      }
+    }
+
+    if (audioFiles.length === 0) {
+      alert("No audio files found in the ZIP archive.")
+      return
+    }
+
+    // Add all audio files to the library
+    onFilesAdded(audioFiles)
+
+    // Show success message
+    alert(`Successfully extracted ${audioFiles.length} audio files from ZIP archive.`)
+  } catch (error) {
+    console.error("Failed to extract ZIP file:", error)
+    alert("Failed to extract ZIP file. Please make sure it's a valid ZIP archive.")
+  }
+}
 
 interface ModernSidebarProps {
   activePanel: "library" | "mixer" | "ai" | "settings"
@@ -43,23 +87,67 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = ({
 }) => {
   const [dragOver, setDragOver] = useState(false)
   const { lyriaStatus } = useLyriaStatus()
+  // Update the handleDrop function
   const handleDrop = React.useCallback(
-    (e: React.DragEvent) => {
+    async (e: React.DragEvent) => {
       e.preventDefault()
       setDragOver(false)
-      const files = Array.from(e.dataTransfer.files).filter(
-        (file) =>
-          file.type.startsWith("audio/") ||
-          file.name.toLowerCase().endsWith(".mp3") ||
-          file.name.toLowerCase().endsWith(".wav") ||
-          file.name.toLowerCase().endsWith(".m4a") ||
-          file.name.toLowerCase().endsWith(".flac"),
-      )
-      if (files.length > 0) {
-        onFilesAdded(files)
+
+      const files = Array.from(e.dataTransfer.files)
+      const audioFiles: File[] = []
+      const zipFiles: File[] = []
+
+      // Separate audio files and ZIP files
+      files.forEach((file) => {
+        if (file.name.toLowerCase().endsWith(".zip")) {
+          zipFiles.push(file)
+        } else if (file.type.startsWith("audio/") || file.name.toLowerCase().match(/\.(mp3|wav|m4a|flac|ogg|aac)$/i)) {
+          audioFiles.push(file)
+        }
+      })
+
+      // Handle regular audio files
+      if (audioFiles.length > 0) {
+        onFilesAdded(audioFiles)
+      }
+
+      // Handle ZIP files
+      for (const zipFile of zipFiles) {
+        await handleZipFile(zipFile, onFilesAdded, onAudioGenerated)
       }
     },
-    [onFilesAdded],
+    [onFilesAdded, onAudioGenerated],
+  )
+
+  // Update the handleFileInput function
+  const handleFileInput = React.useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files ?? [])
+      const audioFiles: File[] = []
+      const zipFiles: File[] = []
+
+      // Separate audio files and ZIP files
+      files.forEach((file) => {
+        if (file.name.toLowerCase().endsWith(".zip")) {
+          zipFiles.push(file)
+        } else {
+          audioFiles.push(file)
+        }
+      })
+
+      // Handle regular audio files
+      if (audioFiles.length > 0) {
+        onFilesAdded(audioFiles)
+      }
+
+      // Handle ZIP files
+      for (const zipFile of zipFiles) {
+        await handleZipFile(zipFile, onFilesAdded, onAudioGenerated)
+      }
+
+      e.target.value = ""
+    },
+    [onFilesAdded, onAudioGenerated],
   )
 
   const handleDragOver = React.useCallback((e: React.DragEvent) => {
@@ -73,17 +161,6 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = ({
       setDragOver(false)
     }
   }, [])
-
-  const handleFileInput = React.useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(e.target.files ?? [])
-      if (files.length > 0) {
-        onFilesAdded(files)
-      }
-      e.target.value = ""
-    },
-    [onFilesAdded],
-  )
 
   const formatDuration = (duration: number) => {
     const minutes = Math.floor(duration / 60)
@@ -117,9 +194,7 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = ({
 
   if (isCompact) {
     return (
-      <div
-        className={`h-full flex flex-col  border-r`}
-      >
+      <div className={`h-full flex flex-col  border-r`}>
         <div className="p-4 space-y-3">
           {[
             { id: "library", icon: Music, label: "Library" },
@@ -129,7 +204,7 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = ({
             <button
               key={panel.id}
               onClick={() => onPanelChange(panel.id as "library" | "ai" | "mixer" | "settings")}
-              disabled={lyriaStatus === 'Playing'}
+              disabled={lyriaStatus === "Playing"}
               className={`w-full p-3 rounded-xl transition-all 
               ${activePanel === panel.id
                   ? "bg-white dark:bg-gray-700  shadow-sm"
@@ -148,9 +223,7 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = ({
   }
 
   return (
-    <div
-      className={`h-full flex flex-col  border-r`}
-    >
+    <div className={`h-full flex flex-col  border-r`}>
       {/* Panel Navigation */}
       <div className={`p-4 border-b `}>
         <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800">
@@ -158,19 +231,16 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = ({
             { id: "library", icon: Music, label: "Library" },
             { id: "ai", icon: Sparkles, label: "AI" },
             { id: "mixer", icon: Sliders, label: "Mixer" },
-
           ].map((panel) => (
             <button
               key={panel.id}
               onClick={() => onPanelChange(panel.id as "library" | "ai" | "mixer" | "settings")}
-              disabled={lyriaStatus === 'Playing'}
-
+              disabled={lyriaStatus === "Playing"}
               className={`p-2 rounded-lg transition-all text-xs font-medium ${activePanel === panel.id
                 ? "bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-
                 }
-                ${lyriaStatus === 'Playing' ? 'cursor-not-allowed opacity-50' : ''}
+                ${lyriaStatus === "Playing" ? "cursor-not-allowed opacity-50" : ""}
                 
                 `}
             >
@@ -179,10 +249,10 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = ({
             </button>
           ))}
         </div>
-      </div >
+      </div>
 
       {/* Panel Content */}
-      < div className="flex-1 overflow-hidden " >
+      <div className="flex-1 overflow-hidden ">
         {activePanel === "library" && (
           <div className="h-full flex flex-col">
             {/* Upload Area */}
@@ -203,14 +273,16 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = ({
                   <p className={`text-sm font-medium mb-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
                     Drop audio files here
                   </p>
+                  {/* Update the drag-and-drop area text */}
                   <p className={`text-xs mb-3 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                    MP3, WAV, M4A, FLAC supported
+                    MP3, WAV, M4A, FLAC, ZIP supported
                   </p>
                   <label className="inline-block">
+                    {/* Update the file input accept attribute */}
                     <input
                       type="file"
                       multiple
-                      accept="audio/*,.mp3,.wav,.m4a,.flac"
+                      accept="audio/*,.mp3,.wav,.m4a,.flac,.zip"
                       onChange={handleFileInput}
                       className="hidden"
                     />
@@ -256,19 +328,13 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = ({
                           <FileAudio className="w-4 h-4 text-white" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className={`text-sm font-medium truncate `}>
-                            {file.name.replace(/\.[^/.]+$/, "")}
-                          </p>
+                          <p className={`text-sm font-medium truncate `}>{file.name.replace(/\.[^/.]+$/, "")}</p>
                           <div className="flex items-center space-x-3 mt-1">
                             <div className="flex items-center space-x-1">
                               <Clock className={`w-3 h-3 `} />
-                              <span className={`text-xs `}>
-                                {formatDuration(file.duration)}
-                              </span>
+                              <span className={`text-xs `}>{formatDuration(file.duration)}</span>
                             </div>
-                            <span className={`text-xs `}>
-                              {formatFileSize(file.file)}
-                            </span>
+                            <span className={`text-xs `}>{formatFileSize(file.file)}</span>
                           </div>
                         </div>
                       </div>
@@ -307,20 +373,16 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = ({
 
         {activePanel === "ai" && <IntelligentAIPanel onAudioGenerated={onAudioGenerated} isDark={isDark} />}
 
-        {
-          activePanel === "mixer" && (
-            <AdaptiveMixer
-              masterVolume={masterVolume}
-              onMasterVolumeChange={onMasterVolumeChange}
-              masterEQ={masterEQ}
-              onEQChange={onEQChange}
-              isDark={isDark}
-            />
-          )
-        }
-
-
-      </div >
-    </div >
+        {activePanel === "mixer" && (
+          <AdaptiveMixer
+            masterVolume={masterVolume}
+            onMasterVolumeChange={onMasterVolumeChange}
+            masterEQ={masterEQ}
+            onEQChange={onEQChange}
+            isDark={isDark}
+          />
+        )}
+      </div>
+    </div>
   )
 }
