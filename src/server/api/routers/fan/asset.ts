@@ -21,6 +21,10 @@ export const ExtraSongInfo = z.object({
   artist: z.string(),
   albumId: z.number(),
 });
+export const updateMusicAssetShema = z.object({
+  assetId: z.number(),
+  musicUrl: z.string().url(),
+})
 export const NftFormSchema = z.object({
   name: z.string().refine(
     (value) => {
@@ -142,7 +146,17 @@ export const shopRouter = createTRPCRouter({
         data: { price, priceUSD },
       });
     }),
-
+  updateMusicURL: protectedProcedure
+    .input(updateMusicAssetShema)
+    .mutation(async ({ ctx, input }) => {
+      const { assetId, musicUrl } = input;
+      return await ctx.db.asset.update({
+        where: { id: assetId },
+        data: {
+          mediaUrl: musicUrl
+        },
+      });
+    }),
   deleteAsset: protectedProcedure // fix the logic
     .input(z.number())
     .mutation(async ({ ctx, input }) => {

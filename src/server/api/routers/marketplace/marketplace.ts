@@ -16,6 +16,12 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { MarketAssetType } from "~/types/market/market-asset-type";
+export const SubmissionMediaInfo = z.object({
+  url: z.string(),
+  name: z.string(),
+  size: z.number(),
+  type: z.string(),
+});
 export const BackMarketFormSchema = z.object({
   placingCopies: z
     .number({
@@ -340,6 +346,112 @@ export const marketRouter = createTRPCRouter({
 
       }
     }),
+
+  getRoyalityItems: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number(),
+        cursor: z.number().nullish(),
+        skip: z.number().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { limit, cursor, skip } = input;
+      const currentUserId = ctx.session.user.id;
+
+      const items = await ctx.db.marketAsset.findMany({
+        take: limit + 1,
+        skip: skip,
+        cursor: cursor ? { id: cursor } : undefined,
+        include: {
+          asset: {
+            select: {
+              ...AssetSelectAllProperty,
+              tier: {
+                select: {
+                  price: true,
+                },
+              },
+              creator: {
+                select: {
+                  pageAsset: {
+                    select: {
+                      code: true,
+                      issuer: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        where: { placerId: { not: null }, type: { equals: "ROYALTY" } },
+      });
+
+
+
+      // Handle pagination
+      let nextCursor: typeof cursor | undefined = undefined;
+      if (items.length > limit) {
+        const nextItem = items.pop();
+        nextCursor = nextItem?.id;
+      }
+
+      return {
+        nfts: items,
+        nextCursor,
+      };
+    }),
+  getARoyalityItem: protectedProcedure.input(z.object({
+    id: z.string()
+  })).query(async ({ ctx, input }) => {
+    const currentUserId = ctx.session.user.id;
+
+    const items = await ctx.db.asset.findUnique({
+      where: { id: Number(input.id) },
+      select: {
+        ...AssetSelectAllProperty,
+        tier: {
+          select: {
+            price: true,
+          },
+        },
+        marketItems: {
+          select: {
+            price: true,
+            priceUSD: true,
+            id: true,
+            type: true,
+          }
+        },
+        song: true,
+        buyers: true,
+        royaltyReport: true,
+      },
+    }
+    );
+
+    return items;
+  },
+  ),
+  getFunders: protectedProcedure
+    .input(z.object({
+      id: z.string()
+    }))
+    .query(async ({ ctx, input }) => {
+      const currentUserId = ctx.session.user.id;
+
+      const items = await ctx.db.asset.findMany({
+        where: { id: Number(input.id) },
+        select: {
+          buyers: true,
+        }
+
+      });
+
+      return items;
+    }),
+
 
   getLatestMarketNFT: publicProcedure
 
@@ -674,7 +786,36 @@ export const marketRouter = createTRPCRouter({
         nextCursor,
       };
     }),
+  updateReportHistory: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        media: SubmissionMediaInfo
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id, media } = input;
+      const userId = ctx.session.user.id;
+      const asset = await ctx.db.asset.findUnique({
+        where: { id },
+      });
+      if (!asset) throw new Error("asset not found");
 
+      const reportHistory = await ctx.db.royaltyReport.create({
+        data: {
+          assetId: id,
+
+          mediaType: media.type,
+          mediaUrl: media.url,
+          mediaSize: media.size,
+          mediaName: `${media.name}-${new Date().toISOString()}`,
+        },
+      });
+
+      return reportHistory;
+
+
+    }),
   getACreatorNfts: protectedProcedure
     .input(
       z.object({

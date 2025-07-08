@@ -1,6 +1,6 @@
 "use client"
 
-import { Play, Upload, Music, Loader2, Trash2, AlertTriangle, Check } from "lucide-react"
+import { Play, Upload, Music, Loader2, Trash2, AlertTriangle, Check, PlusCircle, ChevronDown, Coins } from "lucide-react"
 import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import { useState } from "react"
@@ -15,11 +15,18 @@ import { useCreateSongModalStore } from "~/components/store/create-song-modal"
 import { MarketAssetType } from "~/types/market/market-asset-type"
 import { SongItemType, StemTypeWithoutAssetId } from "~/types/song/song-item-types"
 import { useBottomPlayer } from "~/components/player/context/bottom-player-context"
-
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "~/components/shadcn/ui/dropdown-menu"
+import { useCreateRoyalityModalStore } from "~/components/store/create-royality-modal"
 export default function Album() {
     const params = useParams()
     const router = useRouter()
     const { setData, setIsOpen } = useCreateSongModalStore()
+    const { setData: setRoyalityData, setIsOpen: setIsRoyalityOpen } = useCreateRoyalityModalStore()
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [songToDelete, setSongToDelete] = useState<SongItemType | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
@@ -79,13 +86,11 @@ export default function Album() {
         thumbnail: string
         url: string
     }) => {
-        if (song.tracks.length === 0) {
-            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
-
+        if (song.tracks.length > 0) {
+            showPlayer(song.tracks, song.title, song.artist, undefined, song.thumbnail)
         }
         else {
-            showPlayer(song.tracks, song.title, song.artist, undefined, song.thumbnail)
-
+            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
         }
     }
     const confirmDelete = () => {
@@ -96,6 +101,7 @@ export default function Album() {
             songId: songToDelete.id,
         })
     }
+
 
     if (isLoading) {
         return <AlbumSkeleton />
@@ -156,17 +162,40 @@ export default function Album() {
                             transition={{ duration: 0.3, delay: 0.4 }}
                             className="mt-6"
                         >
-                            <Button
-                                variant="accent"
-                                onClick={() => {
-                                    setIsOpen(true)
-                                    setData(album.id)
-                                }}
-                                className="group px-6 py-2 rounded-full shadow-sm hover:shadow-xl transition-all duration-300"
-                            >
-                                <Upload className="mr-2 h-5 w-5 transition-transform duration-300 group-hover:-translate-y-1" />
-                                Upload Song
-                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        size="sm"
+                                        variant={"accent"}
+                                        className=""
+                                    >
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Add Item
+                                        <ChevronDown className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem onClick={() => {
+                                        setIsOpen(true)
+                                        setData(album.id)
+                                    }} className="flex items-center gap-2">
+                                        <Music className="h-4 w-4" />
+                                        Add Song
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onClick={() => {
+                                            setRoyalityData(album.id)
+                                            setIsRoyalityOpen(true)
+                                        }
+                                        }
+                                        className="flex items-center gap-2"
+                                    >
+                                        <Coins className="h-4 w-4" />
+                                        Add Royality
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
                         </motion.div>
                     </motion.div>
                 </div>
@@ -203,7 +232,7 @@ export default function Album() {
                                         className="h-16 w-16 object-cover transition-transform duration-300 group-hover:scale-110"
                                     />
                                 </div>
-                                <div className="flex w-full flex-col items-start gap-4 rounded-lg bg-primary p-4 md:flex-row md:items-center md:justify-between">
+                                <div className="flex w-full flex-col items-start gap-4 rounded-lg bg-secondary shadow-sm p-4 md:flex-row md:items-center md:justify-between">
                                     <div className="flex items-center gap-4">
                                         <div>
                                             <h3 className="text-lg font-semibold">{song.asset.name}</h3>
@@ -222,20 +251,24 @@ export default function Album() {
                                             <Trash2 className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
                                             <span>DELETE</span>
                                         </Button>
-                                        <Button
-                                            variant="accent"
-                                            className="shadow-sm shadow-black px-6 py-2 gap-1 flex items-center justify-center group"
-                                            onClick={() => handlePlaySong({
-                                                tracks: song.asset.Stem,
-                                                title: song.asset.name,
-                                                artist: song.asset.creatorId ?? "ADMIN",
-                                                thumbnail: song.asset.thumbnail,
-                                                url: song.asset.mediaUrl
-                                            })}
-                                        >
-                                            <Play className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
-                                            <span>PLAY</span>
-                                        </Button>
+                                        {
+                                            (song.asset.demoMediaUrl ?? song.asset.mediaUrl) && (
+                                                <Button
+                                                    variant="accent"
+                                                    className="shadow-sm shadow-black px-6 py-2 gap-1 flex items-center justify-center group"
+                                                    onClick={() => handlePlaySong({
+                                                        tracks: song.asset.Stem,
+                                                        title: song.asset.name,
+                                                        artist: song.asset.creatorId ?? "ADMIN",
+                                                        thumbnail: song.asset.thumbnail,
+                                                        url: song.asset.mediaUrl ?? song.asset.demoMediaUrl
+                                                    })}
+                                                >
+                                                    <Play className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
+                                                    <span>PLAY</span>
+                                                </Button>
+                                            )
+                                        }
                                     </div>
                                 </div>
                             </Card>

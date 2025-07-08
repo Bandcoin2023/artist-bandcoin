@@ -3,6 +3,7 @@ import { AwardIcon } from "lucide-react";
 import { getAccSecretFromRubyApi } from "package/connect_wallet/src/lib/stellar/get-acc-secret";
 import { z } from "zod";
 import { env } from "~/env";
+import { XDR4SendPlotToInvestorInPlatformAsset, XDR4SendPlotToInvestorInUSDC, XDR4SendPlotToInvestorInXLM } from "~/lib/stellar/marketplace/trx/sendProfitToInvestors";
 
 // import { getUserSecret } from "~/components/recharge/utils";
 import { covertSiteAsset2XLM } from "~/lib/stellar/marketplace/trx/convert_site_asset";
@@ -23,6 +24,12 @@ export type authDocType = {
   pubkey: string;
   secret: string;
 };
+
+const url = "https://next-actionverse.vercel.app/api/square";
+process.env.NODE_ENV === "production"
+  ? "https://next-actionverse.vercel.app/api/square"
+  : "http://localhost:3000/api/square";
+
 
 export const stellarRouter = createTRPCRouter({
   buyFromMarketPaymentXDR: protectedProcedure // this contrained to only fans activity
@@ -151,6 +158,81 @@ export const stellarRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const { asset, pubkey } = input;
       return await alreadyHaveTrustOnNft({ asset, pubkey });
+    }),
+  sendProfitToInvestor: protectedProcedure
+    .input(
+      z.object({
+        payWith: z.enum(["xlm", "asset", "usd"]),
+        amount: z.number(),
+        holders: z.array(z.string()),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { payWith, amount, holders } = input;
+      const user = ctx.session.user;
+      if (payWith === "xlm") {
+        return await XDR4SendPlotToInvestorInXLM({
+          pubkey: user.id,
+          TotalAmount: amount,
+          holders,
+        });
+
+
+      } else if (payWith === "asset") {
+        return await XDR4SendPlotToInvestorInPlatformAsset({
+          pubkey: user.id,
+          TotalAmount: amount,
+          holders,
+        }
+        );
+
+      }
+      else if (payWith === "usd") {
+
+        return await XDR4SendPlotToInvestorInUSDC({
+          pubkey: user.id,
+          TotalAmount: amount,
+          holders,
+        }
+        );
+
+      }
+
+    }),
+  paymentInUSD: protectedProcedure
+    .input(
+      z.object({
+        sourceId: z.string().optional(),
+        amount: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { amount: priceUSD, sourceId } = input;
+      const result = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sourceId: sourceId,
+          priceUSD: Number(priceUSD),
+        }),
+      });
+
+      if (result.ok) {
+        const data = (await result.json()) as { id: string; status: string };
+
+        if (data.status === "COMPLETED") {
+          return true;
+        } else {
+          throw new Error("Payment was not successful");
+        }
+      }
+
+      if (result.status === 400) {
+        throw new Error("Something went wrong with the payment");
+      }
+      return false;
     }),
 
   test: publicProcedure.query(() => {

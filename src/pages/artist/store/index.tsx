@@ -54,12 +54,11 @@ import { useCreatorStoredAssetModalStore } from "~/components/store/creator-stor
 type MainCategory = "STORED" | "ALBUM" | "ROYALTY"
 
 type RoyaltyItem = {
-    id: string
+    id: number
     title: string
     image: string
     type?: string
     royaltyPercentage?: number
-    earnings?: number
 }
 
 export default function StoredItemsView() {
@@ -128,26 +127,20 @@ export default function StoredItemsView() {
     )
 
     // Royalty Items Query (mock data for now)
-    const isRoyaltyItemsLoading = false
-    const royaltyItems: RoyaltyItem[] = [
-        {
-            id: "1",
-            title: "Song Royalties - Q1",
-            image: "/placeholder.svg",
-            type: "MUSIC",
-            royaltyPercentage: 15,
-            earnings: 450.75,
-        },
-        {
-            id: "2",
-            title: "Artwork License",
-            image: "/placeholder.svg",
-            type: "ARTWORK",
-            royaltyPercentage: 25,
-            earnings: 325.5,
-        },
-    ]
 
+    const {
+        data: royaltyItems,
+        isLoading: isRoyaltyItemsLoading,
+        fetchNextPage: fetchNextRoyaltyItems,
+        hasNextPage: hasNextRoyaltyItems,
+        isFetchingNextPage: isFetchingNextRoyaltyItems,
+    } = api.marketplace.market.getRoyalityItems.useInfiniteQuery(
+        { limit: 10 },
+        {
+            getNextPageParam: (lastPage) => lastPage.nextCursor,
+            enabled: activeTab === "ROYALTY",
+        },
+    );
     // Handle infinite scroll for stored items
     useEffect(() => {
         if (storedInView && activeTab === "STORED" && hasNextStoredItems && !isFetchingNextStoredItems) {
@@ -243,11 +236,20 @@ export default function StoredItemsView() {
 
     // Process royalty items data
     const getFilteredRoyaltyItems = (): RoyaltyItem[] => {
-        let items = [...royaltyItems]
+        if (!royaltyItems?.pages) return []
+        let items = royaltyItems.pages.flatMap((page) =>
+            page.nfts.map((item) => ({
+                id: item.asset.id,
+                title: item.asset.name ?? "Untitled",
+                image: item.asset.thumbnail,
+                type: item.type,
+                royaltyPercentage: item.asset.percentage ?? 0,
+            })),
+        )
 
         // Filter by type
         if (royaltyType !== "ALL") {
-            items = items.filter((item) => item.type === royaltyType)
+            items = items.filter((item) => item.type === "ROYALTY")
         }
 
         // Filter by search
@@ -256,16 +258,7 @@ export default function StoredItemsView() {
         }
 
         // Sort items
-        items.sort((a, b) => {
-            switch (royaltySortBy) {
-                case "highest":
-                    return (b.earnings ?? 0) - (a.earnings ?? 0)
-                case "lowest":
-                    return (a.earnings ?? 0) - (b.earnings ?? 0)
-                default: // newest
-                    return a.id < b.id ? 1 : -1
-            }
-        })
+
 
         return items
     }
@@ -757,7 +750,7 @@ export default function StoredItemsView() {
                             >
                                 All Types
                             </Badge>
-                            <Badge
+                            {/* <Badge
                                 variant={royaltyType === "MUSIC" ? "default" : "outline"}
                                 className="cursor-pointer hover:bg-primary/10 px-3 py-1 text-sm"
                                 onClick={() => setRoyaltyType("MUSIC")}
@@ -780,7 +773,7 @@ export default function StoredItemsView() {
                             >
                                 <Crown className="h-3 w-3 mr-1" />
                                 Other
-                            </Badge>
+                            </Badge> */}
                         </div>
 
                         {isRoyaltyItemsLoading ? (
@@ -812,6 +805,9 @@ export default function StoredItemsView() {
                                                     animate={{ opacity: 1, scale: 1 }}
                                                     exit={{ opacity: 0, scale: 0.9 }}
                                                     transition={{ duration: 0.2 }}
+                                                    onClick={() => {
+                                                        router.push(`/royalty/${item.id}`)
+                                                    }}
                                                     className={royaltyViewMode === "list" ? "w-full" : ""}
                                                 >
                                                     {royaltyViewMode === "grid" ? (
@@ -842,11 +838,7 @@ export default function StoredItemsView() {
                                                             </CardHeader>
                                                             <CardContent className="p-4">
                                                                 <h3 className="font-semibold truncate">{item.title}</h3>
-                                                                {item.earnings !== undefined && (
-                                                                    <p className="text-sm text-muted-foreground">
-                                                                        Earnings: ${item.earnings.toFixed(2)}
-                                                                    </p>
-                                                                )}
+
                                                             </CardContent>
                                                         </Card>
                                                     ) : (
@@ -864,11 +856,7 @@ export default function StoredItemsView() {
                                                                     <div className="flex justify-between items-start">
                                                                         <div>
                                                                             <h3 className="font-semibold">{item.title}</h3>
-                                                                            {item.earnings !== undefined && (
-                                                                                <p className="text-sm text-muted-foreground">
-                                                                                    Earnings: ${item.earnings.toFixed(2)}
-                                                                                </p>
-                                                                            )}
+
                                                                         </div>
                                                                         <div className="flex flex-col items-end gap-1">
                                                                             {item.royaltyPercentage && (

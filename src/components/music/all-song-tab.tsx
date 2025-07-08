@@ -27,13 +27,11 @@ const AllSongsTab = () => {
         thumbnail: string
         url: string
     }) => {
-        if (song.tracks.length === 0) {
-            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
-
+        if (song.tracks.length > 0) {
+            showPlayer(song.tracks, song.title, song.artist, undefined, song.thumbnail)
         }
         else {
-            showPlayer(song.tracks, song.title, song.artist, undefined, song.thumbnail)
-
+            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
         }
     }
     const userAssets = api.wallate.acc.getAccountInfo.useQuery();
@@ -88,7 +86,7 @@ const AllSongsTab = () => {
                                     className="ml-2  h-16 w-16 rounded-sm object-cover flex items-center justify-center "
                                 />
                             </div>
-                            <div className="flex w-full flex-col items-start gap-4 rounded-lg  bg-primary p-4 md:flex-row md:items-center md:justify-between">
+                            <div className="flex w-full flex-col items-start gap-4 rounded-lg  bg-secondary p-4 md:flex-row md:items-center md:justify-between">
                                 <div className="flex items-center gap-4">
                                     <div>
                                         <h3 className="text-lg font-semibold">{song.asset.name}</h3>
@@ -105,31 +103,33 @@ const AllSongsTab = () => {
                                 <div className="flex gap-2">
                                     {(song.creatorId === null || userAssets.data?.dbAssets?.some(
                                         (el) => el.code === song.asset.code && el.issuer === song.asset.issuer
-                                    )) && (
+                                    )) &&
+                                        (song.asset.demoMediaUrl ?? song.asset.mediaUrl) && (
                                             <Button
-                                                variant="destructive"
-                                                className="shadow-sm shadow-black px-6 py-2 gap-1 flex items-center justify-center"
-
+                                                variant="accent"
+                                                className="shadow-sm shadow-black px-6 py-2 gap-1 flex items-center justify-center group"
                                                 onClick={() => handlePlaySong({
                                                     tracks: song.asset.Stem,
                                                     title: song.asset.name,
                                                     artist: song.asset.creatorId ?? "ADMIN",
                                                     thumbnail: song.asset.thumbnail,
-                                                    url: song.asset.mediaUrl
+                                                    url: song.asset.mediaUrl ?? song.asset.demoMediaUrl
                                                 })}
                                             >
-                                                <Play className="h-6 w-6" />
+                                                <Play className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
                                                 <span>PLAY</span>
                                             </Button>
+
                                         )}
 
                                     <Button
+                                        variant='sidebarAccentOutline'
                                         onClick={() => {
                                             setData(song)
                                             setIsOpen(true)
                                         }}
 
-                                        className="rounded-md bg-white px-6 py-2 font-medium shadow-sm shadow-black transition-colors hover:bg-gray-100">
+                                        className="">
                                         BUY NOW
                                     </Button>
                                     <Link href={`/music/album/${song.albumId}`}>

@@ -18,9 +18,10 @@ interface AssetViewProps {
     price?: number
     mediaType?: string
     isPageAsset?: boolean
+    percentage?: number | null
 }
 
-export default function AssetView({ code, thumbnail, isNFT = true, isPinned = false, creatorId, price, mediaType, isPageAsset }: AssetViewProps) {
+export default function AssetView({ code, thumbnail, isNFT = true, isPinned = false, creatorId, price, mediaType, isPageAsset, percentage }: AssetViewProps) {
     const [isVisible, setIsVisible] = useState(false)
 
     useEffect(() => {
@@ -46,7 +47,23 @@ export default function AssetView({ code, thumbnail, isNFT = true, isPinned = fa
                             width={192}
                             className="object-cover rounded-md h-48 w-full transition-transform duration-500 group-hover:scale-105"
                         />
-                        {isNFT && (
+                        {percentage ? (
+                            <div className="absolute top-2 right-2 z-20">
+                                <motion.div
+                                    animate={{
+                                        scale: [1, 1.2, 1]
+                                    }}
+                                    transition={{
+                                        duration: 2,
+                                        repeat: Infinity
+                                    }}
+                                >
+                                    <Badge variant="secondary" className="bg-black/50 backdrop-blur-sm text-white border border-yellow-400">
+                                        <Star className="w-3 h-3 mr-1 text-yellow-400" /> {percentage}%
+                                    </Badge>
+                                </motion.div>
+                            </div>
+                        ) : isNFT && (
                             <div className="absolute top-2 right-2 z-20">
                                 <motion.div
                                     animate={{
@@ -88,7 +105,18 @@ export default function AssetView({ code, thumbnail, isNFT = true, isPinned = fa
                             <div className="p-3 relative z-10">
                                 <div className="text-xs text-muted-foreground">Asset Type</div>
                                 <div className="font-medium flex items-center">
-                                    {isNFT ? (
+                                    {percentage ? (
+                                        <>
+                                            <span>Royalty</span>
+                                            <motion.div
+                                                animate={{ scale: [1, 1.2, 1] }}
+                                                transition={{ duration: 2, repeat: Infinity }}
+                                                className="ml-1"
+                                            >
+                                                <Star className="w-3 h-3 text-yellow-400" />
+                                            </motion.div>
+                                        </>
+                                    ) : isNFT ? (
                                         <>
                                             <span>NFT</span>
                                             <motion.div
