@@ -3,7 +3,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { api } from "~/utils/api";
 
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, Eye, X } from "lucide-react";
 import { Button } from "~/components/shadcn/ui/button";
 import {
     Dialog,
@@ -38,6 +38,7 @@ import CopyToClip from "../common/copy_to_Clip";
 import { useBuyModalStore } from "../store/buy-modal-store";
 import { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
 import { useBottomPlayer } from "../player/context/bottom-player-context";
+import Link from "next/link";
 
 export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
@@ -75,15 +76,15 @@ export default function BuyModal() {
         thumbnail: string
         url: string
     }) => {
-        if (song.tracks.length === 0) {
-            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
-
-        }
-        else {
+        if (song.tracks.length > 0) {
             showPlayer(song.tracks, song.title, song.artist, undefined, song.thumbnail)
 
         }
+        else {
+            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
+        }
     }
+
     const copy = api.marketplace.market.getMarketAssetAvailableCopy.useQuery({
         id: data?.id,
     },
@@ -158,7 +159,7 @@ export default function BuyModal() {
                                     {/* Image Container */}
                                     <div className="flex flex-col h-full">
 
-                                        <div className="relative h-[300px] w-full">
+                                        <div className=" h-[300px] w-full relative">
                                             <SparkleEffect />
                                             <Image
                                                 src={data.asset.thumbnail}
@@ -167,6 +168,18 @@ export default function BuyModal() {
                                                 height={400}
                                                 className="h-full w-full object-cover shadow-md rounded-md hidden md:block"
                                             />
+                                            {
+                                                data.type === 'ROYALTY' && (
+                                                    <Link href={`/royalty/${data.asset.id}`} className="absolute bottom-0 z-20 right-0  ">
+                                                        <Button className="  rounded-none"
+
+                                                            onClick={() => handleClose()}
+                                                        >
+                                                            <Eye className="mr-2" /> View Details
+                                                        </Button>
+                                                    </Link>
+                                                )
+                                            }
                                             <div className=" rounded-sm block  md:hidden bg-secondary p-1 h-full w-full   md:col-span-4  overflow-hidden ">
                                                 {data.asset.mediaType === "IMAGE" ? (
                                                     hasTrustonAsset ? (
@@ -334,20 +347,22 @@ export default function BuyModal() {
 
                                     <div className="flex flex-col gap-2 w-full p-1  ">
                                         {data.asset.mediaType === "MUSIC" && hasTrustonAsset ? (
-                                            <Button
-                                                onClick={() => handlePlaySong({
-                                                    tracks: data.asset.Stem,
-                                                    title: data.asset.name,
-                                                    artist: data.asset.creatorId ?? "ADMIN",
-                                                    thumbnail: data.asset.thumbnail,
-                                                    url: data.asset.mediaUrl
-                                                })}
-                                                size={"sm"}
-                                                className="w-full bg-[#39BD2B] text-white hover:bg-sky-700 "
+                                            (data.asset.mediaUrl ?? data.asset.demoMediaUrl) && (
+                                                <Button
+                                                    onClick={() => handlePlaySong({
+                                                        tracks: data.asset.Stem,
+                                                        title: data.asset.name,
+                                                        artist: data.asset.creatorId ?? "ADMIN",
+                                                        thumbnail: data.asset.thumbnail,
+                                                        url: data.asset.mediaUrl
+                                                    })}
+                                                    size={"sm"}
+                                                    className="w-full bg-[#39BD2B] text-white hover:bg-sky-700 "
 
-                                            >
-                                                Play
-                                            </Button>
+                                                >
+                                                    Play
+                                                </Button>
+                                            )
                                         ) : (
                                             data.asset.mediaType === "VIDEO" && hasTrustonAsset && (
                                                 <Button

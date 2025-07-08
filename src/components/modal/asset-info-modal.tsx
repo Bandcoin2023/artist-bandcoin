@@ -55,13 +55,12 @@ export default function AssetInfoModal() {
         thumbnail: string
         url: string
     }) => {
-        if (song.tracks.length === 0) {
-            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
+        if (song.tracks.length > 0) {
+            showPlayer(song.tracks, song.title, song.artist, undefined, song.thumbnail)
 
         }
         else {
-            showPlayer(song.tracks, song.title, song.artist, undefined, song.thumbnail)
-
+            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
         }
     }
     const handleClose = () => {
@@ -171,19 +170,21 @@ export default function AssetInfoModal() {
                                                 </>
                                             )}
                                         {data.mediaType === "MUSIC" ? (
-                                            <Button
-                                                onClick={() => handlePlaySong({
-                                                    tracks: data.Stem,
-                                                    title: data.name,
-                                                    artist: data.creatorId ?? "Admin",
-                                                    thumbnail: data.thumbnail,
-                                                    url: data.mediaUrl
-                                                })}
-                                                className="w-full shadow-sm shadow-foreground"
-                                                variant="accent"
-                                            >
-                                                Play
-                                            </Button>
+                                            (data.mediaUrl || data.demoMediaUrl) && (
+                                                <Button
+                                                    onClick={() => handlePlaySong({
+                                                        tracks: data.Stem,
+                                                        title: data.name,
+                                                        artist: data.creatorId ?? "Admin",
+                                                        thumbnail: data.thumbnail,
+                                                        url: data.mediaUrl ?? data.demoMediaUrl
+                                                    })}
+                                                    className="w-full shadow-sm shadow-foreground"
+                                                    variant="accent"
+                                                >
+                                                    Play
+                                                </Button>
+                                            )
                                         ) : (
                                             data.mediaType === "VIDEO" && (
                                                 <Button

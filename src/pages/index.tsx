@@ -26,7 +26,7 @@ import { useSession } from "next-auth/react";
 import { useLoginRequiredModalStore } from "~/components/store/login-required-modal-store";
 
 // Global Variables
-const TABS = ["ALL", "BANDCOIN", "ARTISTS", "ARTIST TOKENS"];
+const TABS = ["ALL", "BANDCOIN", "ARTISTS", "ARTIST TOKENS", "ROYALTY"];
 
 const HomePage = () => {
   // Variables Declaration
@@ -431,28 +431,39 @@ const FilterTabs = () => {
     { getNextPageParam: (lastPage) => lastPage.nextCursor },
   );
 
+  const royaltyAssets = api.marketplace.market.getRoyalityItems.useInfiniteQuery(
+    { limit: 10 },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+    },
+  );
   const isLoading =
     musicAssets.isLoading ??
     adminAssets.isLoading ??
     fanAssets.isLoading ??
-    artistAssets.isLoading;
+    artistAssets.isLoading ??
+    royaltyAssets.isLoading;
   const hasNextPage =
     musicAssets.hasNextPage ??
     adminAssets.hasNextPage ??
     fanAssets.hasNextPage ??
-    artistAssets.hasNextPage;
+    artistAssets.hasNextPage ??
+    royaltyAssets.hasNextPage;
   const isFetchingNextPage =
     musicAssets.isFetchingNextPage ??
     adminAssets.isFetchingNextPage ??
     fanAssets.isFetchingNextPage ??
-    artistAssets.isFetchingNextPage;
+    artistAssets.isFetchingNextPage ??
+    royaltyAssets.isFetchingNextPage;
 
   const fetchNextPage = () => {
     if (musicAssets.hasNextPage) musicAssets.fetchNextPage();
     if (adminAssets.hasNextPage) adminAssets.fetchNextPage();
     if (fanAssets.hasNextPage) fanAssets.fetchNextPage();
     if (artistAssets.hasNextPage) artistAssets.fetchNextPage();
+    if (royaltyAssets.hasNextPage) royaltyAssets.fetchNextPage();
   };
+
   return (
     <Card className="rounded-none" >
       <CardHeader className="w-full rounded-none  bg-secondary p-2 md:p-4">
@@ -482,6 +493,7 @@ const FilterTabs = () => {
                 adminAssets={adminAssets}
                 fanAssets={fanAssets}
                 artistAssets={artistAssets}
+                royaltyAssets={royaltyAssets}
                 isLoading={isLoading}
                 hasNextPage={hasNextPage ?? false}
                 isFetchingNextPage={isFetchingNextPage}
@@ -522,6 +534,17 @@ const FilterTabs = () => {
               />
             </div>
           )}
+          {activeTab === 'ROYALTY' && (
+            <div>
+              <RoyaltyAssets
+                royaltyAssets={royaltyAssets}
+                hasNextPage={royaltyAssets.hasNextPage ?? false}
+                isFetchingNextPage={royaltyAssets.isFetchingNextPage}
+                fetchNextPage={royaltyAssets.fetchNextPage}
+                isLoading={isLoading}
+              />
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -541,6 +564,11 @@ interface AllAssetsTypes {
   artistAssets: ReturnType<
     typeof api.marketplace.market.getPageAssets.useInfiniteQuery
   >;
+
+  royaltyAssets?: ReturnType<
+    typeof api.marketplace.market.getRoyalityItems.useInfiniteQuery
+  >;
+
   hasNextPage: boolean;
   isLoading: boolean;
   isFetchingNextPage: boolean;
@@ -552,6 +580,7 @@ const AllAssets = ({
   adminAssets,
   fanAssets,
   artistAssets,
+  royaltyAssets,
   isLoading,
   hasNextPage,
   isFetchingNextPage,
@@ -592,6 +621,14 @@ const AllAssets = ({
           page.nfts.map((item, index) => (
             <PageAssetComponent
               key={`artist-${pageIndex}-${index}`}
+              item={item}
+            />
+          )),
+        )}
+        {royaltyAssets?.data?.pages.map((page, pageIndex) =>
+          page.nfts.map((item, index) => (
+            <MarketAssetComponent
+              key={`royalty-${pageIndex}-${index}`}
               item={item}
             />
           )),
@@ -788,6 +825,51 @@ const ProductSkeleton = () => (
     ))}
   </div>
 );
+
+
+const RoyaltyAssets = ({
+  royaltyAssets,
+  hasNextPage,
+  isFetchingNextPage,
+  fetchNextPage,
+  isLoading,
+}: {
+  royaltyAssets: ReturnType<
+    typeof api.marketplace.market.getRoyalityItems.useInfiniteQuery
+  >;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  fetchNextPage: () => void;
+  isLoading: boolean;
+}) => {
+  return (
+    <div className="flex h-[calc(100vh-20vh)] flex-col gap-4 rounded-md bg-white/40 p-4 shadow-md">
+      {isLoading && (
+        <MoreAssetsSkeleton className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5" />
+      )}
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4  xl:grid-cols-5">
+        {royaltyAssets.data?.pages.map((page, pageIndex) =>
+          page.nfts.map((item, index) => (
+            <MarketAssetComponent
+              key={`royalty-${pageIndex}-${index}`}
+              item={item}
+            />
+          )),
+        )}
+      </div>
+      {hasNextPage && (
+        <Button
+          className="flex w-1/2 items-center justify-center shadow-sm shadow-black md:w-1/4"
+          onClick={fetchNextPage}
+          disabled={isFetchingNextPage}
+        >
+          {isFetchingNextPage ? "Loading more..." : "Load More"}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 
 const DetailsSkeleton = () => (
   <div className="min-w-[350px] space-y-6 rounded-xl border border-gray-700 bg-gray-800/50 p-6 backdrop-blur-md">

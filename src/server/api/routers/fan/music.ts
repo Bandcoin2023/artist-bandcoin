@@ -10,6 +10,7 @@ import {
 import { AssetSelectAllProperty } from "../marketplace/marketplace";
 import { AccountSchema } from "~/lib/stellar/fan/utils";
 import { ExportSongFormSchema } from "~/components/modal/export-create-song-modal";
+import { RoyalityFormSchema } from "~/components/modal/create-royality-modal";
 export const SongFormSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
     artist: z.string().min(2, "Artist must be at least 2 characters"),
@@ -371,5 +372,62 @@ export const musicRouter = createTRPCRouter({
             },
         });
         return album;
+    }),
+    createRoyalityItem: creatorProcedure.input(RoyalityFormSchema).mutation(async ({ ctx, input }) => {
+        const {
+            percentage,
+            releaseDate,
+            coverImgUrl,
+            albumId,
+            endDate,
+            sampleAudio,
+            description,
+            priceUSD,
+            price,
+            limit,
+            name,
+            code,
+            issuer,
+
+        } = input;
+
+        const userName = ctx.session.user.name;
+        if (!userName) {
+            throw new Error("User not found");
+        }
+
+        if (issuer && userName) {
+            const userId = ctx.session.user.id;
+
+
+            return await ctx.db.asset.create({
+                data: {
+                    code,
+                    issuer: issuer.publicKey,
+                    issuerPrivate: issuer.secretKey,
+                    song: {
+                        create: {
+                            artist: ctx.session.user.name ?? "Unknown",
+                            price,
+                            albumId,
+                            priceUSD,
+                            creatorId: userId,
+                        },
+                    },
+                    marketItems: { create: { price, type: "ROYALTY", placerId: userId } },
+                    mediaType: "MUSIC",
+                    name,
+                    mediaUrl: "",
+                    thumbnail: coverImgUrl,
+                    description: description,
+                    limit,
+                    creatorId: userId,
+                    demoMediaUrl: sampleAudio,
+                    fundEndDate: endDate,
+                    releaseDate,
+                    percentage,
+                },
+            });
+        }
     }),
 });

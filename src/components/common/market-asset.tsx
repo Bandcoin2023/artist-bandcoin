@@ -28,7 +28,7 @@ function MarketAssetComponent({ item }: { item: MarketAssetType }) {
 
     return (
         <div onClick={handleAssetClick}>
-            <AssetView code={asset.name} thumbnail={asset.thumbnail} creatorId={asset.creatorId} price={item.price} />
+            <AssetView code={asset.name} thumbnail={asset.thumbnail} creatorId={asset.creatorId} price={item.price} percentage={asset.percentage} />
 
 
         </div>

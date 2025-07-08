@@ -155,7 +155,7 @@ const Notifications = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="w-full rounded-xl  shadow-md lg:w-[715px]  overflow-y-auto bg-primary "
+            className="w-full rounded-xl  shadow-md lg:w-[715px]  overflow-y-auto  bg-secondary "
         >
             <div className="p-6">
                 <motion.div

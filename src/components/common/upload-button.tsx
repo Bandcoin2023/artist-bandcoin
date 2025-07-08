@@ -68,7 +68,11 @@ export function UploadS3Button({
     id?: string
     endpoint: EndPointType
     onUploadProgress?: (p: number) => void
-    onClientUploadComplete?: (file: { url: string }) => void
+    onClientUploadComplete?: (file: {
+        url: string, name: string,
+        size: number,
+        type: string,
+    }) => void
     onBeforeUploadBegin?: (files: File) => Promise<File> | File
     onUploadError?: (error: Error) => void
     disabled?: boolean
@@ -109,7 +113,12 @@ export function UploadS3Button({
 
                     if (res.status === 200) {
                         setUploadStatus("success")
-                        onClientUploadComplete?.({ url: data.fileUrl })
+                        onClientUploadComplete?.({
+                            url: data.fileUrl,
+                            name: file.name,
+                            size: file.size,
+                            type: file.type,
+                        })
 
                         // Reset after success animation
                         setTimeout(() => {

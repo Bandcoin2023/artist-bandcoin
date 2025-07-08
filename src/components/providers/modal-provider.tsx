@@ -20,6 +20,7 @@ import CreateLocationBasedBountyModal from "../modal/create-locationbased-bounty
 import { CreatePostModal } from "../modal/create-post-modal";
 import AddSubscriptionModal from "../modal/create-subscription-modal";
 import ExportCreateSongModal from "../modal/export-create-song-modal";
+import CreateRoyalityModal from "../modal/create-royality-modal";
 
 const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -52,7 +53,7 @@ const ModalProvider = () => {
       <CreatePostModal />
       <AddSubscriptionModal />
       <ExportCreateSongModal />
-
+      <CreateRoyalityModal />
     </>
   );
 };
