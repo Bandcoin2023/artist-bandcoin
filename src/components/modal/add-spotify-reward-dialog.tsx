@@ -30,23 +30,6 @@ import { clientsign } from "package/connect_wallet"
 import useNeedSign from "~/lib/hook"
 import { useSession } from "next-auth/react"
 import { clientSelect } from "~/lib/stellar/fan/utils"
-import { set } from "date-fns"
-
-interface CreditBalanceType {
-    asset_code: string
-    assetBalance: number
-    asset_type: "credit_alphanum4" | "credit_alphanum12"
-    asset_issuer: string
-}
-
-interface NativeBalanceType {
-    asset_code: string
-    assetBalance: number
-    asset_type: "native"
-    asset_issuer: string
-}
-
-type BalanceType = CreditBalanceType | NativeBalanceType
 
 const formSchema = z
     .object({
