@@ -1,9 +1,12 @@
+
 import { db } from "~/server/db"
 import type {
     UserPlaylistsResponse,
     UserTopTracksResponse,
     CurrentlyPlayingResponse,
     PlaylistTracksResponse,
+    SpotifySearchResponse,
+    SpotifyTrack, // Import SpotifyTrack
 } from "~/types/spotify"
 
 // Define interfaces for Spotify API responses
@@ -186,6 +189,17 @@ class SpotifyClient {
         return this.makeApiRequest<PlaylistTracksResponse>(
             `/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}`,
         ) as Promise<PlaylistTracksResponse>
+    }
+
+    public async searchTracks(query: string, offset = 0, limit = 20): Promise<SpotifyTrack[]> {
+        const data = await this.makeApiRequest<SpotifySearchResponse>(
+            `/search?q=${encodeURIComponent(query)}&type=track&limit=${limit}&offset=${offset}`
+        );
+
+        if (typeof data === 'string' || !data.tracks) {
+            return []; // Return empty array if no data or tracks property is missing
+        }
+        return data.tracks.items;
     }
 }
 

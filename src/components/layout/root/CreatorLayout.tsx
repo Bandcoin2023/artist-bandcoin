@@ -24,6 +24,7 @@ import JoinArtistPage from "~/components/creator/join-artist"
 import JoinArtistPageLoading from "~/components/loading/join-artist-loading"
 import PendingArtistPage from "~/components/creator/pending-artist"
 import { BannedCreatorCard } from "~/components/creator/ban-artist"
+import { useCreatorStorageAcc } from "~/lib/state/wallete/stellar-balances"
 
 export default function CreatorLayout({
   children,
@@ -34,7 +35,7 @@ export default function CreatorLayout({
   const router = useRouter()
   const toast = useToast()
   const [cursorVariant, setCursorVariant] = useState("default")
-
+  const { setBalance } = useCreatorStorageAcc()
   const path = usePathname()
   const toggleExpand = () => {
     setIsExpanded(!isExpanded)
@@ -45,7 +46,16 @@ export default function CreatorLayout({
   const creator = api.fan.creator.meCreator.useQuery(undefined, {
     refetchOnWindowFocus: false,
   })
-
+  const acc = api.wallate.acc.getCreatorStorageBallances.useQuery(undefined, {
+    onSuccess: (data) => {
+      // console.log(data);
+      setBalance(data)
+    },
+    onError: (error) => {
+      console.log(error)
+    },
+    refetchOnWindowFocus: false,
+  })
 
   // Animation variants for sidebar
   const sidebarVariants = {
@@ -134,7 +144,6 @@ export default function CreatorLayout({
     }
     console.log(selectedMode)
   }, [path, selectedMode, router])
-  console.log("pata........", (path.split("/")[2])?.length)
   return (
     <div className="relative overflow-hidden h-[calc(100vh-10.8vh)]">
       <div className="flex h-[calc(100vh-10.8vh)] gap-4 overflow-hidden">
@@ -412,6 +421,12 @@ const CreatorNavigation: DockerItem[] = [
     icon: "map",
     label: "MAP",
     color: "bg-pink-500",
+  },
+  {
+    href: "/artist/spotify",
+    icon: "spotify",
+    label: "SPOTIFY",
+    color: "bg-yellow-500",
   },
 ]
 
