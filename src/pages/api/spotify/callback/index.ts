@@ -1,3 +1,4 @@
+
 import type { NextApiRequest, NextApiResponse } from "next"
 import { db } from "~/server/db"
 
@@ -52,21 +53,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const { code, state, error } = req.query
 
+    // Determine the redirect path based on the 'state' parameter
+    let redirectPath = '/'; // Default fallback path
+
+    const stateParam = Array.isArray(state) ? state[0] : state;
+    if (stateParam) {
+        const parts = stateParam.split('_');
+        if (parts.length > 1) {
+            try {
+                redirectPath = decodeURIComponent(parts.slice(1).join('_'));
+                // Basic validation to ensure it's a relative path
+                if (!redirectPath.startsWith('/')) {
+                    redirectPath = '/'; // Fallback if not a valid path
+                }
+            } catch (e) {
+                console.error("Error decoding referrer path:", e);
+                redirectPath = '/'; // Fallback on decode error
+            }
+        }
+    }
+
     if (error) {
         const errorParam = Array.isArray(error) ? error[0] : error
-        return res.redirect(`/profile?error=${encodeURIComponent(errorParam ?? "unknown_error")}`)
+        return res.redirect(`${redirectPath}?error=${encodeURIComponent(errorParam ?? "unknown_error")}`)
     }
 
-    if (!code || !state) {
-        return res.redirect("/profile?error=missing_parameters")
+    if (!code || !stateParam) {
+        return res.redirect(`${redirectPath}?error=missing_parameters`)
+    }
+    console.log("State Parameter:", stateParam);
+    // Extract userId from stateParam
+    const userId = stateParam.split('_')[0];
+    if (!userId) {
+        return res.redirect(`${redirectPath}?error=invalid_user_id`);
     }
 
-    // Ensure code and state are strings
-    const authCode = Array.isArray(code) ? code[0] : code
-    const stateParam = Array.isArray(state) ? state[0] : state
+    // Ensure code is a string
+    const authCode = Array.isArray(code) ? code[0] : code;
 
-    if (!authCode || !stateParam) {
-        return res.redirect("/profile?error=invalid_parameters")
+    if (!authCode) {
+        return res.redirect(`${redirectPath}?error=invalid_parameters`);
     }
 
     try {
@@ -87,7 +113,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
 
         const tokenData: unknown = await tokenResponse.json()
-
+        console.log("Token Data:", tokenData)
         if (!tokenResponse.ok) {
             if (isSpotifyErrorResponse(tokenData)) {
                 throw new Error(tokenData.error.message ?? "Failed to get access token")
@@ -123,9 +149,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log("State:", stateParam)
 
         await db.spotifyAccount.upsert({
-            where: { userId: stateParam },
+            where: { userId: userId }, // Use extracted userId
             update: {
-                spotifyId: userData.id,
                 name: userData.display_name,
                 email: userData.email,
                 image: userData.images?.[0]?.url,
@@ -134,7 +159,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 expiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
             },
             create: {
-                userId: stateParam,
+                userId: userId, // Use extracted userId
                 spotifyId: userData.id,
                 name: userData.display_name,
                 email: userData.email,
@@ -145,9 +170,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             },
         })
 
-        res.redirect("/spotify?success=true")
+        res.redirect(`${redirectPath}?success=true`)
     } catch (error) {
         console.error("Spotify auth error:", error)
-        res.redirect("/spotify?error=connection_failed")
+        res.redirect(`${redirectPath}?error=connection_failed`)
     }
 }

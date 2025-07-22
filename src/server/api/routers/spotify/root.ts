@@ -1,5 +1,6 @@
 import { createTRPCRouter } from "~/server/api/trpc";
 import { spotifyRouter } from "./spotify";
+import { spotifyRewardRouter } from "./reward";
 
 
 /**
@@ -9,6 +10,7 @@ import { spotifyRouter } from "./spotify";
  */
 export const SpotifyRouter = createTRPCRouter({
     spotifyRouter: spotifyRouter,
+    spotifyReward: spotifyRewardRouter,
 });
 
 // export type definition of API

@@ -120,3 +120,14 @@ export interface UserTopTracksResponse {
     previous: string | null;
     total: number;
 }
+export interface SpotifySearchResponse {
+    tracks: {
+        href: string;
+        items: SpotifyTrack[];
+        limit: number;
+        next: string | null;
+        offset: number;
+        previous: string | null;
+        total: number;
+    };
+}

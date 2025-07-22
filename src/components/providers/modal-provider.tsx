@@ -21,6 +21,7 @@ import { CreatePostModal } from "../modal/create-post-modal";
 import AddSubscriptionModal from "../modal/create-subscription-modal";
 import ExportCreateSongModal from "../modal/export-create-song-modal";
 import CreateRoyalityModal from "../modal/create-royality-modal";
+import { AddSpotifyRewardDialog } from "../modal/add-spotify-reward-dialog";
 
 const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -54,6 +55,7 @@ const ModalProvider = () => {
       <AddSubscriptionModal />
       <ExportCreateSongModal />
       <CreateRoyalityModal />
+      <AddSpotifyRewardDialog />
     </>
   );
 };

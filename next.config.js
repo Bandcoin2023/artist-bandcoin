@@ -21,6 +21,9 @@ const config = {
       { hostname: "bandcoin-object-store.s3.amazonaws.com" },
       { hostname: "gateway.pinata.cloud" },
       {
+        hostname: 'actionverse.s3.amazonaws.com',
+      },
+      {
         hostname: "utfs.io",
       },
       { hostname: "app.wadzzo.com" },
