@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Check, ChevronDown, ChevronUp, Star, Music, Users, Plus, ImageIcon, CheckCircle2 } from "lucide-react"
+import { Check, ChevronDown, ChevronUp, Star, Music, Users, Plus, ImageIcon, CheckCircle2, Info, Copy } from "lucide-react"
 import { Button } from "~/components/shadcn/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/shadcn/ui/card"
 import { Badge } from "~/components/shadcn/ui/badge"
@@ -12,7 +12,13 @@ import { Skeleton } from "../shadcn/ui/skeleton"
 import { SubscriptionContextMenu } from "../common/subscripton-context"
 import { useAddSubsciptionModalStore } from "../store/add-subscription-modal-store"
 import { CreatorWithPageAsset, Theme } from "~/types/artist/dashboard"
-
+import { useCreatorStorageAcc } from "~/lib/state/wallete/stellar-balances"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "~/components/shadcn/ui/tooltip"
 
 
 interface MembershipTiersWidgetProps {
@@ -76,7 +82,17 @@ function SubscriptionPackagesSkeleton() {
 export default function MembershipTiersWidget({ editMode, theme, creatorData,
     userView = false,
 }: MembershipTiersWidgetProps) {
+    const [copied, setCopied] = useState(false)
 
+    const handleCopy = async (url: string) => {
+        try {
+            await navigator.clipboard.writeText(url)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+        } catch (err) {
+            console.error("Failed to copy text: ", err)
+        }
+    }
     const subscriptionPackages = api.fan.creator.getCreatorPackages.useQuery({
         id: creatorData?.id ?? ""
     })
@@ -89,12 +105,46 @@ export default function MembershipTiersWidget({ editMode, theme, creatorData,
             setExpandedPackage(id)
         }
     }
-
+    const { getAssetBalance } = useCreatorStorageAcc();
+    const code = creatorData?.pageAsset?.code ?? creatorData?.customPageAssetCodeIssuer?.split(":")[0]
+    const issuer = creatorData?.pageAsset?.issuer ?? creatorData?.customPageAssetCodeIssuer?.split(":")[1]
+    const assetObj = { code, issuer };
     return (
         <div className="mb-8 h-full">
             <div className="w-full sticky top-0 z-50 bg-secondary border-b-2 p-2 md:p-4 ">
                 <div className="flex justify-between items-center ">
                     <h2 className="text-xl font-bold">Subscription Packages</h2>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Your Balance:</span>
+                        <span className="text-lg font-bold">
+                            {getAssetBalance(assetObj)} {code}
+                        </span>
+                        {
+                            !userView && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <Info className="h-5 w-5 text-muted-foreground cursor-pointer" />
+                                        </TooltipTrigger>
+                                        <TooltipContent className="flex items-center gap-2" align="end">
+                                            <p>{creatorData.storagePub} </p>
+                                            <Button
+                                                onClick={() => handleCopy(creatorData.storagePub)}
+                                                className={cn(
+                                                    "flex h-full items-center justify-center gap-1.5 text-sm font-medium text-white transition-all",
+                                                    copied ? "bg-green-500" : "bg-indigo-500 hover:bg-indigo-600",
+                                                )}
+                                            >
+                                                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+
+                                            </Button>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )
+                        }
+                    </div>
+
                     {
                         (subscriptionPackages.data?.length ?? 0) > 0 && !userView && (
                             <div className="flex justify-between items-center">
@@ -108,6 +158,9 @@ export default function MembershipTiersWidget({ editMode, theme, creatorData,
                             </div>
                         )
                     }
+
+
+
                 </div>
             </div>
 
