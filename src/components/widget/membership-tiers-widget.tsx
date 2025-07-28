@@ -243,21 +243,6 @@ export default function MembershipTiersWidget({ editMode, theme, creatorData,
                             <CardDescription className="mt-2">{pkg.description}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4 pb-2">
-                            {
-                                subscriptionPackages.data && subscriptionPackages.data?.length > 0 && !userView && (
-                                    <div className="flex items-center justify-between p-2">
-                                        <h2 className="text-xl font-bold">Subscription Packages</h2>
-                                        <Button size="sm" onClick={() => openForCreate({
-                                            customPageAsset: creatorData?.customPageAssetCodeIssuer,
-                                            pageAsset: creatorData.pageAsset,
-                                        })}>
-                                            <Plus className="h-4 w-4 mr-2" />
-                                            Create New Package
-                                        </Button>
-                                    </div>
-                                )
-                            }
-
                             <ul className="space-y-2">
                                 {pkg.features
                                     .slice(0, expandedPackage === pkg.id ? pkg.features.length : 3)
