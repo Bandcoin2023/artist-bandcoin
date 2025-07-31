@@ -305,7 +305,7 @@ export const songRouter = createTRPCRouter({
     return songs;
   }),
 
-  getAllSongMarketAssets: publicProcedure
+  getAllSongMarketAssets: protectedProcedure
     .input(
       z.object({
         limit: z.number(),
@@ -315,125 +315,77 @@ export const songRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const { limit, cursor, skip } = input;
-      if (ctx.session?.user.id) {
-        const currentUserId = ctx.session.user.id;
+      const currentUserId = ctx.session.user.id;
 
-        const items = await ctx.db.marketAsset.findMany({
-          take: limit + 1,
-          skip: skip,
-          cursor: cursor ? { id: cursor } : undefined,
-          include: {
-            asset: {
-              select: {
-                ...AssetSelectAllProperty,
-                tier: {
-                  select: {
-                    price: true,
-                  },
+      const items = await ctx.db.marketAsset.findMany({
+        take: limit + 1,
+        skip: skip,
+        cursor: cursor ? { id: cursor } : undefined,
+        include: {
+          asset: {
+            select: {
+              ...AssetSelectAllProperty,
+              tier: {
+                select: {
+                  price: true,
                 },
-                creator: {
-                  select: {
-                    pageAsset: {
-                      select: {
-                        code: true,
-                        issuer: true,
-                      },
-                    },
-                  },
-                },
-                Stem: true,
               },
-            },
-          },
-          orderBy: { id: "desc" },
-          where: { type: { equals: "SONG" } },
-        });
-
-        const stellarAcc = await StellarAccount.create(currentUserId);
-
-        const array = items.filter((item) => {
-          const creatorPageAsset = item.asset.creator?.pageAsset;
-
-          if (item.asset.privacy === ItemPrivacy.PUBLIC) {
-            return true;
-          }
-
-          if (item.asset.creatorId !== item.placerId) {
-            return true;
-          }
-
-          if (item.asset.privacy === ItemPrivacy.PRIVATE) {
-            return creatorPageAsset && stellarAcc.hasTrustline(creatorPageAsset.code, creatorPageAsset.issuer);
-          }
-
-          if (item.asset.privacy === ItemPrivacy.TIER) {
-            return (
-              creatorPageAsset &&
-              item.asset.tier &&
-              item.asset.tier.price <= stellarAcc.getTokenBalance(creatorPageAsset.code, creatorPageAsset.issuer)
-            );
-          }
-
-          return false;
-        });
-
-        // Handle pagination
-        let nextCursor: typeof cursor | undefined = undefined;
-        if (array.length > limit) {
-          const nextItem = array.pop();
-          nextCursor = nextItem?.id;
-        }
-
-        return {
-          nfts: array,
-          nextCursor,
-        };
-      }
-      else {
-
-        const items = await ctx.db.marketAsset.findMany({
-          take: limit + 1,
-          skip: skip,
-          cursor: cursor ? { id: cursor } : undefined,
-          include: {
-            asset: {
-              select: {
-                ...AssetSelectAllProperty,
-                tier: {
-                  select: {
-                    price: true,
-                  },
-                },
-                creator: {
-                  select: {
-                    pageAsset: {
-                      select: {
-                        code: true,
-                        issuer: true,
-                      },
+              creator: {
+                select: {
+                  pageAsset: {
+                    select: {
+                      code: true,
+                      issuer: true,
                     },
                   },
                 },
               },
             },
           },
-          orderBy: { id: "desc" },
-          where: { type: { equals: "SONG" } },
-        });
+        },
+        orderBy: { id: "desc" },
+        where: { type: { equals: "SONG" } },
+      });
 
+      const stellarAcc = await StellarAccount.create(currentUserId);
 
-        // Handle pagination
-        let nextCursor: typeof cursor | undefined = undefined;
-        if (items.length > limit) {
-          const nextItem = items.pop();
-          nextCursor = nextItem?.id;
+      const array = items.filter((item) => {
+        const creatorPageAsset = item.asset.creator?.pageAsset;
+
+        if (item.asset.privacy === ItemPrivacy.PUBLIC) {
+          return true;
         }
 
-        return {
-          nfts: items,
-          nextCursor,
-        };
+        if (item.asset.creatorId !== item.placerId) {
+          return true;
+        }
+
+        if (item.asset.privacy === ItemPrivacy.PRIVATE) {
+          return creatorPageAsset && stellarAcc.hasTrustline(creatorPageAsset.code, creatorPageAsset.issuer);
+        }
+
+        if (item.asset.privacy === ItemPrivacy.TIER) {
+          return (
+            creatorPageAsset &&
+            item.asset.tier &&
+            item.asset.tier.price <= stellarAcc.getTokenBalance(creatorPageAsset.code, creatorPageAsset.issuer)
+          );
+        }
+
+        return false;
+      });
+
+      // Handle pagination
+      let nextCursor: typeof cursor | undefined = undefined;
+      if (array.length > limit) {
+        const nextItem = array.pop();
+        nextCursor = nextItem?.id;
       }
+
+      return {
+        nfts: array,
+        nextCursor,
+      };
     }),
 
 

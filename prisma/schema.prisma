@@ -221,6 +221,7 @@ model Creator {
     createdAt           DateTime              @default(now())
     Appearance          Appearance[]
     CreatorCustomDomain CreatorCustomDomain[]
+    SellPageAsset       SellPageAsset[]
 
     @@index([bio, name])
 }
@@ -812,6 +813,24 @@ model RedeemConsumer {
     code       String
     redeemCode Redeem   @relation(fields: [code], references: [code], onDelete: Cascade)
     redeemedAt DateTime @default(now())
+}
+
+model SellPageAsset {
+    id           Int      @id @default(autoincrement())
+    title        String
+    description  String?
+    amountToSell Int
+    price        Float
+    priceUSD     Float    @default(1)
+    priceXLM     Float    @default(0)
+    isSold       Boolean  @default(false)
+    placedAt     DateTime @default(now())
+
+    placerId String? // admin placing this assets
+    placer   Creator?  @relation(fields: [placerId], references: [id], onDelete: Cascade)
+    soldAt   DateTime? @default(now())
+
+    @@unique([id, placerId])
 }
 
 model CreatorCustomDomain {

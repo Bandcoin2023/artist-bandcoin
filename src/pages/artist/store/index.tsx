@@ -17,6 +17,7 @@ import {
     Plus,
     ShoppingBag,
     AlbumIcon,
+    Coins,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Input } from "~/components/shadcn/ui/input"
@@ -49,9 +50,11 @@ import AlbumView from "~/components/music/album/album-item"
 import { addrShort } from "~/utils/utils"
 import AssetView from "~/components/common/asset"
 import { useCreatorStoredAssetModalStore } from "~/components/store/creator-stored-asset-modal-store"
+import { useSellPageAssetStore } from "~/components/store/sell-page-asset-store"
+import SellPageAssetList from "~/components/sell-page-asset-list"
 
 // Define our types
-type MainCategory = "STORED" | "ALBUM" | "ROYALTY"
+type MainCategory = "STORED" | "ALBUM" | "ROYALTY" | "PageAsset"
 
 type RoyaltyItem = {
     id: number
@@ -60,11 +63,24 @@ type RoyaltyItem = {
     type?: string
     royaltyPercentage?: number
 }
+interface SellPageAsset {
+    id: number
+    title: string
+    description: string | null
+    amountToSell: number
+    price: number
+    priceUSD: number
+    priceXLM: number
+    isSold: boolean
+    placedAt: Date
+    soldAt: Date | null
+}
 
 export default function StoredItemsView() {
     const [activeTab, setActiveTab] = useState<MainCategory>("STORED")
     const { setIsOpen: setIsOpenNFTModal } = useNFTCreateModalStore()
     const { setIsOpen: setIsAlbumModalOpen } = useCreateAlbumStore()
+    const { setIsOpen: setIsOpenSellPageAssetModal } = useSellPageAssetStore()
     const { setIsOpen: setIsOpenStoredModal, setData: setStoredModalData } = useCreatorStoredAssetModalStore()
     // Stored Items Tab State
     const [storedMediaType, setStoredMediaType] = useState<MediaType | "ALL">("ALL")
@@ -316,6 +332,14 @@ export default function StoredItemsView() {
                                 <Music className="mr-2 h-4 w-4" />
                                 <span>Create Album</span>
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => {
+                                    setIsOpenSellPageAssetModal(true)
+                                }}
+                                className="cursor-pointer">
+                                <Coins className="mr-2 h-4 w-4" />
+                                <span>Sell Page Assets</span>
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
@@ -327,7 +351,7 @@ export default function StoredItemsView() {
                     onValueChange={(value) => setActiveTab(value as MainCategory)}
                     className="w-full"
                 >
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="STORED" className="flex items-center gap-2">
                             <ImageIcon className="h-4 w-4" />
                             Stored Items
@@ -339,6 +363,10 @@ export default function StoredItemsView() {
                         <TabsTrigger value="ROYALTY" className="flex items-center gap-2">
                             <Crown className="h-4 w-4" />
                             Royalty Items
+                        </TabsTrigger>
+                        <TabsTrigger value="PageAsset" className="flex items-center gap-2">
+                            <Coins className="h-4 w-4" />
+                            Page Assets
                         </TabsTrigger>
                     </TabsList>
 
@@ -904,6 +932,10 @@ export default function StoredItemsView() {
                                 </motion.div>
                             </AnimatePresence>
                         )}
+                    </TabsContent>
+                    {/* PAGE ASSETS TAB */}
+                    <TabsContent value="PageAsset" className="pt-4">
+                        <SellPageAssetList />
                     </TabsContent>
                 </Tabs>
 

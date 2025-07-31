@@ -1481,7 +1481,7 @@ const AdminBountyPage = () => {
                                                                                     data.BountyWinner.some((winner) => winner.user.id === submission.user.id) ||
                                                                                     GetSendBalanceToWinnerXdr.isLoading
                                                                                 }
-                                                                                className="bg-primary hover:bg-primary/90 text-white"
+                                                                                className=""
                                                                             >
                                                                                 <Crown className="mr-2 h-4 w-4" /> Mark as Winner
                                                                             </Button>

@@ -38,21 +38,22 @@ interface MediaItem {
 }
 
 interface MediaGalleryProps {
+    fullHeight?: boolean // Optional prop to control height
     media: MediaItem[]
     initialIndex?: number
     autoPlay?: boolean
     onClose?: () => void
 }
 
-export default function MediaGallery({ media, initialIndex = 0, autoPlay = false, onClose }: MediaGalleryProps) {
+export default function MediaGallery({ media, initialIndex = 0, autoPlay = false, onClose, fullHeight }: MediaGalleryProps) {
     return (
         <MiniPlayerProvider>
-            <MediaGalleryContent media={media} initialIndex={initialIndex} autoPlay={autoPlay} onClose={onClose} />
+            <MediaGalleryContent media={media} initialIndex={initialIndex} autoPlay={autoPlay} onClose={onClose} fullHeight={fullHeight} />
         </MiniPlayerProvider>
     )
 }
 
-function MediaGalleryContent({ media, initialIndex = 0, autoPlay = false, onClose }: MediaGalleryProps) {
+function MediaGalleryContent({ media, initialIndex = 0, autoPlay = false, onClose, fullHeight }: MediaGalleryProps) {
     const [currentIndex, setCurrentIndex] = useState(initialIndex)
     const [isPlaying, setIsPlaying] = useState(false)
     const [progress, setProgress] = useState(0)
@@ -486,7 +487,7 @@ function MediaGalleryContent({ media, initialIndex = 0, autoPlay = false, onClos
             ref={playerRef}
         >
             {/* Main media container */}
-            <div className="relative flex-1 bg-gray-100">
+            <div className="relative flex-1 bg-gray-100 ">
                 {/* Close button for fullscreen */}
                 {isFullscreen && onClose && (
                     <button
@@ -505,7 +506,7 @@ function MediaGalleryContent({ media, initialIndex = 0, autoPlay = false, onClos
                 )}
 
                 {/* Media content */}
-                <div className="relative w-full h-full bg-gray-100">
+                <div className={`relative w-full bg-gray-100 ${isFullscreen ? "h-full" : fullHeight ? "h-[90vh]" : "h-[50vh]"}`}>
                     {/* Navigation arrows - always visible in fullscreen, only on hover in normal mode */}
                     {media.length > 1 && (showControls ?? isFullscreen) && (
                         <>
@@ -619,7 +620,7 @@ function MediaGalleryContent({ media, initialIndex = 0, autoPlay = false, onClos
                     {/* Play/Pause overlay button for video/audio */}
                     {(currentMedia?.type === "VIDEO" || currentMedia?.type === "MUSIC") && !isPlaying && showControls && (
                         <div
-                            className="absolute inset-0 flex items-center justify-center z-10"
+                            className="absolute  inset-0 flex items-center justify-center z-10"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <button
@@ -636,169 +637,175 @@ function MediaGalleryContent({ media, initialIndex = 0, autoPlay = false, onClos
                 </div>
             </div>
 
-            {/* Custom controls bar - conditionally shown */}
-            <AnimatePresence>
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    transition={{ duration: 0.2 }}
-                    className={cn(
-                        "bg-gray-900/90 text-white z-20",
-                        isFullscreen ? "absolute bottom-0 left-0 right-0 p-4" : "relative",
-                    )}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    {/* Progress bar */}
-                    {(currentMedia?.type === "VIDEO" || currentMedia?.type === "MUSIC") && (
-                        <div
-                            className="w-full h-1 bg-gray-700 mb-3 cursor-pointer"
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                handleProgressBarClick(e)
-                            }}
-                            ref={progressBarRef}
-                        >
-                            <div className="h-full bg-red-500" style={{ width: `${progress}%` }} />
-                        </div>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                        {/* Left controls */}
-                        <div className="flex items-center gap-2 sm:gap-3">
-                            {/* Play/Pause button */}
-                            {(currentMedia?.type === "VIDEO" || currentMedia?.type === "MUSIC") && (
-                                <button
-                                    className="text-white hover:bg-white/10 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center"
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        togglePlay()
-                                    }}
-                                >
-                                    {isPlaying ? <Pause className="h-3 w-3 sm:h-4 sm:w-4" /> : <Play className="h-3 w-3 sm:h-4 sm:w-4" />}
-                                </button>
-                            )}
-
-                            {/* Seek buttons - always visible in fullscreen */}
-                            {(isFullscreen ?? currentMedia?.type === "VIDEO" ?? currentMedia?.type === "MUSIC") && (
-                                <>
-                                    <button
-                                        className="text-white hover:bg-white/10 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center"
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            seekBackward()
-                                        }}
-                                    >
-                                        <Rewind className="h-3 w-3 sm:h-4 sm:w-4" />
-                                    </button>
-                                    <button
-                                        className="text-white hover:bg-white/10 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center"
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            seekForward()
-                                        }}
-                                    >
-                                        <FastForward className="h-3 w-3 sm:h-4 sm:w-4" />
-                                    </button>
-                                </>
-                            )}
-
-                            {/* Time display */}
-                            {(currentMedia?.type === "VIDEO" || currentMedia?.type === "MUSIC") && (
-                                <div className="text-xs">
-                                    {formatTime((progress / 100) * duration)} / {formatTime(duration)}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Right controls */}
-                        <div className="flex items-center gap-2 sm:gap-3">
-                            {/* Mini player button - only for video and audio */}
-                            {(currentMedia?.type === "VIDEO" || currentMedia?.type === "MUSIC") && (
-                                <button
-                                    className="text-white hover:bg-white/10 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center"
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        toggleMiniPlayer()
-                                    }}
-                                    title="Mini Player"
-                                >
-                                    <Minimize2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                                </button>
-                            )}
-
-                            {/* Volume control */}
-                            {(currentMedia?.type === "VIDEO" || currentMedia?.type === "MUSIC") && (
-                                <div className="relative flex items-center group">
-                                    <button
-                                        className="text-white hover:bg-white/10 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center"
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            toggleMute()
-                                        }}
-                                        onMouseEnter={() => setIsVolumeSliderVisible(true)}
-                                        onTouchStart={(e) => {
-                                            e.stopPropagation()
-                                            setIsVolumeSliderVisible(!isVolumeSliderVisible)
-                                        }}
-                                    >
-                                        {isMuted ? (
-                                            <VolumeX className="h-3 w-3 sm:h-4 sm:w-4" />
-                                        ) : (
-                                            <Volume2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                                        )}
-                                    </button>
-
-                                    {/* Volume slider - positioned differently in fullscreen mode */}
-                                    {isVolumeSliderVisible && (
-                                        <div
-                                            className={cn(
-                                                "absolute p-2 bg-gray-800 rounded shadow-lg z-50",
-                                                isFullscreen ? "right-0 top-0 -translate-y-full" : "bottom-full right-0 mb-2",
-                                            )}
-                                            onMouseEnter={() => setIsVolumeSliderVisible(true)}
-                                            onMouseLeave={() => setIsVolumeSliderVisible(false)}
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <input
-                                                type="range"
-                                                min="0"
-                                                max="1"
-                                                step="0.01"
-                                                value={volume}
-                                                onChange={handleVolumeChange}
-                                                className="w-20 sm:w-24 accent-red-500"
-                                                onClick={(e) => e.stopPropagation()}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Fullscreen toggle */}
-                            <button
-                                className="text-white hover:bg-white/10 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center"
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    toggleFullscreen()
-                                }}
-                            >
-                                {isFullscreen ? (
-                                    <Minimize className="h-3 w-3 sm:h-4 sm:w-4" />
-                                ) : (
-                                    <Maximize className="h-3 w-3 sm:h-4 sm:w-4" />
+            {
+                isHovering && (
+                    <>
+                        {/* Custom controls bar - conditionally shown */}
+                        <AnimatePresence>
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 20 }}
+                                transition={{ duration: 0.2 }}
+                                className={cn(
+                                    "bg-gray-900/90 text-white z-20",
+                                    isFullscreen ? "absolute bottom-0 left-0 right-0 p-4" : "absolute bottom-0 left-0 right-0 p-4",
                                 )}
-                            </button>
-                        </div>
-                    </div>
-                </motion.div>
-            </AnimatePresence>
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {/* Progress bar */}
+                                {(currentMedia?.type === "VIDEO" || currentMedia?.type === "MUSIC") && (
+                                    <div
+                                        className="w-full h-1 bg-gray-700 mb-3 cursor-pointer"
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleProgressBarClick(e)
+                                        }}
+                                        ref={progressBarRef}
+                                    >
+                                        <div className="h-full bg-red-500" style={{ width: `${progress}%` }} />
+                                    </div>
+                                )}
+
+                                <div className="flex items-center justify-between">
+                                    {/* Left controls */}
+                                    <div className="flex items-center gap-2 sm:gap-3">
+                                        {/* Play/Pause button */}
+                                        {(currentMedia?.type === "VIDEO" || currentMedia?.type === "MUSIC") && (
+                                            <button
+                                                className="text-white hover:bg-white/10 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    togglePlay()
+                                                }}
+                                            >
+                                                {isPlaying ? <Pause className="h-3 w-3 sm:h-4 sm:w-4" /> : <Play className="h-3 w-3 sm:h-4 sm:w-4" />}
+                                            </button>
+                                        )}
+
+                                        {/* Seek buttons - always visible in fullscreen */}
+                                        {(isFullscreen ?? currentMedia?.type === "VIDEO" ?? currentMedia?.type === "MUSIC") && (
+                                            <>
+                                                <button
+                                                    className="text-white hover:bg-white/10 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        seekBackward()
+                                                    }}
+                                                >
+                                                    <Rewind className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                </button>
+                                                <button
+                                                    className="text-white hover:bg-white/10 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        seekForward()
+                                                    }}
+                                                >
+                                                    <FastForward className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                </button>
+                                            </>
+                                        )}
+
+                                        {/* Time display */}
+                                        {(currentMedia?.type === "VIDEO" || currentMedia?.type === "MUSIC") && (
+                                            <div className="text-xs">
+                                                {formatTime((progress / 100) * duration)} / {formatTime(duration)}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Right controls */}
+                                    <div className="flex items-center gap-2 sm:gap-3">
+                                        {/* Mini player button - only for video and audio */}
+                                        {(currentMedia?.type === "VIDEO" || currentMedia?.type === "MUSIC") && (
+                                            <button
+                                                className="text-white hover:bg-white/10 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    toggleMiniPlayer()
+                                                }}
+                                                title="Mini Player"
+                                            >
+                                                <Minimize2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                                            </button>
+                                        )}
+
+                                        {/* Volume control */}
+                                        {(currentMedia?.type === "VIDEO" || currentMedia?.type === "MUSIC") && (
+                                            <div className="relative flex items-center group">
+                                                <button
+                                                    className="text-white hover:bg-white/10 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        toggleMute()
+                                                    }}
+                                                    onMouseEnter={() => setIsVolumeSliderVisible(true)}
+                                                    onTouchStart={(e) => {
+                                                        e.stopPropagation()
+                                                        setIsVolumeSliderVisible(!isVolumeSliderVisible)
+                                                    }}
+                                                >
+                                                    {isMuted ? (
+                                                        <VolumeX className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                    ) : (
+                                                        <Volume2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                    )}
+                                                </button>
+
+                                                {/* Volume slider - positioned differently in fullscreen mode */}
+                                                {isVolumeSliderVisible && (
+                                                    <div
+                                                        className={cn(
+                                                            "absolute p-2 bg-gray-800 rounded shadow-lg z-50",
+                                                            isFullscreen ? "right-0 top-0 -translate-y-full" : "bottom-full right-0 mb-2",
+                                                        )}
+                                                        onMouseEnter={() => setIsVolumeSliderVisible(true)}
+                                                        onMouseLeave={() => setIsVolumeSliderVisible(false)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max="1"
+                                                            step="0.01"
+                                                            value={volume}
+                                                            onChange={handleVolumeChange}
+                                                            className="w-20 sm:w-24 accent-red-500"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Fullscreen toggle */}
+                                        <button
+                                            className="text-white hover:bg-white/10 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                toggleFullscreen()
+                                            }}
+                                        >
+                                            {isFullscreen ? (
+                                                <Minimize className="h-3 w-3 sm:h-4 sm:w-4" />
+                                            ) : (
+                                                <Maximize className="h-3 w-3 sm:h-4 sm:w-4" />
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </AnimatePresence>
+                    </>
+                )
+            }
 
             {/* Thumbnails row - only in normal mode */}
             {!isFullscreen && media.length > 1 && (
-                <div className="flex overflow-x-auto bg-gray-200 p-2 h-[72px] items-center justify-start">
+                <div className="flex flex-col  absolute h-full gap-2 overflow-x-auto bg-gray-200 p-2 z-10 items-center justify-start">
                     {media.map((item, index) => (
-                        <div key={item.id} className="flex-shrink-0 mx-1 first:ml-2 last:mr-2">
+                        <div key={item.id} className="flex-shrink-0  ">
                             <button
                                 onClick={() => setCurrentIndex(index)}
                                 className={cn(

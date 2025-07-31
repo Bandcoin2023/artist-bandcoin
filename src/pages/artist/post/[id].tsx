@@ -215,13 +215,12 @@ const SinglePostView = ({
 }: PostCardProps) => {
     const [showAllMedia, setShowAllMedia] = useState(false)
     const [isFullscreen, setIsFullscreen] = useState(false)
-    const [isLiked, setIsLiked] = useState(false)
     const [likeCount, setLikeCount] = useState(initialLikeCount)
     const [isSaved, setIsSaved] = useState(false)
+    const { data: liked } = api.fan.post.isLiked.useQuery(post.id);
 
     const likeMutation = api.fan.post.likeApost.useMutation({
         onSuccess: () => {
-            setIsLiked(true)
             setLikeCount((prev) => prev + 1)
         },
 
@@ -229,7 +228,6 @@ const SinglePostView = ({
 
     const unlikeMutation = api.fan.post.unLike.useMutation({
         onSuccess: () => {
-            setIsLiked(false)
             setLikeCount((prev) => Math.max(0, prev - 1))
         },
 
@@ -273,7 +271,7 @@ const SinglePostView = ({
     }
 
     const toggleLike = () => {
-        if (isLiked) {
+        if (liked) {
             unlikeMutation.mutate(post.id)
         } else {
             likeMutation.mutate(post.id)
@@ -327,13 +325,14 @@ const SinglePostView = ({
     }
 
     return (
-        <div className="flex items-center justify-center">
-            <div className="w-full md:max-w-6xl gap-4 md:max-h-[90vh] flex flex-col  justify-center md:flex-row">
+        <div className="flex items-center justify-center  w-full ">
+            <div className="w-full md:max-w-6xl gap-4 md:max-h-[90vh]  flex flex-col  justify-center md:flex-row">
                 {/* Media section */}
                 <div className="relative bg-gray-100 flex-1 md:max-w-[600px]">
                     {media && media.length > 0 ? (
-                        <div className="h-full w-full">
+                        <div className="h-full w-full p-2">
                             <MediaGallery
+                                fullHeight={true}
                                 media={displayMedia}
                                 initialIndex={currentIndex}
                                 onClose={handleCloseFullscreen}
@@ -410,7 +409,7 @@ const SinglePostView = ({
                                                 unlikeMutation.isLoading || likeMutation.isLoading ? (
                                                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
                                                 ) : (
-                                                    <Heart className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+                                                    <Heart className={`h-5 w-5 ${liked ? "fill-red-500 text-red-500" : ""}`} />
                                                 )
                                             }
                                         </Button>
@@ -487,7 +486,7 @@ function MediaGallerySkeleton() {
             </div>
 
             {/* Thumbnails row skeleton */}
-            <div className="flex overflow-x-auto bg-gray-200 p-2 h-[72px] items-center">
+            <div className="flex flex-col  absolute h-full gap-2 overflow-x-auto bg-gray-200 p-2 z-10 items-center justify-start">
                 {Array.from({ length: 5 }).map((_, index) => (
                     <div key={index} className="flex-shrink-0 mx-1 first:ml-2 last:mr-2">
                         <Skeleton className="w-[60px] h-[60px] rounded bg-gray-300" />

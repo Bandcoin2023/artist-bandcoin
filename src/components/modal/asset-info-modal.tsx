@@ -32,6 +32,7 @@ import ShowThreeDModel from "../3d-model/model-show";
 import { useAssestInfoModalStore } from "../store/asset-info-modal-store";
 import { useBottomPlayer } from "../player/context/bottom-player-context";
 import { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
+import { MyCollectionMenu, useMyCollectionTabs } from "../store/tabs/mycollection-tabs";
 
 export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
@@ -42,9 +43,9 @@ export default function AssetInfoModal() {
 
     const session = useSession();
     const router = useRouter();
-    const { selectedMenu, setSelectedMenu } = useAssetMenu();
+    const { selectedMenu, setSelectedMenu } = useMyCollectionTabs();
     const { getAssetBalance: creatorAssetBalance } = useUserStellarAcc();
-    const { getAssetBalance: creatorStorageAssetBalance, setBalance } =
+    const { getAssetBalance: creatorStorageAssetBalance, setBalance, balances } =
         useCreatorStorageAcc();
 
 
@@ -80,7 +81,7 @@ export default function AssetInfoModal() {
     })
 
     const copyCreatorAssetBalance = data
-        ? selectedMenu === AssetMenu.OWN
+        ? selectedMenu === MyCollectionMenu.COLLECTION
             ? creatorAssetBalance({
                 code: data.code,
                 issuer: data.issuer,
@@ -90,18 +91,17 @@ export default function AssetInfoModal() {
                 issuer: data.issuer,
             })
         : 0;
-
     if (data) {
         return (
             <>
                 <Dialog open={isOpen} onOpenChange={handleClose}>
-                    <DialogContent className="max-w-3xl  overflow-hidden p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-black [&>button]:bg-white [&>button]:text-black ">
+                    <DialogContent className="max-w-4xl h-[90vh] overflow-hidden p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-black [&>button]:bg-white [&>button]:text-black ">
                         <DialogClose className="absolute right-3 top-3 ">
                             <X color="white" size={24} />
                         </DialogClose>
                         <div className="grid grid-cols-1 md:grid-cols-7">
                             {/* Left Column - Product Image */}
-                            <Card className=" overflow-y-hidden  max-h-[770px] min-h-[770px]  scrollbar-hide   md:col-span-3">
+                            <Card className=" overflow-y-hidden   scrollbar-hide   md:col-span-3">
                                 <CardContent className="p-1 bg-primary rounded-sm flex flex-col justify-between h-full">
                                     {/* Image Container */}
                                     <div className="flex flex-col">
@@ -215,7 +215,7 @@ export default function AssetInfoModal() {
                                         width={1000}
                                         height={1000}
                                         className={clsx(
-                                            "h-full max-h-[800px] w-full overflow-y-auto object-cover ",
+                                            "h-full w-full overflow-y-auto object-cover ",
                                         )}
                                     />
                                 ) : data.mediaType === "VIDEO" ? (
@@ -230,7 +230,7 @@ export default function AssetInfoModal() {
                                                 width: "100%",
                                             }}
                                             className={clsx(
-                                                "h-full max-h-[800px] w-full overflow-y-auto object-cover",
+                                                "h-full  w-full overflow-y-auto object-cover",
                                             )}
                                         >
                                             {/* <RightSidePlayer /> */}
@@ -248,7 +248,7 @@ export default function AssetInfoModal() {
                                                 width: "100%",
                                             }}
                                             className={clsx(
-                                                "h-full max-h-[800px] w-full overflow-y-auto object-cover",
+                                                "h-full  w-full overflow-y-auto object-cover",
                                             )}
                                         >
                                             {/* <RightSidePlayer /> */}

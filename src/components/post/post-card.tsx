@@ -52,9 +52,10 @@ interface PostCardProps {
     locked: boolean
     show: boolean
     media: Media[]
+    fullHeight?: boolean // Optional prop to control height
 }
 
-export default function PostCard({ post, creator, likeCount, commentCount, locked, show, media }: PostCardProps) {
+export default function PostCard({ post, creator, likeCount, commentCount, locked, show, media, fullHeight }: PostCardProps) {
     const [saved, setSaved] = useState(false)
     const [expanded, setExpanded] = useState(false)
     const [showAllMedia, setShowAllMedia] = useState(false)
@@ -119,9 +120,9 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
 
-
+            className=""
         >
-            <Card className={cn("overflow-hidden  border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow", deletePostId === post.id && "animate-pulse border-red-300")}>
+            <Card className={cn("overflow-hidden   border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow", deletePostId === post.id && "animate-pulse border-red-300")}>
                 <CardHeader className="p-4 pb-0">
                     <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
@@ -148,8 +149,8 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
                     </div>
                 </CardHeader>
 
-                <CardContent className="p-1 md:p-4 ">
-                    <div className="space-y-4">
+                <CardContent className="p-1 md:p-4  ">
+                    <div className="space-y-4 " >
                         {!show ? (
                             <LockedContent
                                 price={post.subscription?.price ?? 0}
@@ -185,23 +186,11 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
                                 {media && media.length > 0 && (
                                     <div className="space-y-2   min-h-[300px] ">
                                         <MediaGallery
-                                            media={displayMedia}
-
+                                            media={media}
+                                            fullHeight={fullHeight}
                                         />
 
-                                        {hasLotsOfMedia && (
-                                            <Button variant="outline" size="sm" className="w-full mt-2 gap-1" onClick={toggleShowAllMedia}>
-                                                {showAllMedia ? (
-                                                    <>
-                                                        Show less <ChevronUp className="h-4 w-4" />
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        Show all {media.length} items <ChevronDown className="h-4 w-4" />
-                                                    </>
-                                                )}
-                                            </Button>
-                                        )}
+
                                     </div>
                                 )}
                             </>

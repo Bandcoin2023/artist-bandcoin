@@ -1293,17 +1293,18 @@ export const BountyRoute = createTRPCRouter({
       });
 
       if (res.xdr) {
-        await ctx.db.bounty.update({
+        await ctx.db.bountyWinner.upsert({
           where: {
             id: input.bountyId,
+            userId: ctx.session.user.id,
           },
-          data: {
-            BountyWinner: {
-              create: {
-                userId: ctx.session.user.id,
-                xdr: res.xdr,
-              },
-            },
+          update: {
+            xdr: res.xdr
+          },
+          create: {
+            userId: ctx.session.user.id,
+            xdr: res.xdr,
+            bountyId: input.bountyId,
           },
         });
       }
@@ -1317,19 +1318,16 @@ export const BountyRoute = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const bounty = await ctx.db.bounty.update({
+      const bounty = await ctx.db.bountyWinner.update({
         where: {
           id: input.bountyId,
+          userId: ctx.session.user.id,
         },
         data: {
-          BountyWinner: {
-            create: {
-              userId: ctx.session.user.id,
-              isSwaped: true,
-            },
-          },
+          isSwaped: true,
         },
-      });
+      },
+      );
     }),
   hasMotherTrustOnUSDC: protectedProcedure.query(async ({ ctx }) => {
     return getHasMotherTrustOnUSDC();

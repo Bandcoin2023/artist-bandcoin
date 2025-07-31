@@ -161,7 +161,7 @@ export function UploadS3Button({
         const selectedFile = event.target.files?.[0]
         console.log("Selected file:", selectedFile)
         if (selectedFile) {
-            const isOBJFile = selectedFile.name.endsWith(".obj") && selectedFile.type === ""
+            const isOBJFile = selectedFile.name.endsWith(".obj") && selectedFile.type === "model/obj"
             const fileType = isOBJFile ? ".obj" : selectedFile.type
 
             let targetFile = selectedFile

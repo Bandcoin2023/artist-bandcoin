@@ -245,6 +245,7 @@ export default function NftCreateModal() {
     })
 
     const onSubmit = () => {
+        console.log("vlaues", getValues())
         if (ipfs) {
             xdrMutation.mutate({
                 code: getValues("code"),

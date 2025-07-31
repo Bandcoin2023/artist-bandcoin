@@ -59,7 +59,9 @@ export const AddSpotifyRewardDialog: React.FC = () => {
 
     const { getAssetBalance } = useUserStellarAcc()
     const { getAssetBalance: getPageAssetBalance } = useCreatorStorageAcc()
-    const { data: pageAssetbal } = api.fan.creator.getCreatorPageAssetBalance.useQuery()
+    const { data: pageAssetbal } = api.fan.creator.getCreatorPageAssetBalance.useQuery(undefined, {
+        enabled: isOpen && !!session.data?.user?.id,
+    })
 
     const sendRewardAssetToStorage = api.spotify.spotifyReward.sendRewardsToStorage.useMutation({
         onSuccess: async (data) => {

@@ -169,6 +169,7 @@ export default function UserNewsFeedContent() {
 
                                         return (
                                             <PostCard
+                                                fullHeight={false}
                                                 key={post.id}
                                                 post={post}
                                                 creator={post.creator}

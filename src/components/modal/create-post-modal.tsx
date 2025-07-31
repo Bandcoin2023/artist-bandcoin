@@ -1,11 +1,10 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback } from "react"
 import { useForm, type SubmitHandler, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { api } from "~/utils/api"
-
 import { MediaType } from "@prisma/client"
 import {
     FileAudio,
@@ -15,7 +14,6 @@ import {
     Users2,
     Video,
     X,
-    Plus,
     Sparkles,
     Play,
     Pause,
@@ -28,22 +26,12 @@ import {
 } from "lucide-react"
 import clsx from "clsx"
 import Image from "next/image"
-
 import { Button } from "~/components/shadcn/ui/button"
 import { Input } from "~/components/shadcn/ui/input"
-import { Card, CardContent, CardHeader } from "~/components/shadcn/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/shadcn/ui/select"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "~/components/shadcn/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "~/components/shadcn/ui/dialog"
 import toast from "react-hot-toast"
 import { useRouter } from "next/router"
-
 import { motion, AnimatePresence } from "framer-motion"
 import CustomAvatar from "../common/custom-avatar"
 import { Editor } from "../common/quill-editor"
@@ -65,7 +53,7 @@ type MediaInfoType = z.TypeOf<typeof MediaInfo>
 
 export const PostSchema = z.object({
     heading: z.string().min(1, { message: "Post must contain a title" }),
-    content: z.string().min(2, { message: "Minimum 2 characters required." }),
+    content: z.string().optional(),
     subscription: z.string().optional(),
     medias: z.array(MediaInfo).optional(),
 })
@@ -81,6 +69,7 @@ export function CreatePostModal() {
         getValues,
         setValue,
         trigger,
+        watch, // Add watch for reactive state
         formState: { errors, isValid },
     } = useForm<z.infer<typeof PostSchema>>({
         resolver: zodResolver(PostSchema),
@@ -92,6 +81,9 @@ export function CreatePostModal() {
         },
     })
 
+    // Watch form values for reactive updates
+    const watchedHeading = watch("heading")
+
     const [media, setMedia] = useState<MediaInfoType[]>([])
     const [wantMediaType, setWantMedia] = useState<MediaType>()
     const { isOpen, setIsOpen } = useCreatePostModalStore()
@@ -100,12 +92,12 @@ export function CreatePostModal() {
     const [isMuted, setIsMuted] = useState(false)
     const [currentStep, setCurrentStep] = useState<FormStep>("content")
     const [showConfetti, setShowConfetti] = useState(false)
-
     const audioRef = useRef<HTMLAudioElement>(null)
     const videoRef = useRef<HTMLVideoElement>(null)
-
     const router = useRouter()
+
     const creator = api.fan.creator.meCreator.useQuery()
+
     const createPostMutation = api.fan.post.create.useMutation({
         onSuccess: async (data) => {
             setShowConfetti(true)
@@ -116,6 +108,7 @@ export function CreatePostModal() {
             }, 2000)
         },
     })
+
     const tiers = api.fan.member.getAllMembership.useQuery()
 
     const onSubmit: SubmitHandler<z.infer<typeof PostSchema>> = (data) => {
@@ -131,9 +124,9 @@ export function CreatePostModal() {
         setWantMedia((prevType) => (prevType === type ? undefined : type))
     }
 
+    // Updated editor change handler without immediate validation
     function handleEditorChange(value: string): void {
-        setValue("content", value)
-
+        setValue("content", value);
     }
 
     const openMediaPreview = (item: MediaInfoType) => {
@@ -190,9 +183,12 @@ export function CreatePostModal() {
 
     const goToNextStep = async () => {
         if (currentStep === "content") {
-            const isContentValid = await trigger(["heading", "content"])
+            // Only trigger validation when actually trying to proceed
+            const isContentValid = await trigger(["heading"])
             if (isContentValid) {
                 setCurrentStep("media")
+            } else {
+                toast.error("Please fill in all required fields")
             }
         } else if (currentStep === "media") {
             setCurrentStep("preview")
@@ -211,6 +207,7 @@ export function CreatePostModal() {
         setIsOpen(false)
         resetForm()
     }
+
     const resetForm = () => {
         reset()
         setMedia([])
@@ -218,6 +215,12 @@ export function CreatePostModal() {
         setIsOpen(false)
     }
 
+    // Check if content step is valid using watched values
+    const isContentStepValid = () => {
+        const heading = watchedHeading?.trim() || ""
+
+        return heading.length >= 1 && !errors.heading
+    }
 
     function TiersOptions() {
         if (tiers.isLoading) return <div className="h-10 w-full animate-pulse bg-muted sm:w-[180px]"></div>
@@ -234,10 +237,9 @@ export function CreatePostModal() {
                             <SelectContent>
                                 <SelectItem value="public">Public</SelectItem>
                                 {tiers.data.map((model) => (
-                                    <SelectItem
-                                        key={model.id}
-                                        value={model.id.toString()}
-                                    >{`${model.name} : ${model.price} ${model.creator.pageAsset?.code}`}</SelectItem>
+                                    <SelectItem key={model.id} value={model.id.toString()}>
+                                        {`${model.name} : ${model.price} ${model.creator.pageAsset?.code}`}
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -246,19 +248,16 @@ export function CreatePostModal() {
             )
         }
     }
+
     if (creator.data)
         return (
-
-            <Dialog
-                open={isOpen}
-                onOpenChange={handleClose}
-            >
-
+            <Dialog open={isOpen} onOpenChange={handleClose}>
                 <DialogContent
                     onInteractOutside={(e) => {
                         e.preventDefault()
                     }}
-                    className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto p-0">
+                    className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto p-0"
+                >
                     {showConfetti && (
                         <div className="fixed inset-0 pointer-events-none z-50">
                             <div className="absolute inset-0 flex items-center justify-center">
@@ -283,7 +282,9 @@ export function CreatePostModal() {
                                         top: "50%",
                                         left: "50%",
                                         scale: 0,
-                                        backgroundColor: ["#FF5733", "#33FF57", "#3357FF", "#F3FF33", "#FF33F3"][Math.floor(Math.random() * 5)],
+                                        backgroundColor: ["#FF5733", "#33FF57", "#3357FF", "#F3FF33", "#FF33F3"][
+                                            Math.floor(Math.random() * 5)
+                                        ],
                                     }}
                                     animate={{
                                         top: `${Math.random() * 100}%`,
@@ -300,15 +301,13 @@ export function CreatePostModal() {
                             ))}
                         </div>
                     )}
+
                     <DialogHeader className=" px-6 py-2">
                         <DialogTitle className="text-2xl font-bold flex items-center gap-2">
                             <Sparkles className="h-5 w-5" /> Create a New Post
                         </DialogTitle>
-                        <DialogDescription className="">
-                            Share your amazing content with your fans and followers
-                        </DialogDescription>
+                        <DialogDescription className="">Share your amazing content with your fans and followers</DialogDescription>
                     </DialogHeader>
-
 
                     <form onSubmit={handleSubmit(onSubmit)}>
                         {/* Step Indicator */}
@@ -318,14 +317,14 @@ export function CreatePostModal() {
                                     <div
                                         className={clsx(
                                             "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors",
-                                            currentStep === "content" ? "bg-primary  shadow-sm shadow-foreground" : "bg-gray-100 text-gray-400",
+                                            currentStep === "content"
+                                                ? "bg-primary  shadow-sm shadow-foreground"
+                                                : "bg-gray-100 text-gray-400",
                                         )}
                                     >
                                         1
                                     </div>
-                                    <div
-                                        className={clsx("flex-1 h-1 mx-2", currentStep === "content" ? "bg-gray-200" : "bg-primary")}
-                                    />
+                                    <div className={clsx("flex-1 h-1 mx-2", currentStep === "content" ? "bg-gray-200" : "bg-primary")} />
                                     <div
                                         className={clsx(
                                             "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors",
@@ -338,30 +337,23 @@ export function CreatePostModal() {
                                     >
                                         2
                                     </div>
-                                    <div
-                                        className={clsx("flex-1 h-1 mx-2", currentStep === "preview" ? "bg-primary" : "bg-gray-200")}
-                                    />
+                                    <div className={clsx("flex-1 h-1 mx-2", currentStep === "preview" ? "bg-primary" : "bg-gray-200")} />
                                     <div
                                         className={clsx(
                                             "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors",
-                                            currentStep === "preview" ? "bg-primary  shadow-sm shadow-foreground" : "bg-gray-100 text-gray-400",
+                                            currentStep === "preview"
+                                                ? "bg-primary  shadow-sm shadow-foreground"
+                                                : "bg-gray-100 text-gray-400",
                                         )}
                                     >
                                         3
                                     </div>
                                 </div>
                             </div>
-
                             <div className="flex justify-between text-sm mb-6">
-                                <div className={clsx("font-medium", currentStep === "content" ? "" : "text-gray-500")}>
-                                    Content
-                                </div>
-                                <div className={clsx("font-medium", currentStep === "media" ? "" : "text-gray-500")}>
-                                    Media
-                                </div>
-                                <div className={clsx("font-medium", currentStep === "preview" ? "" : "text-gray-500")}>
-                                    Preview
-                                </div>
+                                <div className={clsx("font-medium", currentStep === "content" ? "" : "text-gray-500")}>Content</div>
+                                <div className={clsx("font-medium", currentStep === "media" ? "" : "text-gray-500")}>Media</div>
+                                <div className={clsx("font-medium", currentStep === "preview" ? "" : "text-gray-500")}>Preview</div>
                             </div>
                         </div>
 
@@ -403,7 +395,11 @@ export function CreatePostModal() {
                                             {errors.heading && <p className="text-sm text-red-500">{errors.heading.message}</p>}
                                         </div>
                                         <div className="space-y-2">
-                                            <Editor onChange={handleEditorChange} value={getValues("content")} className="h-[240px]" />
+                                            <Editor
+                                                onChange={handleEditorChange}
+                                                value={getValues("content") ?? ""} // Use watched value instead of getValues
+                                                className="h-[240px]"
+                                            />
                                             {errors.content && <p className="text-sm text-red-500">{errors.content.message}</p>}
                                         </div>
                                     </div>
@@ -542,7 +538,6 @@ export function CreatePostModal() {
                                                                         ? "Upload a Video"
                                                                         : "Upload Music"}
                                                             </h3>
-
                                                             {wantMediaType === "IMAGE" ? (
                                                                 <UploadS3Button
                                                                     endpoint="imageUploader"
@@ -626,11 +621,8 @@ export function CreatePostModal() {
                                                 </div>
                                             </div>
                                         </div>
-
-                                        <h2 className="text-xl font-bold mb-3">{getValues("heading")}</h2>
-
-                                        <div className="prose max-w-none mb-6" dangerouslySetInnerHTML={{ __html: getValues("content") }} />
-
+                                        <h2 className="text-xl font-bold mb-3">{watchedHeading}</h2>
+                                        <div className="prose max-w-none mb-6" dangerouslySetInnerHTML={{ __html: getValues("content") ?? "" }} />
                                         {media.length > 0 && (
                                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
                                                 {media.map((item, index) => (
@@ -669,7 +661,7 @@ export function CreatePostModal() {
 
                         <div className="flex justify-between gap-3 mt-4 pt-4 border-t px-6 pb-6">
                             {currentStep !== "content" ? (
-                                <Button type="button" variant="outline" onClick={goToPreviousStep} className="px-6">
+                                <Button type="button" variant="outline" onClick={goToPreviousStep} className="px-6 bg-transparent">
                                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                                 </Button>
                             ) : (
@@ -682,17 +674,12 @@ export function CreatePostModal() {
                                 <Button
                                     type="button"
                                     onClick={goToNextStep}
-
-                                    disabled={currentStep === "content" && (!getValues("heading") || !getValues("content"))}
+                                    disabled={currentStep === "content" && !isContentStepValid()}
                                 >
                                     Next <ArrowRight className="ml-2 h-4 w-4" />
                                 </Button>
                             ) : (
-                                <Button
-                                    type="button"
-                                    disabled={createPostMutation.isLoading}
-                                    onClick={handleSubmit(onSubmit)}
-                                >
+                                <Button type="button" disabled={createPostMutation.isLoading} onClick={handleSubmit(onSubmit)}>
                                     {createPostMutation.isLoading ? (
                                         <>
                                             <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent"></span>
@@ -708,6 +695,7 @@ export function CreatePostModal() {
                         </div>
                     </form>
                 </DialogContent>
+
                 {/* Media Preview Dialog */}
                 <Dialog open={!!previewMedia} onOpenChange={(open) => !open && closeMediaPreview()}>
                     <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden bg-black/95 border-none text-white">
@@ -792,11 +780,6 @@ export function CreatePostModal() {
                         </div>
                     </DialogContent>
                 </Dialog>
-
-
             </Dialog>
-
-
         )
 }
-

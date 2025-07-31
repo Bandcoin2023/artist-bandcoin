@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Card, CardHeader, CardContent, CardFooter } from '~/components/shadcn//ui/card'
-import { Paperclip, Plus, Search, Send, Trash } from "lucide-react"
+import { Loader2, Paperclip, Plus, Search, Send, Trash } from "lucide-react"
 import { UserRole } from "@prisma/client"
 import { cn } from "~/lib/utils"
 import { z } from "zod"
@@ -20,6 +20,7 @@ import { Button } from "~/components/shadcn/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/shadcn/ui/dialog"
 import CustomAvatar from "../common/custom-avatar"
 import { toast } from "~/hooks/use-toast"
+import { motion } from "framer-motion"
 type BountyDoubtListItem = {
     id: number
     bountyId: number
@@ -369,7 +370,16 @@ const ChatItem = ({ item }: { item: BountyDoubtListItem }) => {
                             className="shadow-sm shadow-black"
                             disabled={loading ?? input.trim().length === 0 ?? NewMessageMutation.isLoading}
                         >
-                            <Send className="h-4 w-4" />
+                            {NewMessageMutation.isLoading ? (
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                                >
+                                    <Loader2 className="h-4 w-4" />
+                                </motion.div>
+                            ) : (
+                                <Send className="h-4 w-4" />
+                            )}
                             <span className="sr-only">Send</span>
                         </Button>
                     </div>
