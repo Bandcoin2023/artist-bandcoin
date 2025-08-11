@@ -94,9 +94,8 @@ export const authOptions: NextAuthOptions = {
         console.log("cred", cred);
         // email pass login
         if (cred.walletType == WalletType.emailPass) {
-
           const { email, password, fromAppSign } = cred;
-          console.log("calling", cred)
+          // console.log("calling", cred)
           const userCredential = await signInWithEmailAndPassword(
             auth,
             email,
@@ -207,8 +206,6 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
-
-
 };
 
 /**

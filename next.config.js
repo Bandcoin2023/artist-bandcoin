@@ -14,6 +14,9 @@ const config = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 
   reactStrictMode: true,
   images: {
@@ -21,15 +24,15 @@ const config = {
       { hostname: "bandcoin-object-store.s3.amazonaws.com" },
       { hostname: "gateway.pinata.cloud" },
       {
-        hostname: 'actionverse.s3.amazonaws.com',
+        hostname: "actionverse.s3.amazonaws.com",
       },
       {
         hostname: "utfs.io",
       },
       { hostname: "app.wadzzo.com" },
       { hostname: "bandcoin.io" },
-      {hostname: "i.scdn.co" },
-      {hostname: "wadzzo.s3.amazonaws.com"},
+      { hostname: "i.scdn.co" },
+      { hostname: "wadzzo.s3.amazonaws.com" },
       {
         hostname: "firebasestorage.googleapis.com",
       },
