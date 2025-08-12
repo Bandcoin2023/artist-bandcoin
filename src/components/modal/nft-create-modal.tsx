@@ -505,8 +505,11 @@ export default function NftCreateModal() {
                         )}
 
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium">
+                          <Label className="text-sm font-medium flex items-center gap-2">
                             Thumbnail Image
+                            <span className="text-xs text-muted-foreground">
+                              (This will be your NFT image and item Thumbnail)
+                            </span>
                           </Label>
                           <AnimatePresence>
                             {!coverUrl ? (

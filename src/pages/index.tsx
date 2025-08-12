@@ -26,7 +26,7 @@ import { useSession } from "next-auth/react";
 import { useLoginRequiredModalStore } from "~/components/store/login-required-modal-store";
 
 // Global Variables
-const TABS = ["ALL", "BANDCOIN", "ARTISTS", "ARTIST TOKENS", "ROYALTY"];
+const TABS = ["ALL", "ARTISTS", "STORE ITEMS", "ROYALTY"];
 
 const HomePage = () => {
   // Variables Declaration
@@ -501,7 +501,7 @@ const FilterTabs = () => {
               />
             </div>
           )}
-          {activeTab === "BANDCOIN" && (
+          {/* {activeTab === "BANDCOIN" && (
             <div className="">
               <AdminAsset
                 adminAssets={adminAssets}
@@ -511,7 +511,7 @@ const FilterTabs = () => {
                 isLoading={isLoading}
               />
             </div>
-          )}
+          )} */}
           {activeTab === "ARTISTS" && (
             <div className="">
               <Artist
@@ -523,7 +523,7 @@ const FilterTabs = () => {
               />
             </div>
           )}
-          {activeTab === "ARTIST TOKENS" && (
+          {activeTab === "STORE ITEMS" && (
             <div>
               <ArtistTokens
                 artistTokens={fanAssets}

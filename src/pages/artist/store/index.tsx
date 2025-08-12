@@ -18,6 +18,7 @@ import {
     ShoppingBag,
     AlbumIcon,
     Coins,
+    MoreVertical,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Input } from "~/components/shadcn/ui/input"
@@ -107,6 +108,23 @@ export default function StoredItemsView() {
     const { ref: storedRef, inView: storedInView } = useInView()
     const { ref: albumRef, inView: albumInView } = useInView()
     const { ref: royaltyRef, inView: royaltyInView } = useInView()
+    const actions = [
+        {
+            label: "Mint New Item",
+            icon: ShoppingBag,
+            onClick: () => setIsOpenNFTModal(true),
+        },
+        {
+            label: "Create Album",
+            icon: Music,
+            onClick: () => setIsAlbumModalOpen(true),
+        },
+        {
+            label: "Sell Page Assets",
+            icon: Coins,
+            onClick: () => setIsOpenSellPageAssetModal(true),
+        },
+    ]
 
     // Stored Items Query
     const {
@@ -302,44 +320,39 @@ export default function StoredItemsView() {
     return (
 
         <Card>
-            <CardHeader>
-                <div className="flex items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between w-full">
+                <div className="flex items-center justify-between w-full">
                     <h2 className="text-4xl font-semibold text-center">Stores</h2>
+                    <div className="hidden md:flex items-center gap-2">
+                        {actions.map((action) => {
+                            const Icon = action.icon
+                            return (
+                                <Button key={action.label} onClick={action.onClick} className="cursor-pointer shadow-sm shadow-foreground">
+                                    <Icon className="mr-2 h-4 w-4" />
+                                    <span>{action.label}</span>
+                                </Button>
+                            )
+                        })}
+                    </div>
+                </div>
+                <div className="md:hidden">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button
-                                variant='accent'
-                                className="shadow-foreground">
+                            <Button variant="outline" className="">
                                 <Plus className="h-4 w-4" />
-                                Create Store Item
+                                <span className="">Create</span>
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56">
-                            <DropdownMenuItem
-                                onClick={() => {
-                                    setIsOpenNFTModal(true)
-                                }}
-                                className="cursor-pointer">
-                                <ShoppingBag className="mr-2 h-4 w-4" />
-                                <span>Create Stored Item</span>
-                            </DropdownMenuItem>
-
-                            <DropdownMenuItem
-                                onClick={() => {
-                                    setIsAlbumModalOpen(true)
-                                }}
-                                className="cursor-pointer">
-                                <Music className="mr-2 h-4 w-4" />
-                                <span>Create Album</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={() => {
-                                    setIsOpenSellPageAssetModal(true)
-                                }}
-                                className="cursor-pointer">
-                                <Coins className="mr-2 h-4 w-4" />
-                                <span>Sell Page Assets</span>
-                            </DropdownMenuItem>
+                        <DropdownMenuContent align="end" className="w-48">
+                            {actions.map((action) => {
+                                const Icon = action.icon
+                                return (
+                                    <DropdownMenuItem key={action.label} onClick={action.onClick} className="cursor-pointer">
+                                        <Icon className="mr-2 h-4 w-4" />
+                                        <span>{action.label}</span>
+                                    </DropdownMenuItem>
+                                )
+                            })}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
@@ -500,6 +513,9 @@ export default function StoredItemsView() {
                                                             <AssetView code={item.asset.name} thumbnail={item.asset.thumbnail}
                                                                 isNFT={true} creatorId={item.asset.creatorId}
                                                                 price={item.price}
+                                                                priceInUSD={item.priceUSD}
+                                                                mediaType={item.asset.mediaType}
+
                                                             />
                                                         </div>
                                                     ) : (

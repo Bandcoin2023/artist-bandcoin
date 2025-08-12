@@ -1,6 +1,8 @@
-"use client";
-import { useForm, FormProvider, useFormContext } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+"use client"
+import { useForm, FormProvider, useFormContext } from "react-hook-form"
+import type React from "react"
+
+import { zodResolver } from "@hookform/resolvers/zod"
 import {
   Music,
   FileText,
@@ -16,15 +18,15 @@ import {
   Grid3X3,
   X,
   ImageIcon,
-} from "lucide-react";
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { toast } from "react-hot-toast";
-import { z } from "zod";
-import { AccountSchema, clientSelect } from "~/lib/stellar/fan/utils";
-import { Input } from "~/components/shadcn/ui/input";
-import { Label } from "~/components/shadcn/ui/label";
-import { Textarea } from "~/components/shadcn/ui/textarea";
-import { api } from "~/utils/api";
+} from "lucide-react"
+import { useEffect, useMemo, useRef, useState, useCallback } from "react"
+import { toast } from "react-hot-toast"
+import { z } from "zod"
+import { AccountSchema, clientSelect } from "~/lib/stellar/fan/utils"
+import { Input } from "~/components/shadcn/ui/input"
+import { Label } from "~/components/shadcn/ui/label"
+import { Textarea } from "~/components/shadcn/ui/textarea"
+import { api } from "~/utils/api"
 import {
   Select,
   SelectContent,
@@ -33,45 +35,25 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "~/components/shadcn/ui/select";
-import Image from "next/image";
-import { Button } from "~/components/shadcn/ui/button";
-import { motion, AnimatePresence, color } from "framer-motion";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardTitle,
-} from "~/components/shadcn/ui/card";
-import { Badge } from "~/components/shadcn/ui/badge";
-import { Progress } from "~/components/shadcn/ui/progress";
-import { Separator } from "~/components/shadcn/ui/separator";
-import {
-  MultiMusicUploadS3Button,
-  UploadS3Button,
-} from "../common/upload-button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-} from "../shadcn/ui/dialog";
-import { cn } from "~/lib/utils";
-import {
-  PLATFORM_ASSET,
-  PLATFORM_FEE,
-  TrxBaseFeeInPlatformAsset,
-} from "~/lib/stellar/constant";
-import { useSession } from "next-auth/react";
-import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances";
-import useNeedSign from "~/lib/hook";
-import {
-  PaymentChoose,
-  usePaymentMethodStore,
-} from "../common/payment-options";
-import { clientsign } from "package/connect_wallet";
-import { useExportCreateSongModalStore } from "../store/export-create-song-modal-store";
-import { ipfsHashToPinataGatewayUrl } from "~/utils/ipfs";
+} from "~/components/shadcn/ui/select"
+import Image from "next/image"
+import { Button } from "~/components/shadcn/ui/button"
+import { motion, AnimatePresence } from "framer-motion"
+import { Card, CardContent, CardFooter, CardTitle } from "~/components/shadcn/ui/card"
+import { Badge } from "~/components/shadcn/ui/badge"
+import { Progress } from "~/components/shadcn/ui/progress"
+import { Separator } from "~/components/shadcn/ui/separator"
+import { MultiMusicUploadS3Button, UploadS3Button } from "../common/upload-button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader } from "../shadcn/ui/dialog"
+import { cn } from "~/lib/utils"
+import { PLATFORM_ASSET, PLATFORM_FEE, TrxBaseFeeInPlatformAsset } from "~/lib/stellar/constant"
+import { useSession } from "next-auth/react"
+import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances"
+import useNeedSign from "~/lib/hook"
+import { PaymentChoose, usePaymentMethodStore } from "../common/payment-options"
+import { clientsign } from "package/connect_wallet"
+import { useExportCreateSongModalStore } from "../store/export-create-song-modal-store"
+import { ipfsHashToPinataGatewayUrl } from "~/utils/ipfs"
 
 export const ExportSongFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -136,27 +118,21 @@ export const ExportSongFormSchema = z.object({
       color: z.string(),
     }),
   ),
-});
+})
 
-type ExportSongFormType = z.infer<typeof ExportSongFormSchema>;
+type ExportSongFormType = z.infer<typeof ExportSongFormSchema>
 
-type FormStep = "basics" | "album" | "media" | "pricing" | "review";
+type FormStep = "basics" | "album" | "media" | "pricing" | "review"
 
-const FORM_STEPS: FormStep[] = [
-  "basics",
-  "album",
-  "media",
-  "pricing",
-  "review",
-];
+const FORM_STEPS: FormStep[] = ["basics", "album", "media", "pricing", "review"]
 
 export default function ExportCreateSongModal() {
-  const [activeStep, setActiveStep] = useState<FormStep>("basics");
-  const [formProgress, setFormProgress] = useState(20);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { data, setData, isOpen, setIsOpen } = useExportCreateSongModalStore();
+  const [activeStep, setActiveStep] = useState<FormStep>("basics")
+  const [formProgress, setFormProgress] = useState(20)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { data, setData, isOpen, setIsOpen } = useExportCreateSongModalStore()
 
-  const [fileName] = useState(() => `${"exported-song"}-${Date.now()}.wav`);
+  const [fileName] = useState(() => `${"exported-song"}-${Date.now()}.wav`)
 
   const methods = useForm<ExportSongFormType>({
     mode: "onChange",
@@ -170,93 +146,91 @@ export default function ExportCreateSongModal() {
       code: "",
       limit: 100,
     },
-  });
+  })
 
   // Update progress based on active step
   useEffect(() => {
-    const stepIndex = FORM_STEPS.indexOf(activeStep);
-    setFormProgress((stepIndex + 1) * (100 / FORM_STEPS.length));
-  }, [activeStep]);
+    const stepIndex = FORM_STEPS.indexOf(activeStep)
+    setFormProgress((stepIndex + 1) * (100 / FORM_STEPS.length))
+  }, [activeStep])
 
-  const uploadRef = useRef<boolean>(false);
+  const uploadRef = useRef<boolean>(false)
 
   // Handle successful audio upload
 
   // Navigation functions
   const goToNextStep = () => {
-    const currentIndex = FORM_STEPS.indexOf(activeStep);
+    const currentIndex = FORM_STEPS.indexOf(activeStep)
     if (currentIndex < FORM_STEPS.length - 1) {
-      const nextStep = FORM_STEPS[currentIndex + 1];
+      const nextStep = FORM_STEPS[currentIndex + 1]
       if (nextStep) {
-        setActiveStep(nextStep);
+        setActiveStep(nextStep)
       }
     }
-  };
+  }
 
   const goToPreviousStep = () => {
-    const currentIndex = FORM_STEPS.indexOf(activeStep);
+    const currentIndex = FORM_STEPS.indexOf(activeStep)
     if (currentIndex > 0) {
-      const previousStep = FORM_STEPS[currentIndex - 1];
+      const previousStep = FORM_STEPS[currentIndex - 1]
       if (previousStep) {
-        setActiveStep(previousStep);
+        setActiveStep(previousStep)
       }
     }
-  };
+  }
 
   // Check if current step is valid before allowing to proceed
   const canProceed = () => {
-    const { trigger, watch } = methods;
+    const { trigger, watch } = methods
     const fieldsToValidate: Record<FormStep, (keyof ExportSongFormType)[]> = {
       basics: ["name", "artist", "description", "tier"],
       album: [],
       media: ["coverImgUrl", "musicUrl"],
       pricing: ["code", "limit", "price", "priceUSD"],
       review: [],
-    };
+    }
 
     const validateStep = async () => {
       if (activeStep === "media") {
         // Check if all required media files are uploaded
-        const musicUrl = watch("musicUrl");
-        const coverImgUrl = watch("coverImgUrl");
-        const tracks = watch("tracks");
+        const musicUrl = watch("musicUrl")
+        const coverImgUrl = watch("coverImgUrl")
+        const tracks = watch("tracks")
 
-        const hasMainAudio = !!musicUrl;
-        const hasCoverImage = !!coverImgUrl;
+        const hasMainAudio = !!musicUrl
+        const hasCoverImage = !!coverImgUrl
         const hasAllTracks =
-          !data.TracksBlob ||
-          data.TracksBlob.length === 0 ||
-          (tracks && tracks.length === data.TracksBlob.length);
+          !data.TracksBlob || data.TracksBlob.length === 0 || (tracks && tracks.length === data.TracksBlob.length)
 
-        return hasMainAudio && hasCoverImage && hasAllTracks;
+        return hasMainAudio && hasCoverImage && hasAllTracks
       }
 
-      const result = await trigger(fieldsToValidate[activeStep]);
-      return result;
-    };
+      const result = await trigger(fieldsToValidate[activeStep])
+      return result
+    }
 
-    return validateStep();
-  };
+    return validateStep()
+  }
 
   const handleNext = async () => {
-    const isValid = await canProceed();
+    const isValid = await canProceed()
     if (isValid) {
-      goToNextStep();
+      goToNextStep()
     }
-  };
+  }
 
   const handleClose = () => {
-    setIsOpen(false);
-    setActiveStep("basics");
-    uploadRef.current = false; // Reset upload ref
-    methods.reset();
-  };
+    setIsOpen(false)
+    setActiveStep("basics")
+    uploadRef.current = false // Reset upload ref
+    methods.reset()
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
         onInteractOutside={(e) => {
-          e.preventDefault();
+          e.preventDefault()
         }}
         className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-xl p-2"
       >
@@ -274,9 +248,7 @@ export default function ExportCreateSongModal() {
                 <CardTitle>Export to BANDCOIN</CardTitle>
               </div>
             </div>
-            <DialogDescription>
-              Export your track to BANDCOIN platform
-            </DialogDescription>
+            <DialogDescription>Export your track to BANDCOIN platform</DialogDescription>
             <Progress value={formProgress} className="mt-2 h-2" />
 
             <div className="w-full px-6">
@@ -293,14 +265,7 @@ export default function ExportCreateSongModal() {
                     >
                       {index + 1}
                     </div>
-                    <span
-                      className={cn(
-                        "text-xs",
-                        activeStep === step
-                          ? "font-medium"
-                          : "text-muted-foreground",
-                      )}
-                    >
+                    <span className={cn("text-xs", activeStep === step ? "font-medium" : "text-muted-foreground")}>
                       {step === "basics"
                         ? "Basics"
                         : step === "album"
@@ -341,11 +306,7 @@ export default function ExportCreateSongModal() {
                 </Button>
 
                 {activeStep !== "review" ? (
-                  <Button
-                    type="button"
-                    className="shadow-foreground"
-                    onClick={handleNext}
-                  >
+                  <Button type="button" className="shadow-foreground" onClick={handleNext}>
                     Next
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -358,7 +319,7 @@ export default function ExportCreateSongModal() {
         </motion.div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
 
 function BasicsStep({ audioBlob }: { audioBlob?: Blob }) {
@@ -366,8 +327,8 @@ function BasicsStep({ audioBlob }: { audioBlob?: Blob }) {
     register,
     setValue,
     formState: { errors },
-  } = useFormContext<ExportSongFormType>();
-  const tiers = api.fan.member.getAllMembership.useQuery();
+  } = useFormContext<ExportSongFormType>()
+  const tiers = api.fan.member.getAllMembership.useQuery()
 
   return (
     <motion.div
@@ -379,9 +340,7 @@ function BasicsStep({ audioBlob }: { audioBlob?: Blob }) {
     >
       <div className="space-y-1">
         <h2 className="text-xl font-semibold">Basic Information</h2>
-        <p className="text-sm text-muted-foreground">
-          Enter the basic details about your exported track
-        </p>
+        <p className="text-sm text-muted-foreground">Enter the basic details about your exported track</p>
       </div>
 
       <div className="space-y-4">
@@ -396,9 +355,7 @@ function BasicsStep({ audioBlob }: { audioBlob?: Blob }) {
             placeholder="Enter song name"
             className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
           />
-          {errors.name && (
-            <p className="text-sm text-destructive">{errors.name.message}</p>
-          )}
+          {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
         </div>
 
         <div className="space-y-2">
@@ -412,9 +369,7 @@ function BasicsStep({ audioBlob }: { audioBlob?: Blob }) {
             placeholder="Enter artist name"
             className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
           />
-          {errors.artist && (
-            <p className="text-sm text-destructive">{errors.artist.message}</p>
-          )}
+          {errors.artist && <p className="text-sm text-destructive">{errors.artist.message}</p>}
         </div>
 
         <div className="space-y-2">
@@ -428,11 +383,7 @@ function BasicsStep({ audioBlob }: { audioBlob?: Blob }) {
             placeholder="Write a short description about this song"
             className="min-h-24 resize-none transition-all duration-200 focus:ring-2 focus:ring-primary/20"
           />
-          {errors.description && (
-            <p className="text-sm text-destructive">
-              {errors.description.message}
-            </p>
-          )}
+          {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
         </div>
 
         {tiers.data && (
@@ -442,24 +393,22 @@ function BasicsStep({ audioBlob }: { audioBlob?: Blob }) {
               Access Tier
             </Label>
             <TiersOptions tiers={tiers.data} />
-            {errors.tier && (
-              <p className="text-sm text-destructive">{errors.tier.message}</p>
-            )}
+            {errors.tier && <p className="text-sm text-destructive">{errors.tier.message}</p>}
           </div>
         )}
       </div>
     </motion.div>
-  );
+  )
 }
 
 function AlbumStep() {
-  const { setValue, watch } = useFormContext<ExportSongFormType>();
-  const [activeTab, setActiveTab] = useState<"existing" | "new">("existing");
-  const [isCreatingAlbum, setIsCreatingAlbum] = useState(false);
+  const { setValue, watch } = useFormContext<ExportSongFormType>()
+  const [activeTab, setActiveTab] = useState<"existing" | "new">("existing")
+  const [isCreatingAlbum, setIsCreatingAlbum] = useState(false)
 
-  const selectedAlbumId = watch("albumId");
-  const newAlbumName = watch("newAlbumName");
-  const newAlbumDescription = watch("newAlbumDescription");
+  const selectedAlbumId = watch("albumId")
+  const newAlbumName = watch("newAlbumName")
+  const newAlbumDescription = watch("newAlbumDescription")
 
   const {
     data: albumsData,
@@ -475,35 +424,35 @@ function AlbumStep() {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       enabled: activeTab === "existing",
     },
-  );
+  )
 
   const createAlbumMutation = api.fan.music.createAlbum.useMutation({
     onSuccess: (newAlbum) => {
-      setValue("albumId", newAlbum.id);
-      setIsCreatingAlbum(false);
-      toast.success("Album created successfully!");
+      setValue("albumId", newAlbum.id)
+      setIsCreatingAlbum(false)
+      toast.success("Album created successfully!")
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to create album");
-      setIsCreatingAlbum(false);
+      toast.error(error.message || "Failed to create album")
+      setIsCreatingAlbum(false)
     },
-  });
+  })
 
   const handleCreateAlbum = async () => {
     if (!newAlbumName) {
-      toast.error("Album name is required");
-      return;
+      toast.error("Album name is required")
+      return
     }
 
-    setIsCreatingAlbum(true);
+    setIsCreatingAlbum(true)
     createAlbumMutation.mutate({
       name: newAlbumName,
       description: newAlbumDescription ?? "",
       coverImgUrl: watch("newAlbumCover") ?? "",
-    });
-  };
+    })
+  }
 
-  const albums = albumsData?.pages.flatMap((page) => page.albums) ?? [];
+  const albums = albumsData?.pages.flatMap((page) => page.albums) ?? []
 
   return (
     <motion.div
@@ -515,9 +464,7 @@ function AlbumStep() {
     >
       <div className="space-y-1">
         <h2 className="text-xl font-semibold">Album Selection</h2>
-        <p className="text-sm text-muted-foreground">
-          Choose an existing album or create a new one
-        </p>
+        <p className="text-sm text-muted-foreground">Choose an existing album or create a new one</p>
       </div>
 
       {/* Tab Selector */}
@@ -560,12 +507,7 @@ function AlbumStep() {
             <div className="py-8 text-center">
               <Album className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
               <p className="text-muted-foreground">No albums found</p>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setActiveTab("new")}
-                className="mt-2"
-              >
+              <Button type="button" variant="outline" onClick={() => setActiveTab("new")} className="mt-2">
                 Create your first album
               </Button>
             </div>
@@ -577,9 +519,7 @@ function AlbumStep() {
                     key={album.id}
                     className={cn(
                       "cursor-pointer transition-all duration-200 hover:shadow-md",
-                      selectedAlbumId === album.id
-                        ? "bg-primary/5 ring-2 ring-primary"
-                        : "hover:bg-muted/50",
+                      selectedAlbumId === album.id ? "bg-primary/5 ring-2 ring-primary" : "hover:bg-muted/50",
                     )}
                     onClick={() => setValue("albumId", album.id)}
                   >
@@ -599,12 +539,8 @@ function AlbumStep() {
                           </div>
                         )}
                       </div>
-                      <h3 className="truncate text-sm font-medium">
-                        {album.name}
-                      </h3>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {album._count.songs || 0} songs
-                      </p>
+                      <h3 className="truncate text-sm font-medium">{album.name}</h3>
+                      <p className="truncate text-xs text-muted-foreground">{album._count.songs || 0} songs</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -670,12 +606,12 @@ function AlbumStep() {
               label="Upload Album Cover"
               onClientUploadComplete={(res) => {
                 if (res?.url) {
-                  setValue("newAlbumCover", res.url);
-                  toast.success("Album cover uploaded successfully");
+                  setValue("newAlbumCover", res.url)
+                  toast.success("Album cover uploaded successfully")
                 }
               }}
               onUploadError={(error: Error) => {
-                toast.error(`ERROR! ${error.message}`);
+                toast.error(`ERROR! ${error.message}`)
               }}
             />
           </div>
@@ -701,66 +637,66 @@ function AlbumStep() {
         </div>
       )}
     </motion.div>
-  );
+  )
 }
 export function MediaStep() {
   const {
     setValue,
     watch,
     formState: { errors },
-  } = useFormContext<ExportSongFormType>();
+  } = useFormContext<ExportSongFormType>()
 
-  const { data } = useExportCreateSongModalStore();
+  const { data } = useExportCreateSongModalStore()
 
   // Upload states
   const [audioUploadState, setAudioUploadState] = useState<{
-    status: "idle" | "uploading" | "completed" | "error";
-    url?: string;
-    progress: number;
+    status: "idle" | "uploading" | "completed" | "error"
+    url?: string
+    progress: number
   }>({
     status: "idle",
     progress: 0,
-  });
+  })
 
   const [tracksUploadState, setTracksUploadState] = useState<{
-    status: "idle" | "uploading" | "completed" | "error";
-    progress: number;
-    completedCount: number;
-    totalCount: number;
+    status: "idle" | "uploading" | "completed" | "error"
+    progress: number
+    completedCount: number
+    totalCount: number
   }>({
     status: "idle",
     progress: 0,
     completedCount: 0,
     totalCount: 0,
-  });
+  })
 
   // Cover image upload states
-  const [file, setFile] = useState<File>();
-  const [ipfs, setIpfs] = useState<string>();
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [file, setFile] = useState<File>()
+  const [ipfs, setIpfs] = useState<string>()
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
 
-  const musicUrl = watch("musicUrl");
-  const coverImgUrl = watch("coverImgUrl");
-  const tracks = watch("tracks");
+  const musicUrl = watch("musicUrl")
+  const coverImgUrl = watch("coverImgUrl")
+  const tracks = watch("tracks")
 
   // Memoize files to prevent re-creation
   const memoizedAudioFile = useMemo(() => {
-    if (!data.audioBlob) return undefined;
+    if (!data.audioBlob) return undefined
     return new File([data.audioBlob], `exported-song-${Date.now()}.wav`, {
       type: "audio/wav",
-    });
-  }, [data.audioBlob]);
+    })
+  }, [data.audioBlob])
 
   const memoizedTrackFiles = useMemo(() => {
-    if (!data.TracksBlob || data.TracksBlob.length === 0) return [];
+    if (!data.TracksBlob || data.TracksBlob.length === 0) return []
     return data.TracksBlob.filter((track) => track.blob).map(
       (track) =>
         new File([track.blob!], `${track.name}-${track.id}.wav`, {
           type: "audio/wav",
         }),
-    );
-  }, [data.TracksBlob]);
+    )
+  }, [data.TracksBlob])
 
   // Audio upload handlers
   const handleAudioUploadComplete = useCallback(
@@ -769,27 +705,27 @@ export function MediaStep() {
         status: "completed",
         url: res.url,
         progress: 100,
-      });
-      setValue("musicUrl", res.url);
-      toast.success("Main audio uploaded successfully!");
+      })
+      setValue("musicUrl", res.url)
+      toast.success("Main audio uploaded successfully!")
     },
     [setValue],
-  );
+  )
 
   const handleAudioUploadError = useCallback((error: Error) => {
     setAudioUploadState({
       status: "error",
       progress: 0,
-    });
-    toast.error(`Audio upload failed: ${error.message}`);
-  }, []);
+    })
+    toast.error(`Audio upload failed: ${error.message}`)
+  }, [])
 
   const handleAudioUploadProgress = useCallback((progress: number) => {
     setAudioUploadState((prev) => ({
       ...prev,
       progress,
-    }));
-  }, []);
+    }))
+  }, [])
 
   // Tracks upload handlers
   const handleTracksUploadComplete = useCallback(
@@ -799,14 +735,12 @@ export function MediaStep() {
         progress: 100,
         completedCount: files.length,
         totalCount: files.length,
-      });
+      })
 
       // Map uploaded files back to tracks with URLs
       const updatedTracks =
         data.TracksBlob?.map((track) => {
-          const uploadedFile = files.find((file) =>
-            file.name.includes(track.id),
-          );
+          const uploadedFile = files.find((file) => file.name.includes(track.id))
           return {
             id: track.id,
             name: track.name,
@@ -820,119 +754,117 @@ export function MediaStep() {
             trimStart: track.trimStart,
             trimEnd: track.trimEnd,
             color: track.color ?? "#8B5CF6",
-          };
-        }) ?? [];
+          }
+        }) ?? []
 
-      setValue("tracks", updatedTracks);
-      toast.success(`All ${files.length} tracks uploaded successfully!`);
+      setValue("tracks", updatedTracks)
+      toast.success(`All ${files.length} tracks uploaded successfully!`)
     },
     [data.TracksBlob, setValue],
-  );
+  )
 
   const handleTracksUploadError = useCallback((error: Error) => {
+    console.log("🎵 error.......... called", error)
     setTracksUploadState({
       status: "error",
       progress: 0,
       completedCount: 0,
       totalCount: 0,
-    });
-    toast.error(`Tracks upload failed: ${error.message}`);
-  }, []);
+    })
+    toast.error(`Tracks upload failed: ${error.message}`)
+  }, [])
 
   const handleTracksUploadProgress = useCallback((progress: number) => {
     setTracksUploadState((prev) => ({
       ...prev,
       progress,
-    }));
-  }, []);
+    }))
+  }, [])
 
   // Cover image upload
   const uploadCoverImage = async (fileToUpload: File) => {
     try {
-      setUploading(true);
-      setUploadProgress(10);
+      setUploading(true)
+      setUploadProgress(10)
 
-      const formData = new FormData();
-      formData.append("file", fileToUpload, fileToUpload.name);
+      const formData = new FormData()
+      formData.append("file", fileToUpload, fileToUpload.name)
 
-      setUploadProgress(30);
+      setUploadProgress(30)
 
       const res = await fetch("/api/file", {
         method: "POST",
         body: formData,
-      });
+      })
 
-      setUploadProgress(70);
+      setUploadProgress(70)
 
-      const ipfsHash = await res.text();
-      const thumbnail = ipfsHashToPinataGatewayUrl(ipfsHash);
+      const ipfsHash = await res.text()
+      const thumbnail = ipfsHashToPinataGatewayUrl(ipfsHash)
 
-      setUploadProgress(90);
+      setUploadProgress(90)
 
-      setValue("coverImgUrl", thumbnail);
-      setIpfs(ipfsHash);
+      setValue("coverImgUrl", thumbnail)
+      setIpfs(ipfsHash)
 
-      setUploadProgress(100);
-      setUploading(false);
+      setUploadProgress(100)
+      setUploading(false)
 
-      toast.success("Cover image uploaded successfully");
+      toast.success("Cover image uploaded successfully")
     } catch (e) {
-      console.error(e);
-      setUploading(false);
-      setUploadProgress(0);
-      toast.error("Trouble uploading file");
+      console.error(e)
+      setUploading(false)
+      setUploadProgress(0)
+      toast.error("Trouble uploading file")
     }
-  };
+  }
 
-  const handleCoverImageChange = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const files = e.target.files;
+  const handleCoverImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
     if (files && files.length > 0) {
-      const file = files[0];
+      const file = files[0]
       if (file) {
         if (file.size > 1024 * 1024) {
-          toast.error("File size should be less than 1MB");
-          return;
+          toast.error("File size should be less than 1MB")
+          return
         }
 
-        setFile(file);
-        await uploadCoverImage(file);
+        setFile(file)
+        await uploadCoverImage(file)
       }
     }
-  };
+  }
 
   const startAudioUpload = () => {
     if (memoizedAudioFile && audioUploadState.status === "idle") {
-      setAudioUploadState((prev) => ({ ...prev, status: "uploading" }));
+      setAudioUploadState((prev) => ({ ...prev, status: "uploading" }))
     }
-  };
+  }
 
   const startTracksUpload = () => {
     console.log("🎵 startTracksUpload called", {
       memoizedTrackFilesLength: memoizedTrackFiles.length,
       tracksUploadStatus: tracksUploadState.status,
       files: memoizedTrackFiles.map((f) => ({ name: f.name, size: f.size })),
-    });
+    })
 
     if (memoizedTrackFiles.length > 0 && tracksUploadState.status === "idle") {
-      console.log("🎵 Setting tracks upload state to uploading");
+      console.log("🎵 Setting tracks upload state to uploading")
       setTracksUploadState((prev) => ({
         ...prev,
         status: "uploading",
         totalCount: memoizedTrackFiles.length,
-      }));
+      }))
     }
-  };
+  }
 
   const canProceedToNext = () => {
     return (
       audioUploadState.status === "completed" &&
-      (memoizedTrackFiles.length === 0 ||
-        tracksUploadState.status === "completed") &&
+      (memoizedTrackFiles.length === 0 || tracksUploadState.status === "completed") &&
       coverImgUrl
-    );
-  };
+    )
+  }
 
   return (
     <motion.div
@@ -944,9 +876,7 @@ export function MediaStep() {
     >
       <div className="space-y-1">
         <h2 className="text-xl font-semibold">Media Files</h2>
-        <p className="text-sm text-muted-foreground">
-          Upload your main audio file, individual tracks, and cover image
-        </p>
+        <p className="text-sm text-muted-foreground">Upload your main audio file, individual tracks, and cover image</p>
       </div>
 
       <div className="space-y-6">
@@ -1027,10 +957,7 @@ export function MediaStep() {
                   </p>
 
                   {audioUploadState.status === "uploading" && (
-                    <Progress
-                      value={audioUploadState.progress}
-                      className="mt-2 w-full"
-                    />
+                    <Progress value={audioUploadState.progress} className="mt-2 w-full" />
                   )}
 
                   {audioUploadState.status === "completed" && musicUrl && (
@@ -1141,12 +1068,7 @@ export function MediaStep() {
                             : `${memoizedTrackFiles.length} tracks ready to upload`}
                     </p>
 
-                    {tracksUploadState.status === "uploading" && (
-                      <Progress
-                        value={tracksUploadState.progress}
-                        className="mt-2 w-full"
-                      />
-                    )}
+
                   </div>
                   {tracksUploadState.status === "idle" && (
                     <Button onClick={startTracksUpload} size="sm">
@@ -1159,17 +1081,18 @@ export function MediaStep() {
 
             {/* Hidden upload component for tracks */}
             {tracksUploadState.status === "uploading" && (
-              <div className="hidden">
-                <MultiMusicUploadS3Button
-                  endpoint="multiMusicBlobUploader"
-                  variant="button"
-                  onUploadProgress={handleTracksUploadProgress}
-                  onClientUploadComplete={handleTracksUploadComplete}
-                  onUploadError={handleTracksUploadError}
-                  preloadedFiles={memoizedTrackFiles}
-                  showFileList={false}
-                />
-              </div>
+
+              <MultiMusicUploadS3Button
+                endpoint="multiMusicBlobUploader"
+                variant="button"
+                className="w-full"
+                onUploadProgress={handleTracksUploadProgress}
+                onClientUploadComplete={handleTracksUploadComplete}
+                onUploadError={handleTracksUploadError}
+                preloadedFiles={memoizedTrackFiles}
+                showFileList={true}
+              />
+
             )}
           </div>
         )}
@@ -1178,8 +1101,7 @@ export function MediaStep() {
 
         {/* Cover Image Upload - Only show when audio uploads are complete */}
         {audioUploadState.status === "completed" &&
-          (memoizedTrackFiles.length === 0 ||
-            tracksUploadState.status === "completed") && (
+          (memoizedTrackFiles.length === 0 || tracksUploadState.status === "completed") && (
             <div className="space-y-4">
               <Label htmlFor="coverImg" className="flex items-center gap-2">
                 <ImageIcon className="h-4 w-4" />
@@ -1199,29 +1121,21 @@ export function MediaStep() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() =>
-                        document.getElementById("coverImg")?.click()
-                      }
+                      onClick={() => document.getElementById("coverImg")?.click()}
                       className="relative flex h-32 w-full flex-col items-center justify-center gap-2 border-dashed"
                       disabled={uploading}
                     >
                       {uploading ? (
                         <>
                           <Loader2 className="h-6 w-6 animate-spin" />
-                          <span className="text-sm">
-                            Uploading... {uploadProgress}%
-                          </span>
+                          <span className="text-sm">Uploading... {uploadProgress}%</span>
                           <Progress value={uploadProgress} className="w-4/5" />
                         </>
                       ) : (
                         <>
                           <Upload className="h-6 w-6 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">
-                            Click to upload cover image
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            JPG, PNG (max 1MB)
-                          </span>
+                          <span className="text-sm text-muted-foreground">Click to upload cover image</span>
+                          <span className="text-xs text-muted-foreground">JPG, PNG (max 1MB)</span>
                         </>
                       )}
                     </Button>
@@ -1234,17 +1148,9 @@ export function MediaStep() {
                     transition={{ duration: 0.2 }}
                     className="relative aspect-square overflow-hidden rounded-md border"
                   >
-                    <Image
-                      fill
-                      alt="Cover preview"
-                      src={coverImgUrl ?? "/placeholder.svg"}
-                      className="object-cover"
-                    />
+                    <Image fill alt="Cover preview" src={coverImgUrl ?? "/placeholder.svg"} className="object-cover" />
                     <div className="absolute bottom-0 left-0 right-0 bg-background/80 px-2 py-1">
-                      <Badge
-                        variant="outline"
-                        className="bg-green-100 text-green-800"
-                      >
+                      <Badge variant="outline" className="bg-green-100 text-green-800">
                         <Check className="mr-1 h-3 w-3" /> Uploaded
                       </Badge>
                     </div>
@@ -1254,8 +1160,8 @@ export function MediaStep() {
                       size="icon"
                       className="absolute right-1 top-1 h-6 w-6"
                       onClick={() => {
-                        setValue("coverImgUrl", "");
-                        setIpfs(undefined);
+                        setValue("coverImgUrl", "")
+                        setIpfs(undefined)
                       }}
                     >
                       <X className="h-3 w-3" />
@@ -1264,34 +1170,24 @@ export function MediaStep() {
                 )}
               </AnimatePresence>
 
-              {errors.coverImgUrl && (
-                <p className="text-sm text-destructive">
-                  {errors.coverImgUrl.message}
-                </p>
-              )}
+              {errors.coverImgUrl && <p className="text-sm text-destructive">{errors.coverImgUrl.message}</p>}
             </div>
           )}
 
         {/* Progress Summary */}
-        {(audioUploadState.status !== "idle" ||
-          tracksUploadState.status !== "idle") && (
+        {(audioUploadState.status !== "idle" || tracksUploadState.status !== "idle") && (
           <Card className="bg-muted/50">
             <CardContent className="p-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span>Upload Progress</span>
-                  <span>
-                    {canProceedToNext()
-                      ? "✅ Ready to continue"
-                      : "⏳ Uploading..."}
-                  </span>
+                  <span>{canProceedToNext() ? "✅ Ready to continue" : "⏳ Uploading..."}</span>
                 </div>
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <div>Main Audio: {audioUploadState.status}</div>
                   {memoizedTrackFiles.length > 0 && (
                     <div>
-                      Tracks: {tracksUploadState.status} (
-                      {tracksUploadState.completedCount}/
+                      Tracks: {tracksUploadState.status} ({tracksUploadState.completedCount}/
                       {tracksUploadState.totalCount})
                     </div>
                   )}
@@ -1303,14 +1199,14 @@ export function MediaStep() {
         )}
       </div>
     </motion.div>
-  );
+  )
 }
 
 function PricingStep() {
   const {
     register,
     formState: { errors },
-  } = useFormContext<ExportSongFormType>();
+  } = useFormContext<ExportSongFormType>()
 
   return (
     <motion.div
@@ -1322,9 +1218,7 @@ function PricingStep() {
     >
       <div className="space-y-1">
         <h2 className="text-xl font-semibold">Pricing & Asset Details</h2>
-        <p className="text-sm text-muted-foreground">
-          Set up your song{"'s"} pricing and asset information
-        </p>
+        <p className="text-sm text-muted-foreground">Set up your song{"'s"} pricing and asset information</p>
       </div>
 
       <div className="space-y-6">
@@ -1340,9 +1234,7 @@ function PricingStep() {
               placeholder="Enter asset name (4-12 chars)"
               className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
             />
-            {errors.code && (
-              <p className="text-sm text-destructive">{errors.code.message}</p>
-            )}
+            {errors.code && <p className="text-sm text-destructive">{errors.code.message}</p>}
           </div>
 
           <div className="space-y-2">
@@ -1357,12 +1249,8 @@ function PricingStep() {
               placeholder="Enter supply limit"
               className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
             />
-            {errors.limit && (
-              <p className="text-sm text-destructive">{errors.limit.message}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              This determines how many copies of this song can exist
-            </p>
+            {errors.limit && <p className="text-sm text-destructive">{errors.limit.message}</p>}
+            <p className="text-xs text-muted-foreground">This determines how many copies of this song can exist</p>
           </div>
         </div>
 
@@ -1382,9 +1270,7 @@ function PricingStep() {
               placeholder={`Enter price in ${PLATFORM_ASSET.code}`}
               className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
             />
-            {errors.price && (
-              <p className="text-sm text-destructive">{errors.price.message}</p>
-            )}
+            {errors.price && <p className="text-sm text-destructive">{errors.price.message}</p>}
           </div>
 
           <div className="space-y-2">
@@ -1400,42 +1286,33 @@ function PricingStep() {
               placeholder="Enter price in USD"
               className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
             />
-            {errors.priceUSD && (
-              <p className="text-sm text-destructive">
-                {errors.priceUSD.message}
-              </p>
-            )}
+            {errors.priceUSD && <p className="text-sm text-destructive">{errors.priceUSD.message}</p>}
           </div>
         </div>
       </div>
     </motion.div>
-  );
+  )
 }
 
 function ReviewStep() {
-  const { watch } = useFormContext<ExportSongFormType>();
+  const { watch } = useFormContext<ExportSongFormType>()
 
-  const name = watch("name");
-  const artist = watch("artist");
-  const description = watch("description");
-  const coverImgUrl = watch("coverImgUrl");
-  const musicUrl = watch("musicUrl");
-  const code = watch("code");
-  const limit = watch("limit");
-  const price = watch("price");
-  const priceUSD = watch("priceUSD");
-  const tier = watch("tier");
-  const albumId = watch("albumId");
+  const name = watch("name")
+  const artist = watch("artist")
+  const description = watch("description")
+  const coverImgUrl = watch("coverImgUrl")
+  const musicUrl = watch("musicUrl")
+  const code = watch("code")
+  const limit = watch("limit")
+  const price = watch("price")
+  const priceUSD = watch("priceUSD")
+  const tier = watch("tier")
+  const albumId = watch("albumId")
 
   // Fetch selected album details
-  const { data: albumsData } = api.fan.music.getCreatorAlbums.useInfiniteQuery(
-    { limit: 100 },
-    { enabled: !!albumId },
-  );
+  const { data: albumsData } = api.fan.music.getCreatorAlbums.useInfiniteQuery({ limit: 100 }, { enabled: !!albumId })
 
-  const selectedAlbum = albumsData?.pages
-    .flatMap((page) => page.albums)
-    .find((album) => album.id === albumId);
+  const selectedAlbum = albumsData?.pages.flatMap((page) => page.albums).find((album) => album.id === albumId)
 
   return (
     <motion.div
@@ -1447,20 +1324,13 @@ function ReviewStep() {
     >
       <div className="space-y-1">
         <h2 className="text-xl font-semibold">Review Your Export</h2>
-        <p className="text-sm text-muted-foreground">
-          Please review all information before publishing to BANDCOIN
-        </p>
+        <p className="text-sm text-muted-foreground">Please review all information before publishing to BANDCOIN</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div className="space-y-4">
           <div className="relative aspect-square overflow-hidden rounded-md border">
-            <Image
-              fill
-              alt="Cover preview"
-              src={coverImgUrl ?? "/placeholder.svg"}
-              className="object-cover"
-            />
+            <Image fill alt="Cover preview" src={coverImgUrl ?? "/placeholder.svg"} className="object-cover" />
           </div>
 
           <audio controls className="w-full">
@@ -1492,9 +1362,7 @@ function ReviewStep() {
                     className="object-cover"
                   />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {selectedAlbum.name}
-                </p>
+                <p className="text-sm text-muted-foreground">{selectedAlbum.name}</p>
               </div>
             </div>
           )}
@@ -1513,9 +1381,7 @@ function ReviewStep() {
             </div>
 
             <div>
-              <p className="text-sm font-medium">
-                Price ({PLATFORM_ASSET.code})
-              </p>
+              <p className="text-sm font-medium">Price ({PLATFORM_ASSET.code})</p>
               <p className="text-sm text-muted-foreground">
                 {price} {PLATFORM_ASSET.code}
               </p>
@@ -1528,57 +1394,51 @@ function ReviewStep() {
 
             <div>
               <p className="text-sm font-medium">Access Tier</p>
-              <p className="text-sm text-muted-foreground">
-                {tier ?? "Public"}
-              </p>
+              <p className="text-sm text-muted-foreground">{tier ?? "Public"}</p>
             </div>
           </div>
         </div>
       </div>
     </motion.div>
-  );
+  )
 }
 
 function ExportSubmitButton({
   setIsOpen,
 }: {
-  setIsOpen: (isOpen: boolean) => void;
+  setIsOpen: (isOpen: boolean) => void
 }) {
-  const { getValues, setValue } = useFormContext<ExportSongFormType>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [tier, setTier] = useState<string>();
-  const session = useSession();
-  const { platformAssetBalance } = useUserStellarAcc();
-  const { needSign } = useNeedSign();
-  const { paymentMethod, setIsOpen: setPaymentModalOpen } =
-    usePaymentMethodStore();
+  const { getValues, setValue } = useFormContext<ExportSongFormType>()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [tier, setTier] = useState<string>()
+  const session = useSession()
+  const { platformAssetBalance } = useUserStellarAcc()
+  const { needSign } = useNeedSign()
+  const { paymentMethod, setIsOpen: setPaymentModalOpen } = usePaymentMethodStore()
 
-  const requiredToken = api.fan.trx.getRequiredPlatformAsset.useQuery(
-    { xlm: 2 },
-    { enabled: true },
-  );
+  const requiredToken = api.fan.trx.getRequiredPlatformAsset.useQuery({ xlm: 2 }, { enabled: true })
 
-  const totalFeees = Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE);
+  const totalFeees = Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE)
 
   const addSong = api.fan.music.createSongWithStems.useMutation({
     onSuccess: () => {
-      toast.success("Song exported to BANDCOIN successfully!");
-      setIsSubmitting(false);
-      setIsOpen(false);
-      setPaymentModalOpen(false);
+      toast.success("Song exported to BANDCOIN successfully!")
+      setIsSubmitting(false)
+      setIsOpen(false)
+      setPaymentModalOpen(false)
     },
     onError: (error) => {
-      toast.error(error.message ?? "Failed to export song");
-      setIsSubmitting(false);
+      toast.error(error.message ?? "Failed to export song")
+      setIsSubmitting(false)
     },
-  });
+  })
 
   const xdrMutation = api.fan.trx.createUniAssetTrx.useMutation({
     onSuccess(data, variables, context) {
-      const { issuer, xdr } = data;
-      setValue("issuer", issuer);
+      const { issuer, xdr } = data
+      setValue("issuer", issuer)
 
-      setIsSubmitting(true);
+      setIsSubmitting(true)
 
       toast.promise(
         clientsign({
@@ -1589,39 +1449,39 @@ function ExportSubmitButton({
         })
           .then((res) => {
             if (res) {
-              setValue("tier", tier);
-              const data = getValues();
-              addSong.mutate({ ...data });
+              setValue("tier", tier)
+              const data = getValues()
+              addSong.mutate({ ...data })
             } else {
-              toast.error("Transaction Failed");
-              setIsSubmitting(false);
+              toast.error("Transaction Failed")
+              setIsSubmitting(false)
             }
           })
           .catch((e) => {
-            console.error(e);
-            setIsSubmitting(false);
+            console.error(e)
+            setIsSubmitting(false)
           }),
         {
           loading: "Signing Transaction...",
           success: "Transaction Signed",
           error: "Signing Transaction Failed",
         },
-      );
+      )
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to create transaction");
-      setIsSubmitting(false);
+      toast.error(error.message || "Failed to create transaction")
+      setIsSubmitting(false)
     },
-  });
+  })
 
   const handleSubmit = () => {
-    const ipfs = getValues("coverImgUrl");
+    const ipfs = getValues("coverImgUrl")
     if (!ipfs) {
-      toast.error("Please upload a cover image");
-      return;
+      toast.error("Please upload a cover image")
+      return
     }
 
-    setIsSubmitting(true);
+    setIsSubmitting(true)
 
     xdrMutation.mutate({
       code: getValues("code"),
@@ -1629,8 +1489,8 @@ function ExportSubmitButton({
       signWith: needSign(),
       ipfsHash: ipfs,
       native: paymentMethod === "xlm",
-    });
-  };
+    })
+  }
 
   if (requiredToken.isLoading) {
     return (
@@ -1638,19 +1498,18 @@ function ExportSubmitButton({
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         Loading...
       </Button>
-    );
+    )
   }
 
-  const requiredTokenAmount = requiredToken.data ?? 0;
-  const insufficientBalance = requiredTokenAmount > platformAssetBalance;
+  const requiredTokenAmount = requiredToken.data ?? 0
+  const insufficientBalance = requiredTokenAmount > platformAssetBalance
 
   return (
     <PaymentChoose
       costBreakdown={[
         {
           label: "Cost",
-          amount:
-            paymentMethod === "asset" ? requiredTokenAmount - totalFeees : 2,
+          amount: paymentMethod === "asset" ? requiredTokenAmount - totalFeees : 2,
           type: "cost",
           highlighted: true,
         },
@@ -1691,15 +1550,15 @@ function ExportSubmitButton({
         </Button>
       }
     />
-  );
+  )
 }
 
 function TiersOptions({
   tiers,
 }: {
-  tiers: { id: number; name: string; price: number }[];
+  tiers: { id: number; name: string; price: number }[]
 }) {
-  const { setValue } = useFormContext<ExportSongFormType>();
+  const { setValue } = useFormContext<ExportSongFormType>()
 
   return (
     <Select onValueChange={(value) => setValue("tier", value)}>
@@ -1722,5 +1581,5 @@ function TiersOptions({
         </SelectGroup>
       </SelectContent>
     </Select>
-  );
+  )
 }

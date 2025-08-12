@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 export enum MyCollectionMenu {
     COLLECTION = "MY COLLECTION",
-    SECONDARY = "SECONDARY MARKETPLACE",
+    SECONDARY = "USER STORE",
 
 }
 

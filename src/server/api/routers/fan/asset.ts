@@ -18,6 +18,7 @@ import {
   protectedProcedure,
 } from "~/server/api/trpc";
 import { BADWORDS } from "~/utils/banned-word";
+import { AssetSelectAllProperty } from "../marketplace/marketplace";
 export const updateAssetFormShema = z.object({
   assetId: z.number(),
   price: z.number().nonnegative(),
@@ -328,6 +329,38 @@ export const shopRouter = createTRPCRouter({
 
     return { shopAsset, pageAsset: pageAsset ?? customPageAsset };
   }),
+
+  getMarketAssetByAssetId: protectedProcedure
+    .input(z.object({ assetId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const { assetId } = input;
+      return await ctx.db.marketAsset.findUnique({
+        where: { id: assetId },
+        include: {
+          asset: {
+            select: {
+              ...AssetSelectAllProperty,
+              tier: {
+                select: {
+                  price: true,
+                },
+              },
+              creator: {
+                select: {
+                  pageAsset: {
+                    select: {
+                      code: true,
+                      issuer: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    }),
+
   getCreatorPageAsset: creatorProcedure
     .input(
       z.object({

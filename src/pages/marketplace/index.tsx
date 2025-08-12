@@ -31,10 +31,10 @@ import {
 import { Clock, Coins, ShoppingCart, Star, User } from "lucide-react";
 import toast from "react-hot-toast";
 import useNeedSign from "~/lib/hook";
-const TABS = ["Bandcoin Curated", "Artist Tokens", "Page Assets"];
+const TABS = ["Store Items", "Page Assets"];
 
 const Marketplace = () => {
-  const [activeTab, setActiveTab] = useState("Bandcoin Curated");
+  const [activeTab, setActiveTab] = useState("Store Items");
   console.log("activeTab", activeTab);
   return (
     <Card className="">
@@ -58,12 +58,12 @@ const Marketplace = () => {
       </CardHeader>
       <CardContent className="h-[calc(100vh-20vh)] overflow-y-auto p-0 scrollbar-hide ">
         <div>
-          {activeTab === "Bandcoin Curated" && (
+          {/* {activeTab === "Bandcoin Curated" && (
             <div>
               <CuratedItems />
             </div>
-          )}
-          {activeTab === "Artist Tokens" && (
+          )} */}
+          {activeTab === "Store Items" && (
             <div>
               <ArtistTokens />
             </div>
@@ -137,7 +137,7 @@ const ArtistTokens = () => {
           <h1 className="text-lg font-bold ">No Artist Tokens</h1>
         </div>
       )}
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {artistTokens.data?.pages.map((page, pageIndex) =>
           page.nfts.map((item, index) => (
             <MarketAssetComponent
@@ -461,8 +461,8 @@ const MarketPageAssets = () => {
                         {selectedAsset.placer?.pageAsset?.code
                           ? selectedAsset.placer.pageAsset.code
                           : selectedAsset.placer?.customPageAssetCodeIssuer?.split(
-                              ":",
-                            )[0]}
+                            ":",
+                          )[0]}
                       </p>
                     </div>
                     <div>

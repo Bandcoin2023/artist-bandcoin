@@ -74,11 +74,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
                             <Music className="h-5 w-5" />
                             <DialogTitle>Export Your Project</DialogTitle>
                         </div>
-                        {!isExporting && !selectedOption && (
-                            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-6 w-6">
-                                <X className="h-4 w-4" />
-                            </Button>
-                        )}
+
                     </div>
                     <DialogDescription>
                         Choose how you{"'"}d like to export your {trackCount} track{trackCount !== 1 ? "s" : ""}

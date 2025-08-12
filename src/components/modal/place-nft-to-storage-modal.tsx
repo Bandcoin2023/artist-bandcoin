@@ -67,7 +67,9 @@ function StorageCreate() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Place in storage (*)</Button>
+        <Button
+          size={"sm"}
+          className="w-full shadow-sm shadow-foreground" variant="outline">Place in storage</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
