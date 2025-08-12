@@ -63,7 +63,8 @@ const SingleAssetView = () => {
     // Core UI Logic
     const canBuy = copyData && copyData > 0 && canBuyUser
 
-    const canPlayOrView = hasTrustonAsset ?? (data?.asset.creatorId === session?.data?.user?.id || data?.placerId === session?.data?.user?.id)
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    const canPlayOrView = hasTrustonAsset || (data?.asset.creatorId === session.data?.user.id || data?.placerId === session.data?.user.id);
 
     const isVideo = data?.asset.mediaType === "VIDEO"
     const isAudio = data?.asset.mediaType === "MUSIC"
