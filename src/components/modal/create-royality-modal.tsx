@@ -733,7 +733,7 @@ function PricingStep() {
         >
             <div className="space-y-1">
                 <h2 className="text-xl font-semibold">Pricing & Asset Details</h2>
-                <p className="text-sm text-muted-foreground">Set up your royalty item's pricing and asset information</p>
+                <p className="text-sm text-muted-foreground">Set up your royalty item{"'"}s pricing and asset information</p>
             </div>
 
             <div className="space-y-6">
