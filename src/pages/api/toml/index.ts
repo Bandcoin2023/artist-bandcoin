@@ -4,7 +4,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import NextCors from "nextjs-cors";
 import { PLATFORM_ASSET } from "~/lib/stellar/constant";
 import { db } from "~/server/db";
-import { ipfsHashToUrl } from "~/utils/ipfs";
+import { ipfsHashToPinataGatewayUrl, ipfsHashToUrl } from "~/utils/ipfs";
 
 export default async function handler(
   req: NextApiRequest,
@@ -55,6 +55,7 @@ export default async function handler(
     });
   }
 
+  res.setHeader("Content-Type", "text/plain");
   res.send(FullTomlContent);
 
   return;

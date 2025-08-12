@@ -1,1578 +1,1726 @@
-"use client"
-import { useForm, FormProvider, useFormContext } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
+"use client";
+import { useForm, FormProvider, useFormContext } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
-    Music,
-    FileText,
-    DollarSign,
-    Loader2,
-    ChevronLeft,
-    ChevronRight,
-    Upload,
-    Check,
-    Coins,
-    Album,
-    Plus,
-    Grid3X3,
-    X,
-    ImageIcon,
-} from "lucide-react"
-import { useEffect, useMemo, useRef, useState, useCallback } from "react"
-import { toast } from "react-hot-toast"
-import { z } from "zod"
-import { AccountSchema, clientSelect } from "~/lib/stellar/fan/utils"
-import { Input } from "~/components/shadcn/ui/input"
-import { Label } from "~/components/shadcn/ui/label"
-import { Textarea } from "~/components/shadcn/ui/textarea"
-import { api } from "~/utils/api"
+  Music,
+  FileText,
+  DollarSign,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Upload,
+  Check,
+  Coins,
+  Album,
+  Plus,
+  Grid3X3,
+  X,
+  ImageIcon,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { toast } from "react-hot-toast";
+import { z } from "zod";
+import { AccountSchema, clientSelect } from "~/lib/stellar/fan/utils";
+import { Input } from "~/components/shadcn/ui/input";
+import { Label } from "~/components/shadcn/ui/label";
+import { Textarea } from "~/components/shadcn/ui/textarea";
+import { api } from "~/utils/api";
 import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from "~/components/shadcn/ui/select"
-import Image from "next/image"
-import { Button } from "~/components/shadcn/ui/button"
-import { motion, AnimatePresence, color } from "framer-motion"
-import { Card, CardContent, CardFooter, CardTitle } from "~/components/shadcn/ui/card"
-import { Badge } from "~/components/shadcn/ui/badge"
-import { Progress } from "~/components/shadcn/ui/progress"
-import { Separator } from "~/components/shadcn/ui/separator"
-import { MultiMusicUploadS3Button, UploadS3Button } from "../common/upload-button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader } from "../shadcn/ui/dialog"
-import { cn } from "~/lib/utils"
-import { PLATFORM_ASSET, PLATFORM_FEE, TrxBaseFeeInPlatformAsset } from "~/lib/stellar/constant"
-import { useSession } from "next-auth/react"
-import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances"
-import useNeedSign from "~/lib/hook"
-import { PaymentChoose, usePaymentMethodStore } from "../common/payment-options"
-import { clientsign } from "package/connect_wallet"
-import { useExportCreateSongModalStore } from "../store/export-create-song-modal-store"
-import { ipfsHashToUrl } from "~/utils/ipfs"
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/shadcn/ui/select";
+import Image from "next/image";
+import { Button } from "~/components/shadcn/ui/button";
+import { motion, AnimatePresence, color } from "framer-motion";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardTitle,
+} from "~/components/shadcn/ui/card";
+import { Badge } from "~/components/shadcn/ui/badge";
+import { Progress } from "~/components/shadcn/ui/progress";
+import { Separator } from "~/components/shadcn/ui/separator";
+import {
+  MultiMusicUploadS3Button,
+  UploadS3Button,
+} from "../common/upload-button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+} from "../shadcn/ui/dialog";
+import { cn } from "~/lib/utils";
+import {
+  PLATFORM_ASSET,
+  PLATFORM_FEE,
+  TrxBaseFeeInPlatformAsset,
+} from "~/lib/stellar/constant";
+import { useSession } from "next-auth/react";
+import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances";
+import useNeedSign from "~/lib/hook";
+import {
+  PaymentChoose,
+  usePaymentMethodStore,
+} from "../common/payment-options";
+import { clientsign } from "package/connect_wallet";
+import { useExportCreateSongModalStore } from "../store/export-create-song-modal-store";
+import { ipfsHashToPinataGatewayUrl } from "~/utils/ipfs";
 
 export const ExportSongFormSchema = z.object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    artist: z.string().min(2, "Artist must be at least 2 characters"),
-    musicUrl: z.string({
-        required_error: "Music file is required",
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  artist: z.string().min(2, "Artist must be at least 2 characters"),
+  musicUrl: z.string({
+    required_error: "Music file is required",
+  }),
+  description: z.string(),
+  coverImgUrl: z.string({
+    required_error: "Cover image is required",
+  }),
+  albumId: z.number(),
+  newAlbumName: z.string().optional(),
+  newAlbumDescription: z.string().optional(),
+  newAlbumCover: z.string().optional(),
+  price: z
+    .number({
+      required_error: "Price is required",
+    })
+    .nonnegative({
+      message: "Price must be a positive number",
     }),
-    description: z.string(),
-    coverImgUrl: z.string({
-        required_error: "Cover image is required",
+  priceUSD: z
+    .number({
+      required_error: "USD Price is required",
+    })
+    .nonnegative({
+      message: "Price must be a positive number",
     }),
-    albumId: z.number(),
-    newAlbumName: z.string().optional(),
-    newAlbumDescription: z.string().optional(),
-    newAlbumCover: z.string().optional(),
-    price: z
-        .number({
-            required_error: "Price is required",
-        })
-        .nonnegative({
-            message: "Price must be a positive number",
-        }),
-    priceUSD: z
-        .number({
-            required_error: "USD Price is required",
-        })
-        .nonnegative({
-            message: "Price must be a positive number",
-        }),
-    limit: z
-        .number({
-            required_error: "Limit is required",
-        })
-        .nonnegative({
-            message: "Limit must be a positive number",
-        }),
-    code: z
-        .string({
-            required_error: "Asset name is required",
-        })
-        .min(4, {
-            message: "Asset name must be at least 4 characters",
-        })
-        .max(12, {
-            message: "Asset name must be at most 12 characters",
-        }),
-    issuer: AccountSchema.optional(),
-    tier: z.string().optional(),
-    tracks: z.array(
-        z.object({
-            id: z.string(),
-            name: z.string(),
-            startTime: z.number(),
-            endTime: z.number(),
-            volume: z.number(),
-            muted: z.boolean(),
-            soloed: z.boolean(),
-            trimStart: z.number(),
-            trimEnd: z.number(),
-            trackIndex: z.number(),
-            stemUrl: z.string(), // Optional URL for stem audio
-            color: z.string()
-        }),
-    ),
-})
+  limit: z
+    .number({
+      required_error: "Limit is required",
+    })
+    .nonnegative({
+      message: "Limit must be a positive number",
+    }),
+  code: z
+    .string({
+      required_error: "Asset name is required",
+    })
+    .min(4, {
+      message: "Asset name must be at least 4 characters",
+    })
+    .max(12, {
+      message: "Asset name must be at most 12 characters",
+    }),
+  issuer: AccountSchema.optional(),
+  tier: z.string().optional(),
+  tracks: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      startTime: z.number(),
+      endTime: z.number(),
+      volume: z.number(),
+      muted: z.boolean(),
+      soloed: z.boolean(),
+      trimStart: z.number(),
+      trimEnd: z.number(),
+      trackIndex: z.number(),
+      stemUrl: z.string(), // Optional URL for stem audio
+      color: z.string(),
+    }),
+  ),
+});
 
-type ExportSongFormType = z.infer<typeof ExportSongFormSchema>
+type ExportSongFormType = z.infer<typeof ExportSongFormSchema>;
 
-type FormStep = "basics" | "album" | "media" | "pricing" | "review"
+type FormStep = "basics" | "album" | "media" | "pricing" | "review";
 
-const FORM_STEPS: FormStep[] = ["basics", "album", "media", "pricing", "review"]
+const FORM_STEPS: FormStep[] = [
+  "basics",
+  "album",
+  "media",
+  "pricing",
+  "review",
+];
 
 export default function ExportCreateSongModal() {
-    const [activeStep, setActiveStep] = useState<FormStep>("basics")
-    const [formProgress, setFormProgress] = useState(20)
-    const [isSubmitting, setIsSubmitting] = useState(false)
-    const { data, setData, isOpen, setIsOpen } = useExportCreateSongModalStore()
+  const [activeStep, setActiveStep] = useState<FormStep>("basics");
+  const [formProgress, setFormProgress] = useState(20);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { data, setData, isOpen, setIsOpen } = useExportCreateSongModalStore();
 
+  const [fileName] = useState(() => `${"exported-song"}-${Date.now()}.wav`);
 
-    const [fileName] = useState(() => `${"exported-song"}-${Date.now()}.wav`)
+  const methods = useForm<ExportSongFormType>({
+    mode: "onChange",
+    resolver: zodResolver(ExportSongFormSchema),
+    defaultValues: {
+      price: 2,
+      priceUSD: 2,
+      name: "exported-song",
+      artist: "",
+      description: "",
+      code: "",
+      limit: 100,
+    },
+  });
 
-    const methods = useForm<ExportSongFormType>({
-        mode: "onChange",
-        resolver: zodResolver(ExportSongFormSchema),
-        defaultValues: {
-            price: 2,
-            priceUSD: 2,
-            name: "exported-song",
-            artist: "",
-            description: "",
-            code: "",
-            limit: 100,
-        },
-    })
+  // Update progress based on active step
+  useEffect(() => {
+    const stepIndex = FORM_STEPS.indexOf(activeStep);
+    setFormProgress((stepIndex + 1) * (100 / FORM_STEPS.length));
+  }, [activeStep]);
 
+  const uploadRef = useRef<boolean>(false);
 
-    // Update progress based on active step
-    useEffect(() => {
-        const stepIndex = FORM_STEPS.indexOf(activeStep)
-        setFormProgress((stepIndex + 1) * (100 / FORM_STEPS.length))
-    }, [activeStep])
+  // Handle successful audio upload
 
-    const uploadRef = useRef<boolean>(false)
-
-
-
-    // Handle successful audio upload
-
-
-    // Navigation functions
-    const goToNextStep = () => {
-        const currentIndex = FORM_STEPS.indexOf(activeStep)
-        if (currentIndex < FORM_STEPS.length - 1) {
-            const nextStep = FORM_STEPS[currentIndex + 1]
-            if (nextStep) {
-                setActiveStep(nextStep)
-            }
-        }
+  // Navigation functions
+  const goToNextStep = () => {
+    const currentIndex = FORM_STEPS.indexOf(activeStep);
+    if (currentIndex < FORM_STEPS.length - 1) {
+      const nextStep = FORM_STEPS[currentIndex + 1];
+      if (nextStep) {
+        setActiveStep(nextStep);
+      }
     }
+  };
 
-    const goToPreviousStep = () => {
-        const currentIndex = FORM_STEPS.indexOf(activeStep)
-        if (currentIndex > 0) {
-            const previousStep = FORM_STEPS[currentIndex - 1]
-            if (previousStep) {
-                setActiveStep(previousStep)
-            }
-        }
+  const goToPreviousStep = () => {
+    const currentIndex = FORM_STEPS.indexOf(activeStep);
+    if (currentIndex > 0) {
+      const previousStep = FORM_STEPS[currentIndex - 1];
+      if (previousStep) {
+        setActiveStep(previousStep);
+      }
     }
+  };
 
-    // Check if current step is valid before allowing to proceed
-    const canProceed = () => {
-        const { trigger, watch } = methods
-        const fieldsToValidate: Record<FormStep, (keyof ExportSongFormType)[]> = {
-            basics: ["name", "artist", "description", "tier"],
-            album: [],
-            media: ["coverImgUrl", "musicUrl"],
-            pricing: ["code", "limit", "price", "priceUSD"],
-            review: [],
-        }
+  // Check if current step is valid before allowing to proceed
+  const canProceed = () => {
+    const { trigger, watch } = methods;
+    const fieldsToValidate: Record<FormStep, (keyof ExportSongFormType)[]> = {
+      basics: ["name", "artist", "description", "tier"],
+      album: [],
+      media: ["coverImgUrl", "musicUrl"],
+      pricing: ["code", "limit", "price", "priceUSD"],
+      review: [],
+    };
 
-        const validateStep = async () => {
-            if (activeStep === "media") {
-                // Check if all required media files are uploaded
-                const musicUrl = watch("musicUrl")
-                const coverImgUrl = watch("coverImgUrl")
-                const tracks = watch("tracks")
+    const validateStep = async () => {
+      if (activeStep === "media") {
+        // Check if all required media files are uploaded
+        const musicUrl = watch("musicUrl");
+        const coverImgUrl = watch("coverImgUrl");
+        const tracks = watch("tracks");
 
-                const hasMainAudio = !!musicUrl
-                const hasCoverImage = !!coverImgUrl
-                const hasAllTracks =
-                    !data.TracksBlob || data.TracksBlob.length === 0 || (tracks && tracks.length === data.TracksBlob.length)
+        const hasMainAudio = !!musicUrl;
+        const hasCoverImage = !!coverImgUrl;
+        const hasAllTracks =
+          !data.TracksBlob ||
+          data.TracksBlob.length === 0 ||
+          (tracks && tracks.length === data.TracksBlob.length);
 
-                return hasMainAudio && hasCoverImage && hasAllTracks
-            }
+        return hasMainAudio && hasCoverImage && hasAllTracks;
+      }
 
-            const result = await trigger(fieldsToValidate[activeStep])
-            return result
-        }
+      const result = await trigger(fieldsToValidate[activeStep]);
+      return result;
+    };
 
-        return validateStep()
+    return validateStep();
+  };
+
+  const handleNext = async () => {
+    const isValid = await canProceed();
+    if (isValid) {
+      goToNextStep();
     }
+  };
 
-    const handleNext = async () => {
-        const isValid = await canProceed()
-        if (isValid) {
-            goToNextStep()
-        }
-    }
+  const handleClose = () => {
+    setIsOpen(false);
+    setActiveStep("basics");
+    uploadRef.current = false; // Reset upload ref
+    methods.reset();
+  };
 
-    const handleClose = () => {
-        setIsOpen(false)
-        setActiveStep("basics")
-        uploadRef.current = false // Reset upload ref
-        methods.reset()
-    }
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent
+        onInteractOutside={(e) => {
+          e.preventDefault();
+        }}
+        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-xl p-2"
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.3 }}
+          className="flex h-full flex-col"
+        >
+          <DialogHeader className="px-6 py-4">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Upload className="h-5 w-5" />
+                <CardTitle>Export to BANDCOIN</CardTitle>
+              </div>
+            </div>
+            <DialogDescription>
+              Export your track to BANDCOIN platform
+            </DialogDescription>
+            <Progress value={formProgress} className="mt-2 h-2" />
 
-    return (
-        <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent
-                onInteractOutside={(e) => {
-                    e.preventDefault()
-                }}
-                className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-xl p-2"
-            >
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    transition={{ duration: 0.3 }}
-                    className="flex flex-col h-full"
+            <div className="w-full px-6">
+              <div className="flex items-center justify-between">
+                {FORM_STEPS.map((step, index) => (
+                  <div key={step} className="flex flex-col items-center">
+                    <div
+                      className={cn(
+                        "mb-1 flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium",
+                        activeStep === step
+                          ? "bg-primary shadow-sm shadow-foreground"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {index + 1}
+                    </div>
+                    <span
+                      className={cn(
+                        "text-xs",
+                        activeStep === step
+                          ? "font-medium"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {step === "basics"
+                        ? "Basics"
+                        : step === "album"
+                          ? "Album"
+                          : step === "media"
+                            ? "Media"
+                            : step === "pricing"
+                              ? "Pricing"
+                              : "Review"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </DialogHeader>
+
+          <FormProvider {...methods}>
+            <form>
+              <CardContent className="p-6">
+                <AnimatePresence mode="wait">
+                  {activeStep === "basics" && <BasicsStep key="basics" />}
+                  {activeStep === "album" && <AlbumStep key="album" />}
+                  {activeStep === "media" && <MediaStep key="media" />}
+                  {activeStep === "pricing" && <PricingStep key="pricing" />}
+                  {activeStep === "review" && <ReviewStep key="review" />}
+                </AnimatePresence>
+              </CardContent>
+
+              <CardFooter className="flex justify-between border-t p-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={goToPreviousStep}
+                  disabled={activeStep === "basics" || isSubmitting}
                 >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
 
-
-                    <DialogHeader className="px-6 py-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <Upload className="h-5 w-5" />
-                                <CardTitle>Export to BANDCOIN</CardTitle>
-                            </div>
-
-                        </div>
-                        <DialogDescription>Export your track to BANDCOIN platform</DialogDescription>
-                        <Progress value={formProgress} className="mt-2 h-2" />
-
-                        <div className="w-full px-6">
-                            <div className="flex items-center justify-between">
-                                {FORM_STEPS.map((step, index) => (
-                                    <div key={step} className="flex flex-col items-center">
-                                        <div
-                                            className={cn(
-                                                "w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm mb-1",
-                                                activeStep === step
-                                                    ? "bg-primary shadow-sm shadow-foreground"
-                                                    : "bg-muted text-muted-foreground",
-                                            )}
-                                        >
-                                            {index + 1}
-                                        </div>
-                                        <span className={cn("text-xs", activeStep === step ? "font-medium" : "text-muted-foreground")}>
-                                            {step === "basics"
-                                                ? "Basics"
-                                                : step === "album"
-                                                    ? "Album"
-                                                    : step === "media"
-                                                        ? "Media"
-                                                        : step === "pricing"
-                                                            ? "Pricing"
-                                                            : "Review"}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </DialogHeader>
-
-                    <FormProvider {...methods}>
-                        <form>
-                            <CardContent className="p-6">
-                                <AnimatePresence mode="wait">
-                                    {activeStep === "basics" && <BasicsStep key="basics" />}
-                                    {activeStep === "album" && <AlbumStep key="album" />}
-                                    {activeStep === "media" && <MediaStep key="media" />}
-                                    {activeStep === "pricing" && <PricingStep key="pricing" />}
-                                    {activeStep === "review" && <ReviewStep key="review" />}
-                                </AnimatePresence>
-                            </CardContent>
-
-                            <CardFooter className="flex justify-between border-t p-6">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={goToPreviousStep}
-                                    disabled={activeStep === "basics" || isSubmitting}
-                                >
-                                    <ChevronLeft className="mr-2 h-4 w-4" />
-                                    Back
-                                </Button>
-
-                                {activeStep !== "review" ? (
-                                    <Button type="button" className="shadow-foreground" onClick={handleNext}>
-                                        Next
-                                        <ChevronRight className="ml-2 h-4 w-4" />
-                                    </Button>
-                                ) : (
-                                    <ExportSubmitButton setIsOpen={setIsOpen} />
-                                )}
-                            </CardFooter>
-                        </form>
-                    </FormProvider>
-                </motion.div>
-            </DialogContent>
-        </Dialog>
-    )
+                {activeStep !== "review" ? (
+                  <Button
+                    type="button"
+                    className="shadow-foreground"
+                    onClick={handleNext}
+                  >
+                    Next
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <ExportSubmitButton setIsOpen={setIsOpen} />
+                )}
+              </CardFooter>
+            </form>
+          </FormProvider>
+        </motion.div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function BasicsStep({ audioBlob }: { audioBlob?: Blob }) {
-    const {
-        register,
-        setValue,
-        formState: { errors },
-    } = useFormContext<ExportSongFormType>()
-    const tiers = api.fan.member.getAllMembership.useQuery()
+  const {
+    register,
+    setValue,
+    formState: { errors },
+  } = useFormContext<ExportSongFormType>();
+  const tiers = api.fan.member.getAllMembership.useQuery();
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-        >
-            <div className="space-y-1">
-                <h2 className="text-xl font-semibold">Basic Information</h2>
-                <p className="text-sm text-muted-foreground">Enter the basic details about your exported track</p>
-            </div>
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold">Basic Information</h2>
+        <p className="text-sm text-muted-foreground">
+          Enter the basic details about your exported track
+        </p>
+      </div>
 
-            <div className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="name" className="flex items-center gap-2">
-                        <Music className="h-4 w-4" />
-                        Song Name
-                    </Label>
-                    <Input
-                        id="name"
-                        {...register("name")}
-                        placeholder="Enter song name"
-                        className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                    />
-                    {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-                </div>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name" className="flex items-center gap-2">
+            <Music className="h-4 w-4" />
+            Song Name
+          </Label>
+          <Input
+            id="name"
+            {...register("name")}
+            placeholder="Enter song name"
+            className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+          />
+          {errors.name && (
+            <p className="text-sm text-destructive">{errors.name.message}</p>
+          )}
+        </div>
 
-                <div className="space-y-2">
-                    <Label htmlFor="artist" className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Artist
-                    </Label>
-                    <Input
-                        id="artist"
-                        {...register("artist")}
-                        placeholder="Enter artist name"
-                        className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                    />
-                    {errors.artist && <p className="text-sm text-destructive">{errors.artist.message}</p>}
-                </div>
+        <div className="space-y-2">
+          <Label htmlFor="artist" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Artist
+          </Label>
+          <Input
+            id="artist"
+            {...register("artist")}
+            placeholder="Enter artist name"
+            className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+          />
+          {errors.artist && (
+            <p className="text-sm text-destructive">{errors.artist.message}</p>
+          )}
+        </div>
 
-                <div className="space-y-2">
-                    <Label htmlFor="description" className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Description
-                    </Label>
-                    <Textarea
-                        id="description"
-                        {...register("description")}
-                        placeholder="Write a short description about this song"
-                        className="min-h-24 resize-none transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                    />
-                    {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
-                </div>
+        <div className="space-y-2">
+          <Label htmlFor="description" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Description
+          </Label>
+          <Textarea
+            id="description"
+            {...register("description")}
+            placeholder="Write a short description about this song"
+            className="min-h-24 resize-none transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+          />
+          {errors.description && (
+            <p className="text-sm text-destructive">
+              {errors.description.message}
+            </p>
+          )}
+        </div>
 
-                {tiers.data && (
-                    <div className="space-y-2">
-                        <Label htmlFor="tier" className="flex items-center gap-2">
-                            <FileText className="h-4 w-4" />
-                            Access Tier
-                        </Label>
-                        <TiersOptions tiers={tiers.data} />
-                        {errors.tier && <p className="text-sm text-destructive">{errors.tier.message}</p>}
-                    </div>
-                )}
-            </div>
-        </motion.div>
-    )
+        {tiers.data && (
+          <div className="space-y-2">
+            <Label htmlFor="tier" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Access Tier
+            </Label>
+            <TiersOptions tiers={tiers.data} />
+            {errors.tier && (
+              <p className="text-sm text-destructive">{errors.tier.message}</p>
+            )}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
 }
 
 function AlbumStep() {
-    const { setValue, watch } = useFormContext<ExportSongFormType>()
-    const [activeTab, setActiveTab] = useState<"existing" | "new">("existing")
-    const [isCreatingAlbum, setIsCreatingAlbum] = useState(false)
+  const { setValue, watch } = useFormContext<ExportSongFormType>();
+  const [activeTab, setActiveTab] = useState<"existing" | "new">("existing");
+  const [isCreatingAlbum, setIsCreatingAlbum] = useState(false);
 
-    const selectedAlbumId = watch("albumId")
-    const newAlbumName = watch("newAlbumName")
-    const newAlbumDescription = watch("newAlbumDescription")
+  const selectedAlbumId = watch("albumId");
+  const newAlbumName = watch("newAlbumName");
+  const newAlbumDescription = watch("newAlbumDescription");
 
-    const {
-        data: albumsData,
-        fetchNextPage: fetchNextAlbums,
-        hasNextPage: hasNextAlbums,
-        isFetchingNextPage: isFetchingNextAlbums,
-        isLoading: isAlbumsLoading,
-    } = api.fan.music.getCreatorAlbums.useInfiniteQuery(
-        {
-            limit: 12,
-        },
-        {
-            getNextPageParam: (lastPage) => lastPage.nextCursor,
-            enabled: activeTab === "existing",
-        },
-    )
+  const {
+    data: albumsData,
+    fetchNextPage: fetchNextAlbums,
+    hasNextPage: hasNextAlbums,
+    isFetchingNextPage: isFetchingNextAlbums,
+    isLoading: isAlbumsLoading,
+  } = api.fan.music.getCreatorAlbums.useInfiniteQuery(
+    {
+      limit: 12,
+    },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      enabled: activeTab === "existing",
+    },
+  );
 
-    const createAlbumMutation = api.fan.music.createAlbum.useMutation({
-        onSuccess: (newAlbum) => {
-            setValue("albumId", newAlbum.id)
-            setIsCreatingAlbum(false)
-            toast.success("Album created successfully!")
-        },
-        onError: (error) => {
-            toast.error(error.message || "Failed to create album")
-            setIsCreatingAlbum(false)
-        },
-    })
+  const createAlbumMutation = api.fan.music.createAlbum.useMutation({
+    onSuccess: (newAlbum) => {
+      setValue("albumId", newAlbum.id);
+      setIsCreatingAlbum(false);
+      toast.success("Album created successfully!");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to create album");
+      setIsCreatingAlbum(false);
+    },
+  });
 
-    const handleCreateAlbum = async () => {
-        if (!newAlbumName) {
-            toast.error("Album name is required")
-            return
-        }
-
-        setIsCreatingAlbum(true)
-        createAlbumMutation.mutate({
-            name: newAlbumName,
-            description: newAlbumDescription ?? "",
-            coverImgUrl: watch("newAlbumCover") ?? "",
-        })
+  const handleCreateAlbum = async () => {
+    if (!newAlbumName) {
+      toast.error("Album name is required");
+      return;
     }
 
-    const albums = albumsData?.pages.flatMap((page) => page.albums) ?? []
+    setIsCreatingAlbum(true);
+    createAlbumMutation.mutate({
+      name: newAlbumName,
+      description: newAlbumDescription ?? "",
+      coverImgUrl: watch("newAlbumCover") ?? "",
+    });
+  };
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
+  const albums = albumsData?.pages.flatMap((page) => page.albums) ?? [];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold">Album Selection</h2>
+        <p className="text-sm text-muted-foreground">
+          Choose an existing album or create a new one
+        </p>
+      </div>
+
+      {/* Tab Selector */}
+      <div className="flex space-x-1 rounded-lg bg-muted p-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab("existing")}
+          className={cn(
+            "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all",
+            activeTab === "existing"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
         >
-            <div className="space-y-1">
-                <h2 className="text-xl font-semibold">Album Selection</h2>
-                <p className="text-sm text-muted-foreground">Choose an existing album or create a new one</p>
-            </div>
+          Select Existing Album
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("new")}
+          className={cn(
+            "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all",
+            activeTab === "new"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Create New Album
+        </button>
+      </div>
 
-            {/* Tab Selector */}
-            <div className="flex space-x-1 rounded-lg bg-muted p-1">
-                <button
-                    type="button"
-                    onClick={() => setActiveTab("existing")}
-                    className={cn(
-                        "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all",
-                        activeTab === "existing"
-                            ? "bg-background text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground",
-                    )}
-                >
-                    Select Existing Album
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setActiveTab("new")}
-                    className={cn(
-                        "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all",
-                        activeTab === "new"
-                            ? "bg-background text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground",
-                    )}
-                >
-                    Create New Album
-                </button>
+      {/* Existing Albums */}
+      {activeTab === "existing" && (
+        <div className="space-y-4">
+          {isAlbumsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2">Loading albums...</span>
             </div>
-
-            {/* Existing Albums */}
-            {activeTab === "existing" && (
-                <div className="space-y-4">
-                    {isAlbumsLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                            <Loader2 className="h-6 w-6 animate-spin" />
-                            <span className="ml-2">Loading albums...</span>
-                        </div>
-                    ) : albums.length === 0 ? (
-                        <div className="text-center py-8">
-                            <Album className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                            <p className="text-muted-foreground">No albums found</p>
-                            <Button type="button" variant="outline" onClick={() => setActiveTab("new")} className="mt-2">
-                                Create your first album
-                            </Button>
-                        </div>
-                    ) : (
-                        <>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                {albums.map((album) => (
-                                    <Card
-                                        key={album.id}
-                                        className={cn(
-                                            "cursor-pointer transition-all duration-200 hover:shadow-md",
-                                            selectedAlbumId === album.id ? "ring-2 ring-primary bg-primary/5" : "hover:bg-muted/50",
-                                        )}
-                                        onClick={() => setValue("albumId", album.id)}
-                                    >
-                                        <CardContent className="p-3">
-                                            <div className="aspect-square relative rounded-md overflow-hidden mb-2">
-                                                <Image
-                                                    src={album.coverImgUrl || "/placeholder.svg"}
-                                                    alt={album.name}
-                                                    fill
-                                                    className="object-cover"
-                                                />
-                                                {selectedAlbumId === album.id && (
-                                                    <div className="absolute top-2 right-2">
-                                                        <div className="bg-primary text-primary-foreground rounded-full p-1">
-                                                            <Check className="h-3 w-3" />
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <h3 className="font-medium text-sm truncate">{album.name}</h3>
-                                            <p className="text-xs text-muted-foreground truncate">{album._count.songs || 0} songs</p>
-                                        </CardContent>
-                                    </Card>
-                                ))}
+          ) : albums.length === 0 ? (
+            <div className="py-8 text-center">
+              <Album className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+              <p className="text-muted-foreground">No albums found</p>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveTab("new")}
+                className="mt-2"
+              >
+                Create your first album
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                {albums.map((album) => (
+                  <Card
+                    key={album.id}
+                    className={cn(
+                      "cursor-pointer transition-all duration-200 hover:shadow-md",
+                      selectedAlbumId === album.id
+                        ? "bg-primary/5 ring-2 ring-primary"
+                        : "hover:bg-muted/50",
+                    )}
+                    onClick={() => setValue("albumId", album.id)}
+                  >
+                    <CardContent className="p-3">
+                      <div className="relative mb-2 aspect-square overflow-hidden rounded-md">
+                        <Image
+                          src={album.coverImgUrl || "/placeholder.svg"}
+                          alt={album.name}
+                          fill
+                          className="object-cover"
+                        />
+                        {selectedAlbumId === album.id && (
+                          <div className="absolute right-2 top-2">
+                            <div className="rounded-full bg-primary p-1 text-primary-foreground">
+                              <Check className="h-3 w-3" />
                             </div>
-
-                            {hasNextAlbums && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => fetchNextAlbums()}
-                                    disabled={isFetchingNextAlbums}
-                                    className="w-full"
-                                >
-                                    {isFetchingNextAlbums ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Loading more...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Grid3X3 className="mr-2 h-4 w-4" />
-                                            Load more albums
-                                        </>
-                                    )}
-                                </Button>
-                            )}
-                        </>
-                    )}
-                </div>
-            )}
-
-            {/* Create New Album */}
-            {activeTab === "new" && (
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="newAlbumName">Album Name</Label>
-                        <Input
-                            id="newAlbumName"
-                            placeholder="Enter album name"
-                            value={newAlbumName ?? ""}
-                            onChange={(e) => setValue("newAlbumName", e.target.value)}
-                            className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="newAlbumDescription">Album Description</Label>
-                        <Textarea
-                            id="newAlbumDescription"
-                            placeholder="Enter album description"
-                            value={newAlbumDescription ?? ""}
-                            onChange={(e) => setValue("newAlbumDescription", e.target.value)}
-                            className="min-h-20 resize-none transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="newAlbumCover">Album Cover (Optional)</Label>
-                        <UploadS3Button
-                            endpoint="imageUploader"
-                            variant="button"
-                            className="w-full"
-                            label="Upload Album Cover"
-                            onClientUploadComplete={(res) => {
-                                if (res?.url) {
-                                    setValue("newAlbumCover", res.url)
-                                    toast.success("Album cover uploaded successfully")
-                                }
-                            }}
-                            onUploadError={(error: Error) => {
-                                toast.error(`ERROR! ${error.message}`)
-                            }}
-                        />
-                    </div>
-
-                    <Button
-                        type="button"
-                        onClick={handleCreateAlbum}
-                        disabled={isCreatingAlbum || !newAlbumName}
-                        className="w-full"
-                    >
-                        {isCreatingAlbum ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Creating Album...
-                            </>
-                        ) : (
-                            <>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Create Album
-                            </>
+                          </div>
                         )}
-                    </Button>
-                </div>
+                      </div>
+                      <h3 className="truncate text-sm font-medium">
+                        {album.name}
+                      </h3>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {album._count.songs || 0} songs
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {hasNextAlbums && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fetchNextAlbums()}
+                  disabled={isFetchingNextAlbums}
+                  className="w-full"
+                >
+                  {isFetchingNextAlbums ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading more...
+                    </>
+                  ) : (
+                    <>
+                      <Grid3X3 className="mr-2 h-4 w-4" />
+                      Load more albums
+                    </>
+                  )}
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Create New Album */}
+      {activeTab === "new" && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="newAlbumName">Album Name</Label>
+            <Input
+              id="newAlbumName"
+              placeholder="Enter album name"
+              value={newAlbumName ?? ""}
+              onChange={(e) => setValue("newAlbumName", e.target.value)}
+              className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="newAlbumDescription">Album Description</Label>
+            <Textarea
+              id="newAlbumDescription"
+              placeholder="Enter album description"
+              value={newAlbumDescription ?? ""}
+              onChange={(e) => setValue("newAlbumDescription", e.target.value)}
+              className="min-h-20 resize-none transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="newAlbumCover">Album Cover (Optional)</Label>
+            <UploadS3Button
+              endpoint="imageUploader"
+              variant="button"
+              className="w-full"
+              label="Upload Album Cover"
+              onClientUploadComplete={(res) => {
+                if (res?.url) {
+                  setValue("newAlbumCover", res.url);
+                  toast.success("Album cover uploaded successfully");
+                }
+              }}
+              onUploadError={(error: Error) => {
+                toast.error(`ERROR! ${error.message}`);
+              }}
+            />
+          </div>
+
+          <Button
+            type="button"
+            onClick={handleCreateAlbum}
+            disabled={isCreatingAlbum || !newAlbumName}
+            className="w-full"
+          >
+            {isCreatingAlbum ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating Album...
+              </>
+            ) : (
+              <>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Album
+              </>
             )}
-        </motion.div>
-    )
+          </Button>
+        </div>
+      )}
+    </motion.div>
+  );
 }
 export function MediaStep() {
-    const {
-        setValue,
-        watch,
-        formState: { errors },
-    } = useFormContext<ExportSongFormType>()
+  const {
+    setValue,
+    watch,
+    formState: { errors },
+  } = useFormContext<ExportSongFormType>();
 
-    const { data } = useExportCreateSongModalStore()
+  const { data } = useExportCreateSongModalStore();
 
-    // Upload states
-    const [audioUploadState, setAudioUploadState] = useState<{
-        status: "idle" | "uploading" | "completed" | "error"
-        url?: string
-        progress: number
-    }>({
-        status: "idle",
-        progress: 0,
-    })
+  // Upload states
+  const [audioUploadState, setAudioUploadState] = useState<{
+    status: "idle" | "uploading" | "completed" | "error";
+    url?: string;
+    progress: number;
+  }>({
+    status: "idle",
+    progress: 0,
+  });
 
-    const [tracksUploadState, setTracksUploadState] = useState<{
-        status: "idle" | "uploading" | "completed" | "error"
-        progress: number
-        completedCount: number
-        totalCount: number
-    }>({
-        status: "idle",
-        progress: 0,
-        completedCount: 0,
-        totalCount: 0,
-    })
+  const [tracksUploadState, setTracksUploadState] = useState<{
+    status: "idle" | "uploading" | "completed" | "error";
+    progress: number;
+    completedCount: number;
+    totalCount: number;
+  }>({
+    status: "idle",
+    progress: 0,
+    completedCount: 0,
+    totalCount: 0,
+  });
 
-    // Cover image upload states
-    const [file, setFile] = useState<File>()
-    const [ipfs, setIpfs] = useState<string>()
-    const [uploading, setUploading] = useState(false)
-    const [uploadProgress, setUploadProgress] = useState(0)
+  // Cover image upload states
+  const [file, setFile] = useState<File>();
+  const [ipfs, setIpfs] = useState<string>();
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
-    const musicUrl = watch("musicUrl")
-    const coverImgUrl = watch("coverImgUrl")
-    const tracks = watch("tracks")
+  const musicUrl = watch("musicUrl");
+  const coverImgUrl = watch("coverImgUrl");
+  const tracks = watch("tracks");
 
-    // Memoize files to prevent re-creation
-    const memoizedAudioFile = useMemo(() => {
-        if (!data.audioBlob) return undefined
-        return new File([data.audioBlob], `exported-song-${Date.now()}.wav`, { type: "audio/wav" })
-    }, [data.audioBlob])
+  // Memoize files to prevent re-creation
+  const memoizedAudioFile = useMemo(() => {
+    if (!data.audioBlob) return undefined;
+    return new File([data.audioBlob], `exported-song-${Date.now()}.wav`, {
+      type: "audio/wav",
+    });
+  }, [data.audioBlob]);
 
-    const memoizedTrackFiles = useMemo(() => {
-        if (!data.TracksBlob || data.TracksBlob.length === 0) return []
-        return data.TracksBlob.filter((track) => track.blob).map(
-            (track) => new File([track.blob!], `${track.name}-${track.id}.wav`, { type: "audio/wav" }),
-        )
-    }, [data.TracksBlob])
+  const memoizedTrackFiles = useMemo(() => {
+    if (!data.TracksBlob || data.TracksBlob.length === 0) return [];
+    return data.TracksBlob.filter((track) => track.blob).map(
+      (track) =>
+        new File([track.blob!], `${track.name}-${track.id}.wav`, {
+          type: "audio/wav",
+        }),
+    );
+  }, [data.TracksBlob]);
 
-    // Audio upload handlers
-    const handleAudioUploadComplete = useCallback(
-        (res: { url: string }) => {
-            setAudioUploadState({
-                status: "completed",
-                url: res.url,
-                progress: 100,
-            })
-            setValue("musicUrl", res.url)
-            toast.success("Main audio uploaded successfully!")
-        },
-        [setValue],
-    )
+  // Audio upload handlers
+  const handleAudioUploadComplete = useCallback(
+    (res: { url: string }) => {
+      setAudioUploadState({
+        status: "completed",
+        url: res.url,
+        progress: 100,
+      });
+      setValue("musicUrl", res.url);
+      toast.success("Main audio uploaded successfully!");
+    },
+    [setValue],
+  );
 
-    const handleAudioUploadError = useCallback((error: Error) => {
-        setAudioUploadState({
-            status: "error",
-            progress: 0,
-        })
-        toast.error(`Audio upload failed: ${error.message}`)
-    }, [])
+  const handleAudioUploadError = useCallback((error: Error) => {
+    setAudioUploadState({
+      status: "error",
+      progress: 0,
+    });
+    toast.error(`Audio upload failed: ${error.message}`);
+  }, []);
 
-    const handleAudioUploadProgress = useCallback((progress: number) => {
-        setAudioUploadState((prev) => ({
-            ...prev,
-            progress,
-        }))
-    }, [])
+  const handleAudioUploadProgress = useCallback((progress: number) => {
+    setAudioUploadState((prev) => ({
+      ...prev,
+      progress,
+    }));
+  }, []);
 
-    // Tracks upload handlers
-    const handleTracksUploadComplete = useCallback(
-        (files: { url: string; name: string; size: number; type: string }[]) => {
-            setTracksUploadState({
-                status: "completed",
-                progress: 100,
-                completedCount: files.length,
-                totalCount: files.length,
-            })
+  // Tracks upload handlers
+  const handleTracksUploadComplete = useCallback(
+    (files: { url: string; name: string; size: number; type: string }[]) => {
+      setTracksUploadState({
+        status: "completed",
+        progress: 100,
+        completedCount: files.length,
+        totalCount: files.length,
+      });
 
-            // Map uploaded files back to tracks with URLs
-            const updatedTracks =
-                data.TracksBlob?.map((track) => {
-                    const uploadedFile = files.find((file) => file.name.includes(track.id))
-                    return {
-                        id: track.id,
-                        name: track.name,
-                        stemUrl: uploadedFile?.url ?? "",
-                        trackIndex: track.trackIndex,
-                        startTime: track.startTime,
-                        endTime: track.endTime,
-                        volume: track.volume,
-                        muted: track.muted,
-                        soloed: track.soloed,
-                        trimStart: track.trimStart,
-                        trimEnd: track.trimEnd,
-                        color: track.color ?? "#8B5CF6",
-                    }
-                }) ?? []
+      // Map uploaded files back to tracks with URLs
+      const updatedTracks =
+        data.TracksBlob?.map((track) => {
+          const uploadedFile = files.find((file) =>
+            file.name.includes(track.id),
+          );
+          return {
+            id: track.id,
+            name: track.name,
+            stemUrl: uploadedFile?.url ?? "",
+            trackIndex: track.trackIndex,
+            startTime: track.startTime,
+            endTime: track.endTime,
+            volume: track.volume,
+            muted: track.muted,
+            soloed: track.soloed,
+            trimStart: track.trimStart,
+            trimEnd: track.trimEnd,
+            color: track.color ?? "#8B5CF6",
+          };
+        }) ?? [];
 
-            setValue("tracks", updatedTracks)
-            toast.success(`All ${files.length} tracks uploaded successfully!`)
-        },
-        [data.TracksBlob, setValue],
-    )
+      setValue("tracks", updatedTracks);
+      toast.success(`All ${files.length} tracks uploaded successfully!`);
+    },
+    [data.TracksBlob, setValue],
+  );
 
-    const handleTracksUploadError = useCallback((error: Error) => {
-        setTracksUploadState({
-            status: "error",
-            progress: 0,
-            completedCount: 0,
-            totalCount: 0,
-        })
-        toast.error(`Tracks upload failed: ${error.message}`)
-    }, [])
+  const handleTracksUploadError = useCallback((error: Error) => {
+    setTracksUploadState({
+      status: "error",
+      progress: 0,
+      completedCount: 0,
+      totalCount: 0,
+    });
+    toast.error(`Tracks upload failed: ${error.message}`);
+  }, []);
 
-    const handleTracksUploadProgress = useCallback((progress: number) => {
-        setTracksUploadState((prev) => ({
-            ...prev,
-            progress,
-        }))
-    }, [])
+  const handleTracksUploadProgress = useCallback((progress: number) => {
+    setTracksUploadState((prev) => ({
+      ...prev,
+      progress,
+    }));
+  }, []);
 
-    // Cover image upload
-    const uploadCoverImage = async (fileToUpload: File) => {
-        try {
-            setUploading(true)
-            setUploadProgress(10)
+  // Cover image upload
+  const uploadCoverImage = async (fileToUpload: File) => {
+    try {
+      setUploading(true);
+      setUploadProgress(10);
 
-            const formData = new FormData()
-            formData.append("file", fileToUpload, fileToUpload.name)
+      const formData = new FormData();
+      formData.append("file", fileToUpload, fileToUpload.name);
 
-            setUploadProgress(30)
+      setUploadProgress(30);
 
-            const res = await fetch("/api/file", {
-                method: "POST",
-                body: formData,
-            })
+      const res = await fetch("/api/file", {
+        method: "POST",
+        body: formData,
+      });
 
-            setUploadProgress(70)
+      setUploadProgress(70);
 
-            const ipfsHash = await res.text()
-            const thumbnail = ipfsHashToUrl(ipfsHash)
+      const ipfsHash = await res.text();
+      const thumbnail = ipfsHashToPinataGatewayUrl(ipfsHash);
 
-            setUploadProgress(90)
+      setUploadProgress(90);
 
-            setValue("coverImgUrl", thumbnail)
-            setIpfs(ipfsHash)
+      setValue("coverImgUrl", thumbnail);
+      setIpfs(ipfsHash);
 
-            setUploadProgress(100)
-            setUploading(false)
+      setUploadProgress(100);
+      setUploading(false);
 
-            toast.success("Cover image uploaded successfully")
-        } catch (e) {
-            console.error(e)
-            setUploading(false)
-            setUploadProgress(0)
-            toast.error("Trouble uploading file")
+      toast.success("Cover image uploaded successfully");
+    } catch (e) {
+      console.error(e);
+      setUploading(false);
+      setUploadProgress(0);
+      toast.error("Trouble uploading file");
+    }
+  };
+
+  const handleCoverImageChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file) {
+        if (file.size > 1024 * 1024) {
+          toast.error("File size should be less than 1MB");
+          return;
         }
+
+        setFile(file);
+        await uploadCoverImage(file);
+      }
     }
+  };
 
-    const handleCoverImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files
-        if (files && files.length > 0) {
-            const file = files[0]
-            if (file) {
-                if (file.size > 1024 * 1024) {
-                    toast.error("File size should be less than 1MB")
-                    return
-                }
-
-                setFile(file)
-                await uploadCoverImage(file)
-            }
-        }
+  const startAudioUpload = () => {
+    if (memoizedAudioFile && audioUploadState.status === "idle") {
+      setAudioUploadState((prev) => ({ ...prev, status: "uploading" }));
     }
+  };
 
-    const startAudioUpload = () => {
-        if (memoizedAudioFile && audioUploadState.status === "idle") {
-            setAudioUploadState((prev) => ({ ...prev, status: "uploading" }))
-        }
+  const startTracksUpload = () => {
+    console.log("🎵 startTracksUpload called", {
+      memoizedTrackFilesLength: memoizedTrackFiles.length,
+      tracksUploadStatus: tracksUploadState.status,
+      files: memoizedTrackFiles.map((f) => ({ name: f.name, size: f.size })),
+    });
+
+    if (memoizedTrackFiles.length > 0 && tracksUploadState.status === "idle") {
+      console.log("🎵 Setting tracks upload state to uploading");
+      setTracksUploadState((prev) => ({
+        ...prev,
+        status: "uploading",
+        totalCount: memoizedTrackFiles.length,
+      }));
     }
+  };
 
-    const startTracksUpload = () => {
-        console.log("🎵 startTracksUpload called", {
-            memoizedTrackFilesLength: memoizedTrackFiles.length,
-            tracksUploadStatus: tracksUploadState.status,
-            files: memoizedTrackFiles.map((f) => ({ name: f.name, size: f.size })),
-        })
-
-        if (memoizedTrackFiles.length > 0 && tracksUploadState.status === "idle") {
-            console.log("🎵 Setting tracks upload state to uploading")
-            setTracksUploadState((prev) => ({
-                ...prev,
-                status: "uploading",
-                totalCount: memoizedTrackFiles.length,
-            }))
-        }
-    }
-
-    const canProceedToNext = () => {
-        return (
-            audioUploadState.status === "completed" &&
-            (memoizedTrackFiles.length === 0 || tracksUploadState.status === "completed") &&
-            coverImgUrl
-        )
-    }
-
+  const canProceedToNext = () => {
     return (
-        <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-        >
-            <div className="space-y-1">
-                <h2 className="text-xl font-semibold">Media Files</h2>
-                <p className="text-sm text-muted-foreground">Upload your main audio file, individual tracks, and cover image</p>
-            </div>
+      audioUploadState.status === "completed" &&
+      (memoizedTrackFiles.length === 0 ||
+        tracksUploadState.status === "completed") &&
+      coverImgUrl
+    );
+  };
 
-            <div className="space-y-6">
-                {/* Main Audio Upload */}
-                <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                        <Music
-                            className={cn(
-                                "h-4 w-4",
-                                audioUploadState.status === "completed"
-                                    ? "text-green-600"
-                                    : audioUploadState.status === "uploading"
-                                        ? "text-blue-600"
-                                        : audioUploadState.status === "error"
-                                            ? "text-red-600"
-                                            : "text-gray-400",
-                            )}
-                        />
-                        Main Audio File
-                    </Label>
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold">Media Files</h2>
+        <p className="text-sm text-muted-foreground">
+          Upload your main audio file, individual tracks, and cover image
+        </p>
+      </div>
 
-                    <Card
-                        className={cn(
-                            "overflow-hidden",
-                            audioUploadState.status === "completed"
-                                ? "border-green-200 bg-green-50"
-                                : audioUploadState.status === "uploading"
-                                    ? "border-blue-200 bg-blue-50"
-                                    : audioUploadState.status === "error"
-                                        ? "border-red-200 bg-red-50"
-                                        : "border-gray-200",
-                        )}
-                    >
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                                <div
-                                    className={cn(
-                                        "p-3 rounded-full",
-                                        audioUploadState.status === "completed"
-                                            ? "bg-green-100"
-                                            : audioUploadState.status === "uploading"
-                                                ? "bg-blue-100"
-                                                : audioUploadState.status === "error"
-                                                    ? "bg-red-100"
-                                                    : "bg-gray-100",
-                                    )}
-                                >
-                                    {audioUploadState.status === "uploading" ? (
-                                        <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
-                                    ) : audioUploadState.status === "completed" ? (
-                                        <Check className="h-5 w-5 text-green-600" />
-                                    ) : audioUploadState.status === "error" ? (
-                                        <X className="h-5 w-5 text-red-600" />
-                                    ) : (
-                                        <Upload className="h-5 w-5 text-gray-400" />
-                                    )}
-                                </div>
-                                <div className="flex-1">
-                                    <p
-                                        className={cn(
-                                            "text-sm font-medium",
-                                            audioUploadState.status === "completed"
-                                                ? "text-green-800"
-                                                : audioUploadState.status === "uploading"
-                                                    ? "text-blue-800"
-                                                    : audioUploadState.status === "error"
-                                                        ? "text-red-800"
-                                                        : "text-gray-600",
-                                        )}
-                                    >
-                                        {audioUploadState.status === "completed"
-                                            ? "Main audio ready"
-                                            : audioUploadState.status === "uploading"
-                                                ? `Uploading... ${audioUploadState.progress}%`
-                                                : audioUploadState.status === "error"
-                                                    ? "Upload failed"
-                                                    : "Ready to upload"}
-                                    </p>
+      <div className="space-y-6">
+        {/* Main Audio Upload */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Music
+              className={cn(
+                "h-4 w-4",
+                audioUploadState.status === "completed"
+                  ? "text-green-600"
+                  : audioUploadState.status === "uploading"
+                    ? "text-blue-600"
+                    : audioUploadState.status === "error"
+                      ? "text-red-600"
+                      : "text-gray-400",
+              )}
+            />
+            Main Audio File
+          </Label>
 
-                                    {audioUploadState.status === "uploading" && (
-                                        <Progress value={audioUploadState.progress} className="w-full mt-2" />
-                                    )}
-
-                                    {audioUploadState.status === "completed" && musicUrl && (
-                                        <audio controls className="w-full mt-2">
-                                            <source src={musicUrl} type="audio/wav" />
-                                            Your browser does not support the audio element.
-                                        </audio>
-                                    )}
-                                </div>
-                                {audioUploadState.status === "idle" && memoizedAudioFile && (
-                                    <Button onClick={startAudioUpload} size="sm">
-                                        Upload Main Audio
-                                    </Button>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Hidden upload component for main audio */}
-                    {audioUploadState.status === "uploading" && memoizedAudioFile && (
-                        <UploadS3Button
-                            endpoint="musicUploader"
-                            variant="hidden"
-                            uploadedFile={memoizedAudioFile}
-                            onUploadProgress={handleAudioUploadProgress}
-                            onClientUploadComplete={handleAudioUploadComplete}
-                            onUploadError={handleAudioUploadError}
-                        />
-                    )}
+          <Card
+            className={cn(
+              "overflow-hidden",
+              audioUploadState.status === "completed"
+                ? "border-green-200 bg-green-50"
+                : audioUploadState.status === "uploading"
+                  ? "border-blue-200 bg-blue-50"
+                  : audioUploadState.status === "error"
+                    ? "border-red-200 bg-red-50"
+                    : "border-gray-200",
+            )}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div
+                  className={cn(
+                    "rounded-full p-3",
+                    audioUploadState.status === "completed"
+                      ? "bg-green-100"
+                      : audioUploadState.status === "uploading"
+                        ? "bg-blue-100"
+                        : audioUploadState.status === "error"
+                          ? "bg-red-100"
+                          : "bg-gray-100",
+                  )}
+                >
+                  {audioUploadState.status === "uploading" ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                  ) : audioUploadState.status === "completed" ? (
+                    <Check className="h-5 w-5 text-green-600" />
+                  ) : audioUploadState.status === "error" ? (
+                    <X className="h-5 w-5 text-red-600" />
+                  ) : (
+                    <Upload className="h-5 w-5 text-gray-400" />
+                  )}
                 </div>
-
-                <Separator />
-
-                {/* Individual Tracks Upload */}
-                {memoizedTrackFiles.length > 0 && (
-                    <div className="space-y-2">
-                        <Label className="flex items-center gap-2">
-                            <Music
-                                className={cn(
-                                    "h-4 w-4",
-                                    tracksUploadState.status === "completed"
-                                        ? "text-green-600"
-                                        : tracksUploadState.status === "uploading"
-                                            ? "text-blue-600"
-                                            : tracksUploadState.status === "error"
-                                                ? "text-red-600"
-                                                : "text-gray-400",
-                                )}
-                            />
-                            Individual Tracks ({memoizedTrackFiles.length} tracks)
-                        </Label>
-
-                        <Card
-                            className={cn(
-                                "overflow-hidden",
-                                tracksUploadState.status === "completed"
-                                    ? "border-green-200 bg-green-50"
-                                    : tracksUploadState.status === "uploading"
-                                        ? "border-blue-200 bg-blue-50"
-                                        : tracksUploadState.status === "error"
-                                            ? "border-red-200 bg-red-50"
-                                            : "border-gray-200",
-                            )}
-                        >
-                            <CardContent className="p-4">
-                                <div className="flex items-center gap-3">
-                                    <div
-                                        className={cn(
-                                            "p-3 rounded-full",
-                                            tracksUploadState.status === "completed"
-                                                ? "bg-green-100"
-                                                : tracksUploadState.status === "uploading"
-                                                    ? "bg-blue-100"
-                                                    : tracksUploadState.status === "error"
-                                                        ? "bg-red-100"
-                                                        : "bg-gray-100",
-                                        )}
-                                    >
-                                        {tracksUploadState.status === "uploading" ? (
-                                            <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
-                                        ) : tracksUploadState.status === "completed" ? (
-                                            <Check className="h-5 w-5 text-green-600" />
-                                        ) : tracksUploadState.status === "error" ? (
-                                            <X className="h-5 w-5 text-red-600" />
-                                        ) : (
-                                            <Upload className="h-5 w-5 text-gray-400" />
-                                        )}
-                                    </div>
-                                    <div className="flex-1">
-                                        <p
-                                            className={cn(
-                                                "text-sm font-medium",
-                                                tracksUploadState.status === "completed"
-                                                    ? "text-green-800"
-                                                    : tracksUploadState.status === "uploading"
-                                                        ? "text-blue-800"
-                                                        : tracksUploadState.status === "error"
-                                                            ? "text-red-800"
-                                                            : "text-gray-600",
-                                            )}
-                                        >
-                                            {tracksUploadState.status === "completed"
-                                                ? `All ${tracksUploadState.completedCount} tracks uploaded`
-                                                : tracksUploadState.status === "uploading"
-                                                    ? `Uploading tracks... ${tracksUploadState.completedCount}/${tracksUploadState.totalCount}`
-                                                    : tracksUploadState.status === "error"
-                                                        ? "Tracks upload failed"
-                                                        : `${memoizedTrackFiles.length} tracks ready to upload`}
-                                        </p>
-
-                                        {tracksUploadState.status === "uploading" && (
-                                            <Progress value={tracksUploadState.progress} className="w-full mt-2" />
-                                        )}
-                                    </div>
-                                    {tracksUploadState.status === "idle" && (
-                                        <Button onClick={startTracksUpload} size="sm">
-                                            Upload All Tracks
-                                        </Button>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Hidden upload component for tracks */}
-                        {tracksUploadState.status === "uploading" && (
-                            <div className="hidden">
-                                <MultiMusicUploadS3Button
-                                    endpoint="multiMusicBlobUploader"
-                                    variant="button"
-                                    onUploadProgress={handleTracksUploadProgress}
-                                    onClientUploadComplete={handleTracksUploadComplete}
-                                    onUploadError={handleTracksUploadError}
-                                    preloadedFiles={memoizedTrackFiles}
-                                    showFileList={false}
-                                />
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                <Separator />
-
-                {/* Cover Image Upload - Only show when audio uploads are complete */}
-                {audioUploadState.status === "completed" &&
-                    (memoizedTrackFiles.length === 0 || tracksUploadState.status === "completed") && (
-                        <div className="space-y-4">
-                            <Label htmlFor="coverImg" className="flex items-center gap-2">
-                                <ImageIcon className="h-4 w-4" />
-                                Cover Image
-                            </Label>
-
-                            <AnimatePresence>
-                                {!coverImgUrl ? (
-                                    <div>
-                                        <input
-                                            id="coverImg"
-                                            type="file"
-                                            accept=".jpg, .png"
-                                            onChange={handleCoverImageChange}
-                                            className="hidden"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => document.getElementById("coverImg")?.click()}
-                                            className="w-full h-32 relative border-dashed flex flex-col items-center justify-center gap-2"
-                                            disabled={uploading}
-                                        >
-                                            {uploading ? (
-                                                <>
-                                                    <Loader2 className="h-6 w-6 animate-spin" />
-                                                    <span className="text-sm">Uploading... {uploadProgress}%</span>
-                                                    <Progress value={uploadProgress} className="w-4/5" />
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Upload className="h-6 w-6 text-muted-foreground" />
-                                                    <span className="text-sm text-muted-foreground">Click to upload cover image</span>
-                                                    <span className="text-xs text-muted-foreground">JPG, PNG (max 1MB)</span>
-                                                </>
-                                            )}
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.9 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="relative aspect-square rounded-md overflow-hidden border"
-                                    >
-                                        <Image fill alt="Cover preview" src={coverImgUrl ?? "/placeholder.svg"} className="object-cover" />
-                                        <div className="absolute bottom-0 left-0 right-0 bg-background/80 py-1 px-2">
-                                            <Badge variant="outline" className="bg-green-100 text-green-800">
-                                                <Check className="h-3 w-3 mr-1" /> Uploaded
-                                            </Badge>
-                                        </div>
-                                        <Button
-                                            type="button"
-                                            variant="destructive"
-                                            size="icon"
-                                            className="absolute top-1 right-1 h-6 w-6"
-                                            onClick={() => {
-                                                setValue("coverImgUrl", "")
-                                                setIpfs(undefined)
-                                            }}
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </Button>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-
-                            {errors.coverImgUrl && <p className="text-sm text-destructive">{errors.coverImgUrl.message}</p>}
-                        </div>
+                <div className="flex-1">
+                  <p
+                    className={cn(
+                      "text-sm font-medium",
+                      audioUploadState.status === "completed"
+                        ? "text-green-800"
+                        : audioUploadState.status === "uploading"
+                          ? "text-blue-800"
+                          : audioUploadState.status === "error"
+                            ? "text-red-800"
+                            : "text-gray-600",
                     )}
+                  >
+                    {audioUploadState.status === "completed"
+                      ? "Main audio ready"
+                      : audioUploadState.status === "uploading"
+                        ? `Uploading... ${audioUploadState.progress}%`
+                        : audioUploadState.status === "error"
+                          ? "Upload failed"
+                          : "Ready to upload"}
+                  </p>
 
-                {/* Progress Summary */}
-                {(audioUploadState.status !== "idle" || tracksUploadState.status !== "idle") && (
-                    <Card className="bg-muted/50">
-                        <CardContent className="p-4">
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span>Upload Progress</span>
-                                    <span>{canProceedToNext() ? "✅ Ready to continue" : "⏳ Uploading..."}</span>
-                                </div>
-                                <div className="space-y-1 text-xs text-muted-foreground">
-                                    <div>Main Audio: {audioUploadState.status}</div>
-                                    {memoizedTrackFiles.length > 0 && (
-                                        <div>
-                                            Tracks: {tracksUploadState.status} ({tracksUploadState.completedCount}/
-                                            {tracksUploadState.totalCount})
-                                        </div>
-                                    )}
-                                    <div>Cover Image: {coverImgUrl ? "✅" : "❌"}</div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                  {audioUploadState.status === "uploading" && (
+                    <Progress
+                      value={audioUploadState.progress}
+                      className="mt-2 w-full"
+                    />
+                  )}
+
+                  {audioUploadState.status === "completed" && musicUrl && (
+                    <audio controls className="mt-2 w-full">
+                      <source src={musicUrl} type="audio/wav" />
+                      Your browser does not support the audio element.
+                    </audio>
+                  )}
+                </div>
+                {audioUploadState.status === "idle" && memoizedAudioFile && (
+                  <Button onClick={startAudioUpload} size="sm">
+                    Upload Main Audio
+                  </Button>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Hidden upload component for main audio */}
+          {audioUploadState.status === "uploading" && memoizedAudioFile && (
+            <UploadS3Button
+              endpoint="musicUploader"
+              variant="hidden"
+              uploadedFile={memoizedAudioFile}
+              onUploadProgress={handleAudioUploadProgress}
+              onClientUploadComplete={handleAudioUploadComplete}
+              onUploadError={handleAudioUploadError}
+            />
+          )}
+        </div>
+
+        <Separator />
+
+        {/* Individual Tracks Upload */}
+        {memoizedTrackFiles.length > 0 && (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Music
+                className={cn(
+                  "h-4 w-4",
+                  tracksUploadState.status === "completed"
+                    ? "text-green-600"
+                    : tracksUploadState.status === "uploading"
+                      ? "text-blue-600"
+                      : tracksUploadState.status === "error"
+                        ? "text-red-600"
+                        : "text-gray-400",
+                )}
+              />
+              Individual Tracks ({memoizedTrackFiles.length} tracks)
+            </Label>
+
+            <Card
+              className={cn(
+                "overflow-hidden",
+                tracksUploadState.status === "completed"
+                  ? "border-green-200 bg-green-50"
+                  : tracksUploadState.status === "uploading"
+                    ? "border-blue-200 bg-blue-50"
+                    : tracksUploadState.status === "error"
+                      ? "border-red-200 bg-red-50"
+                      : "border-gray-200",
+              )}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "rounded-full p-3",
+                      tracksUploadState.status === "completed"
+                        ? "bg-green-100"
+                        : tracksUploadState.status === "uploading"
+                          ? "bg-blue-100"
+                          : tracksUploadState.status === "error"
+                            ? "bg-red-100"
+                            : "bg-gray-100",
+                    )}
+                  >
+                    {tracksUploadState.status === "uploading" ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                    ) : tracksUploadState.status === "completed" ? (
+                      <Check className="h-5 w-5 text-green-600" />
+                    ) : tracksUploadState.status === "error" ? (
+                      <X className="h-5 w-5 text-red-600" />
+                    ) : (
+                      <Upload className="h-5 w-5 text-gray-400" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p
+                      className={cn(
+                        "text-sm font-medium",
+                        tracksUploadState.status === "completed"
+                          ? "text-green-800"
+                          : tracksUploadState.status === "uploading"
+                            ? "text-blue-800"
+                            : tracksUploadState.status === "error"
+                              ? "text-red-800"
+                              : "text-gray-600",
+                      )}
+                    >
+                      {tracksUploadState.status === "completed"
+                        ? `All ${tracksUploadState.completedCount} tracks uploaded`
+                        : tracksUploadState.status === "uploading"
+                          ? `Uploading tracks... ${tracksUploadState.completedCount}/${tracksUploadState.totalCount}`
+                          : tracksUploadState.status === "error"
+                            ? "Tracks upload failed"
+                            : `${memoizedTrackFiles.length} tracks ready to upload`}
+                    </p>
+
+                    {tracksUploadState.status === "uploading" && (
+                      <Progress
+                        value={tracksUploadState.progress}
+                        className="mt-2 w-full"
+                      />
+                    )}
+                  </div>
+                  {tracksUploadState.status === "idle" && (
+                    <Button onClick={startTracksUpload} size="sm">
+                      Upload All Tracks
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Hidden upload component for tracks */}
+            {tracksUploadState.status === "uploading" && (
+              <div className="hidden">
+                <MultiMusicUploadS3Button
+                  endpoint="multiMusicBlobUploader"
+                  variant="button"
+                  onUploadProgress={handleTracksUploadProgress}
+                  onClientUploadComplete={handleTracksUploadComplete}
+                  onUploadError={handleTracksUploadError}
+                  preloadedFiles={memoizedTrackFiles}
+                  showFileList={false}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        <Separator />
+
+        {/* Cover Image Upload - Only show when audio uploads are complete */}
+        {audioUploadState.status === "completed" &&
+          (memoizedTrackFiles.length === 0 ||
+            tracksUploadState.status === "completed") && (
+            <div className="space-y-4">
+              <Label htmlFor="coverImg" className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" />
+                Cover Image
+              </Label>
+
+              <AnimatePresence>
+                {!coverImgUrl ? (
+                  <div>
+                    <input
+                      id="coverImg"
+                      type="file"
+                      accept=".jpg, .png"
+                      onChange={handleCoverImageChange}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        document.getElementById("coverImg")?.click()
+                      }
+                      className="relative flex h-32 w-full flex-col items-center justify-center gap-2 border-dashed"
+                      disabled={uploading}
+                    >
+                      {uploading ? (
+                        <>
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                          <span className="text-sm">
+                            Uploading... {uploadProgress}%
+                          </span>
+                          <Progress value={uploadProgress} className="w-4/5" />
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-6 w-6 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            Click to upload cover image
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            JPG, PNG (max 1MB)
+                          </span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                    className="relative aspect-square overflow-hidden rounded-md border"
+                  >
+                    <Image
+                      fill
+                      alt="Cover preview"
+                      src={coverImgUrl ?? "/placeholder.svg"}
+                      className="object-cover"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-background/80 px-2 py-1">
+                      <Badge
+                        variant="outline"
+                        className="bg-green-100 text-green-800"
+                      >
+                        <Check className="mr-1 h-3 w-3" /> Uploaded
+                      </Badge>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute right-1 top-1 h-6 w-6"
+                      onClick={() => {
+                        setValue("coverImgUrl", "");
+                        setIpfs(undefined);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {errors.coverImgUrl && (
+                <p className="text-sm text-destructive">
+                  {errors.coverImgUrl.message}
+                </p>
+              )}
             </div>
-        </motion.div>
-    )
+          )}
+
+        {/* Progress Summary */}
+        {(audioUploadState.status !== "idle" ||
+          tracksUploadState.status !== "idle") && (
+          <Card className="bg-muted/50">
+            <CardContent className="p-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Upload Progress</span>
+                  <span>
+                    {canProceedToNext()
+                      ? "✅ Ready to continue"
+                      : "⏳ Uploading..."}
+                  </span>
+                </div>
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <div>Main Audio: {audioUploadState.status}</div>
+                  {memoizedTrackFiles.length > 0 && (
+                    <div>
+                      Tracks: {tracksUploadState.status} (
+                      {tracksUploadState.completedCount}/
+                      {tracksUploadState.totalCount})
+                    </div>
+                  )}
+                  <div>Cover Image: {coverImgUrl ? "✅" : "❌"}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </motion.div>
+  );
 }
 
 function PricingStep() {
-    const {
-        register,
-        formState: { errors },
-    } = useFormContext<ExportSongFormType>()
+  const {
+    register,
+    formState: { errors },
+  } = useFormContext<ExportSongFormType>();
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-        >
-            <div className="space-y-1">
-                <h2 className="text-xl font-semibold">Pricing & Asset Details</h2>
-                <p className="text-sm text-muted-foreground">Set up your song{"'s"} pricing and asset information</p>
-            </div>
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold">Pricing & Asset Details</h2>
+        <p className="text-sm text-muted-foreground">
+          Set up your song{"'s"} pricing and asset information
+        </p>
+      </div>
 
-            <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="code" className="flex items-center gap-2">
-                            <FileText className="h-4 w-4" />
-                            Asset Name
-                        </Label>
-                        <Input
-                            id="code"
-                            {...register("code")}
-                            placeholder="Enter asset name (4-12 chars)"
-                            className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                        />
-                        {errors.code && <p className="text-sm text-destructive">{errors.code.message}</p>}
-                    </div>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="code" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Asset Name
+            </Label>
+            <Input
+              id="code"
+              {...register("code")}
+              placeholder="Enter asset name (4-12 chars)"
+              className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+            />
+            {errors.code && (
+              <p className="text-sm text-destructive">{errors.code.message}</p>
+            )}
+          </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="limit" className="flex items-center gap-2">
-                            <FileText className="h-4 w-4" />
-                            Supply Limit
-                        </Label>
-                        <Input
-                            id="limit"
-                            type="number"
-                            {...register("limit", { valueAsNumber: true })}
-                            placeholder="Enter supply limit"
-                            className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                        />
-                        {errors.limit && <p className="text-sm text-destructive">{errors.limit.message}</p>}
-                        <p className="text-xs text-muted-foreground">This determines how many copies of this song can exist</p>
-                    </div>
-                </div>
+          <div className="space-y-2">
+            <Label htmlFor="limit" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Supply Limit
+            </Label>
+            <Input
+              id="limit"
+              type="number"
+              {...register("limit", { valueAsNumber: true })}
+              placeholder="Enter supply limit"
+              className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+            />
+            {errors.limit && (
+              <p className="text-sm text-destructive">{errors.limit.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              This determines how many copies of this song can exist
+            </p>
+          </div>
+        </div>
 
-                <Separator />
+        <Separator />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="price" className="flex items-center gap-2">
-                            <Coins className="h-4 w-4" />
-                            Price in {PLATFORM_ASSET.code}
-                        </Label>
-                        <Input
-                            id="price"
-                            type="number"
-                            step="0.1"
-                            {...register("price", { valueAsNumber: true })}
-                            placeholder={`Enter price in ${PLATFORM_ASSET.code}`}
-                            className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                        />
-                        {errors.price && <p className="text-sm text-destructive">{errors.price.message}</p>}
-                    </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="price" className="flex items-center gap-2">
+              <Coins className="h-4 w-4" />
+              Price in {PLATFORM_ASSET.code}
+            </Label>
+            <Input
+              id="price"
+              type="number"
+              step="0.1"
+              {...register("price", { valueAsNumber: true })}
+              placeholder={`Enter price in ${PLATFORM_ASSET.code}`}
+              className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+            />
+            {errors.price && (
+              <p className="text-sm text-destructive">{errors.price.message}</p>
+            )}
+          </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="priceUSD" className="flex items-center gap-2">
-                            <DollarSign className="h-4 w-4" />
-                            Price in USD
-                        </Label>
-                        <Input
-                            id="priceUSD"
-                            type="number"
-                            step="0.1"
-                            {...register("priceUSD", { valueAsNumber: true })}
-                            placeholder="Enter price in USD"
-                            className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                        />
-                        {errors.priceUSD && <p className="text-sm text-destructive">{errors.priceUSD.message}</p>}
-                    </div>
-                </div>
-            </div>
-        </motion.div>
-    )
+          <div className="space-y-2">
+            <Label htmlFor="priceUSD" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Price in USD
+            </Label>
+            <Input
+              id="priceUSD"
+              type="number"
+              step="0.1"
+              {...register("priceUSD", { valueAsNumber: true })}
+              placeholder="Enter price in USD"
+              className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+            />
+            {errors.priceUSD && (
+              <p className="text-sm text-destructive">
+                {errors.priceUSD.message}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
 }
 
 function ReviewStep() {
-    const { watch } = useFormContext<ExportSongFormType>()
+  const { watch } = useFormContext<ExportSongFormType>();
 
-    const name = watch("name")
-    const artist = watch("artist")
-    const description = watch("description")
-    const coverImgUrl = watch("coverImgUrl")
-    const musicUrl = watch("musicUrl")
-    const code = watch("code")
-    const limit = watch("limit")
-    const price = watch("price")
-    const priceUSD = watch("priceUSD")
-    const tier = watch("tier")
-    const albumId = watch("albumId")
+  const name = watch("name");
+  const artist = watch("artist");
+  const description = watch("description");
+  const coverImgUrl = watch("coverImgUrl");
+  const musicUrl = watch("musicUrl");
+  const code = watch("code");
+  const limit = watch("limit");
+  const price = watch("price");
+  const priceUSD = watch("priceUSD");
+  const tier = watch("tier");
+  const albumId = watch("albumId");
 
-    // Fetch selected album details
-    const { data: albumsData } = api.fan.music.getCreatorAlbums.useInfiniteQuery({ limit: 100 }, { enabled: !!albumId })
+  // Fetch selected album details
+  const { data: albumsData } = api.fan.music.getCreatorAlbums.useInfiniteQuery(
+    { limit: 100 },
+    { enabled: !!albumId },
+  );
 
-    const selectedAlbum = albumsData?.pages.flatMap((page) => page.albums).find((album) => album.id === albumId)
+  const selectedAlbum = albumsData?.pages
+    .flatMap((page) => page.albums)
+    .find((album) => album.id === albumId);
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-        >
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold">Review Your Export</h2>
+        <p className="text-sm text-muted-foreground">
+          Please review all information before publishing to BANDCOIN
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="space-y-4">
+          <div className="relative aspect-square overflow-hidden rounded-md border">
+            <Image
+              fill
+              alt="Cover preview"
+              src={coverImgUrl ?? "/placeholder.svg"}
+              className="object-cover"
+            />
+          </div>
+
+          <audio controls className="w-full">
+            <source src={musicUrl} type="audio/wav" />
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold">{name}</h3>
+            <p className="text-muted-foreground">{artist}</p>
+          </div>
+
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Description</p>
+            <p className="text-sm text-muted-foreground">{description}</p>
+          </div>
+
+          {selectedAlbum && (
             <div className="space-y-1">
-                <h2 className="text-xl font-semibold">Review Your Export</h2>
-                <p className="text-sm text-muted-foreground">Please review all information before publishing to BANDCOIN</p>
+              <p className="text-sm font-medium">Album</p>
+              <div className="flex items-center gap-2">
+                <div className="relative h-8 w-8 overflow-hidden rounded">
+                  <Image
+                    src={selectedAlbum.coverImgUrl ?? "/placeholder.svg"}
+                    alt={selectedAlbum.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {selectedAlbum.name}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <Separator />
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-sm font-medium">Asset Name</p>
+              <p className="text-sm text-muted-foreground">{code}</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <div className="relative aspect-square rounded-md overflow-hidden border">
-                        <Image fill alt="Cover preview" src={coverImgUrl ?? "/placeholder.svg"} className="object-cover" />
-                    </div>
-
-                    <audio controls className="w-full">
-                        <source src={musicUrl} type="audio/wav" />
-                        Your browser does not support the audio element.
-                    </audio>
-                </div>
-
-                <div className="space-y-4">
-                    <div>
-                        <h3 className="text-lg font-semibold">{name}</h3>
-                        <p className="text-muted-foreground">{artist}</p>
-                    </div>
-
-                    <div className="space-y-1">
-                        <p className="text-sm font-medium">Description</p>
-                        <p className="text-sm text-muted-foreground">{description}</p>
-                    </div>
-
-                    {selectedAlbum && (
-                        <div className="space-y-1">
-                            <p className="text-sm font-medium">Album</p>
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 relative rounded overflow-hidden">
-                                    <Image
-                                        src={selectedAlbum.coverImgUrl ?? "/placeholder.svg"}
-                                        alt={selectedAlbum.name}
-                                        fill
-                                        className="object-cover"
-                                    />
-                                </div>
-                                <p className="text-sm text-muted-foreground">{selectedAlbum.name}</p>
-                            </div>
-                        </div>
-                    )}
-
-                    <Separator />
-
-                    <div className="grid grid-cols-2 gap-2">
-                        <div>
-                            <p className="text-sm font-medium">Asset Name</p>
-                            <p className="text-sm text-muted-foreground">{code}</p>
-                        </div>
-
-                        <div>
-                            <p className="text-sm font-medium">Supply Limit</p>
-                            <p className="text-sm text-muted-foreground">{limit}</p>
-                        </div>
-
-                        <div>
-                            <p className="text-sm font-medium">Price ({PLATFORM_ASSET.code})</p>
-                            <p className="text-sm text-muted-foreground">
-                                {price} {PLATFORM_ASSET.code}
-                            </p>
-                        </div>
-
-                        <div>
-                            <p className="text-sm font-medium">Price (USD)</p>
-                            <p className="text-sm text-muted-foreground">${priceUSD}</p>
-                        </div>
-
-                        <div>
-                            <p className="text-sm font-medium">Access Tier</p>
-                            <p className="text-sm text-muted-foreground">{tier ?? "Public"}</p>
-                        </div>
-                    </div>
-                </div>
+            <div>
+              <p className="text-sm font-medium">Supply Limit</p>
+              <p className="text-sm text-muted-foreground">{limit}</p>
             </div>
-        </motion.div>
-    )
+
+            <div>
+              <p className="text-sm font-medium">
+                Price ({PLATFORM_ASSET.code})
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {price} {PLATFORM_ASSET.code}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium">Price (USD)</p>
+              <p className="text-sm text-muted-foreground">${priceUSD}</p>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium">Access Tier</p>
+              <p className="text-sm text-muted-foreground">
+                {tier ?? "Public"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
 }
 
-function ExportSubmitButton({ setIsOpen }: { setIsOpen: (isOpen: boolean) => void }) {
-    const { getValues, setValue } = useFormContext<ExportSongFormType>()
-    const [isSubmitting, setIsSubmitting] = useState(false)
-    const [tier, setTier] = useState<string>()
-    const session = useSession()
-    const { platformAssetBalance } = useUserStellarAcc()
-    const { needSign } = useNeedSign()
-    const { paymentMethod, setIsOpen: setPaymentModalOpen } = usePaymentMethodStore()
+function ExportSubmitButton({
+  setIsOpen,
+}: {
+  setIsOpen: (isOpen: boolean) => void;
+}) {
+  const { getValues, setValue } = useFormContext<ExportSongFormType>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tier, setTier] = useState<string>();
+  const session = useSession();
+  const { platformAssetBalance } = useUserStellarAcc();
+  const { needSign } = useNeedSign();
+  const { paymentMethod, setIsOpen: setPaymentModalOpen } =
+    usePaymentMethodStore();
 
-    const requiredToken = api.fan.trx.getRequiredPlatformAsset.useQuery({ xlm: 2 }, { enabled: true })
+  const requiredToken = api.fan.trx.getRequiredPlatformAsset.useQuery(
+    { xlm: 2 },
+    { enabled: true },
+  );
 
-    const totalFeees = Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE)
+  const totalFeees = Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE);
 
-    const addSong = api.fan.music.createSongWithStems.useMutation({
-        onSuccess: () => {
-            toast.success("Song exported to BANDCOIN successfully!")
-            setIsSubmitting(false)
-            setIsOpen(false)
-            setPaymentModalOpen(false)
-        },
-        onError: (error) => {
-            toast.error(error.message ?? "Failed to export song")
-            setIsSubmitting(false)
-        },
-    })
+  const addSong = api.fan.music.createSongWithStems.useMutation({
+    onSuccess: () => {
+      toast.success("Song exported to BANDCOIN successfully!");
+      setIsSubmitting(false);
+      setIsOpen(false);
+      setPaymentModalOpen(false);
+    },
+    onError: (error) => {
+      toast.error(error.message ?? "Failed to export song");
+      setIsSubmitting(false);
+    },
+  });
 
-    const xdrMutation = api.fan.trx.createUniAssetTrx.useMutation({
-        onSuccess(data, variables, context) {
-            const { issuer, xdr } = data
-            setValue("issuer", issuer)
+  const xdrMutation = api.fan.trx.createUniAssetTrx.useMutation({
+    onSuccess(data, variables, context) {
+      const { issuer, xdr } = data;
+      setValue("issuer", issuer);
 
-            setIsSubmitting(true)
+      setIsSubmitting(true);
 
-            toast.promise(
-                clientsign({
-                    presignedxdr: xdr,
-                    pubkey: session.data?.user.id,
-                    walletType: session.data?.user.walletType,
-                    test: clientSelect(),
-                })
-                    .then((res) => {
-                        if (res) {
-                            setValue("tier", tier)
-                            const data = getValues()
-                            addSong.mutate({ ...data })
-                        } else {
-                            toast.error("Transaction Failed")
-                            setIsSubmitting(false)
-                        }
-                    })
-                    .catch((e) => {
-                        console.error(e)
-                        setIsSubmitting(false)
-                    }),
-                {
-                    loading: "Signing Transaction...",
-                    success: "Transaction Signed",
-                    error: "Signing Transaction Failed",
-                },
-            )
-        },
-        onError: (error) => {
-            toast.error(error.message || "Failed to create transaction")
-            setIsSubmitting(false)
-        },
-    })
-
-    const handleSubmit = () => {
-        const ipfs = getValues("coverImgUrl")
-        if (!ipfs) {
-            toast.error("Please upload a cover image")
-            return
-        }
-
-        setIsSubmitting(true)
-
-        xdrMutation.mutate({
-            code: getValues("code"),
-            limit: getValues("limit"),
-            signWith: needSign(),
-            ipfsHash: ipfs,
-            native: paymentMethod === "xlm",
+      toast.promise(
+        clientsign({
+          presignedxdr: xdr,
+          pubkey: session.data?.user.id,
+          walletType: session.data?.user.walletType,
+          test: clientSelect(),
         })
-    }
-
-    if (requiredToken.isLoading) {
-        return (
-            <Button disabled>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading...
-            </Button>
-        )
-    }
-
-    const requiredTokenAmount = requiredToken.data ?? 0
-    const insufficientBalance = requiredTokenAmount > platformAssetBalance
-
-    return (
-        <PaymentChoose
-            costBreakdown={[
-                {
-                    label: "Cost",
-                    amount: paymentMethod === "asset" ? requiredTokenAmount - totalFeees : 2,
-                    type: "cost",
-                    highlighted: true,
-                },
-                {
-                    label: "Platform Fee",
-                    amount: paymentMethod === "asset" ? totalFeees : 2,
-                    highlighted: false,
-                    type: "fee",
-                },
-                {
-                    label: "Total Cost",
-                    amount: paymentMethod === "asset" ? requiredTokenAmount : 4,
-                    highlighted: false,
-                    type: "total",
-                },
-            ]}
-            XLM_EQUIVALENT={4}
-            handleConfirm={handleSubmit}
-            loading={isSubmitting}
-            requiredToken={requiredTokenAmount}
-            trigger={
-                <Button
-                    variant="sidebarAccent"
-                    disabled={isSubmitting || insufficientBalance}
-                    className="flex items-center gap-2 shadow-sm shadow-black hover:shadow-xl transition-shadow duration-200"
-                >
-                    {isSubmitting ? (
-                        <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Exporting...
-                        </>
-                    ) : (
-                        <>
-                            <Upload className="h-4 w-4" />
-                            Export to BANDCOIN
-                        </>
-                    )}
-                </Button>
+          .then((res) => {
+            if (res) {
+              setValue("tier", tier);
+              const data = getValues();
+              addSong.mutate({ ...data });
+            } else {
+              toast.error("Transaction Failed");
+              setIsSubmitting(false);
             }
-        />
-    )
+          })
+          .catch((e) => {
+            console.error(e);
+            setIsSubmitting(false);
+          }),
+        {
+          loading: "Signing Transaction...",
+          success: "Transaction Signed",
+          error: "Signing Transaction Failed",
+        },
+      );
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to create transaction");
+      setIsSubmitting(false);
+    },
+  });
+
+  const handleSubmit = () => {
+    const ipfs = getValues("coverImgUrl");
+    if (!ipfs) {
+      toast.error("Please upload a cover image");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    xdrMutation.mutate({
+      code: getValues("code"),
+      limit: getValues("limit"),
+      signWith: needSign(),
+      ipfsHash: ipfs,
+      native: paymentMethod === "xlm",
+    });
+  };
+
+  if (requiredToken.isLoading) {
+    return (
+      <Button disabled>
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Loading...
+      </Button>
+    );
+  }
+
+  const requiredTokenAmount = requiredToken.data ?? 0;
+  const insufficientBalance = requiredTokenAmount > platformAssetBalance;
+
+  return (
+    <PaymentChoose
+      costBreakdown={[
+        {
+          label: "Cost",
+          amount:
+            paymentMethod === "asset" ? requiredTokenAmount - totalFeees : 2,
+          type: "cost",
+          highlighted: true,
+        },
+        {
+          label: "Platform Fee",
+          amount: paymentMethod === "asset" ? totalFeees : 2,
+          highlighted: false,
+          type: "fee",
+        },
+        {
+          label: "Total Cost",
+          amount: paymentMethod === "asset" ? requiredTokenAmount : 4,
+          highlighted: false,
+          type: "total",
+        },
+      ]}
+      XLM_EQUIVALENT={4}
+      handleConfirm={handleSubmit}
+      loading={isSubmitting}
+      requiredToken={requiredTokenAmount}
+      trigger={
+        <Button
+          variant="sidebarAccent"
+          disabled={isSubmitting || insufficientBalance}
+          className="flex items-center gap-2 shadow-sm shadow-black transition-shadow duration-200 hover:shadow-xl"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Exporting...
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4" />
+              Export to BANDCOIN
+            </>
+          )}
+        </Button>
+      }
+    />
+  );
 }
 
-function TiersOptions({ tiers }: { tiers: { id: number; name: string; price: number }[] }) {
-    const { setValue } = useFormContext<ExportSongFormType>()
+function TiersOptions({
+  tiers,
+}: {
+  tiers: { id: number; name: string; price: number }[];
+}) {
+  const { setValue } = useFormContext<ExportSongFormType>();
 
-    return (
-        <Select onValueChange={(value) => setValue("tier", value)}>
-            <SelectTrigger className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20">
-                <SelectValue placeholder="Select a tier" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectGroup>
-                    <SelectLabel>Choose Tier</SelectLabel>
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="private">Only Followers</SelectItem>
-                    {tiers.map((model) => (
-                        <SelectItem key={model.id} value={model.id.toString()}>
-                            <div className="flex items-center justify-between w-full">
-                                <span>{model.name}</span>
-                                <Badge variant="outline">{model.price}</Badge>
-                            </div>
-                        </SelectItem>
-                    ))}
-                </SelectGroup>
-            </SelectContent>
-        </Select>
-    )
+  return (
+    <Select onValueChange={(value) => setValue("tier", value)}>
+      <SelectTrigger className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20">
+        <SelectValue placeholder="Select a tier" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          <SelectLabel>Choose Tier</SelectLabel>
+          <SelectItem value="public">Public</SelectItem>
+          <SelectItem value="private">Only Followers</SelectItem>
+          {tiers.map((model) => (
+            <SelectItem key={model.id} value={model.id.toString()}>
+              <div className="flex w-full items-center justify-between">
+                <span>{model.name}</span>
+                <Badge variant="outline">{model.price}</Badge>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
+  );
 }

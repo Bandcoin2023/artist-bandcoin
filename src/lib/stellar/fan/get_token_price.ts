@@ -72,6 +72,7 @@ export async function getPlatformAssetPrice() {
 }
 
 export async function getplatformAssetNumberForXLM(xlm = 1.5) {
+  if (xlm === 0) return 0;
   const xlmPrice = await getXLMPrice();
   if (PLATFORM_ASSET.code.toLocaleLowerCase() === "Wadzzo".toLocaleLowerCase())
     return Math.ceil(xlm * xlmPrice * 100);
@@ -86,13 +87,18 @@ export async function getPlatformTokenNumberForUSD(
   const platformTokenNumber = usd / platformAssetPrice;
   return platformTokenNumber;
 }
-export async function getXLMPriceByPlatformAsset(platformTokenToConvert: number) {
-  const platformAssetPriceInUSD = PLATFORM_ASSET.code === "Wadzzo" ? 0.01 : await getAssetPrice();
+export async function getXLMPriceByPlatformAsset(
+  platformTokenToConvert: number,
+) {
+  const platformAssetPriceInUSD =
+    PLATFORM_ASSET.code === "Wadzzo" ? 0.01 : await getAssetPrice();
   const xlmPriceInUSD = await getXLMPrice();
   // if (PLATFORM_ASSET.code.toLocaleLowerCase() === "Wadzzo".toLocaleLowerCase())
   //   return Math.ceil(xlm * xlmPrice * 100);
 
-  return Math.ceil((platformAssetPriceInUSD / xlmPriceInUSD) * platformTokenToConvert);
+  return Math.ceil(
+    (platformAssetPriceInUSD / xlmPriceInUSD) * platformTokenToConvert,
+  );
 }
 export async function getAssetToUSDCRate(): Promise<number> {
   try {

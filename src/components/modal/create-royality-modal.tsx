@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useForm, FormProvider, useFormContext } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
+import type React from "react";
+import { useForm, FormProvider, useFormContext } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
     Coins,
     ImageIcon,
@@ -19,38 +19,67 @@ import {
     CalendarClock,
     FileMusic,
     Info,
-} from "lucide-react"
-import { useSession } from "next-auth/react"
-import { clientsign } from "package/connect_wallet"
-import { useEffect, useRef, useState } from "react"
-import { toast } from "react-hot-toast"
-import { z } from "zod"
-import { PLATFORM_ASSET, PLATFORM_FEE, TrxBaseFeeInPlatformAsset } from "~/lib/stellar/constant"
-import { AccountSchema, clientSelect } from "~/lib/stellar/fan/utils"
-import { ipfsHashToUrl } from "~/utils/ipfs"
-import { Input } from "~/components/shadcn/ui/input"
-import { Label } from "~/components/shadcn/ui/label"
-import { Textarea } from "~/components/shadcn/ui/textarea"
-import { api } from "~/utils/api"
-import Image from "next/image"
-import { Button } from "~/components/shadcn/ui/button"
-import useNeedSign from "~/lib/hook"
-import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances"
-import { motion, AnimatePresence } from "framer-motion"
-import { Card, CardContent, CardFooter, CardTitle } from "~/components/shadcn/ui/card"
-import { Badge } from "~/components/shadcn/ui/badge"
-import { Progress } from "~/components/shadcn/ui/progress"
-import { Separator } from "~/components/shadcn/ui/separator"
-import { useCreateRoyalityModalStore } from "../store/create-royality-modal"
-import { UploadS3Button } from "../common/upload-button"
-import { PaymentChoose, usePaymentMethodStore } from "../common/payment-options"
-import { Dialog, DialogContent, DialogDescription, DialogHeader } from "../shadcn/ui/dialog"
-import { cn } from "~/lib/utils"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/shadcn/ui/tooltip"
+} from "lucide-react";
+import { useSession } from "next-auth/react";
+import { clientsign } from "package/connect_wallet";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
+import { z } from "zod";
+import {
+    PLATFORM_ASSET,
+    PLATFORM_FEE,
+    TrxBaseFeeInPlatformAsset,
+} from "~/lib/stellar/constant";
+import { AccountSchema, clientSelect } from "~/lib/stellar/fan/utils";
+import { ipfsHashToPinataGatewayUrl } from "~/utils/ipfs";
+import { Input } from "~/components/shadcn/ui/input";
+import { Label } from "~/components/shadcn/ui/label";
+import { Textarea } from "~/components/shadcn/ui/textarea";
+import { api } from "~/utils/api";
+import Image from "next/image";
+import { Button } from "~/components/shadcn/ui/button";
+import useNeedSign from "~/lib/hook";
+import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+    Card,
+    CardContent,
+    CardFooter,
+    CardTitle,
+} from "~/components/shadcn/ui/card";
+import { Badge } from "~/components/shadcn/ui/badge";
+import { Progress } from "~/components/shadcn/ui/progress";
+import { Separator } from "~/components/shadcn/ui/separator";
+import { useCreateRoyalityModalStore } from "../store/create-royality-modal";
+import { UploadS3Button } from "../common/upload-button";
+import {
+    PaymentChoose,
+    usePaymentMethodStore,
+} from "../common/payment-options";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+} from "../shadcn/ui/dialog";
+import { cn } from "~/lib/utils";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "~/components/shadcn/ui/tooltip";
 
 export const RoyalityFormSchema = z.object({
-    name: z.string().min(2, "Name must be at least 2 characters").max(50, "Name must be less than 50 characters"),
-    description: z.string().max(500, "Description must be less than 500 characters").optional().or(z.literal("")),
+    name: z
+        .string()
+        .min(2, "Name must be at least 2 characters")
+        .max(50, "Name must be less than 50 characters"),
+    description: z
+        .string()
+        .max(500, "Description must be less than 500 characters")
+        .optional()
+        .or(z.literal("")),
     coverImgUrl: z.string({
         required_error: "Cover image is required",
     }),
@@ -119,30 +148,36 @@ export const RoyalityFormSchema = z.object({
         .refine((date) => date > new Date(), {
             message: "Release date must be in the future",
         }),
-})
+});
 
-type RoyalityFormType = z.infer<typeof RoyalityFormSchema>
+type RoyalityFormType = z.infer<typeof RoyalityFormSchema>;
 
 // Define the steps
-type FormStep = "basics" | "media" | "dates" | "pricing" | "review"
-const FORM_STEPS: FormStep[] = ["basics", "media", "dates", "pricing", "review"]
+type FormStep = "basics" | "media" | "dates" | "pricing" | "review";
+const FORM_STEPS: FormStep[] = [
+    "basics",
+    "media",
+    "dates",
+    "pricing",
+    "review",
+];
 
 export default function CreateRoyalityModal() {
-    const [activeStep, setActiveStep] = useState<FormStep>("basics")
-    const [formProgress, setFormProgress] = useState(20)
-    const [isSubmitting, setIsSubmitting] = useState(false)
-    const { albumId, isOpen, setIsOpen } = useCreateRoyalityModalStore()
+    const [activeStep, setActiveStep] = useState<FormStep>("basics");
+    const [formProgress, setFormProgress] = useState(20);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { albumId, isOpen, setIsOpen } = useCreateRoyalityModalStore();
 
     // Set default dates
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const oneMonthFromNow = new Date()
-    oneMonthFromNow.setDate(tomorrow.getDate())
-    oneMonthFromNow.setMonth(tomorrow.getMonth() + 1)
+    const oneMonthFromNow = new Date();
+    oneMonthFromNow.setDate(tomorrow.getDate());
+    oneMonthFromNow.setMonth(tomorrow.getMonth() + 1);
 
-    const threeMonthsFromNow = new Date()
-    threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3)
+    const threeMonthsFromNow = new Date();
+    threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
 
     const methods = useForm<RoyalityFormType>({
         mode: "onChange",
@@ -159,46 +194,46 @@ export default function CreateRoyalityModal() {
             description: "",
             code: "",
         },
-    })
+    });
 
     // Update progress based on active step
     useEffect(() => {
-        const stepIndex = FORM_STEPS.indexOf(activeStep)
-        setFormProgress((stepIndex + 1) * (100 / FORM_STEPS.length))
-    }, [activeStep])
+        const stepIndex = FORM_STEPS.indexOf(activeStep);
+        setFormProgress((stepIndex + 1) * (100 / FORM_STEPS.length));
+    }, [activeStep]);
 
     // Generate random asset code
     useEffect(() => {
         if (!methods.getValues("code") || methods.getValues("code") === "") {
-            const randomCode = `ROY${Math.random().toString(36).substring(2, 6).toUpperCase()}`
-            methods.setValue("code", randomCode, { shouldValidate: true })
+            const randomCode = `ROY${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+            methods.setValue("code", randomCode, { shouldValidate: true });
         }
-    }, [methods])
+    }, [methods]);
 
     // Navigation functions
     const goToNextStep = () => {
-        const currentIndex = FORM_STEPS.indexOf(activeStep)
+        const currentIndex = FORM_STEPS.indexOf(activeStep);
         if (currentIndex < FORM_STEPS.length - 1) {
-            const nextStep = FORM_STEPS[currentIndex + 1]
+            const nextStep = FORM_STEPS[currentIndex + 1];
             if (nextStep) {
-                setActiveStep(nextStep)
+                setActiveStep(nextStep);
             }
         }
-    }
+    };
 
     const goToPreviousStep = () => {
-        const currentIndex = FORM_STEPS.indexOf(activeStep)
+        const currentIndex = FORM_STEPS.indexOf(activeStep);
         if (currentIndex > 0) {
-            const previousStep = FORM_STEPS[currentIndex - 1]
+            const previousStep = FORM_STEPS[currentIndex - 1];
             if (previousStep) {
-                setActiveStep(previousStep)
+                setActiveStep(previousStep);
             }
         }
-    }
+    };
 
     // Check if current step is valid before allowing to proceed
     const canProceed = () => {
-        const { trigger } = methods
+        const { trigger } = methods;
 
         // Define fields to validate for each step
         const fieldsToValidate: Record<FormStep, (keyof RoyalityFormType)[]> = {
@@ -207,35 +242,35 @@ export default function CreateRoyalityModal() {
             dates: ["endDate", "releaseDate"],
             pricing: ["code", "limit", "price", "priceUSD"],
             review: [],
-        }
+        };
 
         // Trigger validation for the current step's fields
         const validateStep = async () => {
-            const result = await trigger(fieldsToValidate[activeStep])
-            return result
-        }
+            const result = await trigger(fieldsToValidate[activeStep]);
+            return result;
+        };
 
-        return validateStep()
-    }
+        return validateStep();
+    };
 
     const handleNext = async () => {
-        const isValid = await canProceed()
+        const isValid = await canProceed();
         if (isValid) {
-            goToNextStep()
+            goToNextStep();
         }
-    }
+    };
 
     const handleClose = () => {
-        setIsOpen(false)
-        setActiveStep("basics")
-        methods.reset()
-    }
+        setIsOpen(false);
+        setActiveStep("basics");
+        methods.reset();
+    };
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
             <DialogContent
                 onInteractOutside={(e) => {
-                    e.preventDefault()
+                    e.preventDefault();
                 }}
                 className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-xl p-2"
             >
@@ -244,14 +279,16 @@ export default function CreateRoyalityModal() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
                     transition={{ duration: 0.3 }}
-                    className="flex flex-col h-full"
+                    className="flex h-full flex-col"
                 >
                     <DialogHeader className="px-6 py-4">
                         <div className="flex items-center gap-2">
                             <Coins className="h-5 w-5" />
                             <CardTitle>Create Royalty Item</CardTitle>
                         </div>
-                        <DialogDescription>Create a new royalty investment opportunity</DialogDescription>
+                        <DialogDescription>
+                            Create a new royalty investment opportunity
+                        </DialogDescription>
 
                         <Progress value={formProgress} className="mt-2 h-2" />
 
@@ -261,7 +298,7 @@ export default function CreateRoyalityModal() {
                                     <div key={step} className="flex flex-col items-center">
                                         <div
                                             className={cn(
-                                                "w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm mb-1",
+                                                "mb-1 flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium",
                                                 activeStep === step
                                                     ? "bg-primary shadow-sm shadow-foreground"
                                                     : "bg-muted text-muted-foreground",
@@ -269,7 +306,14 @@ export default function CreateRoyalityModal() {
                                         >
                                             {index + 1}
                                         </div>
-                                        <span className={cn("text-xs", activeStep === step ? "font-medium" : "text-muted-foreground")}>
+                                        <span
+                                            className={cn(
+                                                "text-xs",
+                                                activeStep === step
+                                                    ? "font-medium"
+                                                    : "text-muted-foreground",
+                                            )}
+                                        >
                                             {step === "basics"
                                                 ? "Basics"
                                                 : step === "media"
@@ -310,7 +354,11 @@ export default function CreateRoyalityModal() {
                                 </Button>
 
                                 {activeStep !== "review" ? (
-                                    <Button type="button" className="shadow-foreground" onClick={handleNext}>
+                                    <Button
+                                        type="button"
+                                        className="shadow-foreground"
+                                        onClick={handleNext}
+                                    >
                                         Next
                                         <ChevronRight className="ml-2 h-4 w-4" />
                                     </Button>
@@ -323,14 +371,14 @@ export default function CreateRoyalityModal() {
                 </motion.div>
             </DialogContent>
         </Dialog>
-    )
+    );
 }
 
 function BasicsStep() {
     const {
         register,
         formState: { errors },
-    } = useFormContext<RoyalityFormType>()
+    } = useFormContext<RoyalityFormType>();
 
     return (
         <motion.div
@@ -342,7 +390,9 @@ function BasicsStep() {
         >
             <div className="space-y-1">
                 <h2 className="text-xl font-semibold">Basic Information</h2>
-                <p className="text-sm text-muted-foreground">Enter the basic details about your royalty item</p>
+                <p className="text-sm text-muted-foreground">
+                    Enter the basic details about your royalty item
+                </p>
             </div>
 
             <div className="space-y-4">
@@ -357,7 +407,9 @@ function BasicsStep() {
                         placeholder="Enter royalty item name"
                         className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                     />
-                    {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+                    {errors.name && (
+                        <p className="text-sm text-destructive">{errors.name.message}</p>
+                    )}
                 </div>
 
                 <div className="space-y-2">
@@ -371,7 +423,11 @@ function BasicsStep() {
                         placeholder="Write a short description about this royalty item"
                         className="min-h-24 resize-none transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                     />
-                    {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
+                    {errors.description && (
+                        <p className="text-sm text-destructive">
+                            {errors.description.message}
+                        </p>
+                    )}
                 </div>
 
                 <div className="space-y-2">
@@ -384,7 +440,10 @@ function BasicsStep() {
                                     <Info className="h-4 w-4 text-muted-foreground" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p className="max-w-xs">The percentage of revenue that will be shared with token holders</p>
+                                    <p className="max-w-xs">
+                                        The percentage of revenue that will be shared with token
+                                        holders
+                                    </p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -400,13 +459,19 @@ function BasicsStep() {
                             placeholder="Enter royalty percentage"
                             className="pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            %
+                        </span>
                     </div>
-                    {errors.percentage && <p className="text-sm text-destructive">{errors.percentage.message}</p>}
+                    {errors.percentage && (
+                        <p className="text-sm text-destructive">
+                            {errors.percentage.message}
+                        </p>
+                    )}
                 </div>
             </div>
         </motion.div>
-    )
+    );
 }
 
 function MediaStep() {
@@ -414,68 +479,68 @@ function MediaStep() {
         setValue,
         watch,
         formState: { errors },
-    } = useFormContext<RoyalityFormType>()
+    } = useFormContext<RoyalityFormType>();
 
-    const [file, setFile] = useState<File>()
-    const [ipfs, setIpfs] = useState<string>()
-    const [uploading, setUploading] = useState(false)
-    const [uploadProgress, setUploadProgress] = useState(0)
-    const inputFile = useRef<HTMLInputElement>(null)
+    const [file, setFile] = useState<File>();
+    const [ipfs, setIpfs] = useState<string>();
+    const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const inputFile = useRef<HTMLInputElement>(null);
 
-    const coverImgUrl = watch("coverImgUrl")
-    const sampleAudio = watch("sampleAudio")
+    const coverImgUrl = watch("coverImgUrl");
+    const sampleAudio = watch("sampleAudio");
 
     const uploadFile = async (fileToUpload: File) => {
         try {
-            setUploading(true)
-            setUploadProgress(10)
+            setUploading(true);
+            setUploadProgress(10);
 
-            const formData = new FormData()
-            formData.append("file", fileToUpload, fileToUpload.name)
+            const formData = new FormData();
+            formData.append("file", fileToUpload, fileToUpload.name);
 
-            setUploadProgress(30)
+            setUploadProgress(30);
 
             const res = await fetch("/api/file", {
                 method: "POST",
                 body: formData,
-            })
+            });
 
-            setUploadProgress(70)
+            setUploadProgress(70);
 
-            const ipfsHash = await res.text()
-            const thumbnail = ipfsHashToUrl(ipfsHash)
+            const ipfsHash = await res.text();
+            const thumbnail = ipfsHashToPinataGatewayUrl(ipfsHash);
 
-            setUploadProgress(90)
+            setUploadProgress(90);
 
-            setValue("coverImgUrl", thumbnail)
-            setIpfs(ipfsHash)
+            setValue("coverImgUrl", thumbnail);
+            setIpfs(ipfsHash);
 
-            setUploadProgress(100)
-            setUploading(false)
+            setUploadProgress(100);
+            setUploading(false);
 
-            toast.success("Cover image uploaded successfully")
+            toast.success("Cover image uploaded successfully");
         } catch (e) {
-            console.error(e)
-            setUploading(false)
-            setUploadProgress(0)
-            toast.error("Trouble uploading file")
+            console.error(e);
+            setUploading(false);
+            setUploadProgress(0);
+            toast.error("Trouble uploading file");
         }
-    }
+    };
 
     const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files
+        const files = e.target.files;
         if (files && files.length > 0) {
-            const file = files[0]
+            const file = files[0];
             if (file) {
                 if (file.size > 1024 * 1024) {
-                    toast.error("File size should be less than 1MB")
-                    return
+                    toast.error("File size should be less than 1MB");
+                    return;
                 }
-                setFile(file)
-                await uploadFile(file)
+                setFile(file);
+                await uploadFile(file);
             }
         }
-    }
+    };
 
     return (
         <motion.div
@@ -487,7 +552,9 @@ function MediaStep() {
         >
             <div className="space-y-1">
                 <h2 className="text-xl font-semibold">Media Files</h2>
-                <p className="text-sm text-muted-foreground">Upload your cover image and optional demo audio</p>
+                <p className="text-sm text-muted-foreground">
+                    Upload your cover image and optional demo audio
+                </p>
             </div>
 
             <div className="space-y-6">
@@ -503,20 +570,26 @@ function MediaStep() {
                                 variant="outline"
                                 id="coverImg"
                                 onClick={() => inputFile.current?.click()}
-                                className="w-full h-32 relative border-dashed flex flex-col items-center justify-center gap-2"
+                                className="relative flex h-32 w-full flex-col items-center justify-center gap-2 border-dashed"
                                 disabled={uploading}
                             >
                                 {uploading ? (
                                     <>
                                         <Loader2 className="h-6 w-6 animate-spin" />
-                                        <span className="text-sm">Uploading... {uploadProgress}%</span>
+                                        <span className="text-sm">
+                                            Uploading... {uploadProgress}%
+                                        </span>
                                         <Progress value={uploadProgress} className="w-4/5" />
                                     </>
                                 ) : (
                                     <>
                                         <Upload className="h-6 w-6 text-muted-foreground" />
-                                        <span className="text-sm text-muted-foreground">Click to upload cover image</span>
-                                        <span className="text-xs text-muted-foreground">JPG, PNG (max 1MB)</span>
+                                        <span className="text-sm text-muted-foreground">
+                                            Click to upload cover image
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            JPG, PNG (max 1MB)
+                                        </span>
                                     </>
                                 )}
                             </Button>
@@ -526,22 +599,30 @@ function MediaStep() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
                                 transition={{ duration: 0.2 }}
-                                className="relative aspect-square rounded-md overflow-hidden border"
+                                className="relative aspect-square overflow-hidden rounded-md border"
                             >
-                                <Image fill alt="Cover preview" src={coverImgUrl || "/placeholder.svg"} className="object-cover" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-background/80 py-1 px-2">
-                                    <Badge variant="outline" className="bg-green-100 text-green-800">
-                                        <Check className="h-3 w-3 mr-1" /> Uploaded
+                                <Image
+                                    fill
+                                    alt="Cover preview"
+                                    src={coverImgUrl || "/placeholder.svg"}
+                                    className="object-cover"
+                                />
+                                <div className="absolute bottom-0 left-0 right-0 bg-background/80 px-2 py-1">
+                                    <Badge
+                                        variant="outline"
+                                        className="bg-green-100 text-green-800"
+                                    >
+                                        <Check className="mr-1 h-3 w-3" /> Uploaded
                                     </Badge>
                                 </div>
                                 <Button
                                     type="button"
                                     variant="destructive"
                                     size="icon"
-                                    className="absolute top-1 right-1 h-6 w-6"
+                                    className="absolute right-1 top-1 h-6 w-6"
                                     onClick={() => {
-                                        setValue("coverImgUrl", "")
-                                        setIpfs(undefined)
+                                        setValue("coverImgUrl", "");
+                                        setIpfs(undefined);
                                     }}
                                 >
                                     <X className="h-3 w-3" />
@@ -558,7 +639,11 @@ function MediaStep() {
                         onChange={handleChange}
                         className="hidden"
                     />
-                    {errors.coverImgUrl && <p className="text-sm text-destructive">{errors.coverImgUrl.message}</p>}
+                    {errors.coverImgUrl && (
+                        <p className="text-sm text-destructive">
+                            {errors.coverImgUrl.message}
+                        </p>
+                    )}
                 </div>
 
                 <Separator />
@@ -576,12 +661,12 @@ function MediaStep() {
                         label="Upload Demo Audio"
                         onClientUploadComplete={(res) => {
                             if (res?.url) {
-                                setValue("sampleAudio", res.url)
-                                toast.success("Demo audio uploaded successfully")
+                                setValue("sampleAudio", res.url);
+                                toast.success("Demo audio uploaded successfully");
                             }
                         }}
                         onUploadError={(error: Error) => {
-                            toast.error(`ERROR! ${error.message}`)
+                            toast.error(`ERROR! ${error.message}`);
                         }}
                     />
 
@@ -597,12 +682,14 @@ function MediaStep() {
                                 <Card className="overflow-hidden">
                                     <CardContent className="p-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="bg-primary/10 p-3 rounded-full">
+                                            <div className="rounded-full bg-primary/10 p-3">
                                                 <FileMusic className="h-5 w-5" />
                                             </div>
                                             <div className="flex-1">
-                                                <p className="text-sm font-medium">Demo audio uploaded</p>
-                                                <audio controls className="w-full mt-2">
+                                                <p className="text-sm font-medium">
+                                                    Demo audio uploaded
+                                                </p>
+                                                <audio controls className="mt-2 w-full">
                                                     <source src={sampleAudio} type="audio/mpeg" />
                                                     Your browser does not support the audio element.
                                                 </audio>
@@ -616,7 +703,7 @@ function MediaStep() {
                 </div>
             </div>
         </motion.div>
-    )
+    );
 }
 
 function DatesStep() {
@@ -624,18 +711,18 @@ function DatesStep() {
         setValue,
         getValues,
         formState: { errors },
-    } = useFormContext<RoyalityFormType>()
+    } = useFormContext<RoyalityFormType>();
 
     // Format date to YYYY-MM-DD string for HTML date inputs
     const formatDateForInput = (date: Date | null) => {
-        if (!date) return ""
-        return date.toISOString().split("T")[0]
-    }
+        if (!date) return "";
+        return date.toISOString().split("T")[0];
+    };
 
     // Set minimum date for end date and release date (tomorrow)
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const minDate = formatDateForInput(tomorrow)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const minDate = formatDateForInput(tomorrow);
 
     return (
         <motion.div
@@ -647,7 +734,9 @@ function DatesStep() {
         >
             <div className="space-y-1">
                 <h2 className="text-xl font-semibold">Important Dates</h2>
-                <p className="text-sm text-muted-foreground">Set funding and release dates for your royalty item</p>
+                <p className="text-sm text-muted-foreground">
+                    Set funding and release dates for your royalty item
+                </p>
             </div>
 
             <div className="space-y-6">
@@ -661,7 +750,9 @@ function DatesStep() {
                                     <Info className="h-4 w-4 text-muted-foreground" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p className="max-w-xs">The date when funding for this royalty item will end</p>
+                                    <p className="max-w-xs">
+                                        The date when funding for this royalty item will end
+                                    </p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -672,14 +763,16 @@ function DatesStep() {
                         min={minDate}
                         value={formatDateForInput(getValues("endDate"))}
                         onChange={(e) => {
-                            const date = e.target.value ? new Date(e.target.value) : null
+                            const date = e.target.value ? new Date(e.target.value) : null;
                             if (date) {
-                                setValue("endDate", date, { shouldValidate: true })
+                                setValue("endDate", date, { shouldValidate: true });
                             }
                         }}
                         className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                     />
-                    {errors.endDate && <p className="text-sm text-destructive">{errors.endDate.message}</p>}
+                    {errors.endDate && (
+                        <p className="text-sm text-destructive">{errors.endDate.message}</p>
+                    )}
                 </div>
 
                 <div className="space-y-2">
@@ -692,7 +785,9 @@ function DatesStep() {
                                     <Info className="h-4 w-4 text-muted-foreground" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p className="max-w-xs">The expected date when the content will be released</p>
+                                    <p className="max-w-xs">
+                                        The expected date when the content will be released
+                                    </p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -703,25 +798,29 @@ function DatesStep() {
                         min={minDate}
                         value={formatDateForInput(getValues("releaseDate"))}
                         onChange={(e) => {
-                            const date = e.target.value ? new Date(e.target.value) : null
+                            const date = e.target.value ? new Date(e.target.value) : null;
                             if (date) {
-                                setValue("releaseDate", date, { shouldValidate: true })
+                                setValue("releaseDate", date, { shouldValidate: true });
                             }
                         }}
                         className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                     />
-                    {errors.releaseDate && <p className="text-sm text-destructive">{errors.releaseDate.message}</p>}
+                    {errors.releaseDate && (
+                        <p className="text-sm text-destructive">
+                            {errors.releaseDate.message}
+                        </p>
+                    )}
                 </div>
             </div>
         </motion.div>
-    )
+    );
 }
 
 function PricingStep() {
     const {
         register,
         formState: { errors },
-    } = useFormContext<RoyalityFormType>()
+    } = useFormContext<RoyalityFormType>();
 
     return (
         <motion.div
@@ -737,7 +836,7 @@ function PricingStep() {
             </div>
 
             <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                         <Label htmlFor="code" className="flex items-center gap-2">
                             <FileText className="h-4 w-4" />
@@ -749,7 +848,9 @@ function PricingStep() {
                             placeholder="Enter asset name (4-12 chars)"
                             className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                         />
-                        {errors.code && <p className="text-sm text-destructive">{errors.code.message}</p>}
+                        {errors.code && (
+                            <p className="text-sm text-destructive">{errors.code.message}</p>
+                        )}
                     </div>
 
                     <div className="space-y-2">
@@ -764,14 +865,18 @@ function PricingStep() {
                             placeholder="Enter token limit"
                             className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                         />
-                        {errors.limit && <p className="text-sm text-destructive">{errors.limit.message}</p>}
-                        <p className="text-xs text-muted-foreground">Maximum number of royalty tokens</p>
+                        {errors.limit && (
+                            <p className="text-sm text-destructive">{errors.limit.message}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                            Maximum number of royalty tokens
+                        </p>
                     </div>
                 </div>
 
                 <Separator />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                         <Label htmlFor="price" className="flex items-center gap-2">
                             <Coins className="h-4 w-4" />
@@ -785,7 +890,9 @@ function PricingStep() {
                             placeholder={`Enter price in ${PLATFORM_ASSET.code}`}
                             className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                         />
-                        {errors.price && <p className="text-sm text-destructive">{errors.price.message}</p>}
+                        {errors.price && (
+                            <p className="text-sm text-destructive">{errors.price.message}</p>
+                        )}
                     </div>
 
                     <div className="space-y-2">
@@ -801,28 +908,32 @@ function PricingStep() {
                             placeholder="Enter price in USD"
                             className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                         />
-                        {errors.priceUSD && <p className="text-sm text-destructive">{errors.priceUSD.message}</p>}
+                        {errors.priceUSD && (
+                            <p className="text-sm text-destructive">
+                                {errors.priceUSD.message}
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
         </motion.div>
-    )
+    );
 }
 
 function ReviewStep() {
-    const { watch } = useFormContext<RoyalityFormType>()
+    const { watch } = useFormContext<RoyalityFormType>();
 
-    const name = watch("name")
-    const description = watch("description")
-    const coverImgUrl = watch("coverImgUrl")
-    const sampleAudio = watch("sampleAudio")
-    const code = watch("code")
-    const limit = watch("limit")
-    const price = watch("price")
-    const priceUSD = watch("priceUSD")
-    const percentage = watch("percentage")
-    const endDate = watch("endDate")
-    const releaseDate = watch("releaseDate")
+    const name = watch("name");
+    const description = watch("description");
+    const coverImgUrl = watch("coverImgUrl");
+    const sampleAudio = watch("sampleAudio");
+    const code = watch("code");
+    const limit = watch("limit");
+    const price = watch("price");
+    const priceUSD = watch("priceUSD");
+    const percentage = watch("percentage");
+    const endDate = watch("endDate");
+    const releaseDate = watch("releaseDate");
 
     return (
         <motion.div
@@ -834,13 +945,20 @@ function ReviewStep() {
         >
             <div className="space-y-1">
                 <h2 className="text-xl font-semibold">Review Your Royalty Item</h2>
-                <p className="text-sm text-muted-foreground">Please review all information before submitting</p>
+                <p className="text-sm text-muted-foreground">
+                    Please review all information before submitting
+                </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="space-y-4">
-                    <div className="relative aspect-square rounded-md overflow-hidden border">
-                        <Image fill alt="Cover preview" src={coverImgUrl || "/placeholder.svg"} className="object-cover" />
+                    <div className="relative aspect-square overflow-hidden rounded-md border">
+                        <Image
+                            fill
+                            alt="Cover preview"
+                            src={coverImgUrl || "/placeholder.svg"}
+                            className="object-cover"
+                        />
                     </div>
 
                     {sampleAudio && (
@@ -876,7 +994,9 @@ function ReviewStep() {
                         </div>
 
                         <div>
-                            <p className="text-sm font-medium">Price ({PLATFORM_ASSET.code})</p>
+                            <p className="text-sm font-medium">
+                                Price ({PLATFORM_ASSET.code})
+                            </p>
                             <p className="text-sm text-muted-foreground">
                                 {price} {PLATFORM_ASSET.code}
                             </p>
@@ -889,33 +1009,42 @@ function ReviewStep() {
 
                         <div>
                             <p className="text-sm font-medium">Funding End</p>
-                            <p className="text-sm text-muted-foreground">{endDate?.toLocaleDateString()}</p>
+                            <p className="text-sm text-muted-foreground">
+                                {endDate?.toLocaleDateString()}
+                            </p>
                         </div>
 
                         <div className="col-span-2">
                             <p className="text-sm font-medium">Release Date</p>
-                            <p className="text-sm text-muted-foreground">{releaseDate?.toLocaleDateString()}</p>
+                            <p className="text-sm text-muted-foreground">
+                                {releaseDate?.toLocaleDateString()}
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
         </motion.div>
-    )
+    );
 }
 
 function SubmitButton({
     albumId,
     setIsOpen,
 }: {
-    albumId: number | undefined
-    setIsOpen: (isOpen: boolean) => void
+    albumId: number | undefined;
+    setIsOpen: (isOpen: boolean) => void;
 }) {
-    const { getValues, setValue, handleSubmit: formHandleSubmit } = useFormContext<RoyalityFormType>()
-    const [isSubmitting, setIsSubmitting] = useState(false)
-    const session = useSession()
-    const { platformAssetBalance } = useUserStellarAcc()
-    const { needSign } = useNeedSign()
-    const { paymentMethod, setIsOpen: setPaymentModalOpen } = usePaymentMethodStore()
+    const {
+        getValues,
+        setValue,
+        handleSubmit: formHandleSubmit,
+    } = useFormContext<RoyalityFormType>();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const session = useSession();
+    const { platformAssetBalance } = useUserStellarAcc();
+    const { needSign } = useNeedSign();
+    const { paymentMethod, setIsOpen: setPaymentModalOpen } =
+        usePaymentMethodStore();
 
     const requiredToken = api.fan.trx.getRequiredPlatformAsset.useQuery(
         {
@@ -924,29 +1053,29 @@ function SubmitButton({
         {
             enabled: !!albumId,
         },
-    )
+    );
 
-    const totalFeees = Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE)
+    const totalFeees = Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE);
 
     const addRoyality = api.fan.music.createRoyalityItem.useMutation({
         onSuccess: () => {
-            toast.success("Royalty item created successfully!")
-            setIsSubmitting(false)
-            setIsOpen(false)
-            setPaymentModalOpen(false)
+            toast.success("Royalty item created successfully!");
+            setIsSubmitting(false);
+            setIsOpen(false);
+            setPaymentModalOpen(false);
         },
         onError: (error) => {
-            toast.error(error.message || "Failed to create royalty item")
-            setIsSubmitting(false)
+            toast.error(error.message || "Failed to create royalty item");
+            setIsSubmitting(false);
         },
-    })
+    });
 
     const xdrMutation = api.fan.trx.createUniAssetTrx.useMutation({
         onSuccess(data, variables, context) {
-            const { issuer, xdr } = data
-            setValue("issuer", issuer)
+            const { issuer, xdr } = data;
+            setValue("issuer", issuer);
 
-            setIsSubmitting(true)
+            setIsSubmitting(true);
 
             toast.promise(
                 clientsign({
@@ -958,43 +1087,43 @@ function SubmitButton({
                     .then((res) => {
                         if (res) {
                             if (!albumId) {
-                                toast.error("Please select an album")
-                                setIsSubmitting(false)
+                                toast.error("Please select an album");
+                                setIsSubmitting(false);
                             } else {
-                                const data = getValues()
-                                addRoyality.mutate({ ...data, albumId: Number(albumId) })
+                                const data = getValues();
+                                addRoyality.mutate({ ...data, albumId: Number(albumId) });
                             }
                         } else {
-                            toast.error("Transaction Failed")
-                            setIsSubmitting(false)
+                            toast.error("Transaction Failed");
+                            setIsSubmitting(false);
                         }
                     })
                     .catch((e) => {
-                        console.error(e)
-                        setIsSubmitting(false)
+                        console.error(e);
+                        setIsSubmitting(false);
                     }),
                 {
                     loading: "Signing Transaction...",
                     success: "Transaction Signed",
                     error: "Signing Transaction Failed",
                 },
-            )
+            );
         },
         onError: (error) => {
-            toast.error(error.message || "Failed to create transaction")
-            setIsSubmitting(false)
+            toast.error(error.message || "Failed to create transaction");
+            setIsSubmitting(false);
         },
-    })
+    });
 
     // This is the function that will be called by PaymentChoose
     const onSubmit = (data: RoyalityFormType) => {
-        const coverImg = data.coverImgUrl
+        const coverImg = data.coverImgUrl;
         if (!coverImg) {
-            toast.error("Please upload a cover image")
-            return
+            toast.error("Please upload a cover image");
+            return;
         }
 
-        setIsSubmitting(true)
+        setIsSubmitting(true);
 
         xdrMutation.mutate({
             code: data.code,
@@ -1002,14 +1131,14 @@ function SubmitButton({
             signWith: needSign(),
             ipfsHash: coverImg,
             native: paymentMethod === "xlm",
-        })
-    }
+        });
+    };
 
     // Create the handleConfirm function that uses react-hook-form's handleSubmit
     const handleConfirm = () => {
-        console.log("Submitting royalty item creation")
-        onSubmit(getValues())
-    }
+        console.log("Submitting royalty item creation");
+        onSubmit(getValues());
+    };
 
     if (requiredToken.isLoading) {
         return (
@@ -1017,18 +1146,19 @@ function SubmitButton({
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Loading...
             </Button>
-        )
+        );
     }
 
-    const requiredTokenAmount = requiredToken.data ?? 0
-    const insufficientBalance = requiredTokenAmount > platformAssetBalance
+    const requiredTokenAmount = requiredToken.data ?? 0;
+    const insufficientBalance = requiredTokenAmount > platformAssetBalance;
 
     return (
         <PaymentChoose
             costBreakdown={[
                 {
                     label: "Cost",
-                    amount: paymentMethod === "asset" ? requiredTokenAmount - totalFeees : 2,
+                    amount:
+                        paymentMethod === "asset" ? requiredTokenAmount - totalFeees : 2,
                     type: "cost",
                     highlighted: true,
                 },
@@ -1053,7 +1183,7 @@ function SubmitButton({
                 <Button
                     variant="sidebarAccent"
                     disabled={isSubmitting || insufficientBalance}
-                    className="flex items-center gap-2 shadow-sm shadow-black hover:shadow-xl transition-shadow duration-200"
+                    className="flex items-center gap-2 shadow-sm shadow-black transition-shadow duration-200 hover:shadow-xl"
                 >
                     {isSubmitting ? (
                         <>
@@ -1069,5 +1199,5 @@ function SubmitButton({
                 </Button>
             }
         />
-    )
+    );
 }

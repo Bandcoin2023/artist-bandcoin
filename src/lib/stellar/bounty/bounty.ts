@@ -11,6 +11,8 @@ import {
   networkPassphrase,
   PLATFORM_ASSET,
   PLATFORM_FEE,
+  SIMPLIFIED_FEE,
+  SIMPLIFIED_FEE_IN_XLM,
   STELLAR_URL,
   TrxBaseFee,
   TrxBaseFeeInPlatformAsset,
@@ -42,8 +44,8 @@ export async function SendBountyBalanceToMotherAccount({
     networkPassphrase,
   });
 
-  const totalAmount =
-    prize + (2 * Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE));
+  // prize + two time trx cost (current trx cost + winner selection cost)
+  const totalAmount = prize + 2 * SIMPLIFIED_FEE;
 
   transaction.addOperation(
     Operation.payment({
@@ -90,7 +92,8 @@ export async function SendBountyBalanceToMotherAccountViaXLM({
     networkPassphrase,
   });
 
-  const totalAmount = prizeInXLM + 2 + 1;
+  //
+  const totalAmount = prizeInXLM + 2 * SIMPLIFIED_FEE_IN_XLM;
 
   transaction.addOperation(
     Operation.payment({
@@ -131,7 +134,10 @@ export async function SendBountyBalanceToUserAccount({
       balance.asset_type === "credit_alphanum4" ||
       balance.asset_type === "credit_alphanum12"
     ) {
-      return balance.asset_code === PLATFORM_ASSET.code && balance.asset_issuer === PLATFORM_ASSET.issuer
+      return (
+        balance.asset_code === PLATFORM_ASSET.code &&
+        balance.asset_issuer === PLATFORM_ASSET.issuer
+      );
     }
     return false;
   });
@@ -220,7 +226,10 @@ export async function SendBountyBalanceToWinner({
       balance.asset_type === "credit_alphanum4" ||
       balance.asset_type === "credit_alphanum12"
     ) {
-      return balance.asset_code === PLATFORM_ASSET.code && balance.asset_issuer === PLATFORM_ASSET.issuer;
+      return (
+        balance.asset_code === PLATFORM_ASSET.code &&
+        balance.asset_issuer === PLATFORM_ASSET.issuer
+      );
     }
     return false;
   });
@@ -256,10 +265,10 @@ export async function SendBountyBalanceToWinner({
   });
 
   if (!hasTrust) {
-    throw new Error(`User Doesn't have trust, Please trust the ${PLATFORM_ASSET.code} first.`);
+    throw new Error(
+      `User Doesn't have trust, Please trust the ${PLATFORM_ASSET.code} first.`,
+    );
   }
-
-
 
   transaction.addOperation(
     Operation.payment({
@@ -356,7 +365,10 @@ export async function SwapUserAssetToMotherUSDC({
       balance.asset_type === "credit_alphanum4" ||
       balance.asset_type === "credit_alphanum12"
     ) {
-      return balance.asset_code === PLATFORM_ASSET.code && balance.asset_issuer === PLATFORM_ASSET.issuer;
+      return (
+        balance.asset_code === PLATFORM_ASSET.code &&
+        balance.asset_issuer === PLATFORM_ASSET.issuer
+      );
     }
     return false;
   });
