@@ -1119,4 +1119,19 @@ export const marketRouter = createTRPCRouter({
         }
       }
     }),
+  getMarketAssetById: protectedProcedure
+    .input(z.object({
+      id: z.number()
+    }))
+    .query(async ({ ctx, input }) => {
+      const marketAsset = await ctx.db.marketAsset.findUnique({
+        where: { id: input.id },
+        include: {
+          asset: {
+            select: AssetSelectAllProperty,
+          },
+        },
+      });
+      return marketAsset;
+    }),
 });

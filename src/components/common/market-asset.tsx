@@ -49,6 +49,7 @@ function MarketAssetComponent({ item }: { item: MarketAssetType }) {
                 price={item.price}
                 percentage={asset.percentage}
                 priceInUSD={item.priceUSD}
+                mediaType={asset.mediaType}
                 onBuy={handleBuyAsset}
                 onView={handleViewAsset}
             />

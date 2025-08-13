@@ -76,7 +76,7 @@ export default function MusicBuyModal() {
                 enabled: !!data?.id,
             },
         );
-
+    console.log("Canbuy", canBuyUser)
     if (!data || !data.asset)
         return (
             <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -181,7 +181,7 @@ export default function MusicBuyModal() {
                                     {/* Description */}
                                     <div className="space-y-2">
                                         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Description</h3>
-                                        <div className="h-48 overflow-y-auto bg-secondary rounded-lg p-3">
+                                        <div className="h-32 overflow-y-auto bg-secondary rounded-lg p-3">
                                             <p className="text-sm text-foreground/80 leading-relaxed">{data?.asset.description}</p>
                                         </div>
                                     </div>
@@ -259,34 +259,7 @@ export default function MusicBuyModal() {
                                 </div>
 
                                 {/* Footer Actions */}
-                                <div className="p-2 space-y-2 flex flex-col gap-2">
-
-                                    {session.status === "authenticated" &&
-                                        data.asset.creatorId === session.data.user.id ? (
-                                        <>
-                                            <DisableFromMarketButton
-                                                code={data.asset.code}
-                                                issuer={data.asset.issuer}
-                                            />
-                                        </>
-                                    ) : (
-                                        canBuyUser &&
-                                        copy.data &&
-                                        copy.data > 0 && (
-                                            <Button
-                                                size={"sm"}
-
-                                                onClick={handleNext}
-                                                className="w-full shadow-sm shadow-background border-2"
-                                            >
-                                                Buy
-                                            </Button>
-                                        )
-                                    )}
-
-                                    <DeleteAssetByAdmin marketId={data.id}
-                                        handleClose={handleClose}
-                                    />
+                                <div className="p-2 flex flex-col gap-2">
                                     <Link href={`/asset/${data.asset.id}`}>
                                         <Button
                                             size={"sm"}
@@ -296,15 +269,46 @@ export default function MusicBuyModal() {
                                             View Asset
                                         </Button>
                                     </Link>
-                                    <Link href={`/royalty/${data.asset.id}`}>
-                                        <Button
-                                            size={"sm"}
-                                            onClick={handleClose}
-                                            className="w-full shadow-sm shadow-background border-2">
-                                            <Eye className="mr-2 h-4 w-4" />
-                                            View Royalty Details
-                                        </Button>
-                                    </Link>
+                                    {
+                                        data.asset.percentage && (
+                                            <Link href={`/royalty/${data.asset.id}`}>
+                                                <Button
+                                                    size={"sm"}
+                                                    onClick={handleClose}
+                                                    className="w-full shadow-sm shadow-background border-2">
+                                                    <Eye className="mr-2 h-4 w-4" />
+                                                    View Royalty Details
+                                                </Button>
+                                            </Link>
+                                        )
+                                    }
+                                    {session.status === "authenticated" &&
+                                        data.asset.creatorId === session.data.user.id ? (
+                                        <>
+                                            <DisableFromMarketButton
+                                                code={data.asset.code}
+                                                issuer={data.asset.issuer}
+                                            />
+                                        </>
+                                    ) : (
+                                        canBuyUser?.canBuy &&
+                                        copy.data &&
+                                        copy.data > 0 && (
+                                            <Button
+                                                size={"sm"}
+
+                                                onClick={handleNext}
+                                                className="w-full shadow-sm shadow-background border-2"
+                                            >
+                                                Buy Item
+                                            </Button>
+                                        )
+                                    )}
+
+                                    <DeleteAssetByAdmin marketId={data.id}
+                                        handleClose={handleClose}
+                                    />
+
 
                                     <p className="text-xs text-muted-foreground text-center">
                                         Once purchased, this item will be added to your collection.

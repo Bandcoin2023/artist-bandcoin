@@ -257,7 +257,31 @@ export const songRouter = createTRPCRouter({
 
       return fetchAndFilterSongs(limit, cursor, skip)
     }),
-
+  getSongByAssetId: protectedProcedure.input(z.object({ assetId: z.number() })).query(async ({ input, ctx }) => {
+    return await ctx.db.song.findFirst({
+      where: {
+        assetId: input.assetId,
+      },
+      include: {
+        album: {
+          select: {
+            id: true,
+            name: true,
+            coverImgUrl: true,
+          },
+        },
+        asset: {
+          select: {
+            name: true,
+            code: true,
+            thumbnail: true,
+            issuer: true,
+            mediaUrl: true,
+          },
+        },
+      },
+    })
+  }),
   getCreatorPublicSong: protectedProcedure.query(async ({ ctx }) => {
     const assets = await ctx.db.song.findMany({
       where: {

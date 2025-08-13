@@ -105,27 +105,58 @@ export default function AssetView({
                                 </div>
                             ) : (
                                 isNFT && (
-                                    <div className="absolute top-3 right-3">
-                                        <motion.div
-                                            animate={{
-                                                boxShadow: [
-                                                    "0 0 0 rgba(59, 130, 246, 0)",
-                                                    "0 0 20px rgba(59, 130, 246, 0.6)",
-                                                    "0 0 0 rgba(59, 130, 246, 0)",
-                                                ],
-                                            }}
-                                            transition={{
-                                                duration: 2.5,
-                                                repeat: Number.POSITIVE_INFINITY,
-                                                repeatType: "loop",
-                                            }}
-                                        >
-                                            <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0 shadow-lg backdrop-blur-md px-3 py-1">
-                                                <Gem className="w-3 h-3 mr-1.5 fill-white" />
-                                                <span className="font-semibold">NFT</span>
-                                            </Badge>
-                                        </motion.div>
-                                    </div>
+                                    <>
+                                        <div className="absolute top-3 right-3 flex items-center gap-2">
+                                            <div className="">
+                                                <motion.div
+                                                    animate={{
+                                                        boxShadow: [
+                                                            "0 0 0 rgba(59, 130, 246, 0)",
+                                                            "0 0 20px rgba(59, 130, 246, 0.6)",
+                                                            "0 0 0 rgba(59, 130, 246, 0)",
+                                                        ],
+                                                    }}
+                                                    transition={{
+                                                        duration: 2.5,
+                                                        repeat: Number.POSITIVE_INFINITY,
+                                                        repeatType: "loop",
+                                                    }}
+                                                >
+                                                    <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0 shadow-lg backdrop-blur-md px-3 py-1">
+                                                        <Gem className="w-3 h-3 mr-1.5 fill-white" />
+                                                        <span className="font-semibold">NFT</span>
+                                                    </Badge>
+                                                </motion.div>
+                                            </div>
+                                            {
+                                                !isPageAsset && (
+                                                    <div className="">
+                                                        <motion.div
+                                                            animate={{
+                                                                boxShadow: [
+                                                                    "0 0 0 rgba(59, 130, 246, 0)",
+                                                                    "0 0 20px rgba(59, 130, 246, 0.6)",
+                                                                    "0 0 0 rgba(59, 130, 246, 0)",
+                                                                ],
+                                                            }}
+                                                            transition={{
+                                                                duration: 2.5,
+                                                                repeat: Number.POSITIVE_INFINITY,
+                                                                repeatType: "loop",
+                                                            }}
+                                                        >
+                                                            <Badge className="px-3 py-1">
+                                                                <Gem className="w-3 h-3 mr-1.5 fill-white" />
+                                                                <span className="font-semibold">
+                                                                    {mediaType === "THREE_D" ? "3D" : mediaType}
+                                                                </span>
+                                                            </Badge>
+                                                        </motion.div>
+                                                    </div>
+                                                )
+                                            }
+                                        </div>
+                                    </>
                                 )
                             )}
                         </div>

@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { Button } from "~/components/shadcn/ui/button";
 import { Dialog, DialogContent } from "~/components/shadcn/ui/dialog";
 import { api } from "~/utils/api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/shadcn/ui/select"
 
 import { Badge } from "~/components/shadcn/ui/badge";
 import { Input } from "~/components/shadcn/ui/input";
@@ -31,6 +32,7 @@ import { Label } from "../shadcn/ui/label";
 import ShowThreeDModel from "../3d-model/model-show";
 import { useCreatorStoredAssetModalStore } from "../store/creator-stored-asset-modal-store";
 import { Separator } from "@radix-ui/react-select";
+import { Textarea } from "../shadcn/ui/textarea";
 
 export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
@@ -44,12 +46,12 @@ export default function CreatorStoredAssetModal() {
         setIsOpen(false);
     };
 
-    const handleNext = () => {
-        setStep((prev) => prev + 1);
+    const handleNext = (value: number) => {
+        setStep(value);
     };
 
     const handleBack = () => {
-        setStep((prev) => prev - 1);
+        setStep(1);
     };
 
     const copy = api.marketplace.market.getMarketAssetAvailableCopy.useQuery({
@@ -127,10 +129,21 @@ export default function CreatorStoredAssetModal() {
                                         <Button
                                             className="w-full"
                                             variant="secondary"
-                                            onClick={handleNext}
+                                            onClick={() => handleNext(2)}
                                         >
                                             Edit
                                         </Button>
+                                        {
+                                            data.asset.mediaType === "MUSIC" && (
+                                                <Button
+                                                    className="w-full"
+                                                    variant="secondary"
+                                                    onClick={() => handleNext(3)}
+                                                >
+                                                    Add To Album
+                                                </Button>
+                                            )
+                                        }
                                     </CardFooter>
                                 </Card>
 
@@ -178,13 +191,14 @@ export default function CreatorStoredAssetModal() {
                                 </div>
                             </div>
                         )}
-                        {step === 2 && (
+                        {step === 2 ? (
                             <Card>
                                 <CardContent className="p-0">
                                     <EditForm
                                         item={data}
                                         closeModal={handleClose}
                                     />
+
                                 </CardContent>
                                 <CardFooter className="p-2">
                                     {step === 2 && (
@@ -198,7 +212,36 @@ export default function CreatorStoredAssetModal() {
                                     )}
                                 </CardFooter>
                             </Card>
-                        )}
+                        )
+                            :
+                            step === 3 ? (
+                                <Card>
+                                    <CardContent className="">
+                                        {data.asset.mediaType === "MUSIC" && (
+                                            <>
+                                                <Separator className="my-4" />
+                                                <div className="space-y-4">
+                                                    <h3 className="text-lg font-semibold">Add to Song Collection</h3>
+                                                    <p className="text-sm text-muted-foreground">Associate this music asset with a song in your album</p>
+                                                    <AddToSongForm marketAssetId={data.asset.id} closeModal={handleClose} />
+                                                </div>
+                                            </>
+                                        )}
+                                    </CardContent>
+                                    <CardFooter className="p-2">
+                                        {step === 3 && (
+                                            <Button
+                                                onClick={handleBack}
+                                                variant="secondary"
+                                                className=""
+                                            >
+                                                <ArrowLeft className="h-4 w-4" /> Back
+                                            </Button>
+                                        )}
+                                    </CardFooter>
+                                </Card>
+                            ) : null
+                        }
                     </DialogContent>
                 </Dialog>
             </>
@@ -318,6 +361,7 @@ export function EditForm({
                         </div>
                         {errors.priceUSD && <p className="text-sm font-medium text-red-500">{errors.priceUSD.message}</p>}
                     </div>
+
                 </form>
             </CardContent>
 
@@ -348,3 +392,208 @@ export function EditForm({
     )
 }
 
+const addToSongFormSchema = z.object({
+    albumId: z.number({
+        required_error: "Album is required",
+    }),
+    artist: z.string().min(2, "Artist name must be at least 2 characters"),
+    price: z.number().nonnegative("Price must be positive"),
+    priceUSD: z.number().nonnegative("Price must be positive"),
+})
+
+function AddToSongForm({
+    marketAssetId,
+    closeModal,
+}: {
+    marketAssetId: number
+    closeModal: () => void
+}) {
+    const { data: session } = useSession()
+
+    const {
+        register,
+        handleSubmit,
+        formState: { errors, isSubmitting },
+        setValue,
+        watch,
+    } = useForm<z.infer<typeof addToSongFormSchema>>({
+        resolver: zodResolver(addToSongFormSchema),
+        defaultValues: {
+            price: 2,
+            priceUSD: 2,
+            artist: "",
+        },
+    })
+
+    // Get creator's albums
+    const { data: albums, isLoading: albumsLoading } = api.fan.music.getCreatorAlbums.useQuery({
+        limit: 100,
+    }, {
+        enabled: !!session?.user.id,
+    })
+
+    // Get market asset details
+    const { data: marketAsset } = api.marketplace.market.getMarketAssetById.useQuery({
+        id: marketAssetId,
+    })
+    const { data: existingSong } = api.music.song.getSongByAssetId.useQuery(
+        {
+            assetId: marketAsset?.assetId ?? 0,
+        },
+        {
+            enabled: !!marketAsset?.assetId,
+        },
+    )
+
+    // Create song mutation
+    const createSong = api.fan.music.createSongFromMarketAsset.useMutation({
+        onSuccess: () => {
+            toast.success("Song created successfully!")
+            closeModal()
+        },
+        onError: (error) => {
+            toast.error(error.message || "Failed to create song")
+        },
+    })
+
+    const selectedAlbumId = watch("albumId")
+
+    const onSubmit: SubmitHandler<z.infer<typeof addToSongFormSchema>> = (data) => {
+        if (!marketAsset) return
+
+        createSong.mutate({
+            ...data,
+            marketAssetId,
+            assetId: marketAsset.assetId,
+        })
+    }
+
+    if (albumsLoading) {
+        return (
+            <div className="flex items-center justify-center p-4">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Loading albums...</span>
+            </div>
+        )
+    }
+    if (existingSong) {
+        return (
+            <div className="space-y-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
+                <div className="flex items-center gap-2">
+                    <Badge variant="secondary">Already Added</Badge>
+                </div>
+                <div>
+                    <h4 className="font-medium">This asset is already associated with a song:</h4>
+
+                    <p className="text-sm text-muted-foreground">
+                        <strong>Artist:</strong> {existingSong.artist}
+                    </p>
+                    {existingSong.album && (
+                        <p className="text-sm text-muted-foreground">
+                            <strong>Album:</strong> {existingSong.album.name}
+                        </p>
+                    )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                    Each music asset can only be associated with one song. To create a new song, you{"'"}ll need to use a different
+                    music asset.
+                </p>
+            </div>
+        )
+    }
+    return (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Album Selection */}
+            <div className="space-y-2">
+                <Label htmlFor="album">Select Album</Label>
+                <Select
+                    onValueChange={(value) => setValue("albumId", Number.parseInt(value))}
+                    disabled={!albums || albums.albums.length === 0}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Choose an album" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {albums?.albums?.map((album) => (
+                            <SelectItem key={album.id} value={album.id.toString()}>
+                                <div className="flex items-center gap-2">
+                                    <Image
+                                        src={album.coverImgUrl || "/placeholder.svg"}
+                                        alt={album.name}
+                                        width={24}
+                                        height={24}
+                                        className="rounded"
+                                    />
+                                    {album.name}
+                                </div>
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                {errors.albumId && <p className="text-sm text-destructive">{errors.albumId.message}</p>}
+                {albums && albums.albums.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No albums found. Create an album first to add songs.</p>
+                )}
+            </div>
+
+            {selectedAlbumId && (
+                <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-4"
+                >
+
+
+                    {/* Artist */}
+                    <div className="space-y-2">
+                        <Label htmlFor="artist">Artist</Label>
+                        <Input id="artist" {...register("artist")} placeholder="Enter artist name" />
+                        {errors.artist && <p className="text-sm text-destructive">{errors.artist.message}</p>}
+                    </div>
+
+
+
+                    {/* Pricing */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="price">Price ({PLATFORM_ASSET.code})</Label>
+                            <Input
+                                id="price"
+                                type="number"
+                                step="0.1"
+                                {...register("price", { valueAsNumber: true })}
+                                placeholder="Enter price"
+                            />
+                            {errors.price && <p className="text-sm text-destructive">{errors.price.message}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="priceUSD">Price (USD)</Label>
+                            <Input
+                                id="priceUSD"
+                                type="number"
+                                step="0.1"
+                                {...register("priceUSD", { valueAsNumber: true })}
+                                placeholder="Enter USD price"
+                            />
+                            {errors.priceUSD && <p className="text-sm text-destructive">{errors.priceUSD.message}</p>}
+                        </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <Button type="submit" disabled={isSubmitting || createSong.isLoading} className="w-full shadow-sm shadow-foreground">
+                        {isSubmitting || createSong.isLoading ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Creating Song...
+                            </>
+                        ) : (
+                            "Create Song"
+                        )}
+                    </Button>
+                </motion.div>
+            )}
+        </form>
+    )
+}
