@@ -696,6 +696,7 @@ model BountyWinner {
     bountyId  Int
     xdr       String?
     isSwaped  Boolean? @default(false)
+    isClaimed Boolean? @default(false)
     bounty    Bounty   @relation(fields: [bountyId], references: [id], onDelete: Cascade)
     userId    String
     user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

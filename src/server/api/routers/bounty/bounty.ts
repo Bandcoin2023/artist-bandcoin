@@ -84,6 +84,9 @@ export const BountyRoute = createTRPCRouter({
       z.object({
         signWith: SignUser,
         prize: z.number().min(0.00001, { message: "Prize can't less than 0" }),
+        xlmPrice: z
+          .number()
+          .min(0.00001, { message: "XLM Price can't less than 0" }),
         method: PaymentMethodEnum,
       }),
     )
@@ -98,7 +101,7 @@ export const BountyRoute = createTRPCRouter({
       if (input.method === PaymentMethodEnum.enum.xlm) {
         return await SendBountyBalanceToMotherAccountViaXLM({
           userPubKey: userPubKey,
-          prizeInXLM: input.prize * 0.7,
+          prizeInXLM: input.xlmPrice,
           signWith: input.signWith,
           secretKey: secretKey,
         });
@@ -134,7 +137,6 @@ export const BountyRoute = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-
       const bounty = await ctx.db.bounty.create({
         data: {
           title: input.title,
@@ -180,11 +182,8 @@ export const BountyRoute = createTRPCRouter({
     }),
 
   createLocationBounty: protectedProcedure
-    .input(
-      BountyFormSchema
-    )
+    .input(BountyFormSchema)
     .mutation(async ({ input, ctx }) => {
-
       const bounty = await ctx.db.bounty.create({
         data: {
           title: input.title,
@@ -279,8 +278,6 @@ export const BountyRoute = createTRPCRouter({
             },
           },
         }),
-
-
       };
 
       const bounties = await ctx.db.bounty.findMany({
@@ -423,7 +420,6 @@ export const BountyRoute = createTRPCRouter({
         skip: z.number().optional(),
         search: z.string().optional(),
         sortBy: z.nativeEnum(sortOptionEnum).optional(),
-
       }),
     )
     .query(async ({ input, ctx }) => {
@@ -467,8 +463,6 @@ export const BountyRoute = createTRPCRouter({
               user: {
                 select: {
                   id: true,
-
-
                 },
               },
               isSwaped: true,
@@ -588,7 +582,6 @@ export const BountyRoute = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-
       const bounty = await ctx.db.bounty.findUnique({
         where: {
           id: input.BountyId,
@@ -604,10 +597,10 @@ export const BountyRoute = createTRPCRouter({
           bountyId: input.BountyId,
           medias: input.medias
             ? {
-              createMany: {
-                data: input.medias,
-              },
-            }
+                createMany: {
+                  data: input.medias,
+                },
+              }
             : undefined,
         },
       });
@@ -662,11 +655,11 @@ export const BountyRoute = createTRPCRouter({
             createMany: {
               data: input.medias
                 ? input.medias.map((media) => ({
-                  url: media.url,
-                  name: media.name,
-                  size: media.size,
-                  type: media.type,
-                }))
+                    url: media.url,
+                    name: media.name,
+                    size: media.size,
+                    type: media.type,
+                  }))
                 : [],
             },
           },
@@ -878,7 +871,7 @@ export const BountyRoute = createTRPCRouter({
           },
           currentWinnerCount: {
             increment: 1,
-          }
+          },
         },
       });
 
@@ -1001,10 +994,9 @@ export const BountyRoute = createTRPCRouter({
         z.object({
           BountyId: z.number(),
         }),
-      )
+      ),
     )
     .mutation(async ({ input, ctx }) => {
-
       const bounty = await ctx.db.bounty.findUnique({
         where: {
           id: input.BountyId,
@@ -1249,7 +1241,6 @@ export const BountyRoute = createTRPCRouter({
         }),
       );
 
-
       return detailedSubmissions;
     }),
   swapAssetToUSDC: protectedProcedure
@@ -1299,7 +1290,7 @@ export const BountyRoute = createTRPCRouter({
             userId: ctx.session.user.id,
           },
           update: {
-            xdr: res.xdr
+            xdr: res.xdr,
           },
           create: {
             userId: ctx.session.user.id,
@@ -1326,8 +1317,7 @@ export const BountyRoute = createTRPCRouter({
         data: {
           isSwaped: true,
         },
-      },
-      );
+      });
     }),
   hasMotherTrustOnUSDC: protectedProcedure.query(async ({ ctx }) => {
     return getHasMotherTrustOnUSDC();
@@ -1619,7 +1609,6 @@ export const BountyRoute = createTRPCRouter({
 
       // Debugging purposes: check the retrieved bounty doubts
 
-
       // Map messages to extract content and role
       const messages = bountyDoubts.flatMap((doubt) =>
         doubt.messages.map((message) => ({
@@ -1667,7 +1656,6 @@ export const BountyRoute = createTRPCRouter({
       });
 
       // Debugging purposes: check the retrieved bounty doubts
-
 
       // Map messages to extract content and role
       const messages = bountyDoubts.flatMap((doubt) =>

@@ -43,6 +43,7 @@ import {
   PLATFORM_ASSET,
   PLATFORM_FEE,
   PLATFORM_FEE_IN_XLM,
+  SIMPLIFIED_FEE_IN_XLM,
   TrxBaseFeeInPlatformAsset,
   trxBaseFeeInXLM,
 } from "~/lib/stellar/constant";
@@ -143,10 +144,15 @@ export const NftFormSchema = z.object({
 });
 
 export default function NftCreateModal() {
+  // cost in xlm
+  const requiredXlm = 2;
+  const feeInXLM = SIMPLIFIED_FEE_IN_XLM; //Number(trxBaseFeeInXLM) + Number(PLATFORM_FEE_IN_XLM);
+  const totalXlmCost = requiredXlm + feeInXLM;
+
   const { isOpen: isNFTModalOpen, setIsOpen: setNFTModalOpen } =
     useNFTCreateModalStore();
   const requiredToken = api.fan.trx.getRequiredPlatformAsset.useQuery({
-    xlm: 2,
+    xlm: requiredXlm,
   });
 
   const session = useSession();
@@ -180,7 +186,6 @@ export default function NftCreateModal() {
   // Wait for the required token data to be loaded
   const requiredTokenAmount = requiredToken.data ?? 0;
   const totalFees = Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE);
-  const totalFeeInXLM = Number(trxBaseFeeInXLM) + Number(PLATFORM_FEE_IN_XLM);
 
   const { paymentMethod, setIsOpen: setPaymentModalOpen } =
     usePaymentMethodStore();
@@ -828,14 +833,13 @@ export default function NftCreateModal() {
                       amount:
                         paymentMethod === "asset"
                           ? requiredTokenAmount - totalFees
-                          : 2,
+                          : requiredXlm,
                       type: "cost",
                       highlighted: true,
                     },
                     {
                       label: "Platform Fee",
-                      amount:
-                        paymentMethod === "asset" ? totalFees : totalFeeInXLM,
+                      amount: paymentMethod === "asset" ? totalFees : feeInXLM,
                       highlighted: false,
                       type: "fee",
                     },
@@ -844,12 +848,12 @@ export default function NftCreateModal() {
                       amount:
                         paymentMethod === "asset"
                           ? requiredTokenAmount
-                          : 2 + totalFeeInXLM,
+                          : totalXlmCost,
                       highlighted: false,
                       type: "total",
                     },
                   ]}
-                  XLM_EQUIVALENT={4}
+                  XLM_EQUIVALENT={totalXlmCost}
                   handleConfirm={handleSubmit(onSubmit)}
                   loading={loading}
                   requiredToken={requiredTokenAmount}
@@ -857,8 +861,8 @@ export default function NftCreateModal() {
                     <Button
                       variant="default"
                       disabled={
-                        loading ??
-                        requiredTokenAmount > platformAssetBalance ??
+                        loading ||
+                        requiredTokenAmount > platformAssetBalance ||
                         !isValid
                       }
                       className="flex items-center gap-1 shadow-sm shadow-foreground"
