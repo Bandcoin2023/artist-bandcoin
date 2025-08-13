@@ -44,7 +44,6 @@ export function DisableFromMarketButton({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
           <Button
-            variant={"glow"}
             className="w-full shadow-sm shadow-foreground "
           >
             {disable.isLoading && <span className="loading loading-spinner" />}
@@ -247,10 +246,7 @@ export function MarketButtons({
   if (inMarket.data) {
     return (
       <div>
-        <span className="text-center text-xs text-red-50">
-          {" "}
-          Item has been placed in market
-        </span>
+
         {isShowDisableButton && (
           <>
             <DisableFromMarketButton code={code} issuer={issuer} />

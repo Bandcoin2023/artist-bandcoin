@@ -3,7 +3,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { api } from "~/utils/api";
 
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, Eye, X, DollarSign, User, Hash, Package, Copy } from 'lucide-react'
 import { Button } from "~/components/shadcn/ui/button";
 import {
     Dialog,
@@ -20,10 +20,11 @@ import { addrShort } from "~/utils/utils";
 import clsx from "clsx";
 import { useRouter } from "next/router";
 import { Card, CardContent, CardFooter } from "~/components/shadcn/ui/card";
-import { useModal } from "~/lib/state/play/use-modal-store";
 import { DeleteAssetByAdmin, DisableFromMarketButton, SparkleEffect } from "../common/modal-common-button";
 import PaymentProcessItem from "../payment/payment-process";
 import { useMusicBuyModalStore } from "../store/music-buy-store";
+import { Separator } from "../shadcn/ui/separator";
+import Link from "next/link";
 
 export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
@@ -57,6 +58,16 @@ export default function MusicBuyModal() {
     const handleBack = () => {
         setStep((prev) => prev - 1);
     };
+    const addrShort = (address: string | null | undefined, chars = 5) => {
+        if (!address) return "";
+        return `${address.slice(0, chars)}...${address.slice(-chars)}`
+    }
+
+    const copyToClipboard = (text: string | null | undefined) => {
+        if (text) {
+            navigator.clipboard.writeText(text)
+        }
+    }
 
     const { data: canBuyUser } =
         api.marketplace.market.userCanBuySongMarketAsset.useQuery(
@@ -65,7 +76,7 @@ export default function MusicBuyModal() {
                 enabled: !!data?.id,
             },
         );
-
+    console.log("Canbuy", canBuyUser)
     if (!data || !data.asset)
         return (
             <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -106,182 +117,232 @@ export default function MusicBuyModal() {
     return (
         <>
             <Dialog open={isOpen} onOpenChange={handleClose}>
-                <DialogContent className="max-w-4xl     overflow-hidden p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-black [&>button]:bg-white [&>button]:text-black">
+                <DialogContent className="max-w-4xl border-0 bg-gradient-to-br from-background to-muted p-0 h-[85vh] overflow-y-auto">
+                    <button
+                        onClick={handleClose}
+                        className="absolute right-4 top-4 z-50 rounded-full bg-primary shadow-sm shadow-foreground p-2"
+                    >
+                        <X className="h-4 w-4 text-foreground" />
+                    </button>
+
                     {step === 1 && (
-                        <div className="grid grid-cols-1 md:grid-cols-7 ">
-                            {/* Left Column - Product Image */}
-                            <Card className="  overflow-y-auto max-h-[770px] min-h-[770px] scrollbar-hide   md:col-span-3 ">
-                                <CardContent className="p-0 bg-primary rounded-sm flex flex-col justify-between h-full">
-                                    {/* Image Container */}
-                                    <div className="flex flex-col h-full">
-                                        <div className="relative h-[300px] w-full">
-                                            <SparkleEffect />
-                                            <Image
-                                                src={data.asset.thumbnail}
-                                                alt={data.asset.name}
-                                                width={1000}
-                                                height={1000}
-                                                className="h-full w-full object-cover shadow-md rounded-md hidden md:block"
-                                            />
+                        <div className="grid grid-cols-1 lg:grid-cols-2  overflow-y-auto">
+                            {/* Left Column - Media Display */}
+                            <div className="relative bg-background/20 backdrop-blur-sm">
+                                {/* Sparkle Effect */}
+                                <div className="absolute inset-0 z-10 pointer-events-none">
+                                    <div className="absolute top-4 left-4 w-2 h-2 bg-foreground rounded-full animate-pulse"></div>
+                                    <div className="absolute top-12 right-8 w-1 h-1 bg-primary rounded-full animate-ping"></div>
+                                    <div className="absolute bottom-16 left-8 w-1.5 h-1.5 bg-secondary rounded-full animate-pulse"></div>
+                                </div>
 
+                                {/* Desktop Image */}
+                                <div className="hidden lg:block h-full relative">
+                                    <Image
+                                        src={data?.asset.thumbnail || "/placeholder.svg"}
+                                        alt={data?.asset.name}
+                                        fill
+                                        className="object-cover"
+                                    />
 
-                                            {/* Content */}
-                                            <div className="space-y-1 p-4 border-2 rounded-md">
-                                                <h2 className="text-lg font-bold  truncate">
-                                                    {data.asset.name}
-                                                </h2>
+                                </div>
 
-                                                <p className="max-h-[100px] border-b-2  min-h-[100px] overflow-y-auto text-sm text-gray-500 scrollbar-hide">
-                                                    {data.asset.description && data.asset.description.length > 0 ? data.asset.description : "No description"}
-                                                </p>
+                                {/* Mobile Media Display */}
+                                <div className="lg:hidden h-64 relative overflow-hidden">
+                                    <Image
+                                        src={data?.asset.thumbnail || "/placeholder.svg"}
+                                        alt={data?.asset.name}
+                                        fill
+                                        className="object-cover"
+                                    />
+                                </div>
+                            </div>
 
+                            {/* Right Column - Asset Details */}
+                            <div className="flex flex-col bg-card/5 backdrop-blur-sm">
+                                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                    {/* Header */}
+                                    <div className="space-y-2">
+                                        <h1 className="text-2xl font-bold text-foreground truncate">{data?.asset.name}</h1>
+                                        <div className="flex items-center gap-2">
+                                            <Badge className=" shadow-sm shadow-foreground"
+                                                variant='destructive'
+                                            >
+                                                {data?.asset.mediaType === "THREE_D" ? "3D Model" : data?.asset.mediaType}
+                                            </Badge>
+                                            <Badge className="bg-secondary shadow-sm shadow-foreground">
+                                                {data?.asset.code}
+                                            </Badge>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border" />
+
+                                    {/* Description */}
+                                    <div className="space-y-2">
+                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Description</h3>
+                                        <div className="h-32 overflow-y-auto bg-secondary rounded-lg p-3">
+                                            <p className="text-sm text-foreground/80 leading-relaxed">{data?.asset.description}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Price */}
+                                    <div className="space-y-2">
+                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                                            <DollarSign className="h-4 w-4" />
+                                            Price
+                                        </h3>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-2xl font-bold text-foreground">{data?.price} {PLATFORM_ASSET.code}</span>
+                                            <Badge className="bg-accent/20 text-accent-foreground border-accent/30">
+                                                ${data?.priceUSD} USD
+                                            </Badge>
+                                        </div>
+                                    </div>
+
+                                    {/* Asset Details */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Asset Details</h3>
+
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                                    <Hash className="h-4 w-4" />
+                                                    Issuer ID
+                                                </span>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-lg font-bold ">
-                                                        {data.price} {PLATFORM_ASSET.code}
-                                                    </span>
-                                                    <Badge
-                                                        variant="outline"
-                                                        className="border-none bg-white text-[#3ba55c]"
+                                                    <code className="text-xs  bg-primary px-2 py-1 rounded-md">
+                                                        {addrShort(data?.asset.issuer, 5)}
+                                                    </code>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/10"
+                                                        onClick={() => copyToClipboard(data?.asset.issuer)}
                                                     >
-                                                        $ {data.priceUSD}
-                                                    </Badge>
+                                                        <Copy className="h-3 w-3" />
+                                                    </Button>
                                                 </div>
+                                            </div>
 
-                                                <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span className="h-auto p-0 text-xs text-[#00a8fc]">
-                                                        {addrShort(data.asset.issuer, 5)}
-                                                    </span>
-                                                    <Badge variant="destructive" className=" rounded-lg">
-                                                        #{data.asset.code}
-                                                    </Badge>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                                    <User className="h-4 w-4" />
+                                                    Creator ID
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <code className="text-xs  bg-primary px-2 py-1 rounded-md">
+                                                        {addrShort(data.asset?.creatorId, 5)}
+                                                    </code>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/10"
+                                                        onClick={() => copyToClipboard(data?.asset?.creatorId)}
+                                                    >
+                                                        <Copy className="h-3 w-3" />
+                                                    </Button>
                                                 </div>
-                                                <p className="font-semibold ">
-                                                    <span className="">Available:</span>{" "}
-                                                    {copy.data === 0
-                                                        ? "Sold out"
-                                                        : copy.data === 1
-                                                            ? "1 copy"
-                                                            : copy.data !== undefined
-                                                                ? `${copy.data} copies`
-                                                                : "..."}
-                                                </p>
+                                            </div>
+
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                                    <Package className="h-4 w-4" />
+                                                    Available
+                                                </span>
+                                                <Badge className="bg-accent text-accent-foreground border-accent/30">
+                                                    {copy.data} {copy.data === 1 ? "copy" : "copies"}
+                                                </Badge>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 w-full p-1">
-                                        {session.status === "authenticated" &&
-                                            data.asset.creatorId === session.data.user.id &&
-                                            isCollectionRoute ? (
-                                            <>
-                                                <DisableFromMarketButton
-                                                    code={data.asset.code}
-                                                    issuer={data.asset.issuer}
-                                                />
-                                            </>
-                                        ) : (
-                                            canBuyUser?.canBuy &&
-                                            copy.data &&
-                                            copy.data > 0 && (
+                                </div>
+
+                                {/* Footer Actions */}
+                                <div className="p-2 flex flex-col gap-2">
+                                    <Link href={`/asset/${data.asset.id}`}>
+                                        <Button
+                                            size={"sm"}
+                                            onClick={handleClose}
+                                            variant="outline" className="w-full shadow-sm shadow-background border-2">
+                                            <Eye className="mr-2 h-4 w-4" />
+                                            View Asset
+                                        </Button>
+                                    </Link>
+                                    {
+                                        data.asset.percentage && (
+                                            <Link href={`/royalty/${data.asset.id}`}>
                                                 <Button
-                                                    onClick={handleNext}
-                                                    className="w-full shadow-sm shadow-black border-2"
-
-                                                >
-                                                    Buy
+                                                    size={"sm"}
+                                                    onClick={handleClose}
+                                                    className="w-full shadow-sm shadow-background border-2">
+                                                    <Eye className="mr-2 h-4 w-4" />
+                                                    View Royalty Details
                                                 </Button>
-                                            )
-                                        )}
+                                            </Link>
+                                        )
+                                    }
+                                    {session.status === "authenticated" &&
+                                        data.asset.creatorId === session.data.user.id ? (
+                                        <>
+                                            <DisableFromMarketButton
+                                                code={data.asset.code}
+                                                issuer={data.asset.issuer}
+                                            />
+                                        </>
+                                    ) : (
+                                        canBuyUser?.canBuy &&
+                                        copy.data &&
+                                        copy.data > 0 && (
+                                            <Button
+                                                size={"sm"}
 
-                                        <DeleteAssetByAdmin
-                                            assetId={data.assetId}
-                                            handleClose={handleClose}
-                                        />
+                                                onClick={handleNext}
+                                                className="w-full shadow-sm shadow-background border-2"
+                                            >
+                                                Buy Item
+                                            </Button>
+                                        )
+                                    )}
 
-                                        <p className="text-xs text-gray-400">
-                                            Once purchased, this item will be placed on collection.
-                                        </p>
-                                    </div>
-
-                                </CardContent>
-
-                            </Card>
-
-                            {/* Right Column - Bundle Info */}
-                            <div className=" hidden rounded-sm bg-gray-300   p-1  md:col-span-4 md:grid ">
-                                {data.asset.mediaType === "IMAGE" ? (
-                                    <Image
-                                        src={data.asset.mediaUrl}
-                                        alt={data.asset.name}
-                                        width={1000}
-                                        height={1000}
-                                        className={clsx(
-                                            "h-full w-full object-cover ",
-                                            data.asset.tierId ? " blur-md" : "",
-                                        )}
+                                    <DeleteAssetByAdmin marketId={data.id}
+                                        handleClose={handleClose}
                                     />
-                                ) : data.asset.mediaType === "VIDEO" ? (
-                                    <Image
-                                        src={data.asset.thumbnail}
-                                        alt={data.asset.name}
-                                        width={1000}
-                                        height={1000}
-                                        className={clsx(
-                                            "h-full w-full object-cover ",
-                                            data.asset.tierId ? " blur-md" : "",
-                                        )}
-                                    />
-                                ) : (
-                                    data.asset.mediaType === "MUSIC" && (
-                                        <Image
-                                            src={data.asset.thumbnail}
-                                            alt={data.asset.name}
-                                            width={1000}
-                                            height={1000}
-                                            className={clsx(
-                                                "h-full w-full object-cover ",
-                                                data.asset.tierId ? " blur-md" : "",
-                                            )}
-                                        />
-                                    )
-                                )}
+
+
+                                    <p className="text-xs text-muted-foreground text-center">
+                                        Once purchased, this item will be added to your collection.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     )}
+
                     {step === 2 && (
-                        <Card>
-                            <CardContent className="p-0">
-                                <PaymentProcessItem
-                                    marketItemId={canBuyUser?.marketAssetId}
-                                    priceUSD={data.priceUSD}
-                                    item={data.asset}
-                                    price={data.price}
-                                    placerId={data.creatorId}
-                                    setClose={handleClose}
-                                />
-                            </CardContent>
-                            <CardFooter className="p-2">
-                                {step === 2 && (
-                                    <Button onClick={handleBack} variant="destructive" className="shadow-sm shadow-black">
-                                        Back
-                                    </Button>
-                                )}
-                            </CardFooter>
-                        </Card>
+                        <div className="max-h-[90vh] overflow-y-auto">
+                            <Card>
+                                <CardContent className="p-0">
+                                    <PaymentProcessItem
+                                        marketItemId={canBuyUser?.marketAssetId}
+                                        priceUSD={data.priceUSD}
+                                        item={data.asset}
+                                        price={data.price}
+                                        placerId={data.creatorId}
+                                        setClose={handleClose}
+                                    />
+                                </CardContent>
+                                <CardFooter className="p-2">
+                                    {step === 2 && (
+                                        <Button onClick={handleBack} variant="destructive" className="shadow-sm shadow-background">
+                                            Back
+                                        </Button>
+                                    )}
+                                </CardFooter>
+                            </Card>
+                        </div>
                     )}
-                    {/* <DialogFooter>
-                            {step > 1 && (
-                                <Button onClick={handleBack} variant="outline">
-                                    Back
-                                </Button>
-                            )}
-                            {step < 2 ? (
-                                <Button onClick={handleNext}>Next</Button>
-                            ) : (
-                                <Button onClick={handleSubmit}>Submit</Button>
-                            )}
-                        </DialogFooter> */}
                 </DialogContent>
-            </Dialog>
+            </Dialog >
         </>
     );
 }

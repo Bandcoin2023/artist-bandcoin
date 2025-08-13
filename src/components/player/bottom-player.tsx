@@ -42,7 +42,7 @@ export function StemPlayer() {
     const [showVolumeSlider, setShowVolumeSlider] = useState(false)
     const [audioStates, setAudioStates] = useState<Record<string, AudioState>>({})
     const [isGlobalLoading, setIsGlobalLoading] = useState(false)
-
+    const [autoplayEnabled, setAutoplayEnabled] = useState(true)
     // Main song mode state
     const [isMainSongMode, setIsMainSongMode] = useState(false)
     const mainAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -158,6 +158,28 @@ export function StemPlayer() {
             setIsGlobalLoading(true)
         }
     }, [currentTracks, currentSong])
+
+    useEffect(() => {
+        if (isPlayerVisible && autoplayEnabled && !isPlaying) {
+            // Auto-play for main song mode
+            if (isMainSongMode && mainAudioLoaded && mainAudioRef.current) {
+                console.log("Auto-playing main song")
+                togglePlayPause()
+            }
+            // Auto-play for stem mode when all tracks are loaded
+            else if (!isMainSongMode && trackStates.length > 0 && !isGlobalLoading) {
+                const allTracksLoaded = trackStates.every(track => {
+                    const trackId = track.id.toString()
+                    return audioStates[trackId]?.loaded
+                })
+
+                if (allTracksLoaded) {
+                    console.log("Auto-playing stems")
+                    togglePlayPause()
+                }
+            }
+        }
+    }, [isPlayerVisible, autoplayEnabled, isPlaying, isMainSongMode, mainAudioLoaded, trackStates, isGlobalLoading, audioStates])
 
     // Initialize stem audio elements
     useEffect(() => {

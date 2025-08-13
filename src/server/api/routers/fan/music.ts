@@ -234,7 +234,31 @@ export const musicRouter = createTRPCRouter({
                 });
             }
         }),
+    createSongFromMarketAsset: creatorProcedure.input(z.object({
+        albumId: z.number(),
 
+        artist: z.string(),
+        price: z.number(),
+        priceUSD: z.number(),
+
+        marketAssetId: z.number(),
+        assetId: z.number(),
+    })).mutation(async ({ input, ctx }) => {
+        const { albumId, artist, price, priceUSD, marketAssetId, assetId } = input;
+        console.log("Creating song from market asset", input);
+        const userId = ctx.session.user.id;
+
+        return await ctx.db.song.create({
+            data: {
+                albumId,
+                artist,
+                price,
+                priceUSD,
+                creatorId: userId,
+                assetId,
+            },
+        });
+    }),
     createSongWithStems: creatorProcedure
         .input(ExportSongFormSchema)
         .mutation(async ({ input, ctx }) => {

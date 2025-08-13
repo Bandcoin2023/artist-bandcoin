@@ -150,7 +150,7 @@ export async function getSignedURL({
     throw new Error("File type not allowed");
   }
 
-  const genFileName = generateFileName();
+  const genFileName = generateFileName() + fileName;
   const putObjectCommand = new PutObjectCommand({
     Bucket: env.AWS_BUCKET_NAME,
     Key: genFileName,

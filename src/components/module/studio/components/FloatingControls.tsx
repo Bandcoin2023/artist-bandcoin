@@ -16,6 +16,7 @@ import {
   SkipForward,
 } from "lucide-react"
 import type { PlaybackState } from "../types/audio"
+import { Button } from "~/components/shadcn/ui/button"
 
 interface FloatingControlsProps {
   playbackState: PlaybackState
@@ -229,22 +230,6 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
         {/* Action Buttons */}
         <div className="flex items-center space-x-2">
           <button
-            onClick={onExport}
-            className={`p-2 rounded-2xl transition-colors ${isDark
-              ? "text-gray-300 hover:text-white hover:bg-gray-700"
-              : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              }`}
-            title="Export audio"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-          </button>
-
-          <button
             onClick={onToggleDarkMode}
             className={`p-2 rounded-2xl transition-colors ${isDark
               ? "text-gray-300 hover:text-white hover:bg-gray-700"
@@ -254,6 +239,27 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
           >
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
+          <div className="flex flex-col items-center gap-4">
+            <Button
+              onClick={onExport}
+              title="Export audio"
+              disabled={isLoading}
+              size="lg"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 "
+            >
+              {isLoading ? (
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span className="text-sm font-medium">Export Audio</span>
+                </>
+              )}
+            </Button>
+
+          </div>
+
+
         </div>
       </div>
     </div>

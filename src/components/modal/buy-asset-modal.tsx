@@ -3,7 +3,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { api } from "~/utils/api";
 
-import { ArrowLeft, Eye, X } from "lucide-react";
+import { ArrowLeft, Eye, X, DollarSign, User, Hash, Package, Copy } from 'lucide-react'
 import { Button } from "~/components/shadcn/ui/button";
 import {
     Dialog,
@@ -19,31 +19,27 @@ import { z } from "zod";
 import { addrShort } from "~/utils/utils";
 
 import clsx from "clsx";
-import { Card, CardContent, CardFooter } from "~/components/shadcn/ui/card";
-import { SongItemType, useModal } from "~/lib/state/play/use-modal-store";
+import { Card, CardContent, CardFooter, CardHeader } from "~/components/shadcn/ui/card";
 
-import { useRouter } from "next/router";
 import {
     DeleteAssetByAdmin,
     DisableFromMarketButton,
     SparkleEffect,
 } from "../common/modal-common-button";
 import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances";
-// import { usePlayer } from "../context/PlayerContext";
-// import { RightSidePlayer } from "../RightSidePlayer";
+
 import PaymentProcessItem from "../payment/payment-process";
 import ShowThreeDModel from "../3d-model/model-show";
-import { MarketAssetType } from "~/types/market/market-asset-type";
+
 import CopyToClip from "../common/copy_to_Clip";
 import { useBuyModalStore } from "../store/buy-modal-store";
 import { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
 import { useBottomPlayer } from "../player/context/bottom-player-context";
 import Link from "next/link";
+import { Separator } from "../shadcn/ui/separator";
 
 export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
-
-
 
 export default function BuyModal() {
     const session = useSession();
@@ -60,7 +56,6 @@ export default function BuyModal() {
 
     const { hasTrust } = useUserStellarAcc()
 
-
     const handleNext = () => {
         setStep((prev) => prev + 1);
     };
@@ -69,19 +64,14 @@ export default function BuyModal() {
         setStep((prev) => prev - 1);
     };
 
-    const handlePlaySong = (song: {
-        tracks: StemTypeWithoutAssetId[];
-        title: string;
-        artist: string;
-        thumbnail: string
-        url: string
-    }) => {
-        if (song.tracks.length > 0) {
-            showPlayer(song.tracks, song.title, song.artist, undefined, song.thumbnail)
+    const addrShort = (address: string | null | undefined, chars = 5) => {
+        if (!address) return "";
+        return `${address.slice(0, chars)}...${address.slice(-chars)}`
+    }
 
-        }
-        else {
-            showPlayer(song.tracks, song.title, song.artist, song.url, song.thumbnail)
+    const copyToClipboard = (text: string | null | undefined) => {
+        if (text) {
+            navigator.clipboard.writeText(text)
         }
     }
 
@@ -93,10 +83,7 @@ export default function BuyModal() {
         }
     );
 
-
     const hasTrustonAsset = hasTrust(data?.asset.code ?? "", data?.asset.issuer ?? "");
-
-
 
     const { data: canBuyUser } =
         api.marketplace.market.userCanBuyThisMarketAsset.useQuery(
@@ -106,24 +93,22 @@ export default function BuyModal() {
             }
         );
 
-
     if (!data || !data.asset)
-
 
         return (
             <Dialog open={isOpen} onOpenChange={handleClose}>
-                <DialogContent className="max-w-2xl overflow-hidden p-1   ">
-                    <DialogClose className="absolute right-3 top-3 ">
-                        <X color="white" size={24} />
+                <DialogContent className="max-w-2xl overflow-hidden p-1">
+                    <DialogClose className="absolute right-3 top-3">
+                        <X className="text-foreground" size={24} />
                     </DialogClose>
                     <div className="grid grid-cols-1">
                         {/* Left Column - Product Image */}
-                        <Card className="  bg-[#1e1f22] ">
+                        <Card className="bg-card">
                             <CardContent className="flex max-h-[600px] min-h-[600px] items-center justify-center">
                                 <div role="status">
                                     <svg
                                         aria-hidden="true"
-                                        className="h-8 w-8 animate-spin fill-blue-600 text-gray-200 dark:text-gray-600"
+                                        className="h-8 w-8 animate-spin fill-primary text-muted"
                                         viewBox="0 0 100 101"
                                         fill="none"
                                         xmlns="http://www.w3.org/2000/svg"
@@ -149,401 +134,223 @@ export default function BuyModal() {
     return (
         <>
             <Dialog open={isOpen} onOpenChange={handleClose}>
+                <DialogContent className="max-w-4xl border-0 bg-gradient-to-br from-background to-muted p-0 h-[90vh] overflow-y-auto">
+                    <button
+                        onClick={handleClose}
+                        className="absolute right-4 top-4 z-50 rounded-full bg-primary shadow-sm shadow-foreground p-2"
+                    >
+                        <X className="h-4 w-4 text-foreground" />
+                    </button>
 
-                <DialogContent className="max-w-3xl     overflow-hidden p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-black [&>button]:bg-white [&>button]:text-black">
                     {step === 1 && (
-                        <div className="grid grid-cols-1 md:grid-cols-7">
-                            {/* Left Column - Product Image */}
-                            <Card className="overflow-y-hidden max-h-[770px] min-h-[770px] scrollbar-hide   md:col-span-3 ">
-                                <CardContent className="p-0  rounded-sm flex flex-col justify-between h-full">
-                                    {/* Image Container */}
-                                    <div className="flex flex-col h-full">
+                        <div className="grid grid-cols-1 lg:grid-cols-2  overflow-y-auto">
+                            {/* Left Column - Media Display */}
+                            <div className="relative bg-background/20 backdrop-blur-sm">
+                                {/* Sparkle Effect */}
+                                <div className="absolute inset-0 z-10 pointer-events-none">
+                                    <div className="absolute top-4 left-4 w-2 h-2 bg-foreground rounded-full animate-pulse"></div>
+                                    <div className="absolute top-12 right-8 w-1 h-1 bg-primary rounded-full animate-ping"></div>
+                                    <div className="absolute bottom-16 left-8 w-1.5 h-1.5 bg-secondary rounded-full animate-pulse"></div>
+                                </div>
 
-                                        <div className=" h-[300px] w-full relative">
-                                            <SparkleEffect />
-                                            <Image
-                                                src={data.asset.thumbnail}
-                                                alt={data.asset.name}
-                                                width={400}
-                                                height={400}
-                                                className="h-full w-full object-cover shadow-md rounded-md hidden md:block"
-                                            />
-                                            {
-                                                data.type === 'ROYALTY' && (
-                                                    <Link href={`/royalty/${data.asset.id}`} className="absolute bottom-0 z-20 right-0  ">
-                                                        <Button className="  rounded-none"
+                                {/* Desktop Image */}
+                                <div className="hidden lg:block h-full relative">
+                                    <Image
+                                        src={data?.asset.thumbnail || "/placeholder.svg"}
+                                        alt={data?.asset.name}
+                                        fill
+                                        className="object-cover"
+                                    />
 
-                                                            onClick={() => handleClose()}
-                                                        >
-                                                            <Eye className="mr-2" /> View Details
-                                                        </Button>
-                                                    </Link>
-                                                )
-                                            }
-                                            <div className=" rounded-sm block  md:hidden bg-secondary p-1 h-full w-full   md:col-span-4  overflow-hidden ">
-                                                {data.asset.mediaType === "IMAGE" ? (
-                                                    hasTrustonAsset ? (
-                                                        <>
-                                                            <Image
-                                                                src={data.asset.mediaUrl}
-                                                                alt={data.asset.name}
-                                                                width={500}
-                                                                height={500}
-                                                                className=
-                                                                "h-full  w-full overflow-y-auto object-cover"
-                                                            />
-                                                        </>
-                                                    ) : (
-                                                        <Image
-                                                            src={data.asset.thumbnail}
-                                                            alt={data.asset.name}
-                                                            width={200}
-                                                            height={200}
-                                                            className=
-                                                            "h-full  w-full overflow-y-auto object-cover blur-lg"
-                                                        />)
-                                                ) : data.asset.mediaType === "VIDEO" ? (
-                                                    hasTrustonAsset ? (
-                                                        <div
-                                                            style={{
-                                                                backgroundImage: `url(${data.asset.thumbnail})`,
-                                                                backgroundSize: "cover",
-                                                                backgroundPosition: "center",
-                                                                backgroundRepeat: "no-repeat",
-                                                                height: "100%",
-                                                                width: "100%",
-                                                            }}
-                                                            className={clsx(
-                                                                "h-full  w-full overflow-y-auto object-cover",
-                                                            )}
-                                                        >
-                                                            {/* <RightSidePlayer /> */}
-                                                        </div>
-                                                    ) : (
-                                                        <Image
-                                                            src={data.asset.thumbnail}
-                                                            alt={data.asset.name}
-                                                            width={200}
-                                                            height={200}
-                                                            className=
-                                                            "h-full w-full overflow-y-auto object-cover blur-lg"
-                                                        />)
-                                                ) : data.asset.mediaType === "MUSIC" ? (
-                                                    hasTrustonAsset ? (
-                                                        <>
-                                                            <div
-                                                                style={{
-                                                                    backgroundImage: `url(${data.asset.thumbnail})`,
-                                                                    backgroundSize: "cover",
-                                                                    backgroundPosition: "center",
-                                                                    backgroundRepeat: "no-repeat",
-                                                                    height: "100%",
-                                                                    width: "100%",
-                                                                }}
-                                                                className={clsx(
-                                                                    "h-full  w-full overflow-y-auto object-cover",
-                                                                )}
-                                                            >
-                                                                {/* <RightSidePlayer /> */}
-                                                            </div>
-                                                        </>
-                                                    ) : (
-                                                        <Image
-                                                            src={data.asset.thumbnail}
-                                                            alt={data.asset.name}
-                                                            width={200}
-                                                            height={200}
-                                                            className=
-                                                            "h-full w-full overflow-y-auto object-cover blur-lg"
-                                                        />)
-                                                ) : (
-                                                    <>
-                                                        <div
-                                                            style={{
-                                                                backgroundImage: `url(${data.asset.thumbnail})`,
-                                                                backgroundSize: "cover",
-                                                                backgroundPosition: "center",
-                                                                backgroundRepeat: "no-repeat",
-                                                                height: "100%",
-                                                                width: "100%",
-                                                            }}
-                                                        >
-                                                            <ShowThreeDModel
-                                                                url={data.asset.mediaUrl}
-                                                                blur={hasTrustonAsset ? false : true}
-                                                            />
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
+                                </div>
 
-                                        {/* Content */}
-                                        <div className="space-y-1 p-4 border-2 rounded-md">
-                                            <h2 className="text-lg font-bold  truncate">
-                                                NAME: {data.asset.name}
-                                            </h2>
+                                {/* Mobile Media Display */}
+                                <div className="lg:hidden h-64 relative overflow-hidden">
+                                    <Image
+                                        src={data?.asset.thumbnail || "/placeholder.svg"}
+                                        alt={data?.asset.name}
+                                        fill
+                                        className="object-cover"
+                                    />
+                                </div>
+                            </div>
 
-                                            <p className="max-h-[100px] border-b-2  min-h-[100px] overflow-y-auto text-sm text-gray-500 scrollbar-hide">
-                                                DESCRIPTION: {data.asset.description && data.asset.description.length > 0 ? data.asset.description : "No description"}
-
-                                            </p>
-
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-lg font-bold ">
-                                                    PRICE: {data.price} {PLATFORM_ASSET.code}
-                                                </span>
-                                                <Badge
-                                                    variant="outline"
-                                                    className="border-none bg-white text-[#3ba55c]"
-                                                >
-                                                    $ {data.priceUSD}
-                                                </Badge>
-                                            </div>
-
-                                            <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                <span className="h-auto p-0 text-xs text-[#00a8fc]">
-                                                    ISSUER ID: {addrShort(data.asset.issuer, 5)}
-                                                </span>
-                                                <Badge variant="destructive" className=" rounded-lg">
-                                                    {data.asset.code}
-                                                </Badge>
-                                            </div>
-                                            {data.placerId && (
-                                                <div className="flex items-center  gap-1 text-sm text-gray-400">
-                                                    <span className="p-0 text-xs text-[#00a8fc]">
-                                                        PLACER ID: {addrShort(data.placerId, 5)}
-                                                    </span>
-                                                    <CopyToClip text={data.placerId}
-                                                        collapse={5} />
-                                                </div>
-                                            )}
-
-                                            <p className="font-semibold ">
-                                                <span className="">Available:</span>{" "}
-                                                {copy.data === 0
-                                                    ? "Sold out"
-                                                    : copy.data === 1
-                                                        ? "1 copy"
-                                                        : copy.data !== undefined
-                                                            ? `${copy.data} copies`
-                                                            : "..."}
-                                            </p>
-                                            <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                <span className="h-auto p-0 text-xs text-[#00a8fc]">
-                                                    Media Type:
-                                                </span>
-                                                <Badge variant="destructive" className=" rounded-lg">
-                                                    {data.asset.mediaType === "THREE_D"
-                                                        ? "3D Model"
-                                                        : data.asset.mediaType}
-                                                </Badge>
-                                            </div>
-                                        </div>
-
-                                    </div>
-
-
-
-                                    <div className="flex flex-col gap-2 w-full p-1  ">
-                                        {data.asset.mediaType === "MUSIC" && hasTrustonAsset ? (
-                                            (data.asset.mediaUrl ?? data.asset.demoMediaUrl) && (
-                                                <Button
-                                                    onClick={() => handlePlaySong({
-                                                        tracks: data.asset.Stem,
-                                                        title: data.asset.name,
-                                                        artist: data.asset.creatorId ?? "ADMIN",
-                                                        thumbnail: data.asset.thumbnail,
-                                                        url: data.asset.mediaUrl
-                                                    })}
-                                                    size={"sm"}
-                                                    className="w-full bg-[#39BD2B] text-white hover:bg-sky-700 "
-
-                                                >
-                                                    Play
-                                                </Button>
-                                            )
-                                        ) : (
-                                            data.asset.mediaType === "VIDEO" && hasTrustonAsset && (
-                                                <Button
-                                                    onClick={() => {
-                                                        // setCurrentTrack(null);
-                                                        // setCurrentTrack({
-                                                        //     asset: data.Asset?.asset,
-                                                        //     albumId: 2,
-                                                        //     artist: " ",
-                                                        //     assetId: 1,
-                                                        //     createdAt: new Date(),
-                                                        //     price: 15,
-                                                        //     priceUSD: 50,
-                                                        //     id: 1,
-                                                        // } as SongItemType);
-                                                    }}
-
-                                                    className="w-full bg-[#39BD2B] text-white hover:bg-sky-700"
-                                                    size={"sm"}
-                                                >
-                                                    Play
-                                                </Button>
-                                            )
-                                        )}
-                                        {session.status === "authenticated" &&
-                                            data.placerId === session.data.user.id ? (
-                                            <>
-                                                <DisableFromMarketButton
-                                                    code={data.asset.code}
-                                                    issuer={data.asset.issuer}
-                                                />
-                                            </>
-                                        ) : (
-                                            canBuyUser &&
-                                            copy.data &&
-                                            copy.data > 0 && (
-                                                <Button
-                                                    size={"sm"}
-                                                    onClick={handleNext}
-                                                    className="w-full shadow-sm shadow-black border-2"
-
-                                                >
-                                                    Buy
-                                                </Button>
-                                            )
-                                        )}
-
-                                        <DeleteAssetByAdmin marketId={data.id}
-                                            handleClose={handleClose}
-                                        />
-
-                                    </div>
-                                    <p className="text-xs text-gray-400 text-center">
-                                        Once purchased, this item will be placed on collection.
-                                    </p>
-                                </CardContent>
-
-                            </Card>
-
-                            {/* Right Column - Bundle Info */}
-                            <div className="hidden md:block rounded-sm bg-secondary p-1   md:col-span-4 max-h-[770px] min-h-[770px] overflow-hidden ">
-                                {data.asset.mediaType === "IMAGE" ? (
-                                    hasTrustonAsset ? (
-                                        <>
-                                            <Image
-                                                src={data.asset.mediaUrl}
-                                                alt={data.asset.name}
-                                                width={500}
-                                                height={500}
-                                                className=
-                                                "h-full  w-full overflow-y-auto object-cover"
-                                            />
-                                        </>
-                                    ) : (
-                                        <Image
-                                            src={data.asset.thumbnail}
-                                            alt={data.asset.name}
-                                            width={200}
-                                            height={200}
-                                            className=
-                                            "h-full  w-full overflow-y-auto object-cover blur-lg"
-                                        />)
-                                ) : data.asset.mediaType === "VIDEO" ? (
-                                    hasTrustonAsset ? (
-                                        <div
-                                            style={{
-                                                backgroundImage: `url(${data.asset.thumbnail})`,
-                                                backgroundSize: "cover",
-                                                backgroundPosition: "center",
-                                                backgroundRepeat: "no-repeat",
-                                                height: "100%",
-                                                width: "100%",
-                                            }}
-                                            className={clsx(
-                                                "h-full  w-full overflow-y-auto object-cover",
-                                            )}
-                                        >
-                                            {/* <RightSidePlayer /> */}
-                                        </div>
-                                    ) : (
-                                        <Image
-                                            src={data.asset.thumbnail}
-                                            alt={data.asset.name}
-                                            width={200}
-                                            height={200}
-                                            className=
-                                            "h-full w-full overflow-y-auto object-cover blur-lg"
-                                        />)
-                                ) : data.asset.mediaType === "MUSIC" ? (
-                                    hasTrustonAsset ? (
-                                        <>
-                                            <div
-                                                style={{
-                                                    backgroundImage: `url(${data.asset.thumbnail})`,
-                                                    backgroundSize: "cover",
-                                                    backgroundPosition: "center",
-                                                    backgroundRepeat: "no-repeat",
-                                                    height: "100%",
-                                                    width: "100%",
-                                                }}
-                                                className={clsx(
-                                                    "h-full  w-full overflow-y-auto object-cover",
-                                                )}
+                            {/* Right Column - Asset Details */}
+                            <div className="flex flex-col bg-card/5 backdrop-blur-sm">
+                                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                    {/* Header */}
+                                    <div className="space-y-2">
+                                        <h1 className="text-2xl font-bold text-foreground truncate">{data?.asset.name}</h1>
+                                        <div className="flex items-center gap-2">
+                                            <Badge
+                                                variant='destructive'
                                             >
-                                                {/* <RightSidePlayer /> */}
+                                                {data?.asset.mediaType === "THREE_D" ? "3D Model" : data?.asset.mediaType}
+                                            </Badge>
+                                            <Badge>
+                                                {data?.asset.code}
+                                            </Badge>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border" />
+
+                                    {/* Description */}
+                                    <div className="space-y-2">
+                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Description</h3>
+                                        <div className="h-40 overflow-y-auto bg-secondary rounded-lg p-3">
+                                            <p className="text-sm text-foreground/80 leading-relaxed">{data?.asset.description}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Price */}
+                                    <div className="space-y-2">
+                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                                            <DollarSign className="h-4 w-4" />
+                                            Price
+                                        </h3>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-2xl font-bold text-foreground">{data?.price} {PLATFORM_ASSET.code}</span>
+                                            <Badge className="bg-accent/20 text-accent-foreground border-accent/30">
+                                                ${data?.priceUSD} USD
+                                            </Badge>
+                                        </div>
+                                    </div>
+
+                                    {/* Asset Details */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Asset Details</h3>
+
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                                    <Hash className="h-4 w-4" />
+                                                    Issuer ID
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <code className="text-xs  bg-primary px-2 py-1 rounded-md">
+                                                        {addrShort(data?.asset.issuer, 5)}
+                                                    </code>
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/10"
+                                                        onClick={() => copyToClipboard(data?.asset.issuer)}
+                                                    >
+                                                        <Copy className="h-3 w-3" />
+                                                    </Button>
+                                                </div>
                                             </div>
+
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                                    <User className="h-4 w-4" />
+                                                    Placer ID
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <code className="text-xs  bg-primary px-2 py-1 rounded-md">
+                                                        {addrShort(data?.placerId, 5)}
+                                                    </code>
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/10"
+                                                        onClick={() => copyToClipboard(data?.placerId)}
+                                                    >
+                                                        <Copy className="h-3 w-3" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                                    <Package className="h-4 w-4" />
+                                                    Available
+                                                </span>
+                                                <Badge className="bg-accent text-accent-foreground border-accent/30">
+                                                    {copy.data} {copy.data === 1 ? "copy" : "copies"}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Footer Actions */}
+                                <div className="p-2 space-y-2 flex flex-col gap-2">
+                                    <Link href={`/asset/${data.asset.id}`}>
+                                        <Button
+                                            onClick={handleClose}
+                                            variant="outline" className="w-full shadow-sm shadow-background border-2">
+                                            <Eye className="mr-2 h-4 w-4" />
+                                            View Asset
+                                        </Button>
+                                    </Link>
+                                    <Link href={`/royalty/${data.asset.id}`}>
+                                        <Button
+                                            onClick={handleClose}
+                                            className="w-full shadow-sm shadow-background border-2">
+                                            <Eye className="mr-2 h-4 w-4" />
+                                            View Royalty Details
+                                        </Button>
+                                    </Link>
+                                    {session.status === "authenticated" &&
+                                        data.placerId === session.data.user.id ? (
+                                        <>
+                                            <DisableFromMarketButton
+                                                code={data.asset.code}
+                                                issuer={data.asset.issuer}
+                                            />
                                         </>
                                     ) : (
-                                        <Image
-                                            src={data.asset.thumbnail}
-                                            alt={data.asset.name}
-                                            width={200}
-                                            height={200}
-                                            className=
-                                            "h-full w-full overflow-y-auto object-cover blur-lg"
-                                        />)
-                                ) : (
-                                    <>
-                                        <div
-                                            style={{
-                                                backgroundImage: `url(${data.asset.thumbnail})`,
-                                                backgroundSize: "cover",
-                                                backgroundPosition: "center",
-                                                backgroundRepeat: "no-repeat",
-                                                height: "100%",
-                                                width: "100%",
-                                            }}
-                                        >
-                                            <ShowThreeDModel
-                                                url={data.asset.mediaUrl}
-                                                blur={hasTrustonAsset ? false : true}
-                                            />
-                                        </div>
-                                    </>
-                                )}
+                                        canBuyUser &&
+                                        copy.data &&
+                                        copy.data > 0 && (
+                                            <Button
+                                                variant="accent"
+                                                onClick={handleNext}
+                                                className="w-full shadow-sm shadow-background border-2"
+                                            >
+                                                Buy Item
+                                            </Button>
+                                        )
+                                    )}
+
+
+
+                                    <DeleteAssetByAdmin marketId={data.id}
+                                        handleClose={handleClose}
+                                    />
+                                    <p className="text-xs text-muted-foreground text-center">
+                                        Once purchased, this item will be added to your collection.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     )}
+
                     {step === 2 && (
-                        <Card>
-                            <CardContent className="p-0">
-                                <PaymentProcessItem
-                                    marketItemId={data.id}
-                                    priceUSD={data.priceUSD}
-                                    item={data.asset}
-                                    price={data.price}
-                                    placerId={data.placerId}
-                                    setClose={handleClose}
-                                />
-                            </CardContent>
-                            <CardFooter className="p-2">
-                                {step === 2 && (
-                                    <Button onClick={handleBack} variant="destructive" className="shadow-sm shadow-black">
-                                        Back
-                                    </Button>
-                                )}
-                            </CardFooter>
-                        </Card>
+                        <div className="max-h-[90vh] overflow-y-auto">
+                            <Card>
+                                <CardContent className="p-0">
+                                    <PaymentProcessItem
+                                        marketItemId={data.id}
+                                        priceUSD={data.priceUSD}
+                                        item={data.asset}
+                                        price={data.price}
+                                        placerId={data.placerId}
+                                        setClose={handleClose}
+                                    />
+                                </CardContent>
+                                <CardFooter className="p-2">
+                                    {step === 2 && (
+                                        <Button onClick={handleBack} variant="destructive" className="shadow-sm shadow-background">
+                                            Back
+                                        </Button>
+                                    )}
+                                </CardFooter>
+                            </Card>
+                        </div>
                     )}
                 </DialogContent>
-            </Dialog>
+            </Dialog >
         </>
     );
 }

@@ -16,6 +16,8 @@ import Link from "next/link";
 import { useAssestInfoModalStore } from "~/components/store/asset-info-modal-store";
 import { useCollectedPinInfoModalStore } from "~/components/store/collectedPin-info-modal-store";
 import { MyCollectionMenu, useMyCollectionTabs } from "~/components/store/tabs/mycollection-tabs";
+import { useRouter } from "next/navigation";
+import { AssetTypeWithStems } from "~/types/market/market-asset-type";
 
 
 const MyCollecton = () => {
@@ -66,6 +68,7 @@ const MyCollection = () => {
     const acc = api.wallate.acc.getAccountInfo.useQuery();
     const { setData, setIsOpen } = useAssestInfoModalStore()
     const { setData: setPinModalData, setIsOpen: setPinModalIsOpen } = useCollectedPinInfoModalStore()
+    const router = useRouter();
     const {
         data,
         fetchNextPage,
@@ -82,6 +85,10 @@ const MyCollection = () => {
             getNextPageParam: (lastPage) => lastPage.nextCursor,
         },
     );
+    const handleViewAsset = (asset: AssetTypeWithStems) => {
+        router.push(`/asset/${asset.id}`);
+    }
+
 
     if (acc.isLoading) {
         return (
@@ -108,10 +115,7 @@ const MyCollection = () => {
                         {acc.data?.dbAssets.map((asset, i) => (
                             <div
                                 key={i}
-                                onClick={() => {
-                                    setData(asset)
-                                    setIsOpen(true)
-                                }}
+
                                 className="cursor-pointer"
                             >
                                 <AssetView
@@ -120,6 +124,11 @@ const MyCollection = () => {
                                     isNFT={true}
                                     creatorId={asset.creatorId}
                                     mediaType={asset.mediaType}
+                                    onView={() => handleViewAsset(asset)}
+                                    onBuy={() => {
+                                        setData(asset)
+                                        setIsOpen(true)
+                                    }}
                                 />
                             </div>
                         ))}
@@ -130,10 +139,7 @@ const MyCollection = () => {
                                 {pin.items.map((item, j) => (
                                     <div
                                         key={j}
-                                        onClick={() => {
-                                            setPinModalData(item)
-                                            setPinModalIsOpen(true)
-                                        }}
+
                                         className="cursor-pointer"
                                     >
                                         <AssetView
@@ -144,6 +150,10 @@ const MyCollection = () => {
                                             }
                                             isPinned={true}
                                             creatorId={item.location.locationGroup?.creatorId}
+                                            onBuy={() => {
+                                                setPinModalData(item)
+                                                setPinModalIsOpen(true)
+                                            }}
                                         />
                                     </div>
                                 ))}
@@ -168,7 +178,10 @@ const MyCollection = () => {
 const SecondaryStorage = () => {
     const acc = api.wallate.acc.getCreatorStorageInfo.useQuery();
     const { setData, setIsOpen } = useAssestInfoModalStore()
-
+    const router = useRouter();
+    const handleViewAsset = (asset: AssetTypeWithStems) => {
+        router.push(`/asset/${asset.id}`);
+    }
 
 
     return (
@@ -203,10 +216,7 @@ const SecondaryStorage = () => {
                     return (
                         <div
                             key={i}
-                            onClick={() => {
-                                setData(asset)
-                                setIsOpen(true)
-                            }}
+
                             className="cursor-pointer"
                         >
                             <AssetView
@@ -215,6 +225,11 @@ const SecondaryStorage = () => {
                                 isNFT={true}
                                 creatorId={asset.creatorId}
                                 mediaType={asset.mediaType}
+                                onView={() => handleViewAsset(asset)}
+                                onBuy={() => {
+                                    setData(asset)
+                                    setIsOpen(true)
+                                }}
                             />
                         </div>
                     );

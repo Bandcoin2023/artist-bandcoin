@@ -119,7 +119,7 @@ export default function SellPageAssetList() {
                 </div>
                 <h3 className="text-xl font-semibold text-foreground mb-2">No assets found</h3>
                 <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                    You haven't created any sell page assets yet. Create your first asset to get started.
+                    You haven{"'"}t created any sell page assets yet. Create your first asset to get started.
                 </p>
                 <Button>
                     <Package className="h-4 w-4 mr-2" />
@@ -211,7 +211,7 @@ export default function SellPageAssetList() {
                                                         <AlertDialogHeader>
                                                             <AlertDialogTitle>Delete Asset</AlertDialogTitle>
                                                             <AlertDialogDescription>
-                                                                Are you sure you want to delete "{asset.title}"? This action cannot be undone.
+                                                                Are you sure you want to delete {asset.title}? This action cannot be undone.
                                                             </AlertDialogDescription>
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter>

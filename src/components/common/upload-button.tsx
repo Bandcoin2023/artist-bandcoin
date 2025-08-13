@@ -96,6 +96,7 @@ export function UploadS3Button({
         onSuccess: async (data) => {
             setLoading(true)
             setUploadStatus("uploading")
+            console.log("FileName.......", data.fileName)
             try {
                 if (file) {
                     const res = await axios.put(data.uploadUrl, file, {
@@ -159,7 +160,6 @@ export function UploadS3Button({
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0]
-        console.log("Selected file:", selectedFile)
         if (selectedFile) {
             const isOBJFile = selectedFile.name.endsWith(".obj") && selectedFile.type === "model/obj"
             const fileType = isOBJFile ? ".obj" : selectedFile.type
@@ -519,12 +519,12 @@ export function MultiUploadS3Button({
             setUploadStatus("uploading")
             const finished: { url: string; name: string; size: number; type: string }[] = []
             if (!files.length) return
-
+            console.log("URLS received:", urls)
             try {
                 for (const file of files) {
                     const data = urls.find((url) => url.fileName === file.name)
                     if (!data) continue
-
+                    console.log("Uploading file:", file.name, "to", data.uploadUrl)
                     try {
                         const res = await axios.put(data.uploadUrl, file, {
                             headers: {
@@ -866,57 +866,70 @@ export function MultiMusicUploadS3Button({
     const [files, setFiles] = useState<File[]>(preloadedFiles ?? [])
     const [completedCount, setCompletedCount] = useState(0)
     const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle")
+    const processedFilesRef = useRef<Set<string>>(new Set())
+    const isUploadingRef = useRef(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
-    // Auto-start upload when preloadedFiles are provided
+    const getFileSignature = useCallback((files: File[]) => {
+        return files.map((f) => `${f.name}-${f.size}-${f.lastModified}`).join("|")
+    }, [])
+
     useEffect(() => {
-        console.log("🎵 MultiMusicUploadS3Button useEffect triggered", {
-            preloadedFiles: preloadedFiles?.length,
-            uploadStatus,
-            hasFiles: preloadedFiles && preloadedFiles.length > 0,
-        })
+        if (!preloadedFiles || preloadedFiles.length === 0 || isUploadingRef.current) {
+            return
+        }
 
-        if (preloadedFiles && preloadedFiles.length > 0 && uploadStatus === "idle") {
-            console.log("🎵 Starting auto-upload for preloaded files:", preloadedFiles)
-            setFiles(preloadedFiles)
+        const fileSignature = getFileSignature(preloadedFiles)
 
-            // Auto-trigger upload
-            const triggerUpload = async () => {
-                let targetFiles = preloadedFiles
+        if (processedFilesRef.current.has(fileSignature)) {
+            console.log("🎵 Files already processed, skipping:", fileSignature)
+            return
+        }
 
-                if (onBeforeUploadBegin) {
-                    const processedFile = await onBeforeUploadBegin(preloadedFiles)
-                    if (!processedFile) return
-                    targetFiles = processedFile
+        console.log("🎵 Starting auto-upload for new preloaded files:", preloadedFiles.length)
+
+        processedFilesRef.current.add(fileSignature)
+        isUploadingRef.current = true
+        setFiles(preloadedFiles)
+
+        const triggerUpload = async () => {
+            let targetFiles = preloadedFiles
+
+            if (onBeforeUploadBegin) {
+                const processedFile = await onBeforeUploadBegin(preloadedFiles)
+                if (!processedFile) {
+                    isUploadingRef.current = false
+                    return
                 }
-
-                console.log("🎵 Processing files for upload:", targetFiles.length)
-
-                const filesMeta = await Promise.all(
-                    targetFiles.map(async (file) => {
-                        return {
-                            checksum: await computeSHA256(file),
-                            fileSize: file.size,
-                            fileName: file.name,
-                            fileType: file.type,
-                            endPoint: endpoint,
-                        }
-                    }),
-                )
-
-                console.log("🎵 Files metadata prepared:", filesMeta)
-
-                setCompletedCount(0)
-
-                singedUrls.mutate({
-                    files: filesMeta,
-                    endPoint: endpoint,
-                })
+                targetFiles = processedFile
             }
 
-            triggerUpload()
+            console.log("🎵 Processing files for upload:", targetFiles.length)
+
+            const filesMeta = await Promise.all(
+                targetFiles.map(async (file) => {
+                    return {
+                        checksum: await computeSHA256(file),
+                        fileSize: file.size,
+                        fileName: file.name,
+                        fileType: file.type,
+                        endPoint: endpoint,
+                    }
+                }),
+            )
+
+            console.log("🎵 Files metadata prepared:", filesMeta)
+
+            setCompletedCount(0)
+
+            singedUrls.mutate({
+                files: filesMeta,
+                endPoint: endpoint,
+            })
         }
-    }, [preloadedFiles, uploadStatus])
+
+        triggerUpload()
+    }, [preloadedFiles, getFileSignature, onBeforeUploadBegin, endpoint])
 
     const singedUrls = api.s3.getSignedMultiURLs.useMutation({
         onSuccess: async (urls, variables) => {
@@ -926,7 +939,9 @@ export function MultiMusicUploadS3Button({
             if (!files.length) return
 
             try {
-                for (const file of files) {
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i]
+                    if (!file) continue
                     const data = urls.find((url) => url.fileName === file.name)
                     if (!data) continue
 
@@ -937,9 +952,10 @@ export function MultiMusicUploadS3Button({
                             },
                             onUploadProgress: (progressEvent) => {
                                 if (progressEvent.total) {
-                                    const percentage = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-                                    setProgress(percentage)
-                                    onUploadProgress?.(percentage)
+                                    const fileProgress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+                                    const overallProgress = Math.round(((i + fileProgress / 100) / files.length) * 100)
+                                    setProgress(overallProgress)
+                                    onUploadProgress?.(overallProgress)
                                 }
                             },
                         })
@@ -952,6 +968,9 @@ export function MultiMusicUploadS3Button({
                                 type: file.type,
                             })
                             setCompletedCount((prevCount) => prevCount + 1)
+                            const completedProgress = Math.round(((i + 1) / files.length) * 100)
+                            setProgress(completedProgress)
+                            onUploadProgress?.(completedProgress)
                         }
                     } catch (error) {
                         if (error instanceof AxiosError) {
@@ -966,8 +985,8 @@ export function MultiMusicUploadS3Button({
 
                 if (finished.length === files.length) {
                     setUploadStatus("success")
+                    setProgress(100)
                 } else if (finished.length > 0) {
-                    // Partial success
                     setUploadStatus("success")
                     toast.success(`${finished.length} of ${files.length} files uploaded successfully`)
                 } else {
@@ -977,13 +996,14 @@ export function MultiMusicUploadS3Button({
 
                 onClientUploadComplete?.(finished)
 
-                // Reset after success animation
                 setTimeout(() => {
                     if (finished.length === files.length) {
                         setFiles([])
                         setCompletedCount(0)
+                        isUploadingRef.current = false
                     }
                     setUploadStatus("idle")
+                    setProgress(0)
                 }, 2000)
             } catch (error) {
                 setUploadStatus("error")
@@ -991,9 +1011,11 @@ export function MultiMusicUploadS3Button({
                     onUploadError?.(error)
                 }
 
-                // Reset after error animation
                 setTimeout(() => {
                     setUploadStatus("idle")
+                    setProgress(0)
+                    isUploadingRef.current = false
+                    processedFilesRef.current.clear()
                 }, 2000)
             } finally {
                 setLoading(false)
@@ -1004,6 +1026,9 @@ export function MultiMusicUploadS3Button({
             toast.error(error.message)
             setTimeout(() => {
                 setUploadStatus("idle")
+                setProgress(0)
+                isUploadingRef.current = false
+                processedFilesRef.current.clear()
             }, 2000)
         },
     })
