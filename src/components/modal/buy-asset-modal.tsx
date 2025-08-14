@@ -275,7 +275,7 @@ export default function BuyModal() {
 
                                 {/* Footer Actions */}
                                 <div className="p-2 space-y-2 flex flex-col gap-2">
-                                    <Link href={`/market-asset/${data.asset.id}`}>
+                                    <Link href={`/market-asset/${data.id}`}>
                                         <Button
                                             onClick={handleClose}
                                             variant="outline" className="w-full shadow-sm shadow-background border-2">
