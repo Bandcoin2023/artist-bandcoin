@@ -8,7 +8,7 @@ import { Skeleton } from "~/components/shadcn/ui/skeleton"
 import { Play, Eye, ShoppingCart, User, Calendar, Hash, Copy, TrendingUp, Clock } from "lucide-react"
 import Image from "next/image"
 import { useState } from "react"
-import { useCreatorStorageAcc, useUserStellarAcc } from "~/lib/state/wallete/stellar-balances"
+import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances"
 import { api } from "~/utils/api"
 import { NFTVideoPlayer } from "~/components/player/nft-video-player"
 import { useBuyModalStore } from "~/components/store/buy-modal-store"
@@ -25,24 +25,17 @@ import {
 import { MediaType } from "@prisma/client"
 import ShowThreeDModel from "~/components/3d-model/model-show"
 import { useRouter } from "next/router"
-import { MyCollectionMenu, useMyCollectionTabs } from "~/components/store/tabs/mycollection-tabs"
 const SingleAssetView = () => {
     const router = useRouter()
 
     const { id } = router.query as { id: string }
-    const { selectedMenu, setSelectedMenu } = useMyCollectionTabs();
-    const { getAssetBalance: creatorAssetBalance } = useUserStellarAcc();
-    const {
-        getAssetBalance: creatorStorageAssetBalance,
-        setBalance,
-        balances,
-    } = useCreatorStorageAcc();
+    const { hasTrust } = useUserStellarAcc()
     const [isLiked, setIsLiked] = useState(false)
     const [showFullDescription, setShowFullDescription] = useState(false)
     const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false)
     const [isVideoMinimized, setIsVideoMinimized] = useState(false)
     const { setIsOpen, setData } = useBuyModalStore()
-    const assetId = Number.parseInt(id)
+    const marketId = Number.parseInt(id)
     const { showPlayer } = useBottomPlayer()
     const session = useSession()
     const [previewMedia, setPreviewMedia] = useState<{
@@ -51,27 +44,32 @@ const SingleAssetView = () => {
     } | null>(null)
     const [isOpenPreview, setIsOpenPreview] = useState(false)
 
-    const { data, isLoading, error } = api.fan.asset.getAssetById.useQuery({
-        assetId,
+    const { data, isLoading, error } = api.fan.asset.getMarketAssetById.useQuery({
+        marketId: marketId,
     })
-    const copyCreatorAssetBalance = data
-        ? selectedMenu === MyCollectionMenu.COLLECTION
-            ? creatorAssetBalance({
-                code: data.code,
-                issuer: data.issuer,
-            })
-            : creatorStorageAssetBalance({
-                code: data.code,
-                issuer: data.issuer,
-            })
-        : 0;
 
+    const { data: copyData, isLoading: copyLoading } = api.marketplace.market.getMarketAssetAvailableCopy.useQuery(
+        { id: marketId },
+        { enabled: !!data },
+    )
 
+    const { data: canBuyUser, isLoading: buyLoading } = api.marketplace.market.userCanBuyThisMarketAsset.useQuery(
+        marketId,
+        { enabled: !!data },
+    )
 
-    const isVideo = data?.mediaType === "VIDEO"
-    const isAudio = data?.mediaType === "MUSIC"
-    const isThreeD = data?.mediaType === "THREE_D"
-    const isImage = data?.mediaType === "IMAGE"
+    const hasTrustonAsset = data ? hasTrust(data.asset.code, data.asset.issuer) : false
+
+    // Core UI Logic
+    const canBuy = copyData && copyData > 0 && canBuyUser
+
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    const canPlayOrView = hasTrustonAsset || (data?.asset.creatorId === session.data?.user.id || data?.placerId === session.data?.user.id);
+
+    const isVideo = data?.asset.mediaType === "VIDEO"
+    const isAudio = data?.asset.mediaType === "MUSIC"
+    const isThreeD = data?.asset.mediaType === "THREE_D"
+    const isImage = data?.asset.mediaType === "IMAGE"
 
     const handlePlayVideo = () => {
         setIsVideoPlayerOpen(true)
@@ -176,12 +174,12 @@ const SingleAssetView = () => {
                     <div className="relative group">
                         <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 shadow-lg">
                             <Image
-                                src={data?.thumbnail || "/placeholder.svg?height=600&width=600&query=digital asset thumbnail"}
-                                alt={data.name}
+                                src={data.asset?.thumbnail || "/placeholder.svg?height=600&width=600&query=digital asset thumbnail"}
+                                alt={data.asset.name}
                                 fill
                                 className="object-cover transition-transform duration-300 group-hover:scale-105"
                             />
-                            {isVideo && (
+                            {isVideo && canPlayOrView && (
                                 <button
                                     onClick={handlePlayVideo}
                                     className="absolute inset-0 flex items-center justify-center group cursor-pointer"
@@ -191,14 +189,14 @@ const SingleAssetView = () => {
                                     </div>
                                 </button>
                             )}
-                            {isAudio && (data.mediaUrl || data.demoMediaUrl) && (
+                            {isAudio && canPlayOrView && (data.asset.mediaUrl || data.asset.demoMediaUrl) && (
                                 <button
                                     onClick={() => handlePlaySong({
-                                        tracks: data.Stem,
-                                        title: data.name,
-                                        artist: data.creatorId ?? "ADMIN",
-                                        thumbnail: data.thumbnail,
-                                        url: data.mediaUrl ?? data.demoMediaUrl
+                                        tracks: data.asset.Stem,
+                                        title: data.asset.name,
+                                        artist: data.asset.creatorId ?? "ADMIN",
+                                        thumbnail: data.asset.thumbnail,
+                                        url: data.asset.mediaUrl ?? data.asset.demoMediaUrl
                                     })}
                                     className="absolute inset-0 flex items-center justify-center group cursor-pointer"
                                 >
@@ -209,26 +207,46 @@ const SingleAssetView = () => {
                             )}
 
                             <div className="absolute top-4 left-4 flex gap-2">
-                                <Badge className="bg-white/90 text-gray-900 shadow-sm">{data.mediaType}</Badge>
+                                <Badge className="bg-white/90 text-gray-900 shadow-sm">{data.asset.mediaType}</Badge>
                             </div>
 
                             <div className="absolute top-4 right-4">
-                                <Badge className="bg-black/60 text-white shadow-sm">{(Number(copyCreatorAssetBalance) ?? 0).toFixed(0)} available</Badge>
+                                <Badge className="bg-black/60 text-white shadow-sm">{copyData ?? 0} available</Badge>
                             </div>
                         </div>
                     </div>
 
+                    <div className="grid grid-cols-3 gap-4">
 
+                        <Card className="p-4 text-center hover:shadow-md transition-shadow">
+                            <CardContent className="p-0">
+                                <div className="text-2xl font-bold text-green-600">{copyData ?? 0}</div>
+                                <div className="text-sm text-gray-600">Available</div>
+                            </CardContent>
+                        </Card>
+                        <Card className="p-4 text-center hover:shadow-md transition-shadow">
+                            <CardContent className="p-0">
+                                <div className="text-2xl font-bold text-purple-600">{data?.price ?? 0}</div>
+                                <div className="text-sm text-gray-600">{PLATFORM_ASSET.code} </div>
+                            </CardContent>
+                        </Card>
+                        <Card className="p-4 text-center hover:shadow-md transition-shadow">
+                            <CardContent className="p-0">
+                                <div className="text-2xl font-bold text-purple-600">{data?.priceUSD ?? 0}</div>
+                                <div className="text-sm text-gray-600">USD</div>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
 
                 <div className="space-y-8">
                     <div>
-                        <h1 className="text-4xl font-bold text-gray-900 mb-4 leading-tight">{data.name}</h1>
+                        <h1 className="text-4xl font-bold text-gray-900 mb-4 leading-tight">{data.asset.name}</h1>
                         <div className="relative">
                             <p className={`text-gray-600 leading-relaxed text-lg ${!showFullDescription ? "line-clamp-3" : ""}`}>
-                                {data.description}
+                                {data.asset.description}
                             </p>
-                            {data.description && data.description.length > 150 && (
+                            {data.asset.description && data.asset.description.length > 150 && (
                                 <button
                                     onClick={() => setShowFullDescription(!showFullDescription)}
                                     className="text-blue-600 hover:text-blue-700 font-medium mt-2 text-sm"
@@ -250,11 +268,11 @@ const SingleAssetView = () => {
                                         <div>
                                             <div className="text-sm text-gray-500">Placer</div>
                                             <div className="font-mono text-sm">
-                                                {data?.creatorId?.slice(0, 12) ?? ""}...{data?.creatorId?.slice(-12) ?? ""}
+                                                {data?.placerId?.slice(0, 12) ?? ""}...{data?.placerId?.slice(-12) ?? ""}
                                             </div>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" size="sm" onClick={() => copyAddress(data?.creatorId)}>
+                                    <Button variant="ghost" size="sm" onClick={() => copyAddress(data?.placerId)}>
                                         <Copy className="w-4 h-4" />
                                     </Button>
                                 </div>
@@ -264,10 +282,10 @@ const SingleAssetView = () => {
                                         <Hash className="w-5 h-5 text-gray-400" />
                                         <div>
                                             <div className="text-sm text-gray-500">Asset Code</div>
-                                            <div className="font-semibold">{data.code}</div>
+                                            <div className="font-semibold">{data.asset.code}</div>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" size="sm" onClick={() => copyAddress(data.code)}>
+                                    <Button variant="ghost" size="sm" onClick={() => copyAddress(data.asset.code)}>
                                         <Copy className="w-4 h-4" />
                                     </Button>
                                 </div>
@@ -298,8 +316,8 @@ const SingleAssetView = () => {
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                                     <span className="text-sm font-medium">Available Copies</span>
-                                    <Badge variant={Number(copyCreatorAssetBalance) > 0 ? "default" : "secondary"}>
-                                        {(Number(copyCreatorAssetBalance) ?? 0).toFixed(0) ?? 0}
+                                    <Badge variant={copyData && copyData > 0 ? "default" : "secondary"}>
+                                        {copyLoading ? "..." : copyData ?? 0}
                                     </Badge>
                                 </div>
                                 {/* <div className="flex items-center justify-between p-3 bg-white rounded-lg">
@@ -308,14 +326,19 @@ const SingleAssetView = () => {
                                         {hasTrustonAsset ? "✓ Trusted" : "✗ Not Trusted"}
                                     </Badge>
                                 </div> */}
-
+                                <div className="flex items-center justify-between p-3 bg-white rounded-lg">
+                                    <span className="text-sm font-medium">Purchase Eligibility</span>
+                                    <Badge variant={canBuyUser ? "default" : "secondary"}>
+                                        {buyLoading ? "..." : canBuyUser ? "✓ Eligible" : "✗ Not Eligible"}
+                                    </Badge>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
 
                     <div className="space-y-4">
                         {/* Play Video Button */}
-                        {isVideo && (
+                        {canPlayOrView && isVideo && (
                             <Button
                                 onClick={handlePlayVideo}
                                 className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5"
@@ -327,15 +350,15 @@ const SingleAssetView = () => {
                         )}
 
                         {/* Play Audio Button */}
-                        {isAudio && (data.mediaUrl || data.demoMediaUrl) && (
+                        {canPlayOrView && isAudio && (data.asset.mediaUrl || data.asset.demoMediaUrl) && (
                             <Button
                                 onClick={() =>
                                     handlePlaySong({
-                                        tracks: data.Stem,
-                                        title: data.name,
-                                        artist: data.creatorId ?? "ADMIN",
-                                        thumbnail: data.thumbnail,
-                                        url: data.mediaUrl ?? data.demoMediaUrl,
+                                        tracks: data.asset.Stem,
+                                        title: data.asset.name,
+                                        artist: data.asset.creatorId ?? "ADMIN",
+                                        thumbnail: data.asset.thumbnail,
+                                        url: data.asset.mediaUrl ?? data.asset.demoMediaUrl,
                                     })
                                 }
                                 className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5"
@@ -347,11 +370,11 @@ const SingleAssetView = () => {
                         )}
 
                         {/* View Image Button */}
-                        {isImage && (
+                        {canPlayOrView && isImage && (
                             <Button
                                 onClick={() => {
                                     setPreviewMedia({
-                                        url: data.thumbnail,
+                                        url: data.asset.thumbnail,
                                         type: MediaType.IMAGE,
                                     });
                                     setIsOpenPreview(true);
@@ -365,11 +388,11 @@ const SingleAssetView = () => {
                         )}
 
                         {/* View 3D Asset Button */}
-                        {isThreeD && (
+                        {canPlayOrView && isThreeD && (
                             <Button
                                 onClick={() => {
                                     setPreviewMedia({
-                                        url: data.mediaUrl,
+                                        url: data.asset.mediaUrl,
                                         type: MediaType.THREE_D,
                                     });
                                     setIsOpenPreview(true);
@@ -384,15 +407,58 @@ const SingleAssetView = () => {
 
 
 
+                        {canBuy && (
+                            <Button
+                                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+                                size="lg"
+                                variant="accent"
+                                onClick={() => {
+                                    setData(data)
+                                    setIsOpen(true)
+                                }}
+                            >
+                                <ShoppingCart className="w-5 h-5 mr-2" />
+                                Buy Asset ({data?.price} {PLATFORM_ASSET.code})<span className="ml-2 ">≈ ${data?.priceUSD}</span>
+                            </Button>
+                        )}
+
+                        {!canPlayOrView && !canBuy && !buyLoading && (
+                            <Card className="p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+                                <CardContent className="p-0 text-center">
+                                    <Clock className="w-8 h-8 text-amber-600 mx-auto mb-3" />
+                                    <p className="text-amber-800 font-medium mb-3">No actions available</p>
+                                    <div className="text-amber-700 text-sm space-y-2">
+                                        {!hasTrustonAsset && (
+                                            <div className="flex items-center justify-center gap-2">
+                                                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                                <span>You need to trust this asset to view/play it</span>
+                                            </div>
+                                        )}
+                                        {(!copyData || copyData === 0) && (
+                                            <div className="flex items-center justify-center gap-2">
+                                                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                                <span>No copies available for purchase</span>
+                                            </div>
+                                        )}
+                                        {!canBuyUser && copyData && copyData > 0 && (
+                                            <div className="flex items-center justify-center gap-2">
+                                                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                                <span>You cannot purchase this asset at this time</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </div>
             </div>
 
             {
-                isVideo && data.mediaUrl && (
+                isVideo && data.asset.mediaUrl && (
                     <NFTVideoPlayer
-                        src={data.mediaUrl}
-                        title={data.name}
+                        src={data.asset.mediaUrl}
+                        title={data.asset.name}
                         isOpen={isVideoPlayerOpen}
                         onClose={handleCloseVideo}
                         isMinimized={isVideoMinimized}

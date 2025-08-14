@@ -36,7 +36,7 @@ function MarketAssetComponent({ item }: { item: MarketAssetType }) {
             }
             else {
                 // Navigate to single asset page instead of opening buy modal
-                router.push(`/asset/${asset.id}`)
+                router.push(`/market-asset/${item.id}`)
             }
         }
     }

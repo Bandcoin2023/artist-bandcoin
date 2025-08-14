@@ -275,7 +275,7 @@ export default function BuyModal() {
 
                                 {/* Footer Actions */}
                                 <div className="p-2 space-y-2 flex flex-col gap-2">
-                                    <Link href={`/asset/${data.asset.id}`}>
+                                    <Link href={`/market-asset/${data.asset.id}`}>
                                         <Button
                                             onClick={handleClose}
                                             variant="outline" className="w-full shadow-sm shadow-background border-2">
@@ -283,14 +283,18 @@ export default function BuyModal() {
                                             View Asset
                                         </Button>
                                     </Link>
-                                    <Link href={`/royalty/${data.asset.id}`}>
-                                        <Button
-                                            onClick={handleClose}
-                                            className="w-full shadow-sm shadow-background border-2">
-                                            <Eye className="mr-2 h-4 w-4" />
-                                            View Royalty Details
-                                        </Button>
-                                    </Link>
+                                    {
+                                        data.type === 'ROYALTY' && (
+                                            <Link href={`/royalty/${data.asset.id}`}>
+                                                <Button
+                                                    onClick={handleClose}
+                                                    className="w-full shadow-sm shadow-background border-2">
+                                                    <Eye className="mr-2 h-4 w-4" />
+                                                    View Royalty Details
+                                                </Button>
+                                            </Link>
+                                        )
+                                    }
                                     {session.status === "authenticated" &&
                                         data.placerId === session.data.user.id ? (
                                         <>

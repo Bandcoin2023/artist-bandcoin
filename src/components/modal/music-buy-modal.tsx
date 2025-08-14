@@ -35,7 +35,6 @@ export default function MusicBuyModal() {
     const { data, isOpen, setIsOpen } = useMusicBuyModalStore();
     const session = useSession();
     const router = useRouter();
-    const isCollectionRoute = router.pathname.startsWith("/assets");
 
     const handleClose = () => {
         setStep(1);
@@ -260,7 +259,7 @@ export default function MusicBuyModal() {
 
                                 {/* Footer Actions */}
                                 <div className="p-2 flex flex-col gap-2">
-                                    <Link href={`/asset/${data.asset.id}`}>
+                                    <Link href={`/market-asset/${canBuyUser?.marketAssetId}`}>
                                         <Button
                                             size={"sm"}
                                             onClick={handleClose}

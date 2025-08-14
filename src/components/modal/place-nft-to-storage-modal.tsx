@@ -155,7 +155,7 @@ function PlaceNFT2StorageModal({
       <DialogTrigger asChild>
         <Button
           variant="accent"
-          className="shadow-sm shadow-foreground"
+          className="shadow-sm shadow-foreground w-full"
           onClick={() => setOpen(true)}
         >
           Place item for sale

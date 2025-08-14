@@ -580,7 +580,10 @@ export const marketRouter = createTRPCRouter({
 
       const items = await ctx.db.creator.findMany({
         where: {
-          profileUrl: { not: null }
+          profileUrl: { not: null },
+          pageAsset: {
+            isNot: null
+          }
         },
         select: {
           id: true,

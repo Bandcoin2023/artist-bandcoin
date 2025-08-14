@@ -330,12 +330,17 @@ export const shopRouter = createTRPCRouter({
     return { shopAsset, pageAsset: pageAsset ?? customPageAsset };
   }),
 
-  getMarketAssetByAssetId: protectedProcedure
-    .input(z.object({ assetId: z.number() }))
+  getMarketAssetById: protectedProcedure
+    .input(z.object({
+
+      marketId: z.number().optional()
+    }))
     .query(async ({ ctx, input }) => {
-      const { assetId } = input;
+      const { marketId } = input;
+
+
       return await ctx.db.marketAsset.findUnique({
-        where: { id: assetId },
+        where: { id: marketId },
         include: {
           asset: {
             select: {
@@ -359,6 +364,7 @@ export const shopRouter = createTRPCRouter({
           },
         },
       });
+
     }),
 
   getCreatorPageAsset: creatorProcedure
@@ -530,6 +536,17 @@ export const shopRouter = createTRPCRouter({
       },
     });
   }),
+  getAssetById: protectedProcedure
+    .input(z.object({ assetId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      return await ctx.db.asset.findUnique({
+        where: { id: input.assetId },
+        select: {
+          ...AssetSelectAllProperty,
+          Stem: true,
+        }
+      });
+    }),
   getAssetBalance: protectedProcedure
     .input(
       z.object({
