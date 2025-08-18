@@ -482,10 +482,10 @@ export default function ArtistOnboarding() {
           ...(formData.assetType === "new"
             ? { assetCode: undefined, issuer: undefined }
             : {
-                assetName: undefined,
-                assetImage: undefined,
-                assetImagePreview: undefined,
-              }),
+              assetName: undefined,
+              assetImage: undefined,
+              assetImagePreview: undefined,
+            }),
         };
 
         RequestForBrandCreation.mutate(submissionData);
@@ -599,7 +599,7 @@ export default function ArtistOnboarding() {
   };
 
   return (
-    <div className="h-screen  overflow-auto">
+    <div className="h-screen ">
       {showConfetti && (
         <div className="pointer-events-none fixed inset-0 z-50">
           <div className="absolute inset-0 flex items-center justify-center">
@@ -1488,8 +1488,8 @@ export default function ArtistOnboarding() {
                                       className={cn(
                                         "mt-1",
                                         formData.assetName.length > 0 &&
-                                          !isAssetNameValid &&
-                                          "border-destructive",
+                                        !isAssetNameValid &&
+                                        "border-destructive",
                                       )}
                                       maxLength={12}
                                     />
@@ -1687,8 +1687,8 @@ export default function ArtistOnboarding() {
                                       className={cn(
                                         "mt-1",
                                         formData.assetCode.length > 0 &&
-                                          !isassetCodeValid &&
-                                          "border-destructive",
+                                        !isassetCodeValid &&
+                                        "border-destructive",
                                       )}
                                       maxLength={12}
                                     />
@@ -1756,8 +1756,8 @@ export default function ArtistOnboarding() {
                                       className={cn(
                                         "mt-1",
                                         formData.issuer.length > 0 &&
-                                          !isIssuerValid &&
-                                          "border-destructive",
+                                        !isIssuerValid &&
+                                        "border-destructive",
                                       )}
                                       maxLength={56}
                                     />
@@ -1807,10 +1807,10 @@ export default function ArtistOnboarding() {
                                       </div>
                                       <div>
                                         <h3 className="font-medium">
-                                          Trust Required
+                                          Asset Validity Required
                                         </h3>
                                         <p className="mt-1 text-sm text-muted-foreground">
-                                          You must trust this asset before
+                                          You must check this asset before
                                           continuing. This verifies the asset
                                           exists and is valid.
                                         </p>
@@ -1841,7 +1841,7 @@ export default function ArtistOnboarding() {
                                     <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                                       <CheckCheck className="h-4 w-4" />
                                       <span>
-                                        Asset trusted successfully! You can now
+                                        This asset is valid! You can now
                                         proceed.
                                       </span>
                                     </div>
