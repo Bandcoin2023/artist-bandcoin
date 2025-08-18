@@ -212,8 +212,8 @@ export default function AssetView({
                                 </div>
                             </div>
                             {price && (
-                                <div className="pt-3 ">
-                                    <Button onClick={onBuy} size="sm" className="w-full transition-colors">
+                                <div className="pt-1 ">
+                                    <Button onClick={onBuy} size="sm" className="w-full transition-colors shadow-sm shadow-black/30">
                                         <ShoppingCart className="w-4 h-4 mr-2" />
                                         Buy Now
                                     </Button>
