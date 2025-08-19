@@ -287,7 +287,7 @@ const SubscriptionModal = () => {
                                                                 htmlFor={color.value}
                                                                 className={cn(
                                                                     "flex items-center justify-center w-10 h-10 rounded-full cursor-pointer border-2",
-                                                                    field.value === color.value ? "border-primary" : "border-transparent",
+                                                                    field.value === color.value ? "border-accent" : "border-transparent",
                                                                 )}
                                                             >
                                                                 <div className={cn("w-8 h-8 rounded-full", color.value)} />

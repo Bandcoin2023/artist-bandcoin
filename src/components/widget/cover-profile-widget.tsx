@@ -26,6 +26,7 @@ import LyricsWidget from "./lyrics-widget"
 import type { CreatorWithPageAsset, Theme } from "~/types/artist/dashboard"
 import CustomHTMLWidget from "./custom-html-widget"
 import CalendarWidget from "./calendar-widget"
+import { CommentFormatter } from "../common/comment-formatter"
 
 // Add a global style fix at the top of the component to ensure proper z-index and backdrop for all popover/sheet components
 
@@ -490,21 +491,21 @@ export default function CoverProfileWidget({
                     </div>
                 </div>
 
-                {/* Edit controls for cover photo */}
-                {(profileEditMode ?? editMode) && (
-                    <>
-                        {profileEditMode && (
-                            <Button
-                                onClick={() => document.getElementById("cover-upload")?.click()}
-                                variant="secondary"
-                                size="sm"
-                                className="absolute top-2 right-2 gap-1"
-                            >
-                                <Camera className="h-4 w-4" />
-                                <span>Change Cover</span>
-                            </Button>
-                        )}
 
+
+                {profileEditMode && (
+                    <Button
+                        onClick={() => document.getElementById("cover-upload")?.click()}
+                        variant="secondary"
+                        size="sm"
+                        className="absolute top-2 right-2 gap-1"
+                    >
+                        <Camera className="h-4 w-4" />
+                        <span>Change Cover</span>
+                    </Button>
+                )}
+                {
+                    !profileEditMode && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="secondary" size="sm" className="absolute top-2 left-2">
@@ -517,62 +518,64 @@ export default function CoverProfileWidget({
                                 <DropdownMenuItem onClick={() => updateSetting("profilePosition", "right")}>Right</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
-                        {!profileEditMode && (
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                className={`absolute bottom-2 ${widgetSettings.profilePosition === "right" ? "left-2" : "right-2"}`}
-                                onClick={() => setShowHeightControls(!showHeightControls)}
-                                ref={heightControlsButtonRef}
-                            >
-                                {showHeightControls ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                <span className="ml-1">Height</span>
-                            </Button>
-                        )}
+                    )
+                }
 
-                        {showHeightControls && (
-                            <div
-                                className={`absolute bottom-12 ${widgetSettings.profilePosition === "right" ? "left-2" : "right-2"} bg-background/90 backdrop-blur-sm p-3 rounded-md shadow-md w-48`}
-                                ref={heightControlsPanelRef}
-                            >
-                                <Slider
-                                    value={[widgetSettings.coverHeight]}
-                                    min={120}
-                                    max={400}
-                                    step={10}
-                                    onValueChange={(value) => {
-                                        startResize()
-                                        // Use a less frequent update interval during active resize
-                                        const newHeight = value[0] ?? DEFAULT_SETTINGS.coverHeight
-                                        // Only update if the change is significant (5px or more)
-                                        if (Math.abs(newHeight - widgetSettings.coverHeight) >= 5) {
-                                            // Update the setting without hiding controls
-                                            setWidgetSettings((prev) => ({ ...prev, coverHeight: newHeight }))
-
-                                            // Debounce the parent update to avoid too many re-renders
-                                            if (updateTimeoutRef.current) {
-                                                clearTimeout(updateTimeoutRef.current)
-                                            }
-
-                                            updateTimeoutRef.current = setTimeout(() => {
-                                                if (onSettingsChange) {
-                                                    const updatedSettings = { ...widgetSettings, coverHeight: newHeight }
-                                                    onSettingsChange(updatedSettings)
-                                                }
-                                            }, 300)
-                                        }
-                                    }}
-                                    className="mb-1"
-                                />
-                                <div className="flex justify-between text-xs text-muted-foreground">
-                                    <span>120px</span>
-                                    <span>{widgetSettings.coverHeight}px</span>
-                                    <span>400px</span>
-                                </div>
-                            </div>
-                        )}
-                    </>
+                {!profileEditMode && (
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        className={`absolute bottom-2 ${widgetSettings.profilePosition === "right" ? "left-2" : "right-2"}`}
+                        onClick={() => setShowHeightControls(!showHeightControls)}
+                        ref={heightControlsButtonRef}
+                    >
+                        {showHeightControls ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        <span className="ml-1">Height</span>
+                    </Button>
                 )}
+
+                {showHeightControls && (
+                    <div
+                        className={`absolute bottom-12 ${widgetSettings.profilePosition === "right" ? "left-2" : "right-2"} bg-background/90 backdrop-blur-sm p-3 rounded-md shadow-md w-48`}
+                        ref={heightControlsPanelRef}
+                    >
+                        <Slider
+                            value={[widgetSettings.coverHeight]}
+                            min={120}
+                            max={400}
+                            step={10}
+                            onValueChange={(value) => {
+                                startResize()
+                                // Use a less frequent update interval during active resize
+                                const newHeight = value[0] ?? DEFAULT_SETTINGS.coverHeight
+                                // Only update if the change is significant (5px or more)
+                                if (Math.abs(newHeight - widgetSettings.coverHeight) >= 5) {
+                                    // Update the setting without hiding controls
+                                    setWidgetSettings((prev) => ({ ...prev, coverHeight: newHeight }))
+
+                                    // Debounce the parent update to avoid too many re-renders
+                                    if (updateTimeoutRef.current) {
+                                        clearTimeout(updateTimeoutRef.current)
+                                    }
+
+                                    updateTimeoutRef.current = setTimeout(() => {
+                                        if (onSettingsChange) {
+                                            const updatedSettings = { ...widgetSettings, coverHeight: newHeight }
+                                            onSettingsChange(updatedSettings)
+                                        }
+                                    }, 300)
+                                }
+                            }}
+                            className="mb-1"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>120px</span>
+                            <span>{widgetSettings.coverHeight}px</span>
+                            <span>400px</span>
+                        </div>
+                    </div>
+                )}
+
             </div>
 
             {/* Profile Info */}
@@ -614,7 +617,11 @@ export default function CoverProfileWidget({
                                 {creatorData?.approved && <CheckCircle2 className="h-5 w-5 " />}
                             </h2>
                         </div>
-                        <p className="mt-1 text-muted-foreground line-clamp-2">{editedProfile.bio}</p>
+                        <p className="mt-1 text-muted-foreground line-clamp-2">
+                            <CommentFormatter
+                                content={editedProfile.bio}
+                            />
+                        </p>
                     </div>
                 )}
 
@@ -854,12 +861,13 @@ export default function CoverProfileWidget({
                                     </Button>
                                     <Button
                                         disabled={
-                                            UpdateCreatorProfileInfo.isLoading ??
-                                            !!formErrors.name ??
-                                            !!formErrors.bio ??
-                                            !!formErrors.website ??
-                                            !!formErrors.twitter ??
-                                            !!formErrors.instagram
+                                            UpdateCreatorProfileInfo.isLoading || (
+                                                !!formErrors.name ||
+                                                !!formErrors.bio ||
+                                                !!formErrors.website ||
+                                                !!formErrors.twitter ||
+                                                !!formErrors.instagram
+                                            )
                                         }
                                         size="sm"
                                         onClick={handleSaveProfile}
@@ -1052,12 +1060,14 @@ export default function CoverProfileWidget({
                                     </Button>
                                     <Button
                                         disabled={
-                                            UpdateCreatorProfileInfo.isLoading ??
-                                            !!formErrors.name ??
-                                            !!formErrors.bio ??
-                                            !!formErrors.website ??
-                                            !!formErrors.twitter ??
-                                            !!formErrors.instagram
+                                            UpdateCreatorProfileInfo.isLoading || (
+
+                                                !!formErrors.name ||
+                                                !!formErrors.bio ||
+                                                !!formErrors.website ||
+                                                !!formErrors.twitter ||
+                                                !!formErrors.instagram
+                                            )
                                         }
                                         onClick={handleSaveProfile}
                                     >
@@ -1078,7 +1088,9 @@ export default function CoverProfileWidget({
                                     {creatorData?.approved && <CheckCircle2 className="h-5 w-5 " />}
                                 </h2>
                                 <p className="mt-2 text-white/90 max-w-lg" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>
-                                    {editedProfile.bio}
+                                    <CommentFormatter
+                                        content={editedProfile.bio}
+                                    />
                                 </p>
 
                                 <div className="mt-6 flex gap-4 flex-wrap justify-center">
@@ -1294,12 +1306,14 @@ export default function CoverProfileWidget({
                                 </Button>
                                 <Button
                                     disabled={
-                                        UpdateCreatorProfileInfo.isLoading ??
-                                        !!formErrors.name ??
-                                        !!formErrors.bio ??
-                                        !!formErrors.website ??
-                                        !!formErrors.twitter ??
-                                        !!formErrors.instagram
+                                        UpdateCreatorProfileInfo.isLoading || (
+                                            !!formErrors.name ||
+                                            !!formErrors.bio ||
+                                            !!formErrors.website ||
+                                            !!formErrors.twitter ||
+                                            !!formErrors.instagram
+                                        )
+
                                     }
                                     onClick={handleSaveProfile}
                                 >
@@ -1316,7 +1330,10 @@ export default function CoverProfileWidget({
                                 {editedProfile.name}
                                 {creatorData?.approved && <CheckCircle2 className="h-5 w-5 " />}
                             </h2>
-                            <p className="mt-2 text-muted-foreground max-w-lg">{editedProfile.bio}</p>
+                            <p className="mt-2 text-muted-foreground max-w-lg">
+                                <CommentFormatter
+                                    content={editedProfile.bio}
+                                /></p>
 
                             <div className="mt-6 flex gap-4 flex-wrap justify-center">
                                 {creatorData?.website && (
@@ -1491,11 +1508,11 @@ export default function CoverProfileWidget({
                             </Button>
                             <Button
                                 disabled={
-                                    UpdateCreatorProfileInfo.isLoading ??
-                                    !!formErrors.name ??
-                                    !!formErrors.bio ??
-                                    !!formErrors.website ??
-                                    !!formErrors.twitter ??
+                                    UpdateCreatorProfileInfo.isLoading ||
+                                    !!formErrors.name ||
+                                    !!formErrors.bio ||
+                                    !!formErrors.website ||
+                                    !!formErrors.twitter ||
                                     !!formErrors.instagram
                                 }
                                 size="sm"
@@ -1579,7 +1596,11 @@ export default function CoverProfileWidget({
                     />
                 </div>
             ) : (
-                <div className="p-4 text-sm text-muted-foreground">{editedProfile.bio}</div>
+                <div className="p-4 text-sm text-muted-foreground">
+                    <CommentFormatter
+                        content={editedProfile.bio}
+                    />
+                </div>
             )}
 
             {/* Content area for widgets */}
@@ -1751,12 +1772,14 @@ export default function CoverProfileWidget({
                                 </Button>
                                 <Button
                                     disabled={
-                                        UpdateCreatorProfileInfo.isLoading ??
-                                        !!formErrors.name ??
-                                        !!formErrors.bio ??
-                                        !!formErrors.website ??
-                                        !!formErrors.twitter ??
-                                        !!formErrors.instagram
+                                        UpdateCreatorProfileInfo.isLoading || (
+                                            !!formErrors.name ||
+                                            !!formErrors.bio ||
+                                            !!formErrors.website ||
+                                            !!formErrors.twitter ||
+                                            !!formErrors.instagram
+                                        )
+
                                     }
                                     onClick={handleSaveProfile}
                                 >

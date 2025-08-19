@@ -261,7 +261,7 @@ export default function Album() {
                                                         title: song.asset.name,
                                                         artist: song.asset.creatorId ?? "ADMIN",
                                                         thumbnail: song.asset.thumbnail,
-                                                        url: song.asset.mediaUrl ?? song.asset.demoMediaUrl
+                                                        url: song.asset.mediaUrl && song.asset.mediaUrl.length > 4 ? song.asset.mediaUrl : (song.asset.demoMediaUrl ?? "")
                                                     })}
                                                 >
                                                     <Play className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />

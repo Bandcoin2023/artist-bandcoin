@@ -11,17 +11,17 @@ import { useCreatePostModalStore } from "../store/create-post-modal-store"
 import React from "react"
 import { Card, CardContent, CardHeader } from "~/components/shadcn/ui/card"
 import { CreatorWithPageAsset } from "~/types/artist/dashboard"
+import { getAssetBalanceFromBalance } from "~/lib/stellar/marketplace/test/acc"
 
 interface RecentPostsWidgetProps {
+    customizedMode?: boolean
     editMode?: boolean
     creatorData: CreatorWithPageAsset
     userView?: boolean
 }
 
 
-export default function RecentPostsWidget({ editMode, creatorData,
-    userView = false,
-}: RecentPostsWidgetProps) {
+export default function RecentPostsWidget({ editMode, creatorData, customizedMode, userView = false }: RecentPostsWidgetProps) {
     const session = useSession()
     const { setIsOpen: setIsPostModalOpen } = useCreatePostModalStore()
 
@@ -35,14 +35,16 @@ export default function RecentPostsWidget({ editMode, creatorData,
 
         },
     )
-
+    const accBalances = api.wallate.acc.getUserPubAssetBallances.useQuery(undefined, {
+        enabled: !!session.data?.user?.id,
+    })
     return (
         <Card className="rounded-none  ">
             <CardHeader className="w-full sticky top-0 z-50 bg-secondary border-b-2 p-2 md:p-4 ">
                 <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold">Your Posts</h2>
+                    <h2 className="text-xl font-bold">Social Posts</h2>
                     {
-                        (allCreatedPost.data?.pages[0]?.posts?.length ?? 0) > 0 && !userView && (
+                        (allCreatedPost.data?.pages[0]?.posts?.length ?? 0) > 0 && !userView && !customizedMode && (
                             <div className="flex justify-between items-center">
                                 <Button size="sm" onClick={() => setIsPostModalOpen(true)}>
                                     <Plus className="h-4 w-4 mr-2" />
@@ -99,20 +101,51 @@ export default function RecentPostsWidget({ editMode, creatorData,
                         <React.Fragment key={i}>
 
 
-                            {page.posts.map((post) => (
+                            {page.posts.map((post) => {
+                                const locked = !!post.subscription
 
-                                <PostCard
-                                    key={post.id}
-                                    post={post}
-                                    creator={post.creator}
-                                    likeCount={post._count.likes}
-                                    commentCount={post._count.comments}
-                                    locked={post.subscription ? true : false}
-                                    show={true}
-                                    media={post.medias}
-                                />
+                                // Determine if user has access to this content
+                                let hasAccess = !locked // Public posts are always accessible
 
-                            ))}
+                                if (locked && post.subscription) {
+                                    let pageAssetCode: string | undefined
+                                    let pageAssetIssuer: string | undefined
+
+                                    const customPageAsset = post.creator.customPageAssetCodeIssuer
+                                    const pageAsset = post.creator.pageAsset
+
+                                    if (pageAsset) {
+                                        pageAssetCode = pageAsset.code
+                                        pageAssetIssuer = pageAsset.issuer
+                                    } else if (customPageAsset) {
+                                        const [code, issuer] = customPageAsset.split("-")
+                                        pageAssetCode = code
+                                        pageAssetIssuer = issuer
+                                    }
+
+                                    const bal = getAssetBalanceFromBalance({
+                                        balances: accBalances.data,
+                                        code: pageAssetCode,
+                                        issuer: pageAssetIssuer,
+                                    })
+
+                                    hasAccess = post.subscription.price <= (bal || 0) ||
+                                        post.creatorId === session.data?.user?.id
+                                }
+                                return (
+                                    <PostCard
+                                        key={post.id}
+                                        post={post}
+                                        creator={post.creator}
+                                        likeCount={post._count.likes}
+                                        commentCount={post._count.comments}
+                                        locked={locked}
+                                        show={hasAccess}
+                                        media={post.medias}
+                                    />
+
+                                )
+                            })}
                         </React.Fragment>
                     ))}
 

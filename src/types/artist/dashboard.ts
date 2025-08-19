@@ -19,6 +19,7 @@ export interface CoverProfileSettings {
     width?: "SS" | "S" | "M" | "L" | "XL" | "2XL" | "3XL" | "4XL"
 }
 interface CoverProfileWidgetProps {
+    customizedMode?: boolean
     editMode?: boolean
     profileEditMode?: boolean
     setProfileEditMode?: (editMode: boolean) => void

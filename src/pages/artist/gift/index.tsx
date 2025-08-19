@@ -290,7 +290,7 @@ export default function GiftPage() {
                             <Input
                               type="text"
                               {...register("pubkey")}
-                              placeholder="Email or Pubkey"
+                              placeholder="Enter email address and fetch their ID or paste their IDs directly"
                               className="pr-10"
                             />
                             {z.string().email().safeParse(pubkey).success && (
@@ -366,7 +366,7 @@ export default function GiftPage() {
                                 </div>
                               </SelectItem>
 
-                              <SelectLabel className="mt-2 text-center font-semibold text-purple-500">
+                              {/* <SelectLabel className="mt-2 text-center font-semibold text-purple-500">
                                 PLATFORM ASSET
                               </SelectLabel>
                               <SelectItem
@@ -386,7 +386,7 @@ export default function GiftPage() {
                                     {platformAssetBalance}
                                   </Badge>
                                 </div>
-                              </SelectItem>
+                              </SelectItem> */}
 
                               <SelectLabel className="mt-2 text-center font-semibold text-purple-500">
                                 SHOP ASSET

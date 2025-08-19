@@ -358,7 +358,7 @@ const SingleAssetView = () => {
                                         title: data.asset.name,
                                         artist: data.asset.creatorId ?? "ADMIN",
                                         thumbnail: data.asset.thumbnail,
-                                        url: data.asset.mediaUrl ?? data.asset.demoMediaUrl,
+                                        url: data.asset.mediaUrl && data.asset.mediaUrl.length > 4 ? data.asset.mediaUrl : (data.asset.demoMediaUrl ?? "")
                                     })
                                 }
                                 className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5"

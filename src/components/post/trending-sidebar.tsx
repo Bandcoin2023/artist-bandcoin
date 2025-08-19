@@ -10,6 +10,7 @@ import { clientSelect } from "~/lib/stellar/fan/utils"
 import useNeedSign from "~/lib/hook"
 import { Card, CardContent } from "~/components/shadcn/ui/card"
 import { Edit, Loader2, UserRoundPlus } from "lucide-react"
+import Link from "next/link"
 
 export default function TrendingSidebar() {
     const session = useSession()
@@ -117,17 +118,23 @@ export default function TrendingSidebar() {
     }
 
     return (
-        <div className="space-y-2 overflow-auto h-full">
+        <div className="space-y-2 overflow-y-auto h-full">
             {creators.map((creator) => (
                 <Card key={creator.id} className="rounded-lg p-3 shadow-sm">
                     <CardContent className="p-0">
                         <div className="mb-2 flex items-center  gap-3">
-                            <CustomAvatar url={creator.profileUrl} />
+                            <Link
+                                href={`/artist/${creator.id}`}
+                            >
+                                <CustomAvatar url={creator.profileUrl} />
+                            </Link>
                             <div className="flex items-center justify-between gap-2 w-full">
-                                <div>
+                                <Link
+                                    href={`/artist/${creator.id}`}
+                                >
                                     <p className="font-medium">{creator.name}</p>
                                     <p className="text-xs text-gray-500">{creator._count.followers} followers</p>
-                                </div>
+                                </Link>
                                 {creator.isCurrentUser ? (
                                     <Button variant="ghost" size="sm" className="">
                                         <Edit />

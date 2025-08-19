@@ -1,15 +1,18 @@
 import { networkPassphrase, PLATFORM_ASSET, STELLAR_URL, TrxBaseFee } from "../../constant";
 import { Asset, Horizon, Keypair, Operation, TransactionBuilder } from "@stellar/stellar-sdk";
 import { MOTHER_SECRET, STORAGE_SECRET } from "../SECRET";
+import { SignUserType, WithSing } from "../../utils";
 
 export const XDR4SendPlotToInvestorInXLM = async ({
     pubkey,
     TotalAmount,
     holders,
+    signWith
 }: {
     pubkey: string;
     TotalAmount: number;
     holders: string[];
+    signWith: SignUserType;
 }) => {
     const server = new Horizon.Server(STELLAR_URL);
     const motherAcc = Keypair.fromSecret(MOTHER_SECRET);
@@ -60,7 +63,7 @@ export const XDR4SendPlotToInvestorInXLM = async ({
 
     buildTrx.sign(motherAcc);
 
-    const xdr = buildTrx.toXDR();
+    const xdr = await WithSing({ xdr: buildTrx.toXDR(), signWith });
     return xdr;
 
 }
@@ -68,10 +71,12 @@ export const XDR4SendPlotToInvestorInUSDC = async ({
     pubkey,
     TotalAmount,
     holders,
+    signWith
 }: {
     pubkey: string;
     TotalAmount: number;
     holders: string[];
+    signWith: SignUserType;
 }) => {
     const server = new Horizon.Server(STELLAR_URL);
     const motherAcc = Keypair.fromSecret(MOTHER_SECRET);
@@ -104,7 +109,7 @@ export const XDR4SendPlotToInvestorInUSDC = async ({
 
     buildTrx.sign(motherAcc);
 
-    const xdr = buildTrx.toXDR();
+    const xdr = await WithSing({ xdr: buildTrx.toXDR(), signWith });
     return xdr;
 
 }
@@ -113,10 +118,12 @@ export const XDR4SendPlotToInvestorInPlatformAsset = async ({
     pubkey,
     TotalAmount,
     holders,
+    signWith
 }: {
     pubkey: string;
     TotalAmount: number;
     holders: string[];
+    signWith: SignUserType;
 }) => {
     const server = new Horizon.Server(STELLAR_URL);
     const motherAcc = Keypair.fromSecret(MOTHER_SECRET);
@@ -174,7 +181,7 @@ export const XDR4SendPlotToInvestorInPlatformAsset = async ({
 
     buildTrx.sign(motherAcc);
 
-    const xdr = buildTrx.toXDR();
+    const xdr = await WithSing({ xdr: buildTrx.toXDR(), signWith });
     return xdr;
 
 }

@@ -16,7 +16,6 @@ import NftCreateModal from "../modal/nft-create-modal";
 import CreatorStoredAssetModal from "../modal/creator-stored-asset-modal";
 import CreateSongModal from "../modal/create-song-modal";
 import ShareModal from "../modal/share-post-modal";
-import CreateLocationBasedBountyModal from "../modal/create-locationbased-bounty";
 import { CreatePostModal } from "../modal/create-post-modal";
 import AddSubscriptionModal from "../modal/create-subscription-modal";
 import ExportCreateSongModal from "../modal/export-create-song-modal";
@@ -51,7 +50,7 @@ const ModalProvider = () => {
       <CreatorStoredAssetModal />
       <CreateSongModal />
       <ShareModal />
-      <CreateLocationBasedBountyModal />
+
       <CreatePostModal />
       <AddSubscriptionModal />
       <ExportCreateSongModal />

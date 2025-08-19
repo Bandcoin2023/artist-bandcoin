@@ -49,7 +49,7 @@ export default function BuyWithSquire({
     });
 
     return (
-        <div className="max-w-sm">
+        <div className="w-full">
             <PaymentForm
                 applicationId={env.NEXT_PUBLIC_SQUARE_APP_ID}
                 cardTokenizeResponseReceived={(token, verifiedBuyer) =>

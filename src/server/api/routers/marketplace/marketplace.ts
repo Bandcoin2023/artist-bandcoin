@@ -100,7 +100,32 @@ export const marketRouter = createTRPCRouter({
         userPub: creatorId,
       });
     }),
+  createAssetBuyerInfo: protectedProcedure.input(z.object({
+    assetId: z.number(),
 
+    isRoyalty: z.boolean().optional(),
+  })).mutation(async ({ ctx, input }) => {
+    const { assetId, isRoyalty } = input;
+    const buyerId = ctx.session.user.id;
+    // Check if the asset exists
+    const asset = await ctx.db.asset.findUnique({
+      where: { id: assetId },
+    });
+    if (!asset) throw new Error("Asset not found");
+
+    // Create a buyer record in the User_Asset table
+    const buyerRecord = await ctx.db.user_Asset.create({
+      data: {
+        assetId: assetId,
+        userId: buyerId,
+        buyAt: new Date(),
+        isRoyalty
+      },
+    });
+
+    return buyerRecord;
+
+  }),
   placeBackNftXdr: protectedProcedure
     .input(BackMarketFormSchema.extend({ signWith: SignUser }))
     .mutation(async ({ ctx, input }) => {
@@ -581,15 +606,20 @@ export const marketRouter = createTRPCRouter({
       const items = await ctx.db.creator.findMany({
         where: {
           profileUrl: { not: null },
-          pageAsset: {
-            isNot: null
-          }
+
+          OR: [
+            { pageAsset: { isNot: null } },
+            { customPageAssetCodeIssuer: { contains: "-" } }
+
+          ]
+
         },
         select: {
           id: true,
           name: true,
           profileUrl: true,
           pageAsset: true,
+          customPageAssetCodeIssuer: true
         },
         take: limit + 1,
         skip: skip,

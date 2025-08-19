@@ -35,7 +35,6 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { BountySchema } from "~/components/modal/edit-bounty-modal";
-import { BountyFormSchema } from "~/components/modal/create-locationbased-bounty";
 
 export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
@@ -132,7 +131,8 @@ export const BountyRoute = createTRPCRouter({
         content: z.string().min(2, { message: "Description can't be empty" }),
 
         priceInXLM: z.number().optional(),
-
+        requiredBalanceCode: z.string().min(2, { message: "Asset Code can't be empty" }),
+        requiredBalanceIssuer: z.string().min(2, { message: "Asset Isseuer can't be empty" }),
         medias: z.array(MediaInfo).optional(),
       }),
     )
@@ -147,6 +147,8 @@ export const BountyRoute = createTRPCRouter({
           priceInXLM: input.priceInXLM,
           totalWinner: input.totalWinner,
           requiredBalance: input.requiredBalance,
+          requiredBalanceCode: input.requiredBalanceCode,
+          requiredBalanceIssuer: input.requiredBalanceIssuer,
           imageUrls: input.medias ? input.medias.map((media) => media.url) : [],
         },
       });
@@ -181,53 +183,7 @@ export const BountyRoute = createTRPCRouter({
       }
     }),
 
-  createLocationBounty: protectedProcedure
-    .input(BountyFormSchema)
-    .mutation(async ({ input, ctx }) => {
-      const bounty = await ctx.db.bounty.create({
-        data: {
-          title: input.title,
-          description: input.description,
-          priceInUSD: input.usdtAmount,
-          priceInBand: input.brandAmount,
-          creatorId: ctx.session.user.id,
-          totalWinner: input.winners,
-          requiredBalance: input.requiredBalance,
-          latitude: Number(input.latitude),
-          longitude: Number(input.longitude),
-          radius: Number(input.radius),
-        },
-      });
-      const followers = await ctx.db.follow.findMany({
-        where: { creatorId: ctx.session.user.id },
-        select: { userId: true },
-      });
 
-      const followerIds = followers.map((follower) => follower.userId);
-
-      const createNotification = async (notifierId: string) => {
-        await ctx.db.notificationObject.create({
-          data: {
-            actorId: ctx.session.user.id,
-            entityType: NotificationType.BOUNTY,
-            entityId: bounty.id,
-            isUser: true,
-            Notification: {
-              create: [
-                {
-                  notifierId,
-                  isCreator: false,
-                },
-              ],
-            },
-          },
-        });
-      };
-
-      for (const followerId of followerIds) {
-        await createNotification(followerId);
-      }
-    }),
   getAllBounties: publicProcedure
     .input(
       z.object({
@@ -597,10 +553,10 @@ export const BountyRoute = createTRPCRouter({
           bountyId: input.BountyId,
           medias: input.medias
             ? {
-                createMany: {
-                  data: input.medias,
-                },
-              }
+              createMany: {
+                data: input.medias,
+              },
+            }
             : undefined,
         },
       });
@@ -655,11 +611,11 @@ export const BountyRoute = createTRPCRouter({
             createMany: {
               data: input.medias
                 ? input.medias.map((media) => ({
-                    url: media.url,
-                    name: media.name,
-                    size: media.size,
-                    type: media.type,
-                  }))
+                  url: media.url,
+                  name: media.name,
+                  size: media.size,
+                  type: media.type,
+                }))
                 : [],
             },
           },

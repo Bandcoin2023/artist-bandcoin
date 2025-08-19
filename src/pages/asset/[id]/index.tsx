@@ -198,7 +198,7 @@ const SingleAssetView = () => {
                                         title: data.name,
                                         artist: data.creatorId ?? "ADMIN",
                                         thumbnail: data.thumbnail,
-                                        url: data.mediaUrl ?? data.demoMediaUrl
+                                        url: data.mediaUrl && data.mediaUrl.length > 4 ? data.mediaUrl : (data.demoMediaUrl ?? "")
                                     })}
                                     className="absolute inset-0 flex items-center justify-center group cursor-pointer"
                                 >

@@ -8,6 +8,8 @@ export interface BountyTypes {
     currentWinnerCount: number;
     imageUrls: string[];
     totalWinner: number;
+    requiredBalanceCode: string;
+    requiredBalanceIssuer: string;
     status: "PENDING" | "APPROVED" | "REJECTED";
     creatorId: string;
     _count: {

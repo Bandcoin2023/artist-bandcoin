@@ -33,10 +33,15 @@ export default function BountyList({
     bounties: BountyTypes[]
 }) {
     const router = useRouter()
-    const { platformAssetBalance } = useUserStellarAcc();
+    const { getAssetBalance } = useUserStellarAcc();
 
     const isEligible = (bounty: BountyTypes) => {
-        return bounty.currentWinnerCount < bounty.totalWinner && bounty.requiredBalance <= platformAssetBalance
+        const balance = getAssetBalance({
+            code: bounty.requiredBalanceCode,
+            issuer: bounty.requiredBalanceIssuer
+        })
+        console.log("bounty.currentWinnerCount < bounty.totalWinner && bounty.requiredBalance <= getAssetBalance(bounty.requiredBalanceCode, bounty.requiredBalanceIssuer);")
+        return bounty.currentWinnerCount < bounty.totalWinner && (bounty.requiredBalance <= Number(balance));
     }
     const joinBountyMutation = api.bounty.Bounty.joinBounty.useMutation({
         onSuccess: async (data, variables) => {
@@ -140,7 +145,7 @@ export default function BountyList({
                         )}
                         {!isEligible(bounty) ? (
                             <p className="text-xs text-red-500 mt-2">
-                                {bounty.currentWinnerCount >= bounty.totalWinner ? "No spots left" : `${bounty.requiredBalance.toFixed(1)} ${PLATFORM_ASSET.code.toLocaleUpperCase()} required`}
+                                {bounty.currentWinnerCount >= bounty.totalWinner ? "No spots left" : `${bounty.requiredBalance.toFixed(1)} ${bounty.requiredBalanceCode.toLocaleUpperCase()} required`}
                             </p>
                         ) :
                             <p className="text-xs text-green-500 mt-2">

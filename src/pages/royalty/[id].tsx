@@ -63,6 +63,7 @@ import { CreditCard, PaymentForm } from "react-square-web-payments-sdk"
 import { env } from "~/env"
 import { submitSignedXDRToServer4User } from "package/connect_wallet/src/lib/stellar/trx/payment_fb_g"
 import { UploadS3Button } from "~/components/common/upload-button"
+import useNeedSign from "~/lib/hook"
 
 // Type definitions based on the database schema
 enum MediaType {
@@ -148,10 +149,9 @@ const RoyalityPage = () => {
     // const [profitDocuments, setProfitDocuments] = useState<{ url: string; name: string; uploadDate: Date }[]>([])
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
     const [paymentAmount, setPaymentAmount] = useState("")
-
+    const { needSign } = useNeedSign()
     // Add state for payment confirmation
     const [confirmingPayment, setConfirmingPayment] = useState(false)
-
     // Add state for document preview
     const [previewDocument, setPreviewDocument] = useState<{ mediaUrl: string; mediaName: string; updatedAt: Date } | null>(null)
 
@@ -221,7 +221,9 @@ const RoyalityPage = () => {
     // Mutation for processing payments
     const processPayments = api.marketplace.steller.sendProfitToInvestor.useMutation({
         onSuccess: async (data) => {
-            if (data && !PaymentMethod.usd) {
+
+            console.log("Payment successful:", data);
+            if (data && paymentCurrency !== PaymentMethod.usd) {
                 try {
 
                     // Sign the transaction
@@ -352,6 +354,7 @@ const RoyalityPage = () => {
             payWith: paymentCurrency,
             amount: paymentCurrency === PaymentMethod.usd ? amount / (prize ?? 0) : amount,
             holders: publicKeys,
+            signWith: needSign(),
         })
 
     }
@@ -1485,11 +1488,8 @@ const RoyalityPage = () => {
                                                                                 <Button
 
                                                                                     variant="outline"
-                                                                                    onClick={() => {
-                                                                                        if (fileInputRef.current) {
-                                                                                            fileInputRef.current.click()
-                                                                                        }
-                                                                                    }
+                                                                                    onClick={() =>
+                                                                                        document.getElementById("fileInput")?.click()
                                                                                     }
                                                                                     disabled={uploading}
                                                                                     className="w-full"
@@ -1942,7 +1942,7 @@ const RoyalityPage = () => {
                                                                     isCreator && (
                                                                         <Button
                                                                             variant="outline"
-                                                                            onClick={() => fileInputRef.current?.click()}
+                                                                            onClick={() => document.getElementById("fileInput")?.click()}
                                                                             className="mt-2"
                                                                         >
                                                                             <Upload className="mr-2 h-4 w-4" />
@@ -1956,7 +1956,7 @@ const RoyalityPage = () => {
                                                 </CardContent>
                                             </Card>
                                             <UploadS3Button
-                                                ref={fileInputRef}
+                                                id='fileInput'
                                                 className="hidden"
                                                 endpoint="blobUploader"
                                                 onClientUploadComplete={async (res) => {

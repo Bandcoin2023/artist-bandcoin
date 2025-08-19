@@ -172,9 +172,40 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    
   }
+  
+}
+/* Add these styles to your globals.css file */
+.quill-editor-wrapper {
+  height: 100%;
 }
 
+.quill-editor {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.quill-editor .ql-container {
+  flex: 1;
+  overflow: auto;
+}
+
+.quill-editor .ql-editor {
+  min-height: 100px;
+}
+
+/* Prevent focus outline issues */
+.quill-editor .ql-editor:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure the editor doesn't lose focus on click */
+.quill-editor .ql-editor {
+  caret-color: currentColor;
+}
 ::-webkit-scrollbar {
   width: 7px;
 }

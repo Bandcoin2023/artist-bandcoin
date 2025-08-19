@@ -19,7 +19,7 @@ export const postRouter = createTRPCRouter({
       const post = await ctx.db.post.create({
         data: {
           heading: input.heading,
-          content: input.content,
+          content: input.content ?? "",
           creatorId: ctx.session.user.id,
           subscriptionId: input.subscription
             ? Number(input.subscription)
@@ -158,6 +158,11 @@ export const postRouter = createTRPCRouter({
               pageAsset: { select: { code: true, issuer: true } },
               profileUrl: true,
               customPageAssetCodeIssuer: true,
+              followers: {
+                where: {
+                  userId: ctx.session.user.id,
+                },
+              },
             },
           },
           medias: true,

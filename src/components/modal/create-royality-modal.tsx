@@ -819,6 +819,7 @@ function DatesStep() {
 function PricingStep() {
     const {
         register,
+
         formState: { errors },
     } = useFormContext<RoyalityFormType>();
 
@@ -1035,6 +1036,7 @@ function SubmitButton({
     setIsOpen: (isOpen: boolean) => void;
 }) {
     const {
+        reset,
         getValues,
         setValue,
         handleSubmit: formHandleSubmit,
@@ -1063,6 +1065,8 @@ function SubmitButton({
             setIsSubmitting(false);
             setIsOpen(false);
             setPaymentModalOpen(false);
+            reset();
+
         },
         onError: (error) => {
             toast.error(error.message || "Failed to create royalty item");

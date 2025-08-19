@@ -96,7 +96,7 @@ export const ExtraSongInfo = z.object({
   albumId: z.number(),
 });
 
-const FORM_STEPS = ["media", "details", "pricing"];
+const FORM_STEPS = ["details", "media", "pricing"];
 export const NftFormSchema = z.object({
   name: z.string().refine(
     (value) => {
@@ -174,7 +174,7 @@ export default function NftCreateModal() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [mediaUploadSuccess, setMediaUploadSuccess] = useState(false);
   const [mediaType, setMediaType] = useState<MediaType>(MediaType.IMAGE);
-  const [activeStep, setActiveStep] = useState<string>("media");
+  const [activeStep, setActiveStep] = useState<string>("details");
   const [formProgress, setFormProgress] = useState(25);
 
   const [mediaUrl, setMediaUrl] = useState<string>();
@@ -461,6 +461,80 @@ export default function NftCreateModal() {
               onSubmit={handleSubmit(onSubmit)}
               className="space-y-4"
             >
+
+              {activeStep === "details" && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card>
+                    <CardContent className="space-y-4 pt-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Item name</Label>
+                        <Input
+                          id="name"
+                          {...register("name")}
+                          placeholder="Enter a name for your item"
+                        />
+                        {errors.name && (
+                          <p className="text-sm text-destructive">
+                            {errors.name.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea
+                          id="description"
+                          {...register("description")}
+                          placeholder="Describe your NFT"
+                          className="min-h-24 resize-none"
+                        />
+                        {errors.description && (
+                          <p className="text-sm text-destructive">
+                            {errors.description.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="code">Asset Code</Label>
+                        <Input
+                          id="code"
+                          {...register("code")}
+                          placeholder="Enter asset code (4-12 characters)"
+                        />
+                        {errors.code && (
+                          <p className="text-sm text-destructive">
+                            {errors.code.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="limit">Supply Limit</Label>
+                        <Input
+                          id="limit"
+                          type="number"
+                          {...register("limit", { valueAsNumber: true })}
+                          placeholder="Enter supply limit (default: 1)"
+                        />
+                        {errors.limit && (
+                          <p className="text-sm text-destructive">
+                            {errors.limit.message}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          This determines how many copies of this NFT can exist
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
               {activeStep === "media" && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -656,80 +730,6 @@ export default function NftCreateModal() {
                 </motion.div>
               )}
 
-              {activeStep === "details" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card>
-                    <CardContent className="space-y-4 pt-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">NFT Name</Label>
-                        <Input
-                          id="name"
-                          {...register("name")}
-                          placeholder="Enter a name for your NFT"
-                        />
-                        {errors.name && (
-                          <p className="text-sm text-destructive">
-                            {errors.name.message}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                          id="description"
-                          {...register("description")}
-                          placeholder="Describe your NFT"
-                          className="min-h-24 resize-none"
-                        />
-                        {errors.description && (
-                          <p className="text-sm text-destructive">
-                            {errors.description.message}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="code">Asset Code</Label>
-                        <Input
-                          id="code"
-                          {...register("code")}
-                          placeholder="Enter asset code (4-12 characters)"
-                        />
-                        {errors.code && (
-                          <p className="text-sm text-destructive">
-                            {errors.code.message}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="limit">Supply Limit</Label>
-                        <Input
-                          id="limit"
-                          type="number"
-                          {...register("limit", { valueAsNumber: true })}
-                          placeholder="Enter supply limit (default: 1)"
-                        />
-                        {errors.limit && (
-                          <p className="text-sm text-destructive">
-                            {errors.limit.message}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          This determines how many copies of this NFT can exist
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-
               {activeStep === "pricing" && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -791,7 +791,7 @@ export default function NftCreateModal() {
                         }
                       >
                         <AlertDescription>
-                          {`You need minimum ${requiredTokenAmount} ${PLATFORM_ASSET.code}`}
+                          {`You'll need ${requiredTokenAmount} ${PLATFORM_ASSET.code} in your wallet to create an NFT`}
                         </AlertDescription>
                       </Alert>
 
@@ -832,7 +832,7 @@ export default function NftCreateModal() {
                 <PaymentChoose
                   costBreakdown={[
                     {
-                      label: "Cost",
+                      label: "Stellar Fee",
                       amount:
                         paymentMethod === "asset"
                           ? requiredTokenAmount - totalFees

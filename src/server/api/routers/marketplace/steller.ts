@@ -167,16 +167,18 @@ export const stellarRouter = createTRPCRouter({
         payWith: z.enum(["xlm", "asset", "usd"]),
         amount: z.number(),
         holders: z.array(z.string()),
+        signWith: SignUser,
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const { payWith, amount, holders } = input;
+      const { payWith, amount, holders, signWith } = input;
       const user = ctx.session.user;
       if (payWith === "xlm") {
         return await XDR4SendPlotToInvestorInXLM({
           pubkey: user.id,
           TotalAmount: amount,
           holders,
+          signWith
         });
 
 
@@ -185,6 +187,7 @@ export const stellarRouter = createTRPCRouter({
           pubkey: user.id,
           TotalAmount: amount,
           holders,
+          signWith
         }
         );
 
@@ -195,6 +198,7 @@ export const stellarRouter = createTRPCRouter({
           pubkey: user.id,
           TotalAmount: amount,
           holders,
+          signWith
         }
         );
 

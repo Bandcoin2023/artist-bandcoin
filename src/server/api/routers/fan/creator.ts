@@ -664,11 +664,11 @@ export const creatorRouter = createTRPCRouter({
       const creators = await ctx.db.creator.findMany({
         where: {
           approved: true,
-          followers: {
-            none: {
-              userId: ctx.session.user.id
-            }
-          }
+          // followers: {
+          //   none: {
+          //     userId: ctx.session.user.id
+          //   }
+          // }
         },
         orderBy: {
           followers: {
@@ -676,12 +676,15 @@ export const creatorRouter = createTRPCRouter({
           },
         },
         take: limit + 1, // take one extra to determine if there are more
-        ...(cursorObj && {
-          cursor: {
-            id: cursorObj.id,
-          },
-          skip: 1, // Skip the cursor
-        }),
+        // If cursor is provided, start after that album
+        ...(cursorObj
+          ? {
+            cursor: {
+              id: cursorObj.id,
+            },
+            skip: 1, // Skip the cursor item
+          }
+          : {}),
         select: {
           id: true,
           name: true,
@@ -695,7 +698,7 @@ export const creatorRouter = createTRPCRouter({
       });
 
       // Check if we have more items
-      let nextCursor: typeof cursor = undefined;
+      let nextCursor: typeof cursor | undefined = undefined
       if (creators.length > limit) {
         const nextItem = creators.pop(); // Remove the extra item
         nextCursor = nextItem?.id;

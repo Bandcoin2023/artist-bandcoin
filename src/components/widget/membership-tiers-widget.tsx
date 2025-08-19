@@ -19,6 +19,9 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "~/components/shadcn/ui/tooltip"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../shadcn/ui/dialog"
+import { useToast } from "~/hooks/use-toast"
+import toast from "react-hot-toast"
 
 
 interface MembershipTiersWidgetProps {
@@ -78,6 +81,50 @@ function SubscriptionPackagesSkeleton() {
 
 
 
+interface CopyableFieldProps {
+    label: string
+    value: string
+    description?: string
+}
+
+function CopyableField({ label, value, description }: CopyableFieldProps) {
+    const [copied, setCopied] = useState(false)
+
+    const handleCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(value)
+            setCopied(true)
+            toast.success(`${label} copied to clipboard`)
+            setTimeout(() => setCopied(false), 2000)
+        } catch (err) {
+            toast.error("Failed to copy to clipboard")
+
+
+        }
+    }
+
+    return (
+        <div className="group relative rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/50">
+            <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-sm font-medium text-foreground">{label}</h4>
+                        {description && <span className="text-xs text-muted-foreground">({description})</span>}
+                    </div>
+                    <p className="text-sm text-muted-foreground break-all font-mono bg-muted/50 rounded px-2 py-1">{value}</p>
+                </div>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopy}
+                    className="shrink-0 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                    {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                </Button>
+            </div>
+        </div>
+    )
+}
 
 export default function MembershipTiersWidget({ editMode, theme, creatorData,
     userView = false,
@@ -106,8 +153,10 @@ export default function MembershipTiersWidget({ editMode, theme, creatorData,
         }
     }
     const { getAssetBalance } = useCreatorStorageAcc();
-    const code = creatorData?.pageAsset?.code ?? creatorData?.customPageAssetCodeIssuer?.split(":")[0]
-    const issuer = creatorData?.pageAsset?.issuer ?? creatorData?.customPageAssetCodeIssuer?.split(":")[1]
+    const code = creatorData?.pageAsset?.code ?? creatorData?.customPageAssetCodeIssuer?.split("-")[0]
+    const issuer = creatorData?.pageAsset?.issuer ?? creatorData?.customPageAssetCodeIssuer?.split("-")[1]
+    const walletAddress = creatorData?.storagePub
+
     const assetObj = { code, issuer };
     return (
         <div className="mb-8 h-full">
@@ -121,26 +170,37 @@ export default function MembershipTiersWidget({ editMode, theme, creatorData,
                         </span>
                         {
                             !userView && (
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                            <Info className="h-5 w-5 text-muted-foreground cursor-pointer" />
-                                        </TooltipTrigger>
-                                        <TooltipContent className="flex items-center gap-2" align="end">
-                                            <p>{creatorData.storagePub} </p>
-                                            <Button
-                                                onClick={() => handleCopy(creatorData.storagePub)}
-                                                className={cn(
-                                                    "flex h-full items-center justify-center gap-1.5 text-sm font-medium text-white transition-all",
-                                                    copied ? "bg-green-500" : "bg-indigo-500 hover:bg-indigo-600",
-                                                )}
-                                            >
-                                                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button size="sm" className="border-2">
+                                            <Info className="" />
 
-                                            </Button>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-md">
+                                        <DialogHeader>
+                                            <DialogTitle className="flex items-center gap-2">
+                                                <Info className="h-5 w-5" />
+                                                Wallet Information
+                                            </DialogTitle>
+                                        </DialogHeader>
+
+                                        <div className="space-y-4 mt-4">
+                                            Please deposit {code} to the following wallet for your custom asset
+                                            <CopyableField label="Wallet Address" value={walletAddress} description="Public Key" />
+
+                                            <CopyableField label="Issuer" value={issuer ?? ""} />
+
+                                            <CopyableField label="Code" value={code ?? ""} />
+                                        </div>
+
+                                        <div className="mt-6 p-3 bg-muted/50 rounded-lg">
+                                            <p className="text-xs text-muted-foreground text-center">
+                                                Hover over any field and click the copy icon to copy to clipboard
+                                            </p>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
                             )
                         }
                     </div>
@@ -196,7 +256,7 @@ export default function MembershipTiersWidget({ editMode, theme, creatorData,
 
             <div className="grid grid-cols-1 px-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-center justify-center w-full">
                 {subscriptionPackages.isLoading && <SubscriptionPackagesSkeleton />}
-                {subscriptionPackages.data?.map((pkg) => (
+                {subscriptionPackages.data?.sort((a, b) => a.price - b.price).map((pkg) => (
                     <Card
                         key={pkg.id}
                         className={cn(

@@ -963,7 +963,7 @@ function SubmitButton({
     <PaymentChoose
       costBreakdown={[
         {
-          label: "Cost",
+          label: "Stellar Fee",
           amount:
             paymentMethod === "asset" ? requiredTokenAmount - totalFeees : 2,
           type: "cost",

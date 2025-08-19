@@ -238,7 +238,7 @@ export function CreatePostModal() {
                                 <SelectItem value="public">Public</SelectItem>
                                 {tiers.data.map((model) => (
                                     <SelectItem key={model.id} value={model.id.toString()}>
-                                        {`${model.name} : ${model.price} ${model.creator.pageAsset?.code}`}
+                                        {`${model.name} : ${model.price} ${model.creator.pageAsset?.code ? model.creator.pageAsset.code : model.creator?.customPageAssetCodeIssuer?.split("-")[0]}`}
                                     </SelectItem>
                                 ))}
                             </SelectContent>

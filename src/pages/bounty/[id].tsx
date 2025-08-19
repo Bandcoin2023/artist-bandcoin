@@ -120,6 +120,7 @@ import { useEditBuyModalStore } from "~/components/store/edit-bounty-modal-store
 import { useBountySubmissionModalStore } from "~/components/store/bounty-submission-store";
 import { useViewBountySubmissionModalStore } from "~/components/store/view-bounty-attachment-store";
 import { Circle } from "~/components/common/circle";
+import { BountyTypes } from "~/types/bounty/bounty-type";
 type Message = {
   role: UserRole;
   message: string;
@@ -157,9 +158,11 @@ const UserBountyPage = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef: MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
+  const { getAssetBalance } = useUserStellarAcc();
 
   const inputLength = input.trim().length;
   const utils = api.useUtils();
+
   const { data, isLoading: bountyLoading } =
     api.bounty.Bounty.getBountyByID.useQuery(
       {
@@ -317,6 +320,28 @@ const UserBountyPage = () => {
       console.error("Error sending message:", error);
     }
   };
+
+  const isEligible = ({
+    currentWinnerCount,
+    totalWinner,
+    requiredBalance,
+    requiredBalanceCode,
+    requiredBalanceIssuer
+  }: {
+    currentWinnerCount: number;
+    totalWinner: number;
+    requiredBalance: number;
+    requiredBalanceCode: string;
+    requiredBalanceIssuer: string;
+  }
+  ) => {
+    const balance = getAssetBalance({
+      code: requiredBalanceCode,
+      issuer: requiredBalanceIssuer
+    })
+
+    return currentWinnerCount < totalWinner && (requiredBalance <= Number(balance));
+  }
   useEffect(() => {
     if (oldMessage && oldMessageSucess) {
       setMessages(oldMessage);
@@ -351,9 +376,9 @@ const UserBountyPage = () => {
               {/* Header Section with Image or Map */}
               <div className="relative">
                 {isLocationBasedBounty(data) &&
-                data.latitude &&
-                data.longitude &&
-                data.radius ? (
+                  data.latitude &&
+                  data.longitude &&
+                  data.radius ? (
                   <div className="relative h-96 w-full overflow-hidden">
                     <APIProvider
                       apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAP_API_KEY!}
@@ -963,164 +988,164 @@ const UserBountyPage = () => {
                   {data.BountyWinner.some(
                     (winner) => winner.user.id === session.data?.user.id,
                   ) && (
-                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button
-                          className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md hover:from-emerald-600 hover:to-teal-600 sm:w-auto"
-                          disabled={
-                            loading ||
-                            data.BountyWinner.some(
-                              (winner) =>
-                                winner.user.id === session.data?.user.id &&
-                                winner?.isSwaped === true,
-                            ) ||
-                            swapAssetToUSDC.isLoading ||
-                            MakeSwapUpdateMutation.isLoading
-                          }
-                        >
-                          <motion.div
-                            className="flex items-center gap-2"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md hover:from-emerald-600 hover:to-teal-600 sm:w-auto"
+                            disabled={
+                              loading ||
+                              data.BountyWinner.some(
+                                (winner) =>
+                                  winner.user.id === session.data?.user.id &&
+                                  winner?.isSwaped === true,
+                              ) ||
+                              swapAssetToUSDC.isLoading ||
+                              MakeSwapUpdateMutation.isLoading
+                            }
                           >
-                            <span>Swap</span>
-                            <span>{PLATFORM_ASSET.code}</span>
-                            <ArrowRight size={16} />
-                            <span>USDC</span>
-                          </motion.div>
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                          <DialogTitle className="text-center text-xl">
-                            Swap Assets
-                          </DialogTitle>
-                          <DialogDescription className="text-center">
-                            Convert your bounty reward from{" "}
-                            {PLATFORM_ASSET.code} to USDC
-                          </DialogDescription>
-                        </DialogHeader>
+                            <motion.div
+                              className="flex items-center gap-2"
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <span>Swap</span>
+                              <span>{PLATFORM_ASSET.code}</span>
+                              <ArrowRight size={16} />
+                              <span>USDC</span>
+                            </motion.div>
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle className="text-center text-xl">
+                              Swap Assets
+                            </DialogTitle>
+                            <DialogDescription className="text-center">
+                              Convert your bounty reward from{" "}
+                              {PLATFORM_ASSET.code} to USDC
+                            </DialogDescription>
+                          </DialogHeader>
 
-                        {!getMotherTrustLine.data ? (
-                          <Alert
-                            className="flex items-center justify-center"
-                            variant="destructive"
-                            content="Please contact Admin at support@wadzzo.com"
-                          />
-                        ) : (
-                          <>
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-800">
-                              <div className="space-y-5">
-                                <div className="flex items-center justify-between">
-                                  <div className="text-sm text-slate-500 dark:text-slate-400">
-                                    You{"'ll"} swap
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                                      <Trophy size={16} className="" />
+                          {!getMotherTrustLine.data ? (
+                            <Alert
+                              className="flex items-center justify-center"
+                              variant="destructive"
+                              content="Please contact Admin at support@wadzzo.com"
+                            />
+                          ) : (
+                            <>
+                              <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-800">
+                                <div className="space-y-5">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-sm text-slate-500 dark:text-slate-400">
+                                      You{"'ll"} swap
                                     </div>
-                                    <div className="text-right">
-                                      <div className="font-semibold">
-                                        {(
-                                          data?.priceInBand / data.totalWinner
-                                        ).toFixed(3)}
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                                        <Trophy size={16} className="" />
                                       </div>
-                                      <div className="text-xs text-slate-500">
-                                        {PLATFORM_ASSET.code}
+                                      <div className="text-right">
+                                        <div className="font-semibold">
+                                          {(
+                                            data?.priceInBand / data.totalWinner
+                                          ).toFixed(3)}
+                                        </div>
+                                        <div className="text-xs text-slate-500">
+                                          {PLATFORM_ASSET.code}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
-                                </div>
 
-                                <div className="flex justify-center">
-                                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700">
-                                    <ArrowDown
-                                      size={20}
-                                      className="text-slate-500"
-                                    />
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                  <div className="text-sm text-slate-500 dark:text-slate-400">
-                                    You{"'ll"} receive
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500/10">
-                                      <DollarSign
-                                        size={16}
-                                        className="text-green-500"
+                                  <div className="flex justify-center">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700">
+                                      <ArrowDown
+                                        size={20}
+                                        className="text-slate-500"
                                       />
                                     </div>
-                                    <div className="text-right">
-                                      <div className="font-semibold">
-                                        {(
-                                          data.priceInUSD / data.totalWinner
-                                        ).toFixed(2)}
+                                  </div>
+
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-sm text-slate-500 dark:text-slate-400">
+                                      You{"'ll"} receive
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500/10">
+                                        <DollarSign
+                                          size={16}
+                                          className="text-green-500"
+                                        />
                                       </div>
-                                      <div className="text-xs text-slate-500">
-                                        USDC
+                                      <div className="text-right">
+                                        <div className="font-semibold">
+                                          {(
+                                            data.priceInUSD / data.totalWinner
+                                          ).toFixed(2)}
+                                        </div>
+                                        <div className="text-xs text-slate-500">
+                                          USDC
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
                                 </div>
+
+                                <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-700">
+                                  <p className="flex items-center text-xs text-amber-600 dark:text-amber-400">
+                                    <AlertTriangle size={12} className="mr-1" />
+                                    This is a one-time operation and cannot be
+                                    undone.
+                                  </p>
+                                </div>
                               </div>
 
-                              <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-700">
-                                <p className="flex items-center text-xs text-amber-600 dark:text-amber-400">
-                                  <AlertTriangle size={12} className="mr-1" />
-                                  This is a one-time operation and cannot be
-                                  undone.
-                                </p>
-                              </div>
-                            </div>
-
-                            <DialogFooter className="mt-4 flex flex-col gap-3 sm:flex-row">
-                              <Button
-                                variant="outline"
-                                className="flex-1 border-slate-200 dark:border-slate-700"
-                                onClick={() => setIsDialogOpen(false)}
-                              >
-                                Cancel
-                              </Button>
-                              <Button
-                                disabled={
-                                  loading ||
-                                  data.BountyWinner.some(
-                                    (winner) =>
-                                      winner.user.id ===
+                              <DialogFooter className="mt-4 flex flex-col gap-3 sm:flex-row">
+                                <Button
+                                  variant="outline"
+                                  className="flex-1 border-slate-200 dark:border-slate-700"
+                                  onClick={() => setIsDialogOpen(false)}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  disabled={
+                                    loading ||
+                                    data.BountyWinner.some(
+                                      (winner) =>
+                                        winner.user.id ===
                                         session.data?.user.id &&
-                                      winner?.isSwaped === true,
-                                  ) ||
-                                  swapAssetToUSDC.isLoading ||
-                                  MakeSwapUpdateMutation.isLoading
-                                }
-                                className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
-                                onClick={() =>
-                                  handleSwap(
-                                    data.id,
-                                    data.priceInBand / data.totalWinner,
-                                    data.priceInUSD / data.totalWinner,
-                                  )
-                                }
-                              >
-                                {loading ||
-                                swapAssetToUSDC.isLoading ||
-                                MakeSwapUpdateMutation.isLoading ? (
-                                  <div className="flex items-center gap-2">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    <span>Processing...</span>
-                                  </div>
-                                ) : (
-                                  "Confirm Swap"
-                                )}
-                              </Button>
-                            </DialogFooter>
-                          </>
-                        )}
-                      </DialogContent>
-                    </Dialog>
-                  )}
+                                        winner?.isSwaped === true,
+                                    ) ||
+                                    swapAssetToUSDC.isLoading ||
+                                    MakeSwapUpdateMutation.isLoading
+                                  }
+                                  className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+                                  onClick={() =>
+                                    handleSwap(
+                                      data.id,
+                                      data.priceInBand / data.totalWinner,
+                                      data.priceInUSD / data.totalWinner,
+                                    )
+                                  }
+                                >
+                                  {loading ||
+                                    swapAssetToUSDC.isLoading ||
+                                    MakeSwapUpdateMutation.isLoading ? (
+                                    <div className="flex items-center gap-2">
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      <span>Processing...</span>
+                                    </div>
+                                  ) : (
+                                    "Confirm Swap"
+                                  )}
+                                </Button>
+                              </DialogFooter>
+                            </>
+                          )}
+                        </DialogContent>
+                      </Dialog>
+                    )}
                 </div>
 
                 <div className="flex w-full justify-center sm:w-auto">
@@ -1251,25 +1276,41 @@ const UserBountyPage = () => {
                   whileTap={{ scale: 0.98 }}
                   className="w-full"
                 >
-                  <Button
-                    className="h-12 w-full bg-primary text-base shadow-md hover:bg-primary/90"
-                    disabled={
-                      joinBountyMutation.isLoading || isAlreadyJoin.isLoading
-                    }
-                    onClick={() => handleJoinBounty(data.id)}
-                  >
-                    {joinBountyMutation.isLoading ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        <span>Joining...</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <UserPlus className="h-5 w-5" />
-                        <span>Join Bounty</span>
-                      </div>
-                    )}
-                  </Button>
+                  {
+                    isEligible({
+                      requiredBalance: data.requiredBalance,
+                      currentWinnerCount: data.currentWinnerCount,
+                      totalWinner: data.totalWinner,
+                      requiredBalanceCode: data.requiredBalanceCode,
+                      requiredBalanceIssuer: data.requiredBalanceIssuer
+                    }) ?
+                      <>
+                        <Button
+                          className="h-12 w-full bg-primary text-base shadow-md hover:bg-primary/90"
+                          disabled={
+                            joinBountyMutation.isLoading || isAlreadyJoin.isLoading
+                          }
+                          onClick={() => handleJoinBounty(data.id)}
+                        >
+                          {joinBountyMutation.isLoading ? (
+                            <div className="flex items-center gap-2">
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                              <span>Joining...</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <UserPlus className="h-5 w-5" />
+                              <span>Join Bounty</span>
+                            </div>
+                          )}
+                        </Button>
+                      </> :
+                      <>
+                        <p className="text-xs text-red-500 mt-2">
+                          {data.currentWinnerCount >= data.totalWinner ? "No spots left" : `${data.requiredBalance.toFixed(1)} ${data.requiredBalanceCode.toLocaleUpperCase()} required`}
+                        </p>
+                      </>
+                  }
                 </motion.div>
               </CardContent>
             </Card>
@@ -1458,9 +1499,9 @@ const AdminBountyPage = () => {
           <Card className="overflow-hidden border-0 shadow-xl ">
             <div className="relative">
               {isLocationBasedBounty(data) &&
-              data.latitude &&
-              data.longitude &&
-              data.radius ? (
+                data.latitude &&
+                data.longitude &&
+                data.radius ? (
                 <div className="relative h-96 w-full overflow-hidden">
                   <APIProvider
                     apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAP_API_KEY!}
@@ -1727,7 +1768,7 @@ const AdminBountyPage = () => {
                                         disabled={
                                           loadingBountyId === data.id ||
                                           data.totalWinner ===
-                                            data.currentWinnerCount ||
+                                          data.currentWinnerCount ||
                                           data.BountyWinner.some(
                                             (winner) =>
                                               winner.user.id ===

@@ -428,7 +428,8 @@ const FilterTabs = () => {
 
   const artistAssets = api.marketplace.market.getPageAssets.useInfiniteQuery(
     { limit: 10 },
-    { getNextPageParam: (lastPage) => lastPage.nextCursor },
+
+    { getNextPageParam: (lastPage) => lastPage.nextCursor, },
   );
 
   const royaltyAssets = api.marketplace.market.getRoyalityItems.useInfiniteQuery(
@@ -463,7 +464,7 @@ const FilterTabs = () => {
     if (artistAssets.hasNextPage) artistAssets.fetchNextPage();
     if (royaltyAssets.hasNextPage) royaltyAssets.fetchNextPage();
   };
-
+  console.log("artist", artistAssets.data);
   return (
     <Card className="rounded-none" >
       <CardHeader className="w-full rounded-none  bg-secondary p-2 md:p-4">

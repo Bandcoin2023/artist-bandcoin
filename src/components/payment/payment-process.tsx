@@ -28,6 +28,7 @@ import { Card, CardContent } from "~/components/shadcn/ui/card";
 import BuyWithSquire from "./buy-with-squire";
 import RechargeLink from "./recharge-link";
 import { Badge } from "../shadcn/ui/badge";
+import { MarketType } from "@prisma/client";
 
 type PaymentProcessProps = {
     item: AssetType;
@@ -36,6 +37,7 @@ type PaymentProcessProps = {
     priceUSD: number;
     marketItemId?: number;
     setClose: () => void;
+    type?: MarketType;
 };
 export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
@@ -47,6 +49,7 @@ export default function PaymentProcessItem({
     priceUSD,
     marketItemId,
     setClose,
+    type,
 }: PaymentProcessProps) {
     const session = useSession();
     const { needSign } = useNeedSign();
@@ -96,7 +99,13 @@ export default function PaymentProcessItem({
             method,
         });
     }
-
+    const buyerUpdate = api.marketplace.market.createAssetBuyerInfo.useMutation({
+        onSuccess: () => {
+            toast.success("Item purchased successfully");
+            setPaymentSuccess(true);
+            setIsBuyDialogOpen(false);
+        }
+    });
     const changePaymentMethod = async (method: PaymentMethod) => {
         setPaymentMethod(method);
         await handleXDR(method);
@@ -116,6 +125,10 @@ export default function PaymentProcessItem({
         })
             .then((res) => {
                 if (res) {
+                    buyerUpdate.mutate({
+                        assetId: item.id,
+                        isRoyalty: type === "ROYALTY",
+                    })
                     toast.success("Payment Successful");
                     setClose();
                     setPaymentSuccess(true);
@@ -191,6 +204,7 @@ export default function PaymentProcessItem({
                                 code={code}
                                 issuer={issuer}
                                 item={item}
+                                marketItemId={marketItemId ?? -1}
                                 onConfirmPayment={handlePaymentConfirmation}
                                 submitLoading={submitLoading}
                                 paymentSuccess={paymentSuccess}
@@ -270,6 +284,7 @@ function PaymentOptions({
 }
 
 type MethodDetailsProps = {
+    marketItemId: number;
     paymentMethod?: PaymentMethod;
     xdrMutation: ReturnType<
         typeof api.marketplace.steller.buyFromMarketPaymentXDR.useMutation
@@ -289,6 +304,7 @@ type MethodDetailsProps = {
 };
 
 export function MethodDetails({
+    marketItemId,
     paymentMethod,
     xdrMutation,
     requiredFee,
@@ -412,11 +428,11 @@ export function MethodDetails({
 
         if (paymentMethod === "card") {
             return (
-                <div className="space-y-4">
+                <div className="space-y-4 w-full">
                     <div className="p-3 bg-muted/30 rounded-lg">
                         <p className="text-sm text-center">Pay with credit card</p>
                     </div>
-                    <BuyWithSquire marketId={item.id} xdr={xdrMutation.data} />
+                    <BuyWithSquire marketId={marketItemId} xdr={xdrMutation.data} />
                 </div>
             );
         }

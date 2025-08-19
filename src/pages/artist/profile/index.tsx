@@ -274,7 +274,7 @@ export default function DashboardBuilder() {
     const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
-
+    const [customizedMode, setCustomizedMode] = useState(false)
     const [resizingWidget, setResizingWidget] = useState<string | null>(null)
     const [resizeStartX, setResizeStartX] = useState(0)
     const [resizeStartY, setResizeStartY] = useState(0)
@@ -600,6 +600,8 @@ export default function DashboardBuilder() {
 
     // Replace saveLayout with tRPC version
     const handleSaveLayout = async () => {
+        setCustomizedMode(false)
+
         if (!newLayoutName.trim()) {
             toast({
                 title: "Error",
@@ -693,6 +695,7 @@ export default function DashboardBuilder() {
 
     // Add a function to toggle profile edit mode
     const toggleProfileEditMode = () => {
+        setCustomizedMode(false)
         setIsProfileEditMode(!isProfileEditMode)
         // If turning on profile edit mode, turn off dashboard edit mode
         if (!isProfileEditMode && editMode) {
@@ -1447,6 +1450,7 @@ export default function DashboardBuilder() {
 
         // Pass showDefaultValues prop when in edit mode
         const commonProps = {
+            customizedMode,
             editMode,
             profileEditMode: isProfileEditMode,
             onDragOver: (e: React.DragEvent) => handleDragOver(e, widgetId),
@@ -1531,6 +1535,7 @@ export default function DashboardBuilder() {
     // Toggle edit mode
     const toggleEditMode = () => {
         setEditMode(!editMode)
+        setCustomizedMode(true)
         if (!editMode) {
             setSelectionMode(false)
             setSelectedWidgets([])

@@ -10,13 +10,14 @@ import MarketAssetComponent from "../common/market-asset"
 import { CreatorWithPageAsset } from "~/types/artist/dashboard"
 
 interface NFTGalleryWidgetProps {
+    customizedMode?: boolean
     editMode?: boolean
     creatorData: CreatorWithPageAsset
     userView?: boolean
 }
 
 
-export default function NFTGalleryWidget({ editMode, creatorData, userView = false }: NFTGalleryWidgetProps) {
+export default function NFTGalleryWidget({ editMode, creatorData, userView = false, customizedMode }: NFTGalleryWidgetProps) {
     const { setIsOpen: setIsNFTModalOpen } = useNFTCreateModalStore()
     const session = useSession()
     const creatorNFT = api.marketplace.market.getCreatorNftsByCreatorID.useInfiniteQuery(
@@ -29,9 +30,9 @@ export default function NFTGalleryWidget({ editMode, creatorData, userView = fal
         <Card className="rounded-none">
             <CardHeader className="w-full sticky top-0 z-50 bg-secondary border-b-2 p-2 md:p-4 ">
                 <div className="flex justify-between items-center ">
-                    <h2 className="text-xl font-bold">Your NFT Collection</h2>
+                    <h2 className="text-xl font-bold">Creator{"'"}s NFT Collection</h2>
                     {
-                        (creatorNFT.data?.pages[0]?.nfts?.length ?? 0) > 0 && !userView && (
+                        (creatorNFT.data?.pages[0]?.nfts?.length ?? 0) > 0 && !userView && !customizedMode && (
                             <div className="flex justify-between items-center">
                                 <Button size="sm" onClick={() => setIsNFTModalOpen(true)}>
                                     <Plus className="h-4 w-4 mr-2" />

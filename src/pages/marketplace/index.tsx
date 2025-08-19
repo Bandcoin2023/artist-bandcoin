@@ -5,7 +5,7 @@ import {
   CardTitle,
 } from "~/components/shadcn/ui/card";
 import { Button } from "~/components/shadcn/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "~/lib/utils";
 import { api } from "~/utils/api";
 import { MoreAssetsSkeleton } from "~/components/common/grid-loading";
@@ -31,11 +31,20 @@ import {
 import { Clock, Coins, ShoppingCart, Star, User } from "lucide-react";
 import toast from "react-hot-toast";
 import useNeedSign from "~/lib/hook";
+import { useSearchParams } from "next/navigation";
 const TABS = ["Store Items", "Page Assets"];
 
 const Marketplace = () => {
-  const [activeTab, setActiveTab] = useState("Store Items");
-  console.log("activeTab", activeTab);
+  const searchParams = useSearchParams();
+  const initialTabs = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(initialTabs ?? "Store Items");
+
+  useEffect(() => {
+    setActiveTab(initialTabs ?? "Store Items");
+  }, [initialTabs]);
+
+
+
   return (
     <Card className="">
       <CardHeader className="flex w-full items-center justify-center border-b-2 bg-primary p-2 md:p-4">
@@ -361,7 +370,7 @@ const MarketPageAssets = () => {
                   {asset.amountToSell}{" "}
                   {asset.placer?.pageAsset?.code
                     ? asset.placer.pageAsset.code
-                    : asset.placer?.customPageAssetCodeIssuer?.split(":")[0]}
+                    : asset.placer?.customPageAssetCodeIssuer?.split("-")[0]}
                 </Badge>
               </div>
             </CardHeader>
@@ -461,7 +470,7 @@ const MarketPageAssets = () => {
                         {selectedAsset.placer?.pageAsset?.code
                           ? selectedAsset.placer.pageAsset.code
                           : selectedAsset.placer?.customPageAssetCodeIssuer?.split(
-                            ":",
+                            "-",
                           )[0]}
                       </p>
                     </div>

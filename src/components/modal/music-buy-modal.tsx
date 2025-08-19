@@ -116,7 +116,7 @@ export default function MusicBuyModal() {
     return (
         <>
             <Dialog open={isOpen} onOpenChange={handleClose}>
-                <DialogContent className="max-w-4xl border-0 bg-gradient-to-br from-background to-muted p-0 h-[85vh] overflow-y-auto">
+                <DialogContent className="max-w-4xl border-0 bg-gradient-to-br from-background to-muted p-0 max-h-[85vh] overflow-y-auto">
                     <button
                         onClick={handleClose}
                         className="absolute right-4 top-4 z-50 rounded-full bg-primary shadow-sm shadow-foreground p-2"
@@ -328,6 +328,7 @@ export default function MusicBuyModal() {
                                         price={data.price}
                                         placerId={data.creatorId}
                                         setClose={handleClose}
+                                        type={data.asset.percentage ? "ROYALTY" : "SONG"}
                                     />
                                 </CardContent>
                                 <CardFooter className="p-2">
