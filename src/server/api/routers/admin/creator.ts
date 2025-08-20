@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import { creatorAprovalTrustlineTrx, creatorAprovalTrx } from "~/lib/stellar/fan/creator-aproval";
+import {
+  creatorAprovalTrustlineTrx,
+  creatorAprovalTrx,
+} from "~/lib/stellar/fan/creator-aproval";
 import { AccountSchema, AccountType } from "~/lib/stellar/fan/utils";
 import {
   adminProcedure,
@@ -46,7 +49,7 @@ export const creatorRouter = createTRPCRouter({
       const { action, creatorId } = input;
 
       if (action == "approve" && input.escrow) {
-        // here storage account also created
+        // here new storage account was created. so set new storage
         if (input.storage) {
           await ctx.db.creator.update({
             where: { id: creatorId },
@@ -63,8 +66,7 @@ export const creatorRouter = createTRPCRouter({
               },
             },
           });
-        }
-        else {
+        } else {
           // here storage account already created
           await ctx.db.creator.update({
             where: { id: creatorId },
@@ -79,9 +81,7 @@ export const creatorRouter = createTRPCRouter({
             },
           });
         }
-      }
-
-      else if (action == "approve" && input.escrow === undefined) {
+      } else if (action == "approve" && input.escrow === undefined) {
         // here storage account also created
         if (input.storage) {
           await ctx.db.creator.update({
@@ -92,18 +92,16 @@ export const creatorRouter = createTRPCRouter({
               storageSecret: input.storage.secretKey,
             },
           });
-        }
-        else {
+        } else {
           // here storage account already created
           await ctx.db.creator.update({
             where: { id: creatorId },
             data: {
-              approved: true
+              approved: true,
             },
           });
         }
-      }
-      else if (action == "ban") {
+      } else if (action == "ban") {
         await ctx.db.creator.update({
           where: { id: creatorId },
           data: {
@@ -134,7 +132,7 @@ export const creatorRouter = createTRPCRouter({
           pageAsset: true,
           storagePub: true,
           storageSecret: true,
-        }
+        },
       });
 
       // storageAlready created
@@ -162,9 +160,8 @@ export const creatorRouter = createTRPCRouter({
         return await creatorAprovalTrustlineTrx({
           storage: validStorage ? storage : undefined,
           customPageAssetCodeIssuer: customPageAssetCodeIssuer,
-        })
+        });
       }
-
     }),
   getSecretMessage: protectedProcedure.query(() => {
     return "you can now see this secret message!";

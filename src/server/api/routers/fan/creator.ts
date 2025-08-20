@@ -41,20 +41,61 @@ export const CreatorAboutShema = z.object({
 });
 
 export const creatorRouter = createTRPCRouter({
-
   requestForBrandCreation: protectedProcedure
-    .input(RequestBrandCreateFormSchema).mutation(async ({ ctx, input }) => {
+    .input(RequestBrandCreateFormSchema)
+    .mutation(async ({ ctx, input }) => {
+      const customAsset = `${input.assetCode}-${input.issuer}`;
       const creator = await ctx.db.creator.findUnique({
         where: { id: ctx.session.user.id },
       });
 
       if (creator) {
-        throw new Error("Creator already exists");
+        const justStorageCreated = creator.justStorageCreated;
+        const aprovalSend = creator.aprovalSend;
+
+        if (justStorageCreated && !aprovalSend) {
+          // only storage is created
+          await ctx.db.creator.update({
+            data: {
+              profileUrl: input.profileUrl,
+              coverUrl: input.coverUrl,
+              bio: input.bio,
+              name: input.displayName,
+              aprovalSend: true,
+            },
+            where: {
+              id: creator.id,
+            },
+          });
+
+          if (input.assetType === "custom")
+            await ctx.db.creator.update({
+              data: {
+                customPageAssetCodeIssuer: customAsset,
+              },
+              where: {
+                id: creator.id,
+              },
+            });
+
+          if (input.assetType === "new")
+            await ctx.db.creator.update({
+              data: {
+                pageAsset: {
+                  create: {
+                    code: input.assetName,
+                    issuer: BLANK_KEYWORD,
+                    thumbnail: input.assetImage,
+                    limit: 0,
+                  },
+                },
+              },
+              where: { id: creator.id },
+            });
+        }
       }
 
-      if (input.assetType === 'custom') {
-
-
+      if (input.assetType === "custom") {
         await ctx.db.creator.create({
           data: {
             id: ctx.session.user.id,
@@ -65,13 +106,11 @@ export const creatorRouter = createTRPCRouter({
             storageSecret: BLANK_KEYWORD,
             name: input.displayName,
             aprovalSend: true,
-            customPageAssetCodeIssuer: `${input.assetCode}-${input.issuer}`,
-
+            customPageAssetCodeIssuer: customAsset,
           },
         });
       }
-      if (input.assetType === 'new') {
-
+      if (input.assetType === "new") {
         await ctx.db.creator.create({
           data: {
             id: ctx.session.user.id,
@@ -88,8 +127,8 @@ export const creatorRouter = createTRPCRouter({
                 issuer: BLANK_KEYWORD,
                 thumbnail: input.assetImage,
                 limit: 0,
-              }
-            }
+              },
+            },
           },
         });
       }
@@ -100,7 +139,6 @@ export const creatorRouter = createTRPCRouter({
       //   amount: 0,
       //   vanityURL: input.vanityUrl.toLocaleLowerCase(),
       // });
-
     }),
 
   getCreator: protectedProcedure
@@ -119,8 +157,8 @@ export const creatorRouter = createTRPCRouter({
               followers: true,
               assets: true,
               posts: true,
-            }
-          }
+            },
+          },
         },
       });
 
@@ -168,11 +206,10 @@ export const creatorRouter = createTRPCRouter({
             followers: true,
             assets: true,
             posts: true,
-          }
+          },
         },
         pageAsset: true,
-
-      }
+      },
     });
   }),
   vanitySubscription: protectedProcedure.query(async ({ ctx }) => {
@@ -205,12 +242,13 @@ export const creatorRouter = createTRPCRouter({
       const id = ctx.session.user.id;
       const data = await ctx.db.creator.create({
         data: {
+          id: id,
           name: truncateString(id),
-          bio: id,
-          user: { connect: { id: id } },
+          // user: { connect: { id: id } },
           storagePub: i.publicKey,
           storageSecret: i.secretKey,
-          aprovalSend: true,
+          justStorageCreated: true,
+          aprovalSend: false,
         },
       });
     }),
@@ -221,12 +259,11 @@ export const creatorRouter = createTRPCRouter({
       const { name, bio, instagram, twitter, website } = input;
       await ctx.db.creator.update({
         data: {
-          name, bio:
-            bio,
+          name,
+          bio: bio,
           instagram: instagram,
           twitter: twitter,
           website: website,
-
         },
         where: { id: ctx.session.user.id },
       });
@@ -300,16 +337,12 @@ export const creatorRouter = createTRPCRouter({
   getSecretMessage: protectedProcedure.query(() => {
     return "you can now see this secret message!";
   }),
-  getCreators: protectedProcedure
-
-    .query(async ({ input, ctx }) => {
-
-      const items = await ctx.db.creator.findMany({
-
-        where: { approved: { equals: true } },
-      });
-      return items;
-    }),
+  getCreators: protectedProcedure.query(async ({ input, ctx }) => {
+    const items = await ctx.db.creator.findMany({
+      where: { approved: { equals: true } },
+    });
+    return items;
+  }),
 
   search: publicProcedure
     .input(
@@ -380,13 +413,15 @@ export const creatorRouter = createTRPCRouter({
         );
         if (bal) {
           return {
-            balance: bal, assetCode: creatorPageAsset.code,
-            assetIssuer: creatorPageAsset.issuer
+            balance: bal,
+            assetCode: creatorPageAsset.code,
+            assetIssuer: creatorPageAsset.issuer,
           };
         } else {
           return {
-            balance: 0, assetCode: creatorPageAsset.code,
-            assetIssuer: creatorPageAsset.issuer
+            balance: 0,
+            assetCode: creatorPageAsset.code,
+            assetIssuer: creatorPageAsset.issuer,
           };
         }
       } else {
@@ -403,7 +438,11 @@ export const creatorRouter = createTRPCRouter({
           const bal = storageAcc.getTokenBalance(assetCode, assetIssuer.data);
 
           if (bal >= 0) {
-            return { balance: bal, assetCode: assetCode, assetIssuer: assetIssuer.data };
+            return {
+              balance: bal,
+              assetCode: assetCode,
+              assetIssuer: assetIssuer.data,
+            };
           } else {
             throw new Error("Invalid asset code or issuer");
           }
@@ -411,25 +450,21 @@ export const creatorRouter = createTRPCRouter({
       }
     },
   ),
-  getCreatorShopAssetBalance: creatorProcedure.query(
-    async ({ ctx }) => {
-      const creator = await ctx.db.creator.findUnique({
-        where: { id: ctx.session.user.id },
+  getCreatorShopAssetBalance: creatorProcedure.query(async ({ ctx }) => {
+    const creator = await ctx.db.creator.findUnique({
+      where: { id: ctx.session.user.id },
+    });
 
-      });
+    if (!creator) {
+      throw new Error("Creator not found");
+    }
 
-      if (!creator) {
-        throw new Error("Creator not found");
-      }
+    const creatorStoragePub = creator.storagePub;
 
-      const creatorStoragePub = creator.storagePub;
-
-      return await getCreatorShopAssetBalance({
-        creatorStoragePub,
-      });
-
-    },
-  ),
+    return await getCreatorShopAssetBalance({
+      creatorStoragePub,
+    });
+  }),
   getFansList: protectedProcedure.query(async ({ ctx }) => {
     const creatorId = ctx.session.user.id;
     return ctx.db.follow.findMany({
@@ -652,7 +687,7 @@ export const creatorRouter = createTRPCRouter({
       z.object({
         limit: z.number().default(5),
         cursor: z.string().nullish(), // cursor for pagination
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       const { limit, cursor } = input;
@@ -672,18 +707,18 @@ export const creatorRouter = createTRPCRouter({
         },
         orderBy: {
           followers: {
-            _count: 'desc',
+            _count: "desc",
           },
         },
         take: limit + 1, // take one extra to determine if there are more
         // If cursor is provided, start after that album
         ...(cursorObj
           ? {
-            cursor: {
-              id: cursorObj.id,
-            },
-            skip: 1, // Skip the cursor item
-          }
+              cursor: {
+                id: cursorObj.id,
+              },
+              skip: 1, // Skip the cursor item
+            }
           : {}),
         select: {
           id: true,
@@ -698,7 +733,7 @@ export const creatorRouter = createTRPCRouter({
       });
 
       // Check if we have more items
-      let nextCursor: typeof cursor | undefined = undefined
+      let nextCursor: typeof cursor | undefined = undefined;
       if (creators.length > limit) {
         const nextItem = creators.pop(); // Remove the extra item
         nextCursor = nextItem?.id;
@@ -715,7 +750,9 @@ export const creatorRouter = createTRPCRouter({
       });
 
       const creatorsWithFollow = creators.map((creator) => {
-        const isFollowed = followedCreators.some((follow) => follow.creatorId === creator.id);
+        const isFollowed = followedCreators.some(
+          (follow) => follow.creatorId === creator.id,
+        );
         return {
           ...creator,
           isFollowed,
@@ -727,15 +764,14 @@ export const creatorRouter = createTRPCRouter({
         creators: creatorsWithFollow,
         nextCursor,
       };
-    }
-    ),
+    }),
 
   getFollowedCreators: protectedProcedure
     .input(
       z.object({
         limit: z.number().default(3),
         cursor: z.string().nullish(), // cursor for pagination
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       const { limit, cursor } = input;
@@ -749,13 +785,13 @@ export const creatorRouter = createTRPCRouter({
           approved: true,
           followers: {
             some: {
-              userId: ctx.session.user.id
-            }
-          }
+              userId: ctx.session.user.id,
+            },
+          },
         },
         orderBy: {
           followers: {
-            _count: 'desc',
+            _count: "desc",
           },
         },
         take: limit + 1, // take one extra to determine if there are more
@@ -777,10 +813,9 @@ export const creatorRouter = createTRPCRouter({
           subscriptions: {
             select: {
               name: true,
-            }
-          }
+            },
+          },
         },
-
       });
 
       // Check if we have more items
@@ -792,18 +827,19 @@ export const creatorRouter = createTRPCRouter({
 
       // Check if current user follows the creators
 
-
       return {
         creators: creators,
         nextCursor,
       };
-    }
-    ),
+    }),
   checkCustomAssetValidity: protectedProcedure
     .input(z.object({ assetCode: z.string(), issuer: z.string() }))
     .mutation(async ({ ctx, input }) => {
       console.log("input", input);
-      console.log("process.env.NEXT_PUBLIC_STELLAR_PUBNET", process.env.NEXT_PUBLIC_STELLAR_PUBNET);
+      console.log(
+        "process.env.NEXT_PUBLIC_STELLAR_PUBNET",
+        process.env.NEXT_PUBLIC_STELLAR_PUBNET,
+      );
 
       const isPubnet = process.env.NEXT_PUBLIC_STELLAR_PUBNET === "true"; // Explicit comparison
 
@@ -812,106 +848,114 @@ export const creatorRouter = createTRPCRouter({
       console.log("Generated URL:", url);
 
       console.log("url", url);
-      const response = await axios.get(
-        url
-      );
+      const response = await axios.get(url);
       console.log("response", response.data);
       return response.status === 200;
     }),
 
-  addCreatorSubscription: protectedProcedure.input(z.object({
-    name: z.string(),
-    price: z.number(),
-    description: z.string(),
-    features: z.array(z.string()),
-    color: z.string(),
-    popular: z.boolean(),
-    isActive: z.boolean(),
-  })).mutation(async ({ ctx, input }) => {
-    console.log("input", input);
-    const creator = await ctx.db.creator.findUnique({
-      where: { id: ctx.session.user.id },
-    });
-    if (!creator) {
-      throw new Error("Creator not found");
-    }
-    const feature = await ctx.db.subscription.create({
-      data: {
-        name: input.name,
-        creatorId: creator.id,
-        price: input.price,
-        description: input.description,
-        features: input.features,
-        color: input.color,
-        popular: input.popular,
-        isActive: input.isActive,
-      },
-    });
-    return feature;
-  }
-  ),
-  updateCreatorSubscription: protectedProcedure.input(z.object({
-    id: z.number(),
-    name: z.string(),
-    price: z.number(),
-    description: z.string(),
-    features: z.array(z.string()),
-    color: z.string(),
-    popular: z.boolean(),
-    isActive: z.boolean(),
-  })).mutation(async ({ ctx, input }) => {
-    const creator = await ctx.db.creator.findUnique({
-      where: { id: ctx.session.user.id },
-    });
-    if (!creator) {
-      throw new Error("Creator not found");
-    }
-    const feature = await ctx.db.subscription.update({
-      where: { id: input.id },
-      data: {
-        name: input.name,
-        price: input.price,
-        description: input.description,
-        features: input.features,
-        color: input.color,
-        popular: input.popular,
-        isActive: input.isActive,
-      },
-    });
-    return feature;
-  }
-  ),
-  deleteCreatorSubscription: protectedProcedure.input(z.object({
-    id: z.number(),
-  })).mutation(async ({ ctx, input }) => {
-    const creator = await ctx.db.creator.findUnique({
-      where: { id: ctx.session.user.id },
-    });
-    if (!creator) {
-      throw new Error("Creator not found");
-    }
-    const feature = await ctx.db.subscription.delete({
-      where: { id: input.id },
-    });
-    return feature;
-  }
-  ),
+  addCreatorSubscription: protectedProcedure
+    .input(
+      z.object({
+        name: z.string(),
+        price: z.number(),
+        description: z.string(),
+        features: z.array(z.string()),
+        color: z.string(),
+        popular: z.boolean(),
+        isActive: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      console.log("input", input);
+      const creator = await ctx.db.creator.findUnique({
+        where: { id: ctx.session.user.id },
+      });
+      if (!creator) {
+        throw new Error("Creator not found");
+      }
+      const feature = await ctx.db.subscription.create({
+        data: {
+          name: input.name,
+          creatorId: creator.id,
+          price: input.price,
+          description: input.description,
+          features: input.features,
+          color: input.color,
+          popular: input.popular,
+          isActive: input.isActive,
+        },
+      });
+      return feature;
+    }),
+  updateCreatorSubscription: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        name: z.string(),
+        price: z.number(),
+        description: z.string(),
+        features: z.array(z.string()),
+        color: z.string(),
+        popular: z.boolean(),
+        isActive: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const creator = await ctx.db.creator.findUnique({
+        where: { id: ctx.session.user.id },
+      });
+      if (!creator) {
+        throw new Error("Creator not found");
+      }
+      const feature = await ctx.db.subscription.update({
+        where: { id: input.id },
+        data: {
+          name: input.name,
+          price: input.price,
+          description: input.description,
+          features: input.features,
+          color: input.color,
+          popular: input.popular,
+          isActive: input.isActive,
+        },
+      });
+      return feature;
+    }),
+  deleteCreatorSubscription: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const creator = await ctx.db.creator.findUnique({
+        where: { id: ctx.session.user.id },
+      });
+      if (!creator) {
+        throw new Error("Creator not found");
+      }
+      const feature = await ctx.db.subscription.delete({
+        where: { id: input.id },
+      });
+      return feature;
+    }),
 
-  getCreatorPackages: protectedProcedure.input(z.object({ id: z.string() }).optional()).query(async ({ ctx, input }) => {
-    let id = ctx.session.user.id;
-    if (input) {
-      id = input.id;
-    }
-    const creator = await ctx.db.creator.findUnique({
-      where: { id: id },
-    });
-    if (!creator) {
-      throw new Error("Creator not found");
-    }
-    const packages = await ctx.db.subscription.findMany({
-      where: { creatorId: creator.id },
-    });
-    return packages;
-  }),
-
+  getCreatorPackages: protectedProcedure
+    .input(z.object({ id: z.string() }).optional())
+    .query(async ({ ctx, input }) => {
+      let id = ctx.session.user.id;
+      if (input) {
+        id = input.id;
+      }
+      const creator = await ctx.db.creator.findUnique({
+        where: { id: id },
+      });
+      if (!creator) {
+        throw new Error("Creator not found");
+      }
+      const packages = await ctx.db.subscription.findMany({
+        where: { creatorId: creator.id },
+      });
+      return packages;
+    }),
 });

@@ -194,8 +194,9 @@ model Creator {
     storagePub    String
     storageSecret String
 
-    aprovalSend Boolean
-    approved    Boolean? // if undefined than it is sended for aproval, false means banned, true means aproved
+    justStorageCreated Boolean?
+    aprovalSend        Boolean
+    approved           Boolean? // if undefined than it is sended for aproval, false means banned, true means aproved
 
     // pageAsset
     pageAssetId Int?
