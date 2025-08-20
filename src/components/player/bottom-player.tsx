@@ -47,6 +47,8 @@ export function StemPlayer() {
     const [isMainSongMode, setIsMainSongMode] = useState(false)
     const mainAudioRef = useRef<HTMLAudioElement | null>(null)
     const [mainAudioLoaded, setMainAudioLoaded] = useState(false)
+    // Track if autoplay has already happened for current song/tracks
+    const [hasAutoplayed, setHasAutoplayed] = useState(false)
 
     // Stem mode refs
     const audioRefs = useRef<Record<string, HTMLAudioElement>>({})
@@ -73,6 +75,7 @@ export function StemPlayer() {
         // Reset everything first
         setIsPlaying(false)
         setCurrentTime(0)
+        setHasAutoplayed(false)
 
         // Clear intervals and timeouts
         if (intervalRef.current) {
@@ -160,11 +163,12 @@ export function StemPlayer() {
     }, [currentTracks, currentSong])
 
     useEffect(() => {
-        if (isPlayerVisible && autoplayEnabled && !isPlaying) {
+        if (isPlayerVisible && autoplayEnabled && !isPlaying && !hasAutoplayed) {
             // Auto-play for main song mode
             if (isMainSongMode && mainAudioLoaded && mainAudioRef.current) {
                 console.log("Auto-playing main song")
                 togglePlayPause()
+                setHasAutoplayed(true)
             }
             // Auto-play for stem mode when all tracks are loaded
             else if (!isMainSongMode && trackStates.length > 0 && !isGlobalLoading) {
@@ -176,11 +180,11 @@ export function StemPlayer() {
                 if (allTracksLoaded) {
                     console.log("Auto-playing stems")
                     togglePlayPause()
+                    setHasAutoplayed(true)
                 }
             }
         }
-    }, [isPlayerVisible, autoplayEnabled, isPlaying, isMainSongMode, mainAudioLoaded, trackStates, isGlobalLoading, audioStates])
-
+    }, [isPlayerVisible, autoplayEnabled, isPlaying, isMainSongMode, mainAudioLoaded, trackStates, isGlobalLoading, audioStates, hasAutoplayed])
     // Initialize stem audio elements
     useEffect(() => {
         if (trackStates.length === 0 || isMainSongMode) return

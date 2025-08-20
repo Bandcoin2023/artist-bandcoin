@@ -203,6 +203,9 @@ const RoyalityPage = () => {
                             toast.error("Payment failed");
                         })
                         .finally(() => {
+                            setXdr(null)
+                            setIsPaymentModalOpen(false)
+                            setPaymentAmount("")
                             toast.dismiss(tostId);
                         });
                 }
@@ -221,8 +224,6 @@ const RoyalityPage = () => {
     // Mutation for processing payments
     const processPayments = api.marketplace.steller.sendProfitToInvestor.useMutation({
         onSuccess: async (data) => {
-
-            console.log("Payment successful:", data);
             if (data && paymentCurrency !== PaymentMethod.usd) {
                 try {
 
@@ -236,6 +237,7 @@ const RoyalityPage = () => {
 
                     if (result) {
                         toast.success("Payments processed successfully")
+
                         setIsPaymentModalOpen(false)
                         setPaymentAmount("")
                     } else {

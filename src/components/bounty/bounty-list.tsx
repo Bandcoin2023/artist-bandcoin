@@ -120,7 +120,6 @@ export default function BountyList({
                         </div>
                         {bounty.isJoined || bounty.isOwner ? (
                             <Button
-
                                 onClick={() => {
                                     router.push(`/bounty/${bounty.id}`)
                                 }}

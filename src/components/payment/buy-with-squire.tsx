@@ -1,3 +1,4 @@
+import { MarketType } from "@prisma/client";
 import { submitSignedXDRToServer4User } from "package/connect_wallet/src/lib/stellar/trx/payment_fb_g";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -8,14 +9,20 @@ import { api } from "~/utils/api";
 interface BuyWithSquirePropsType {
     xdr: string;
     marketId: number;
+    type?: MarketType;
 }
 
 export default function BuyWithSquire({
     xdr,
     marketId,
+    type
 }: BuyWithSquirePropsType) {
     const [loading, setLoading] = useState(false);
-
+    const buyerUpdate = api.marketplace.market.createAssetBuyerInfo.useMutation({
+        onSuccess: () => {
+            toast.success("Item purchased successfully");
+        }
+    });
     const paymentMutation = api.marketplace.pay.buyAsset.useMutation({
         onSuccess: async (data, variables, context) => {
             toast.success(`${data}`);
@@ -27,6 +34,10 @@ export default function BuyWithSquire({
                     submitSignedXDRToServer4User(xdr)
                         .then((data) => {
                             if (data) {
+                                buyerUpdate.mutate({
+                                    assetId: marketId,
+                                    isRoyalty: type === "ROYALTY",
+                                });
                                 toast.success("Payment Successful");
                             }
                         })

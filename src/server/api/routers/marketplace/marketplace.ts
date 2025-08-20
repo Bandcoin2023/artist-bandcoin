@@ -102,7 +102,6 @@ export const marketRouter = createTRPCRouter({
     }),
   createAssetBuyerInfo: protectedProcedure.input(z.object({
     assetId: z.number(),
-
     isRoyalty: z.boolean().optional(),
   })).mutation(async ({ ctx, input }) => {
     const { assetId, isRoyalty } = input;
@@ -802,20 +801,76 @@ export const marketRouter = createTRPCRouter({
             select: {
               ...AssetSelectAllProperty,
               Stem: true,
-            }
+              tier: {
+                select: {
+                  price: true,
+                },
+              },
+              creator: {
+                select: {
+                  pageAsset: {
+                    select: {
+                      code: true,
+                      issuer: true,
+                    },
+                  },
+                },
+              }
+            },
           },
         },
         where: { asset: { creatorId: creatorId } },
       });
+      const currentUserId = ctx.session.user.id;
+
+      const stellarAcc = await StellarAccount.create(currentUserId);
+
+
+      const array = items.filter((item) => {
+        if (item.asset.privacy === ItemPrivacy.PUBLIC) {
+          return true;
+        }
+
+        if (item.asset.creatorId !== item.placerId) {
+          return true;
+        }
+
+        if (item.asset.privacy === ItemPrivacy.PRIVATE) {
+          const creatorPageAsset = item.asset.creator?.pageAsset;
+          if (
+            creatorPageAsset &&
+            stellarAcc.hasTrustline(
+              creatorPageAsset.code,
+              creatorPageAsset.issuer,
+            )
+          ) {
+            return true;
+          }
+        } else if (item.asset.privacy === ItemPrivacy.TIER) {
+          const creatorPageAsset = item.asset.creator?.pageAsset;
+          if (
+            creatorPageAsset &&
+            item.asset.tier &&
+            item.asset.tier.price <=
+            stellarAcc.getTokenBalance(
+              creatorPageAsset.code,
+              creatorPageAsset.issuer,
+            )
+          ) {
+            return true;
+          }
+        }
+        return false;
+      });
 
       let nextCursor: typeof cursor | undefined = undefined;
-      if (items.length > limit) {
-        const nextItem = items.pop(); // return the last item from the array
+      if (array.length > limit) {
+        const nextItem = array.pop();
         nextCursor = nextItem?.id;
       }
 
       return {
-        nfts: items,
+        nfts: array,
         nextCursor,
       };
     }),

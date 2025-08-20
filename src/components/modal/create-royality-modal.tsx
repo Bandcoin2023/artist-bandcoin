@@ -61,6 +61,7 @@ import {
     DialogContent,
     DialogDescription,
     DialogHeader,
+    DialogTitle,
 } from "../shadcn/ui/dialog";
 import { cn } from "~/lib/utils";
 import {
@@ -282,10 +283,12 @@ export default function CreateRoyalityModal() {
                     className="flex h-full flex-col"
                 >
                     <DialogHeader className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                            <Coins className="h-5 w-5" />
-                            <CardTitle>Create Royalty Item</CardTitle>
-                        </div>
+                        <DialogTitle>
+                            <div className="flex items-center gap-2">
+                                <Coins className="h-5 w-5" />
+                                <CardTitle>Create Royalty Item</CardTitle>
+                            </div>
+                        </DialogTitle>
                         <DialogDescription>
                             Create a new royalty investment opportunity
                         </DialogDescription>

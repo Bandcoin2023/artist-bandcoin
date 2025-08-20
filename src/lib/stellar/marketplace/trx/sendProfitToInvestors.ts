@@ -99,6 +99,7 @@ export const XDR4SendPlotToInvestorInUSDC = async ({
                 destination: holder,
                 amount: paymentForPerPerson.toPrecision(7),
                 asset: new Asset(PLATFORM_ASSET.code, PLATFORM_ASSET.issuer),
+
             }),
         );
     });
@@ -109,7 +110,7 @@ export const XDR4SendPlotToInvestorInUSDC = async ({
 
     buildTrx.sign(motherAcc);
 
-    const xdr = await WithSing({ xdr: buildTrx.toXDR(), signWith });
+    const xdr = buildTrx.toXDR();
     return xdr;
 
 }

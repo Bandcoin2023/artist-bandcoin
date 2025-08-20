@@ -391,6 +391,7 @@ export default function NftCreateModal() {
   }, [activeStep]);
 
   const handleClose = () => {
+    setActiveStep("details");
     setNFTModalOpen(false);
     setMediaUploadSuccess(false);
     setMediaUrl(undefined);
@@ -415,7 +416,7 @@ export default function NftCreateModal() {
         >
           <DialogHeader className=" px-6 py-4">
             <DialogTitle className="flex items-center gap-2 text-xl">
-              Create Stored Item
+              Create Store Item
             </DialogTitle>
             <DialogDescription>
               Create you nft and place it to marketplace.
@@ -528,7 +529,7 @@ export default function NftCreateModal() {
                           </p>
                         )}
                         <p className="text-xs text-muted-foreground">
-                          This determines how many copies of this NFT can exist
+                          This determines how many copies of this Item can exist
                         </p>
                       </div>
                     </CardContent>
@@ -679,6 +680,7 @@ export default function NftCreateModal() {
                                   setValue("mediaUrl", data.url);
                                   setMediaUpload(false);
                                   setMediaUploadSuccess(true);
+                                  trigger("mediaUrl")
                                 }
                               }}
                               onUploadError={(error: Error) => {

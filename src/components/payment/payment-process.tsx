@@ -197,6 +197,7 @@ export default function PaymentProcessItem({
                                 xdrMutation={xdrMutation}
                                 requiredFee={requiredFee.data}
                                 price={price}
+                                type={type}
                                 priceUSD={priceUSD}
                                 platformAssetBalance={platformAssetBalance}
                                 getXLMBalance={getXLMBalance}
@@ -301,6 +302,7 @@ type MethodDetailsProps = {
     onConfirmPayment: () => void;
     submitLoading: boolean;
     paymentSuccess: boolean;
+    type?: MarketType;
 };
 
 export function MethodDetails({
@@ -314,6 +316,7 @@ export function MethodDetails({
     getXLMBalance,
     hasTrust,
     code,
+    type,
     issuer,
     item,
     onConfirmPayment,
@@ -432,7 +435,7 @@ export function MethodDetails({
                     <div className="p-3 bg-muted/30 rounded-lg">
                         <p className="text-sm text-center">Pay with credit card</p>
                     </div>
-                    <BuyWithSquire marketId={marketItemId} xdr={xdrMutation.data} />
+                    <BuyWithSquire marketId={marketItemId} xdr={xdrMutation.data} type={type} />
                 </div>
             );
         }

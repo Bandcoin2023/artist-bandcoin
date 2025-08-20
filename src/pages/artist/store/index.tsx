@@ -367,7 +367,7 @@ export default function StoredItemsView() {
                     <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="STORED" className="flex items-center gap-2">
                             <ImageIcon className="h-4 w-4" />
-                            Stored Items
+                            Store Items
                         </TabsTrigger>
                         <TabsTrigger value="ALBUM" className="flex items-center gap-2">
                             <AlbumIcon className="h-4 w-4" />
@@ -389,7 +389,7 @@ export default function StoredItemsView() {
                             <div className="relative flex-1">
                                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
-                                    placeholder="Search stored items..."
+                                    placeholder="Search store items..."
                                     value={storedSearchQuery}
                                     onChange={(e) => setStoredSearchQuery(e.target.value)}
                                     className="pl-8"
@@ -571,7 +571,7 @@ export default function StoredItemsView() {
                                             <div className="rounded-full bg-muted p-6 mb-4">
                                                 <Search className="h-10 w-10 text-muted-foreground" />
                                             </div>
-                                            <h3 className="text-lg font-medium">No stored items found</h3>
+                                            <h3 className="text-lg font-medium">No store items found</h3>
                                             <p className="text-muted-foreground mt-1">Try adjusting your search or filter criteria</p>
                                             <Button
                                                 variant="outline"

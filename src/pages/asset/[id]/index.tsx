@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation"
 import { Button } from "~/components/shadcn/ui/button"
 import { Badge } from "~/components/shadcn/ui/badge"
-import { Card, CardContent } from "~/components/shadcn/ui/card"
+import { Card, CardContent, CardFooter } from "~/components/shadcn/ui/card"
 import { Skeleton } from "~/components/shadcn/ui/skeleton"
 import { Play, Eye, ShoppingCart, User, Calendar, Hash, Copy, TrendingUp, Clock } from "lucide-react"
 import Image from "next/image"
@@ -26,6 +26,7 @@ import { MediaType } from "@prisma/client"
 import ShowThreeDModel from "~/components/3d-model/model-show"
 import { useRouter } from "next/router"
 import { MyCollectionMenu, useMyCollectionTabs } from "~/components/store/tabs/mycollection-tabs"
+import Link from "next/link"
 const SingleAssetView = () => {
     const router = useRouter()
 
@@ -64,7 +65,7 @@ const SingleAssetView = () => {
                 code: data.code,
                 issuer: data.issuer,
             })
-        : 0;
+        : "-1";
 
 
 
@@ -86,6 +87,7 @@ const SingleAssetView = () => {
     const handleToggleMinimize = () => {
         setIsVideoMinimized(!isVideoMinimized)
     }
+
 
     if (isLoading) {
         return (
@@ -122,6 +124,25 @@ const SingleAssetView = () => {
                         <h2 className="text-xl font-semibold text-gray-900 mb-2">Asset Not Found</h2>
                         <p className="text-gray-600">The requested asset could not be loaded.</p>
                     </CardContent>
+                </Card>
+            </div>
+        )
+    }
+    if (!copyCreatorAssetBalance) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <Card className="p-8 text-center">
+                    <CardContent>
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">Insufficient Funds</h2>
+                        <p className="text-gray-600">You do not have enough funds to view this asset.</p>
+                    </CardContent>
+                    <CardFooter className="flex justify-center">
+                        <Link href="/" >
+                            <Button variant="outline">
+                                Go To Home
+                            </Button>
+                        </Link>
+                    </CardFooter>
                 </Card>
             </div>
         )
