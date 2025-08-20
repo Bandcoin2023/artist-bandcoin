@@ -12,6 +12,8 @@ import { MediaType } from "@prisma/client";
 
 import {
   checkXDRSubmitted,
+  claimBandCoinReward,
+  claimUSDCReward,
   getHasMotherTrustOnUSDC,
   getHasUserHasTrustOnUSDC,
   SendBountyBalanceToMotherAccount,
@@ -263,7 +265,6 @@ export const BountyRoute = createTRPCRouter({
                   id: true,
                 },
               },
-              isSwaped: true,
             },
           },
           participants: {
@@ -421,7 +422,6 @@ export const BountyRoute = createTRPCRouter({
                   id: true,
                 },
               },
-              isSwaped: true,
             },
           },
           creator: {
@@ -487,9 +487,11 @@ export const BountyRoute = createTRPCRouter({
               user: {
                 select: {
                   id: true,
+
                 },
               },
-              isSwaped: true,
+              isClaimed: true,
+              id: true,
             },
           },
 
@@ -1199,80 +1201,83 @@ export const BountyRoute = createTRPCRouter({
 
       return detailedSubmissions;
     }),
-  swapAssetToUSDC: protectedProcedure
-    .input(
-      z.object({
-        bountyId: z.number(),
-        priceInBand: z.number(),
-        priceInUSD: z.number(),
-        signWith: SignUser,
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
-      let secretKey;
-      if (ctx.session.user.email && ctx.session.user.email.length > 0) {
-        secretKey = await getAccSecretFromRubyApi(ctx.session.user.email);
-      }
-      const findXDR = await ctx.db.bountyWinner.findFirst({
-        where: {
-          bountyId: input.bountyId,
-          userId: ctx.session.user.id,
-        },
-        select: {
-          xdr: true,
-        },
-      });
-
-      if (findXDR?.xdr) {
-        const prevXDR = findXDR.xdr;
-        const isSubmitted = await checkXDRSubmitted(prevXDR);
-        if (isSubmitted) {
-          throw new Error("You already submitted the XDR");
-        }
-      }
-
-      const res = await SwapUserAssetToMotherUSDC({
-        priceInBand: input.priceInBand,
-        priceInUSD: input.priceInUSD,
-        userPubKey: ctx.session.user.id,
-        secretKey: secretKey,
-        signWith: input.signWith,
-      });
-
-      if (res.xdr) {
-        await ctx.db.bountyWinner.upsert({
-          where: {
-            id: input.bountyId,
-            userId: ctx.session.user.id,
-          },
-          update: {
-            xdr: res.xdr,
-          },
-          create: {
-            userId: ctx.session.user.id,
-            xdr: res.xdr,
-            bountyId: input.bountyId,
-          },
-        });
-      }
-      return res;
+  claimBandCoinReward: protectedProcedure.input(
+    z.object({
+      bountyId: z.number(),
+      rewardAmount: z.number(),
+      signWith: SignUser,
+      winnerId: z.number(),
     }),
-
-  makeSwapUpdate: protectedProcedure
+  ).mutation(async ({ input, ctx }) => {
+    const userId = ctx.session.user.id;
+    const bounty = await ctx.db.bounty.findUnique({
+      where: { id: input.bountyId },
+    });
+    if (!bounty) throw new Error("Bounty not found");
+    // check if already rewarded
+    const existingReward = await ctx.db.bountyWinner.findFirst({
+      where: {
+        bountyId: input.bountyId,
+        userId,
+        isClaimed: true
+      },
+    });
+    if (existingReward) throw new Error("Reward already claimed");
+    return await claimBandCoinReward({
+      pubKey: userId,
+      rewardAmount: input.rewardAmount,
+      signWith: input.signWith,
+    });
+  }),
+  claimUSDCReward: protectedProcedure.input(
+    z.object({
+      bountyId: z.number(),
+      rewardAmount: z.number(),
+      signWith: SignUser,
+      winnerId: z.number(),
+    }),
+  ).mutation(async ({ input, ctx }) => {
+    const userId = ctx.session.user.id;
+    const bounty = await ctx.db.bounty.findUnique({
+      where: { id: input.bountyId },
+    });
+    if (!bounty) throw new Error("Bounty not found");
+    // check if already rewarded
+    const existingReward = await ctx.db.bountyWinner.findFirst({
+      where: {
+        bountyId: input.bountyId,
+        userId,
+        isClaimed: true
+      },
+    });
+    if (existingReward) throw new Error("Reward already claimed");
+    return await claimUSDCReward({
+      pubKey: userId,
+      rewardAmount: input.rewardAmount,
+      signWith: input.signWith,
+    });
+  }),
+  updateWinnerInformation: protectedProcedure
     .input(
       z.object({
-        bountyId: z.number(),
+        winnerId: z.number(),
+        bountyId: z.number()
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const bounty = await ctx.db.bountyWinner.update({
+      const { winnerId, bountyId } = input;
+      const userId = ctx.session.user.id;
+      const bounty = await ctx.db.bounty.findUnique({
+        where: { id: bountyId },
+      });
+      if (!bounty) throw new Error("Bounty not found");
+      return await ctx.db.bountyWinner.update({
         where: {
-          id: input.bountyId,
-          userId: ctx.session.user.id,
+          id: winnerId
         },
         data: {
-          isSwaped: true,
-        },
+          isClaimed: true,
+        }
       });
     }),
   hasMotherTrustOnUSDC: protectedProcedure.query(async ({ ctx }) => {
