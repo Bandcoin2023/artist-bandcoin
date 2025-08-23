@@ -304,9 +304,7 @@ export default function MusicBuyModal() {
                                         )
                                     )}
 
-                                    <DeleteAssetByAdmin marketId={data.id}
-                                        handleClose={handleClose}
-                                    />
+
 
 
                                     <p className="text-xs text-muted-foreground text-center">

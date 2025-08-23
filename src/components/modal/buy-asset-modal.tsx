@@ -319,9 +319,7 @@ export default function BuyModal() {
 
 
 
-                                    <DeleteAssetByAdmin marketId={data.id}
-                                        handleClose={handleClose}
-                                    />
+
                                     <p className="text-xs text-muted-foreground text-center">
                                         Once purchased, this item will be added to your collection.
                                     </p>

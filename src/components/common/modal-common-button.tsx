@@ -152,7 +152,7 @@ export function DeleteAssetByAdmin({
               className="w-full shadow-sm shadow-foreground "
             >
               {del.isLoading && <span className="loading loading-spinner" />}
-              Delete from market (admin)
+              Delete from {assetId ? "Asset" : "Market"} (admin)
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
@@ -240,8 +240,8 @@ export function MarketButtons({
     code,
     issuer,
   });
-  if (inMarket.isLoading) return <div>Loading...</div>;
-  if (inMarket.error) return <div>Error...</div>;
+  if (inMarket.isLoading) return <div>Loading...</div>
+  if (inMarket.error) return <div>Error...</div>
 
   if (inMarket.data) {
     return (
@@ -253,12 +253,12 @@ export function MarketButtons({
           </>
         )}
       </div>
-    );
+    )
   } else
     return (
       <div>
         <NftBackModal copy={copy} item={{ code, issuer }} />
-        <EnableInMarket copy={copy} item={{ code, issuer, name }} />;
+        <EnableInMarket copy={copy} item={{ code, issuer, name }} />
       </div>
-    );
+    )
 }

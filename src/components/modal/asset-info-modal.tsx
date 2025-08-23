@@ -262,9 +262,6 @@ export default function AssetInfoModal() {
                     currentData={data}
                     copies={Number(copyCreatorAssetBalance)}
                   />
-                  <DeleteAssetByAdmin marketId={data.id}
-                    handleClose={handleClose}
-                  />
 
                   <p className="text-xs text-muted-foreground text-center">
                     Once purchased, this item will be added to your collection.

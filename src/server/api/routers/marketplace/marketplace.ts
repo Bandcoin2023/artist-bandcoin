@@ -1055,12 +1055,23 @@ export const marketRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const { assetId, marketId } = input;
-
+      console.log("deleteMarketAsset", assetId, marketId);
       if (assetId) {
-        const asset = await ctx.db.asset.findUnique({
-          where: { id: assetId },
+        // First delete all related records in User_Asset table
+        await ctx.db.user_Asset.deleteMany({
+          where: {
+            assetId: assetId,
+          },
         });
-        console.log("asset", asset);
+
+        // Then delete related market assets
+        await ctx.db.marketAsset.deleteMany({
+          where: {
+            assetId: assetId,
+          },
+        });
+
+        // Finally delete the asset
         await ctx.db.asset.delete({
           where: {
             id: assetId,
@@ -1221,5 +1232,80 @@ export const marketRouter = createTRPCRouter({
         },
       });
       return marketAsset;
+    }),
+  getMarketAssetByAssetId: protectedProcedure
+    .input(z.object({
+      assetId: z.number(),
+      placerId: z.string()
+    }))
+    .query(async ({ ctx, input }) => {
+      console.log("input", input);
+      const allmarketAssets = await ctx.db.marketAsset.findMany({
+
+      });
+      console.log("allmarketAssets", allmarketAssets);
+      const marketAsset = await ctx.db.marketAsset.findUnique({
+        where: {
+          assetId_placerId: {
+            assetId: input.assetId,
+            placerId: input.placerId,
+          },
+        },
+
+      });
+      console.log("marketAsset", marketAsset);
+      return marketAsset;
+    }),
+  getAllAssets: protectedProcedure.input(z.object({
+    limit: z.number().min(1).default(100),
+    search: z.string(),
+    sortBy: z.enum(["newest", "oldest", "name"]).default("newest"),
+    cursor: z.string().nullish(),
+  }))
+    .query(async ({ ctx, input }) => {
+      const { limit, search, sortBy, cursor } = input;
+
+      const allAssets = await ctx.db.asset.findMany({
+        take: limit,
+        where: {
+          name: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        orderBy: {
+          createdAt: sortBy === "newest" ? "desc" : "asc",
+        },
+      });
+      let nextCursor: typeof cursor | undefined = undefined
+      if (allAssets.length > limit) {
+        const nextItem = allAssets.pop(); // return the last item from the array
+        nextCursor = nextItem?.id.toString();
+      }
+      return {
+        assets: allAssets,
+        nextCursor,
+      };
+    }),
+  deleteAssetByAssetId: protectedProcedure
+    .input(z.object({
+      assetId: z.number()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const asset = await ctx.db.asset.findFirst({
+        where: { id: input.assetId }
+      });
+      if (!asset) throw new Error("Asset not found");
+      await ctx.db.$transaction(async (tx) => {
+        await tx.user_Asset.deleteMany({
+          where: { assetId: input.assetId }
+        });
+        await tx.marketAsset.deleteMany({
+          where: { assetId: input.assetId }
+        });
+        await tx.asset.delete({
+          where: { id: input.assetId }
+        });
+      });
     }),
 });
