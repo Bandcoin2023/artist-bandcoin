@@ -30,7 +30,7 @@ import {
     DropdownMenuTrigger,
 } from "~/components/shadcn/ui/dropdown-menu"
 import AdminLayout from "~/components/layout/root/AdminLayout"
-import { Asset } from "@prisma/client"
+import { MarketAssetType } from "~/types/market/market-asset-type"
 
 // Animation variants
 const containerVariants = {
@@ -81,9 +81,9 @@ export default function AllAssets() {
     const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "name">("newest")
     const [page, setPage] = useState(1)
     const [hasMore, setHasMore] = useState(true)
-    const [allAssets, setAllAssets] = useState<Asset[]>([])
+    const [allAssets, setAllAssets] = useState<MarketAssetType[]>([])
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-    const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null)
+    const [assetToDelete, setAssetToDelete] = useState<MarketAssetType | null>(null)
 
     const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
         api.marketplace.market.getAllAssets.useInfiniteQuery(
@@ -98,7 +98,7 @@ export default function AllAssets() {
             },
         )
 
-    const deleteMutation = api.marketplace.market.deleteAssetByAssetId.useMutation({
+    const deleteMutation = api.marketplace.market.deleteMarketAssetById.useMutation({
         onSuccess: () => {
             toast.success("Asset deleted successfully")
             setDeleteDialogOpen(false)
@@ -156,14 +156,20 @@ export default function AllAssets() {
         utils.marketplace.market.getAllAssets.invalidate()
     }
 
-    const handleDeleteClick = (asset: Asset) => {
+    const handleDeleteClick = (asset: MarketAssetType) => {
         setAssetToDelete(asset)
         setDeleteDialogOpen(true)
     }
 
     const handleDeleteConfirm = () => {
         if (assetToDelete) {
-            deleteMutation.mutate({ assetId: assetToDelete.id })
+            const code = assetToDelete.asset.code
+            const issuer = assetToDelete.asset.issuer
+            if (code && issuer) {
+                deleteMutation.mutate({
+                    marketId: assetToDelete.id
+                })
+            }
         }
     }
 
@@ -172,10 +178,10 @@ export default function AllAssets() {
 
         if (searchTerm) {
             filtered = filtered.filter(
-                (asset) =>
-                    asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    asset.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    asset.creatorId?.toLowerCase().includes(searchTerm.toLowerCase()),
+                (item) =>
+                    item.asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    item.asset.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    item.asset.creatorId?.toLowerCase().includes(searchTerm.toLowerCase()),
             )
         }
 
@@ -186,7 +192,7 @@ export default function AllAssets() {
                 case "oldest":
                     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
                 case "name":
-                    return a.name.localeCompare(b.name)
+                    return a.asset.name.localeCompare(b.asset.name)
                 default:
                     return 0
             }
@@ -201,9 +207,9 @@ export default function AllAssets() {
                         <CardHeader className="pb-3 border-b">
                             <CardTitle className="flex items-center gap-2">
                                 <Sparkles className="h-5 w-5 " />
-                                Asset Management
+                                Market Assets Management
                             </CardTitle>
-                            <CardDescription>Manage and organize your digital assets</CardDescription>
+                            <CardDescription>Manage and organize your market assets</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="p-4">
@@ -252,15 +258,15 @@ export default function AllAssets() {
                                                         <TableHead>Name</TableHead>
                                                         <TableHead>Asset Code</TableHead>
                                                         <TableHead>Asset Issuer</TableHead>
-                                                        <TableHead>Creator</TableHead>
+                                                        <TableHead>PlacerID</TableHead>
                                                         <TableHead className="text-right">Actions</TableHead>
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
                                                     <AnimatePresence initial={false}>
-                                                        {filteredAndSortedAssets.map((asset, index) => (
+                                                        {filteredAndSortedAssets.map((item, index) => (
                                                             <motion.tr
-                                                                key={asset.id}
+                                                                key={item.id}
                                                                 custom={index}
                                                                 variants={tableRowVariants}
                                                                 initial="hidden"
@@ -271,10 +277,10 @@ export default function AllAssets() {
                                                                 <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                                                                 <TableCell>
                                                                     <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center overflow-hidden">
-                                                                        {asset.thumbnail ? (
+                                                                        {item.asset.thumbnail ? (
                                                                             <img
-                                                                                src={asset.thumbnail || "/placeholder.svg"}
-                                                                                alt={asset.name}
+                                                                                src={item.asset.thumbnail || "/placeholder.svg"}
+                                                                                alt={item.asset.name}
                                                                                 className="w-full h-full object-cover"
                                                                             />
                                                                         ) : (
@@ -282,17 +288,17 @@ export default function AllAssets() {
                                                                         )}
                                                                     </div>
                                                                 </TableCell>
-                                                                <TableCell className="font-medium">{asset.name}</TableCell>
+                                                                <TableCell className="font-medium">{item.asset.name}</TableCell>
                                                                 <TableCell>
                                                                     <Badge variant="secondary" className="font-mono text-xs">
-                                                                        {asset.code}
+                                                                        {item.asset.code}
                                                                     </Badge>
                                                                 </TableCell>
                                                                 <TableCell className="font-mono text-sm text-muted-foreground">
-                                                                    {addrShort(asset.issuer)}
+                                                                    {addrShort(item.asset.issuer)}
                                                                 </TableCell>
                                                                 <TableCell className="font-mono text-sm text-muted-foreground">
-                                                                    {addrShort(asset?.creatorId ?? "")}
+                                                                    {addrShort(item.placerId ?? "")}
                                                                 </TableCell>
                                                                 <TableCell className="text-right">
                                                                     {/* <DropdownMenu>
@@ -317,10 +323,10 @@ export default function AllAssets() {
                                                                     </DropdownMenu> */}
                                                                     <Button
                                                                         className="text-destructive"
-                                                                        onClick={() => handleDeleteClick(asset)}
+                                                                        onClick={() => handleDeleteClick(item)}
                                                                     >
                                                                         <Trash className="mr-2 h-4 w-4" />
-                                                                        Delete
+                                                                        Disable
                                                                     </Button>
 
                                                                 </TableCell>
@@ -357,11 +363,11 @@ export default function AllAssets() {
                 <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Delete Asset</DialogTitle>
+                            <DialogTitle>Disable Asset</DialogTitle>
                         </DialogHeader>
                         <div className="py-4">
                             <p className="text-muted-foreground">
-                                Are you sure you want to delete {assetToDelete?.name}? This action cannot be undone.
+                                Are you sure you want to disable {assetToDelete?.asset.name}? This action cannot be undone.
                             </p>
                         </div>
                         <DialogFooter>
@@ -372,12 +378,12 @@ export default function AllAssets() {
                                 {deleteMutation.isLoading ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Deleting...
+                                        Disabling...
                                     </>
                                 ) : (
                                     <>
                                         <Trash className="mr-2 h-4 w-4" />
-                                        Delete
+                                        Disable
                                     </>
                                 )}
                             </Button>
@@ -467,12 +473,12 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 }
 
 function EmptyState({ searchTerm }: { searchTerm: string }) {
-    let message = "No assets found"
-    let description = "There are no assets in the system yet."
+    let message = "No market assets found"
+    let description = "There are no market assets in the system yet."
 
     if (searchTerm) {
-        message = "No matching assets"
-        description = `No assets found matching "${searchTerm}".`
+        message = "No matching market assets"
+        description = `No market assets found matching "${searchTerm}".`
     }
 
     return (

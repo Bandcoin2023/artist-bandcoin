@@ -1265,13 +1265,23 @@ export const marketRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const { limit, search, sortBy, cursor } = input;
 
-      const allAssets = await ctx.db.asset.findMany({
+      const allAssets = await ctx.db.marketAsset.findMany({
         take: limit,
         where: {
-          name: {
-            contains: search,
-            mode: "insensitive",
+          asset: {
+            name: {
+              contains: search,
+              mode: "insensitive",
+            },
           },
+
+        },
+        include: {
+          asset: {
+            select: {
+              ...AssetSelectAllProperty
+            }
+          }
         },
         orderBy: {
           createdAt: sortBy === "newest" ? "desc" : "asc",
@@ -1287,25 +1297,18 @@ export const marketRouter = createTRPCRouter({
         nextCursor,
       };
     }),
-  deleteAssetByAssetId: protectedProcedure
+  deleteMarketAssetById: protectedProcedure
     .input(z.object({
-      assetId: z.number()
+      marketId: z.number()
     }))
     .mutation(async ({ ctx, input }) => {
-      const asset = await ctx.db.asset.findFirst({
-        where: { id: input.assetId }
-      });
-      if (!asset) throw new Error("Asset not found");
-      await ctx.db.$transaction(async (tx) => {
-        await tx.user_Asset.deleteMany({
-          where: { assetId: input.assetId }
-        });
-        await tx.marketAsset.deleteMany({
-          where: { assetId: input.assetId }
-        });
-        await tx.asset.delete({
-          where: { id: input.assetId }
-        });
+      const { marketId } = input;
+
+
+      await ctx.db.marketAsset.deleteMany({
+        where: {
+          id: marketId
+        }
       });
     }),
 });
