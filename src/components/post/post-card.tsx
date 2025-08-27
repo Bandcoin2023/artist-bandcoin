@@ -202,7 +202,11 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
                 <CardFooter className="p-4 pt-0 flex flex-col">
                     <div className="flex items-center justify-between w-full text-gray-500 dark:text-gray-400 text-sm mb-2">
                         <div>{likeCount} likes</div>
-                        <div>{commentCount} comments</div>
+                        <div
+                            className="cursor-pointer hover:underline"
+                            onClick={() => setShowComments(!showComments)}
+
+                        >{commentCount} comments</div>
                     </div>
 
                     <div className="flex items-center justify-between w-full border-t border-gray-100 dark:border-gray-800 py-1">
