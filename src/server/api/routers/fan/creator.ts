@@ -699,11 +699,11 @@ export const creatorRouter = createTRPCRouter({
       const creators = await ctx.db.creator.findMany({
         where: {
           approved: true,
-          // followers: {
-          //   none: {
-          //     userId: ctx.session.user.id
-          //   }
-          // }
+          followers: {
+            none: {
+              userId: ctx.session.user.id
+            }
+          }
         },
         orderBy: {
           followers: {
@@ -714,11 +714,11 @@ export const creatorRouter = createTRPCRouter({
         // If cursor is provided, start after that album
         ...(cursorObj
           ? {
-              cursor: {
-                id: cursorObj.id,
-              },
-              skip: 1, // Skip the cursor item
-            }
+            cursor: {
+              id: cursorObj.id,
+            },
+            skip: 1, // Skip the cursor item
+          }
           : {}),
         select: {
           id: true,
