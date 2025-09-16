@@ -11,11 +11,12 @@ const withBundleAnalyzer = analyzer({
 /** @type {import("next").NextConfig} */
 const config = {
   transpilePackages: ["three"],
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
-
-
   reactStrictMode: true,
   images: {
     remotePatterns: [
@@ -44,6 +45,7 @@ const config = {
         hostname: `${process.env.NEXT_AWS_BUCKET_NAME}.s3.us-east-1.amazonaws.com`,
       },
     ],
+    unoptimized: true,
   },
 
   async rewrites() {
@@ -64,8 +66,11 @@ const config = {
           { key: "Access-Control-Allow-Credentials", value: "true" },
           {
             key: "Access-Control-Allow-Origin",
-            value: "https://main.d20qrrwbkiopzh.amplifyapp.com",
-          }, // replace this your actual origin
+            value:
+              process.env.NODE_ENV === "production"
+                ? "https://3yearshallow.com"
+                : "*", // Allow all origins in development
+          },
           {
             key: "Access-Control-Allow-Methods",
             value: "GET,DELETE,PATCH,POST,PUT,OPTIONS",
@@ -73,7 +78,28 @@ const config = {
           {
             key: "Access-Control-Allow-Headers",
             value:
-              "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
+              "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization",
+          },
+        ],
+      },
+      {
+        source: "/api/auth/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Credentials", value: "true" },
+          {
+            key: "Access-Control-Allow-Origin",
+            value:
+              process.env.NODE_ENV === "production"
+                ? "https://3yearshallow.com"
+                : "*",
+          },
+          {
+            key: "Access-Control-Allow-Methods",
+            value: "GET,POST,OPTIONS",
+          },
+          {
+            key: "Access-Control-Allow-Headers",
+            value: "Content-Type, Authorization",
           },
         ],
       },

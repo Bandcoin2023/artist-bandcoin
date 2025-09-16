@@ -617,7 +617,6 @@ function DetailsStep() {
       transition={{ duration: 0.3 }}
       className=""
     >
-
       {/* Basic Information Card */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-4">
@@ -731,7 +730,6 @@ function DetailsStep() {
                 <Input
                   id="prize"
                   value={watch("prize") ? watch("prize").toFixed(5) : ""}
-
                   className="pl-10 bg-white/50 text-amber-800 transition-all duration-200"
                   placeholder="0.00000"
                 />
@@ -807,7 +805,7 @@ function DetailsStep() {
             </div>
             <div>
               <h3 className="font-semibold text-purple-900">Participation Requirements</h3>
-              <p className="text-sm text-purple-700">Set minimum balance requirements for participants (optional)</p>
+              <p className="text-sm text-purple-700">Set minimum balance requirements for participants </p>
             </div>
           </div>
         </CardHeader>
@@ -836,61 +834,114 @@ function DetailsStep() {
               <SelectTrigger className="bg-white/70 focus-visible:ring-2 focus-visible:ring-purple-500/20">
                 <SelectValue placeholder="Choose an asset for minimum balance requirement" />
               </SelectTrigger>
-              <SelectContent className="w-full">
-                <SelectGroup>
-                  <SelectLabel className="text-center font-semibold text-purple-600 py-2">PAGE ASSET</SelectLabel>
-                  {
-                    pageAssetbal.data && (
-                      <>
-                        <SelectItem
-                          value={
-                            pageAssetbal?.data?.assetCode +
-                            " " +
-                            pageAssetbal?.data.assetCode +
-                            " " +
-                            pageAssetbal?.data.balance +
-                            " " +
-                            "PAGEASSET"
-                          }
-                          className="my-1"
-                        >
-                          <div className="flex w-full items-center justify-between">
-                            <span className="font-medium">{pageAssetbal?.data.assetCode}</span>
-                            <Badge variant="secondary" className="ml-2 bg-purple-100 text-purple-700">
-                              {pageAssetbal?.data.balance}
+              <SelectContent className="w-full max-w-sm max-h-64 overflow-y-auto " >
+                <SelectGroup className=" w-full  ">
+                  <div className="px-3 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-100">
+                    <SelectLabel className="text-xs font-semibold text-purple-700 uppercase tracking-wide">
+                      Page Asset
+                    </SelectLabel>
+                  </div>
+                  {pageAssetbal.data && (
+                    <>
+                      <SelectItem
+                        value={
+                          pageAssetbal?.data?.assetCode +
+                          " " +
+                          pageAssetbal?.data.assetCode +
+                          " " +
+                          pageAssetbal?.data.balance +
+                          " " +
+                          "PAGEASSET"
+                        }
+                        className="px-3 py-3 w-full   hover:bg-purple-50/80 focus:bg-purple-50 cursor-pointer transition-colors"
+                      >
+                        <div className="grid grid-cols-2 items-center justify-between w-full mx-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
+                              <span className="text-xs font-bold text-purple-700">
+                                {pageAssetbal?.data.assetCode.slice(0, 2)}
+                              </span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-gray-900 text-sm">
+                                {pageAssetbal?.data.assetCode}
+                              </span>
+                              <span className="text-xs text-gray-500">Page Asset</span>
+                            </div>
+
+                          </div>
+
+                          <div className="grid justify-end ">
+                            <Badge
+                              variant="secondary"
+                              className="bg-purple-100 text-purple-800 font-medium text-xs px-2 py-1"
+                            >
+                              {Number(pageAssetbal?.data.balance).toLocaleString(undefined, {
+                                maximumFractionDigits: 2,
+                              })}
                             </Badge>
                           </div>
-                        </SelectItem>
+                        </div>
+                      </SelectItem>
 
-                        <SelectLabel className="text-center font-semibold text-purple-600 py-2 mt-3">
-                          PLATFORM ASSET
+                      <div className="px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100 mt-2">
+                        <SelectLabel className="text-xs font-semibold text-amber-700 uppercase tracking-wide">
+                          Platform Asset
                         </SelectLabel>
-                        <SelectItem
-                          value={
-                            PLATFORM_ASSET.code +
-                            " " +
-                            PLATFORM_ASSET.issuer +
-                            " " +
-                            platformAssetBalance +
-                            " " +
-                            "PLATFORMASSET"
-                          }
-                          className="my-1"
-                        >
-                          <div className="flex w-full items-center justify-between">
-                            <span className="font-medium">{PLATFORM_ASSET.code}</span>
-                            <Badge variant="secondary" className="ml-2 bg-purple-100 text-purple-700">
-                              {platformAssetBalance}
-                            </Badge>
+                      </div>
+                      <SelectItem
+                        value={
+                          PLATFORM_ASSET.code +
+                          " " +
+                          PLATFORM_ASSET.issuer +
+                          " " +
+                          platformAssetBalance +
+                          " " +
+                          "PLATFORMASSET"
+                        }
+                        className="px-3 py-3 hover:bg-amber-50/80 focus:bg-amber-50 cursor-pointer transition-colors"
+                      >
+                        <div className="items-center justify-between w-full mx-5 grid grid-cols-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center">
+                              <span className="text-xs font-bold text-amber-700">
+                                {PLATFORM_ASSET.code.slice(0, 2)}
+                              </span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-gray-900 text-sm">{PLATFORM_ASSET.code}</span>
+                              <span className="text-xs text-gray-500">Platform Asset</span>
+                            </div>
                           </div>
-                        </SelectItem></>
-                    )
-                  }
+                          <div className="grid justify-end ">
+                            <Badge
+                              variant="secondary"
+                              className="bg-amber-100 text-amber-800 font-medium text-xs px-2 py-1"
+                            >
+                              {Number(platformAssetBalance).toLocaleString(undefined, {
+                                maximumFractionDigits: 0,
+                              })}
+                            </Badge>
 
-                  <SelectLabel className="text-center font-semibold text-purple-600 py-2 mt-3">SHOP ASSETS</SelectLabel>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    </>
+                  )}
+
+                  <div className="px-3 py-2 bg-gradient-to-r from-blue-50 to-cyan-50 border-b border-blue-100 mt-2">
+                    <SelectLabel className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                      Shop Assets
+                    </SelectLabel>
+                  </div>
                   {!shopAssetbal.data ? (
-                    <div className="flex w-full items-center justify-center p-3 text-sm text-muted-foreground">
-                      <span>No Shop Assets Available</span>
+                    <div className="flex w-full items-center justify-center p-6 text-sm text-muted-foreground">
+                      <div className="text-center">
+                        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-2">
+                          <span className="text-gray-400">💼</span>
+                        </div>
+                        <span className="text-gray-500">No Shop Assets Available</span>
+                      </div>
                     </div>
                   ) : (
                     shopAssetbal.data.map((asset) =>
@@ -901,13 +952,29 @@ function DetailsStep() {
                         <SelectItem
                           key={asset.asset_code}
                           value={asset.asset_code + " " + asset.asset_issuer + " " + asset.balance + " " + "SHOPASSET"}
-                          className="my-1"
+                          className="px-3 py-3 hover:bg-blue-50/80 focus:bg-blue-50 cursor-pointer transition-colors"
                         >
-                          <div className="flex w-full items-center justify-between">
-                            <span className="font-medium">{asset.asset_code}</span>
-                            <Badge variant="secondary" className="ml-2 bg-purple-100 text-purple-700">
-                              {asset.balance}
-                            </Badge>
+                          <div className="grid items-center justify-between w-full mx-5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                                <span className="text-xs font-bold text-blue-700">{asset.asset_code.slice(0, 2)}</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-gray-900 text-sm">{asset.asset_code}</span>
+                                <span className="text-xs text-gray-500">Shop Asset</span>
+                              </div>
+                            </div>
+                            <div className="grid justify-end ">
+                              <Badge
+                                variant="secondary"
+                                className="bg-blue-100 text-blue-800 font-medium text-xs px-2 py-1"
+                              >
+                                {Number(asset.balance).toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </Badge>
+                            </div>
+
                           </div>
                         </SelectItem>
                       ) : null,
@@ -973,7 +1040,6 @@ function DetailsStep() {
     </motion.div>
   )
 }
-
 function MediaStep({
   media,
   removeMediaItem,
