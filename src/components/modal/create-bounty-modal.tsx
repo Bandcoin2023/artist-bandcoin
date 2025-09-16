@@ -980,6 +980,7 @@ function DetailsStep() {
                       ) : null,
                     )
                   )}
+
                 </SelectGroup>
               </SelectContent>
             </Select>
