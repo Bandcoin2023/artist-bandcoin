@@ -460,4 +460,10 @@ const CreatorNavigation: DockerItem[] = [
   //   label: "SPOTIFY",
   //   color: "bg-yellow-500",
   // },
+  {
+    href: "/artist/domain",
+    icon: "link",
+    label: "DOMAIN",
+    color: "bg-pink-500",
+  },
 ];

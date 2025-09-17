@@ -38,6 +38,7 @@ import {
   Store,
   Trophy,
   MapPinned,
+  Link,
 
 
 } from "lucide-react";
@@ -73,6 +74,7 @@ export const Icons = {
       ></path>
     </svg>
   ),
+  link: Link,
   twitter: Twitter,
   check: Check,
   admin: RiAdminFill,
