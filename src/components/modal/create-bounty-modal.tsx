@@ -151,10 +151,6 @@ const CreateBountyModal = () => {
     useCreateBountyStore();
   const utils = api.useUtils();
 
-  // Calculate fees
-  const totalFees =
-    2 * Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE);
-  const xlmFee = 2 * SIMPLIFIED_FEE_IN_XLM; // for two time, fee (now and on winner)
 
   // Form setup
   const methods = useForm<z.infer<typeof BountySchema>>({
@@ -507,7 +503,7 @@ const CreateBountyModal = () => {
                   </Button>
                 ) : (
                   <>
-                    {platformAssetBalance < getValues("prize") + totalFees ? (
+                    {platformAssetBalance < getValues("prize") ? (
                       <Button disabled className="shadow-sm shadow-foreground">
                         Insufficient Balance
                       </Button>
@@ -523,30 +519,23 @@ const CreateBountyModal = () => {
                             highlighted: true,
                             type: "cost",
                           },
-                          {
-                            label: "Platform Fee",
-                            amount:
-                              paymentMethod === "asset" ? totalFees : xlmFee,
-                            highlighted: false,
-                            type: "fee",
-                          },
+
                           {
                             label: "Total Cost",
                             amount:
                               paymentMethod === "asset"
-                                ? Number(getValues("prize")) + totalFees
-                                : Number(getValues("prizeInUSD")) * 0.7 +
-                                xlmFee,
+                                ? Number(getValues("prize"))
+                                : Number(getValues("prizeInUSD")) * 0.7,
                             highlighted: false,
                             type: "total",
                           },
                         ]}
                         XLM_EQUIVALENT={
-                          Number(getValues("prizeInUSD")) * 0.7 + xlmFee
+                          Number(getValues("prizeInUSD")) * 0.7
                         }
                         handleConfirm={handleSubmit(onSubmit)}
                         loading={loading}
-                        requiredToken={Number(getValues("prize")) + totalFees}
+                        requiredToken={Number(getValues("prize"))}
                         trigger={
                           <Button
                             disabled={loading || !isValid}

@@ -45,7 +45,7 @@ export async function SendBountyBalanceToMotherAccount({
   });
 
   // prize + two time trx cost (current trx cost + winner selection cost)
-  const totalAmount = prize + 2 * SIMPLIFIED_FEE;
+  const totalAmount = prize;
 
   transaction.addOperation(
     Operation.payment({
@@ -93,7 +93,7 @@ export async function SendBountyBalanceToMotherAccountViaXLM({
   });
 
   //
-  const totalAmount = prizeInXLM + 2 * SIMPLIFIED_FEE_IN_XLM;
+  const totalAmount = prizeInXLM;
 
   transaction.addOperation(
     Operation.payment({
