@@ -46,6 +46,7 @@ import {
     AlertTitle,
 } from "~/components/shadcn/ui/alert";
 import { cn } from "~/lib/utils";
+import DNSConfigurationTutorial from "./components/dns-configuration-tutorial";
 
 // server data
 export async function getServerSideProps(context: GetServerSidePropsContext) {
@@ -170,6 +171,7 @@ function DomainDetails({
     associatedDomain?: DomainAssociation;
     steps: { id: string; name: string; status: string }[];
 }) {
+    const [dnsConfigOpen, setDnsConfigOpen] = React.useState(false);
     const [viewDnsRecordsOpen, setViewDnsRecordsOpen] = React.useState(false);
     const domainStatus = associatedDomain?.domainStatus ?? "PENDING";
     const currentStep = steps.findIndex((step) => step.status === "in-progress");
@@ -217,12 +219,34 @@ function DomainDetails({
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={() => setDnsConfigOpen(true)}>
                         <Cog className="mr-2 h-4 w-4" />
                         Domain configuration
                     </Button>
                 </div>
             </CardHeader>
+            <Dialog open={dnsConfigOpen} onOpenChange={setDnsConfigOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>DNS Configuration Tutorial</DialogTitle>
+                        <DialogDescription>
+                            Complete guide for configuring DNS records for your domain with AWS CloudFront
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DNSConfigurationTutorial
+                        domain={domain.domain}
+                        certificateValidationRecord={associatedDomain?.certificateVerificationDNSRecord}
+                        cloudfrontDomain={
+                            associatedDomain?.subDomains?.[0]?.dnsRecord
+                                ? parseDNSRecord(associatedDomain.subDomains[0].dnsRecord)?.data
+                                : undefined
+                        }
+                    />
+                    <DialogFooter>
+                        <Button onClick={() => setDnsConfigOpen(false)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             <Dialog open={viewDnsRecordsOpen} onOpenChange={setViewDnsRecordsOpen}>
                 <DialogContent className="max-w-3xl">
                     <DialogHeader>
