@@ -530,8 +530,8 @@ export default function DNSConfigurationTutorial({
                                     <div className="grid gap-4">
                                         <div className="grid grid-cols-[100px_1fr_auto] gap-4 items-center p-4 bg-muted/30 rounded-lg">
                                             <div className="font-medium">Hostname:</div>
-                                            <code className="text-sm bg-background px-2 py-1 rounded">@ (or leave blank)</code>
-                                            <Button size="sm" variant="outline" onClick={() => copyToClipboard("@", "root-hostname")}>
+                                            <code className="text-sm bg-background px-2 py-1 rounded">www (or @</code>
+                                            <Button size="sm" variant="outline" onClick={() => copyToClipboard("www", "root-hostname")}>
                                                 {copiedField === "root-hostname" ? (
                                                     <CheckCircle className="h-4 w-4" />
                                                 ) : (
