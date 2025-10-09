@@ -418,8 +418,10 @@ function DomainEntry({
             {associatedDomain?.subDomains?.map((subDomain, index) => {
                 if (subDomain.dnsRecord) {
                     const parsedData = parseDNSRecord(subDomain.dnsRecord);
+                    console.log(subDomain.dnsRecord, "subDomain.dnsRecord");
                     if (parsedData) {
                         const { data, hostname, type } = parsedData;
+                        console.log(parsedData, "parsedData");
                         return (
                             <div key={index} className="rounded-md border bg-muted/30 p-4">
                                 <h3 className="mb-2 font-medium">Subdomain Records</h3>
