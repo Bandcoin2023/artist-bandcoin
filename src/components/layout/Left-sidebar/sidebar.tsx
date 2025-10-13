@@ -163,12 +163,12 @@ export default function Sidebar({ className }: SidebarProps) {
   return (
     <div
       className={cn(
-        ` h-[calc(100vh-10.8vh)] sticky top-[5.8rem]  p-1 w-full overflow-hidden border-r  hidden transition-[width] duration-500 md:block`,
+        ` h-[calc(100vh-13vh)] sticky   p-1 w-full overflow-hidden border-r  hidden transition-[width] duration-500 md:block`,
         !isMinimized ? "w-[280px]" : "w-[78px]",
         className,
       )}
     >
-      <div className=" flex  h-full   w-full  flex-col items-center justify-between   py-2   no-scrollbar  ">
+      <div className=" flex  h-full   w-full  flex-col items-center justify-between   py-1   no-scrollbar  ">
         <div className="flex w-full flex-col items-center justify-between gap-4">
           <div className="flex  w-full overflow-x-hidden   flex-col  ">
             <DashboardNav items={LeftNavigation} />

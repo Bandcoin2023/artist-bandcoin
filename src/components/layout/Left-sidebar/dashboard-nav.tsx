@@ -33,7 +33,7 @@ export function DashboardNav({ items, setOpen }: DashboardNavProps) {
     return null
   }
   return (
-    <nav className="grid w-full gap-3 p-1 ">
+    <nav className="grid w-full gap-1 p-1 ">
       <TooltipProvider>
         {items.map((item, index) => {
           const Icon = Icons[item.icon as keyof typeof Icons];
@@ -46,7 +46,7 @@ export function DashboardNav({ items, setOpen }: DashboardNavProps) {
                   >
                     <Button
                       className={cn(
-                        "  flex    w-full items-center shadow-sm  justify-start   gap-2 overflow-hidden rounded-md text-sm font-medium hover:text-[#dbdd2c]",
+                        "  flex    w-full items-center shadow-sm  justify-start   gap-1 overflow-hidden rounded-md text-sm font-medium hover:text-[#dbdd2c]",
                         path === item.href
                           ? "border-[#dbdd2c] border-2 text-[#dbdd2c] font-bold "
                           : "transparent shadow-black ",

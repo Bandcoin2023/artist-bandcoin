@@ -190,7 +190,7 @@ export default function CreatorLayout({
                     />
                   </motion.div>
                 </AnimatePresence>
-                <div className="hidden h-[calc(100vh-10vh)]  bg-background md:block">
+                <div className="hidden h-[calc(100vh-13vh)]  bg-background md:block">
                   <motion.div
                     className="sticky top-0 hidden h-full overflow-y-auto p-1 md:block"
                     initial={false}
@@ -204,7 +204,7 @@ export default function CreatorLayout({
                       animate={isMinimized ? "collapsed" : "expanded"}
                       variants={contentVariants}
                     >
-                      <Card className="flex min-h-[72%]    w-full flex-col gap-2 overflow-x-hidden scrollbar-hide">
+                      <Card className="flex min-h-[50%]    w-full flex-col gap-2 overflow-x-hidden scrollbar-hide">
                         <CardHeader className="sticky top-0 z-10 bg-primary p-2">
                           <h3 className="text-center   font-medium ">
                             Trending Creators
@@ -221,7 +221,7 @@ export default function CreatorLayout({
                           </h3>
                         </CardHeader>
                         <CardContent>
-                          <div className=" overflow-y-auto">
+                          <div className=" overflow-y-auto ">
                             <CreatorSidebar />
                           </div>
                         </CardContent>

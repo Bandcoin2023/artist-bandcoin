@@ -331,7 +331,7 @@ const HomePage = () => {
 
             {/* Product details card */}
             <div className="hidden w-full xl:flex ">
-              <Card className="min-w-[350px] space-y-6 border-none bg-white/40 p-6 shadow-sm shadow-black backdrop-blur-md">
+              <Card className="min-w-[300px] space-y-6 border-none bg-white/40 p-6 shadow-sm shadow-black backdrop-blur-md">
                 <div className="space-y-1 rounded-md border-2 p-2 ">
                   <h2 className="text-lg font-bold uppercase">
                     {currentAsset?.asset?.name}
