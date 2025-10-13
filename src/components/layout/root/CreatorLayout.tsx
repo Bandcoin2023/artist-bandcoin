@@ -151,8 +151,8 @@ export default function CreatorLayout({
     console.log(selectedMode);
   }, [path, selectedMode, router]);
   return (
-    <div className="relative h-[calc(100vh-10.8vh)] overflow-hidden">
-      <div className="flex h-[calc(100vh-10.8vh)] gap-4 overflow-hidden">
+    <div className="relative h-[calc(100vh-13vh)] overflow-hidden">
+      <div className="flex h-[calc(100vh-13vh)] gap-4 overflow-hidden">
         {selectedMode === Mode.USER ? (
           <>
             <motion.div
@@ -190,7 +190,7 @@ export default function CreatorLayout({
                     />
                   </motion.div>
                 </AnimatePresence>
-                <div className="hidden h-[calc(100vh-13vh)]  bg-background md:block">
+                <div className="hidden h-[calc(100vh-13vh)]  bg-background md:block ">
                   <motion.div
                     className="sticky top-0 hidden h-full overflow-y-auto p-1 md:block"
                     initial={false}

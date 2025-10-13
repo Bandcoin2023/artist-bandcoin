@@ -367,7 +367,7 @@ export default function StoredItemsView() {
                     <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="STORED" className="flex items-center gap-2">
                             <ImageIcon className="h-4 w-4" />
-                            Store Items
+                            Store
                         </TabsTrigger>
                         <TabsTrigger value="ALBUM" className="flex items-center gap-2">
                             <AlbumIcon className="h-4 w-4" />
@@ -375,7 +375,7 @@ export default function StoredItemsView() {
                         </TabsTrigger>
                         <TabsTrigger value="ROYALTY" className="flex items-center gap-2">
                             <Crown className="h-4 w-4" />
-                            Royalty Items
+                            Royalty
                         </TabsTrigger>
                         <TabsTrigger value="PageAsset" className="flex items-center gap-2">
                             <Coins className="h-4 w-4" />
