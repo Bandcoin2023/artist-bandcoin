@@ -27,6 +27,7 @@ import type { CreatorWithPageAsset, Theme } from "~/types/artist/dashboard"
 import CustomHTMLWidget from "./custom-html-widget"
 import CalendarWidget from "./calendar-widget"
 import { CommentFormatter } from "../common/comment-formatter"
+import { useSession } from "next-auth/react"
 
 // Add a global style fix at the top of the component to ensure proper z-index and backdrop for all popover/sheet components
 
@@ -125,7 +126,7 @@ export default function CoverProfileWidget({
     creatorData,
     showDefaultValues = false,
 }: CoverProfileWidgetProps) {
-
+    const session = useSession()
     const settingsInitialized = useRef(false)
     // Create a ref to track if we're currently updating settings
     const isUpdatingSettings = useRef(false)
@@ -505,7 +506,7 @@ export default function CoverProfileWidget({
                     </Button>
                 )}
                 {
-                    !profileEditMode && (
+                    profileEditMode && creatorData.id === session?.data?.user.id && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="secondary" size="sm" className="absolute top-2 left-2">
@@ -521,7 +522,7 @@ export default function CoverProfileWidget({
                     )
                 }
 
-                {!profileEditMode && (
+                {profileEditMode && creatorData.id === session?.data?.user.id && (
                     <Button
                         variant="secondary"
                         size="sm"
@@ -746,7 +747,7 @@ export default function CoverProfileWidget({
                             </Button>
                         )}
 
-                        {!profileEditMode && (
+                        {!profileEditMode && creatorData.id === session?.data?.user.id && (
                             <Button
                                 variant="secondary"
                                 size="sm"
@@ -1148,7 +1149,7 @@ export default function CoverProfileWidget({
                             </Button>
                         )}
 
-                        {!profileEditMode && (
+                        {!profileEditMode && creatorData.id === session?.data?.user.id && (
                             <Button
                                 variant="secondary"
                                 size="sm"
