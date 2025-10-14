@@ -47,21 +47,23 @@ function Header() {
                             <SheetContent side="left" className="w-72 p-0">
                                 <SheetHeader className="flex items-center justify-between bg-primary p-2 rounded-md shadow-md">
 
-                                    <div className="flex items-center gap-1 ">
-                                        <Image
-                                            alt="logo"
-                                            objectFit="cover"
-                                            src="/images/logo.png"
-                                            height={200}
-                                            width={200}
-                                            className=" h-10 w-10"
-                                        />
-                                        <h1 className="relative text-xl font-bold capitalize text-black md:text-4xl ">
-                                            <p className="">{PLATFORM_ASSET.code.toLocaleUpperCase()}</p>
-                                            <p className="absolute  right-0 top-0 -mr-4 -mt-1  text-xs">TM</p>
-                                        </h1>
+                                    <Link href="/" className="">
+                                        <div className="flex items-center gap-1 ">
+                                            <Image
+                                                alt="logo"
+                                                objectFit="cover"
+                                                src="/images/logo.png"
+                                                height={200}
+                                                width={200}
+                                                className=" h-10 w-10"
+                                            />
+                                            <h1 className="relative text-xl font-bold capitalize text-black md:text-4xl ">
+                                                <p className="">{PLATFORM_ASSET.code.toLocaleUpperCase()}</p>
+                                                <p className="absolute  right-0 top-0 -mr-4 -mt-1  text-xs">TM</p>
+                                            </h1>
 
-                                    </div>
+                                        </div>
+                                    </Link>
                                 </SheetHeader>
                                 <div className="flex h-full w-full flex-col items-center justify-between p-2 no-scrollbar">
                                     <div className="flex w-full overflow-x-hidden flex-col py-2">
@@ -111,18 +113,20 @@ function Header() {
                                 </div>
                             </SheetContent>
                         </Sheet>
-                        <div className="relative ml-2 hidden h-14 w-14 md:block">
-                            <Image
-                                fill
-                                alt="logo"
-                                src="/images/logo.png"
-                                sizes="56px"
-                            />
-                        </div>
-                        <h1 className="relative text-xl font-bold capitalize text-white md:text-4xl">
-                            {PLATFORM_ASSET.code.toLocaleUpperCase()}
-                            <p className="absolute right-0 top-0 -mr-4 -mt-1 text-xs">TM</p>
-                        </h1>
+                        <Link href="/" className="flex items-center gap-1">
+                            <div className="relative ml-2 hidden h-14 w-14 md:block">
+                                <Image
+                                    fill
+                                    alt="logo"
+                                    src="/images/logo.png"
+                                    sizes="56px"
+                                />
+                            </div>
+                            <h1 className="relative text-xl font-bold capitalize text-white md:text-4xl">
+                                {PLATFORM_ASSET.code.toLocaleUpperCase()}
+                                <p className="absolute right-0 top-0 -mr-4 -mt-1 text-xs">TM</p>
+                            </h1>
+                        </Link>
                     </div>
                     <HeaderButtons />
                 </div>
