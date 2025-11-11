@@ -28,7 +28,7 @@ export const LeftNavigation: NavItem[] = [
   { href: "/bounty", icon: "bounty", title: "BOUNTY" },
   { href: "/artist/home", icon: "creator", title: "ARTIST" },
   { href: "/settings", icon: "setting", title: "SETTINGS" },
-  // { href: "/spotify", icon: "spotify", title: "SPOTIFY" },
+  { href: "/spotify", icon: "spotify", title: "SPOTIFY" },
 ];
 
 export const BottomNavigation = {

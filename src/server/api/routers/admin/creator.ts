@@ -10,6 +10,7 @@ import {
   createTRPCRouter,
   creatorProcedure,
   protectedProcedure,
+  publicProcedure,
 } from "~/server/api/trpc";
 import { urlToIpfsHash } from "~/utils/ipfs";
 export const MAX_ASSET_LIMIT = Number("922337203685");
@@ -166,15 +167,17 @@ export const creatorRouter = createTRPCRouter({
   getSecretMessage: protectedProcedure.query(() => {
     return "you can now see this secret message!";
   }),
-  creatorIDfromVanityURL: creatorProcedure
+  creatorIDfromVanityURL: publicProcedure
     .input(z.string())
     .query(async ({ input, ctx }) => {
+      console.log("Fetching Creator for Vanity URL.........:", input);
       const creator = await ctx.db.creator.findUnique({
         where: { vanityURL: input },
         include: {
           vanitySubscription: true,
         },
       });
+      console.log("Queried Creator for Vanity URL.........:", creator);
       return creator;
     }),
 });

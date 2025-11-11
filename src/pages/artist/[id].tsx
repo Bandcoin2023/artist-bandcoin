@@ -256,10 +256,10 @@ const HEIGHT_MAP: Record<WidgetHeight, number> = {
     "4XL": 1200,
 }
 
-export default function SingleCreatorViewPage() {
+export default function SingleCreatorViewPage({ creatorId }: { creatorId?: string }) {
     // State variables
     const router = useRouter()
-    const id = router.query.id as string
+    const id = creatorId ? creatorId : router.query.id as string
     const [widgets, setWidgets] = useState<WidgetItem[]>(DEFAULT_LAYOUT)
     const [editMode, setEditMode] = useState(false)
     const [layoutName, setLayoutName] = useState("My Dashboard")
