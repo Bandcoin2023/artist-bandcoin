@@ -22,6 +22,7 @@ import ExportCreateSongModal from "../modal/export-create-song-modal";
 import CreateRoyalityModal from "../modal/create-royality-modal";
 import { AddSpotifyRewardDialog } from "../modal/add-spotify-reward-dialog";
 import SellPageAssetModal from "../modal/sell-page-asset-modal";
+import CreateLocationBasedBountyModal from "../modal/create-locationbased-bounty";
 
 const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -50,6 +51,7 @@ const ModalProvider = () => {
       <CreatorStoredAssetModal />
       <CreateSongModal />
       <ShareModal />
+      <CreateLocationBasedBountyModal />
 
       <CreatePostModal />
       <AddSubscriptionModal />

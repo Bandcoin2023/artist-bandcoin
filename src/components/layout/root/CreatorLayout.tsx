@@ -448,12 +448,12 @@ const CreatorNavigation: DockerItem[] = [
   //   label: "SETTINGS",
   //   color: "bg-purple-500",
   // },
-  // {
-  //   href: "/artist/map",
-  //   icon: "map",
-  //   label: "MAP",
-  //   color: "bg-pink-500",
-  // },
+  {
+    href: "/artist/map",
+    icon: "map",
+    label: "MAP",
+    color: "bg-pink-500",
+  },
   {
     href: "/artist/spotify",
     icon: "spotify",

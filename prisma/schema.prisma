@@ -223,6 +223,7 @@ model Creator {
     Appearance          Appearance[]
     CreatorCustomDomain CreatorCustomDomain[]
     SellPageAsset       SellPageAsset[]
+    ActionLocation      ActionLocation[]
 
     @@index([bio, name])
 }
@@ -460,9 +461,9 @@ model Asset {
     creatorId   String? // if null then it is admin asset
     creator     Creator?    @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
-    tierId Int?
-    tier   Subscription? @relation(fields: [tierId], references: [id], onDelete: SetNull)
-
+    tierId        Int?
+    tier          Subscription?   @relation(fields: [tierId], references: [id], onDelete: SetNull)
+    isQRItem      Boolean         @default(false)
     song          Song?
     buyers        User_Asset[]
     marketItems   MarketAsset[]
@@ -518,9 +519,9 @@ enum MarketType {
 
 // this for creators;
 model MarketAsset {
-    id Int @id @default(autoincrement())
-
-    privacy ItemPrivacy @default(PUBLIC)
+    id       Int         @id @default(autoincrement())
+    isQRItem Boolean     @default(false)
+    privacy  ItemPrivacy @default(PUBLIC)
 
     price    Float
     priceUSD Float @default(1)
@@ -621,13 +622,15 @@ model LocationGroup {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    image String?
+    image  String?
+    hidden Boolean @default(false)
 
     link String?
 
     multiPin Boolean @default(false)
 
-    locations Location[]
+    locations      Location[]
+    ActionLocation ActionLocation[]
 }
 
 model Location {
@@ -636,8 +639,8 @@ model Location {
     latitude  Float
     longitude Float
 
-    autoCollect Boolean
-
+    autoCollect     Boolean
+    hidden          Boolean        @default(false)
     locationGroupId String?
     locationGroup   LocationGroup? @relation(fields: [locationGroupId], references: [id], onDelete: Cascade)
 
@@ -658,6 +661,28 @@ model LocationConsumer {
     viewedAt DateTime?
 
     hidden Boolean @default(false)
+
+    createdAt DateTime @default(now())
+}
+
+model ActionLocation {
+    id Int @id @default(autoincrement())
+
+    bountyId Int
+
+    bounty Bounty @relation(fields: [bountyId], references: [id], onDelete: Cascade)
+
+    locationGroupId String
+
+    locationGroup LocationGroup @relation(fields: [locationGroupId], references: [id], onDelete: Cascade)
+
+    serial Int
+
+    hidden Boolean @default(false)
+
+    creatorId String
+
+    creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
     createdAt DateTime @default(now())
 }
@@ -690,13 +715,19 @@ model Bounty {
     BountyWinner          BountyWinner[]
     User                  User?               @relation(fields: [userId], references: [id])
     userId                String?
+    bountyType            BountyType          @default(GENERAL)
+
+    ActionLocation ActionLocation[]
 
     @@index([title, description])
 }
 
 model BountyWinner {
-    id        Int      @id @default(autoincrement())
-    bountyId  Int
+    id       Int     @id @default(autoincrement())
+    bountyId Int
+    xdr      String?
+
+    isSwaped  Boolean? @default(false)
     isClaimed Boolean  @default(false)
     bounty    Bounty   @relation(fields: [bountyId], references: [id], onDelete: Cascade)
     userId    String
@@ -713,6 +744,14 @@ model BountyDoubt {
     updatedAt DateTime?            @updatedAt
     createdAt DateTime             @default(now())
     messages  BountyDoubtMessage[] // Relationship for messages between user and creator
+}
+
+enum BountyType {
+    GENERAL
+
+    LOCATION_BASED
+
+    SCAVENGER_HUNT
 }
 
 model BountyDoubtMessage {
@@ -733,9 +772,10 @@ enum UserRole {
 }
 
 model BountyParticipant {
-    id       Int    @id @default(autoincrement())
-    bountyId Int
-    bounty   Bounty @relation(fields: [bountyId], references: [id], onDelete: Cascade)
+    id          Int    @id @default(autoincrement())
+    bountyId    Int
+    bounty      Bounty @relation(fields: [bountyId], references: [id], onDelete: Cascade)
+    currentStep Int    @default(0) // Current step in the bounty
 
     userId String
     user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

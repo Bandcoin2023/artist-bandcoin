@@ -21,7 +21,15 @@ import { MiniPlayerProvider } from "~/components/player/mini-player-provider"
 import LoginRequiredModal from "~/components/modal/login-required-modal"
 import { BottomPlayerProvider } from "~/components/player/context/bottom-player-context"
 import { StemPlayer } from "~/components/player/bottom-player"
-
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "~/components/shadcn/ui/card";
+import ARModalProvider from "~/components/providers/augmented-reality/augmented-modal-provider"
+import ARLayout from "./ARLayout"
 export default function Layout({
     children,
     className,
@@ -38,9 +46,50 @@ export default function Layout({
     const publicRoutes = ["/about", "/privacy", "/support", "/"]
     const isPublicRoute = publicRoutes.includes(router.pathname)
     const isStudioRoute = router.pathname.startsWith("/artist/studio")
+    const isAugmentedRealityRoute = router.pathname.startsWith("/augmented-reality/ar");
 
     const handleToggle = () => {
         toggle()
+    }
+    if (router.pathname.includes("/augmented-reality")) {
+        // if (router.pathname.includes("/augmented-reality/enter")) {
+        //   return <>{children}</>;
+        // }
+        return (
+            <>
+                {session?.status === "authenticated" || router.pathname.includes("/augmented-reality/qr") ? (
+                    <div className="h-screen w-full overflow-hidden fixed inset-0">
+                        {
+                            isAugmentedRealityRoute ? (
+
+                                <>
+                                    <ARModalProvider />
+                                    {children}
+                                </>
+                            ) : (
+                                <ARLayout>
+                                    <ARModalProvider />
+                                    {children}
+                                </ARLayout>
+                            )
+                        }
+
+                    </div>
+                ) : (
+                    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+                        <Card className="w-full max-w-[350px] mx-4">
+                            <CardHeader className="text-center">
+                                <CardTitle className="text-lg sm:text-xl">Welcome to Actionverse AR</CardTitle>
+                                <CardDescription className="text-sm sm:text-base">Please login/signup to continue</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex items-center justify-center">
+                                <ConnectWalletButton />
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+            </>
+        )
     }
     return (
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>

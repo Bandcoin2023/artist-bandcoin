@@ -12,6 +12,7 @@ import {
   XDR4BuyAsset,
   XDR4BuyAssetWithSquire,
   XDR4BuyAssetWithXLM,
+  XDR4BuyUSDC,
 } from "~/lib/stellar/music/trx/payment_xdr";
 import { SignUser } from "~/lib/stellar/utils";
 import {
@@ -19,7 +20,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
-import { getXLMPriceByPlatformAsset } from "~/lib/stellar/fan/get_token_price";
+import { getAssetToUSDCRate, getXLMPriceByPlatformAsset } from "~/lib/stellar/fan/get_token_price";
 
 export type authDocType = {
   pubkey: string;
@@ -41,7 +42,7 @@ export const stellarRouter = createTRPCRouter({
         limit: z.number(),
         placerId: z.string().optional().nullable(),
         signWith: SignUser,
-        method: z.enum(["xlm", "asset", "card"]),
+        method: z.enum(["xlm", "asset", "usdc", "card"]),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -63,7 +64,6 @@ export const stellarRouter = createTRPCRouter({
 
       if (!marketAsset) throw new Error("asset is not in market");
 
-      console.log("marketAsset", marketAsset);
       // validate and transform input
 
       let seller: string;
@@ -88,14 +88,14 @@ export const stellarRouter = createTRPCRouter({
 
       switch (input.method) {
         case "xlm": {
-          const priceInNative = await getXLMPriceByPlatformAsset(marketAsset.price)
+          const nativePrice = marketAsset.priceUSD;
           return await XDR4BuyAssetWithXLM({
             seller: seller,
             storageSecret: sellerStorageSec,
             code: assetCode,
             issuerPub,
             buyer,
-            priceInNative: priceInNative.toFixed(7),
+            priceInNative: nativePrice.toString(),
             signWith,
           });
         }
@@ -108,6 +108,19 @@ export const stellarRouter = createTRPCRouter({
             buyer,
             price: marketAsset.price.toString(),
             signWith,
+          });
+        }
+        case "usdc": {
+          const usdcPrice = await getAssetToUSDCRate();
+          return await XDR4BuyUSDC({
+            seller: seller,
+            storageSecret: sellerStorageSec,
+            code: assetCode,
+            issuerPub,
+            buyer,
+            price: ((1 / usdcPrice) * marketAsset.priceUSD).toString(),
+            signWith,
+            usdcPrice: usdcPrice,
           });
         }
         case "card": {

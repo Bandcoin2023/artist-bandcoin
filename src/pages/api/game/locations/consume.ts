@@ -17,7 +17,7 @@ export default async function handler(
       error: "User is not authenticated",
     });
   }
-
+  console.log("token", token);
   const pubkey = token.sub;
 
   if (!pubkey) {
@@ -48,8 +48,9 @@ export default async function handler(
     },
     where: { id: loc.location_id },
   });
-
+  console.log("Location found", location);
   if (!location?.locationGroup) {
+    console.error("Location group not found for location", loc.location_id);
     return res.status(422).json({
       success: false,
       data: "Could not find the location",
@@ -80,7 +81,7 @@ export default async function handler(
       });
     }
   } else {
-    const hasConsumer = await db.locationGroup.findFirst({
+    const checkMeAsAConsumer = await db.locationGroup.findFirst({
       where: {
         locations: {
           some: {
@@ -94,8 +95,38 @@ export default async function handler(
         id: location.locationGroup.id,
       },
     });
+    const findActionLocation = await db.actionLocation.findFirst({
+      where: {
+        locationGroupId: location.locationGroup.id,
+      },
+    });
 
-    if (!hasConsumer) {
+    if (!checkMeAsAConsumer && findActionLocation) {
+      const bountyParticipant = await db.bountyParticipant.findUnique({
+        where: {
+          bountyId_userId: {
+            userId: pubkey,
+            bountyId: findActionLocation.bountyId,
+          },
+        },
+      });
+
+      if (bountyParticipant) {
+        await db.bountyParticipant.update({
+          where: {
+            bountyId_userId: {
+              userId: pubkey,
+              bountyId: findActionLocation.bountyId,
+            },
+          },
+          data: {
+            currentStep: {
+              increment: 1,
+            },
+          },
+        });
+      }
+
       await db.locationConsumer.create({
         data: { locationId: location.id, userId: pubkey },
       });
@@ -106,7 +137,21 @@ export default async function handler(
       });
 
       return res.status(200).json({ success: true, data: "Location consumed" });
-    } else {
+    }
+    else if (!checkMeAsAConsumer && !findActionLocation) {
+      await db.locationConsumer.create({
+        data: { locationId: location.id, userId: pubkey },
+      });
+
+      await db.locationGroup.update({
+        where: { id: location.locationGroup.id },
+        data: { remaining: { decrement: 1 } },
+      });
+
+      return res.status(200).json({ success: true, data: "Location consumed" });
+
+    }
+    else {
       return res.status(422).json({
         success: false,
         data: "Location limit reached",

@@ -1,11 +1,18 @@
-import { Plus, Search } from "lucide-react"
+import { Plus, Search, ChevronDown, MapPin, Target, Trophy } from "lucide-react"
 import { Input } from "~/components/shadcn/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/shadcn/ui/select"
 import { sortOptionEnum } from "~/types/bounty/bounty-type"
 import { Button } from "../shadcn/ui/button"
 import { filterEnum } from "~/pages/bounty"
 import { useCreateBountyStore } from "../store/create-bounty-store"
-
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator,
+} from "~/components/shadcn/ui/dropdown-menu"
+import { useCreateLocationBasedBountyStore } from "../store/create-locationbased-bounty-store"
 export default function SearchAndSort({ searchTerm, setSearchTerm, sortOption, setSortOption, filter, setFilter }: {
     searchTerm: string,
     setSearchTerm: (value: string) => void,
@@ -16,6 +23,8 @@ export default function SearchAndSort({ searchTerm, setSearchTerm, sortOption, s
 
 }) {
     const { setIsOpen } = useCreateBountyStore()
+    const { setIsOpen: setIsOpenLocationModal } = useCreateLocationBasedBountyStore()
+
     return (
         <div className=" flex flex-col   gap-4 items-center justify-between  bg-secondary p-6 rounded-lg shadow-md">
             <h1 className="mb-8 text-4xl hidden md:block font-extrabold text-center ">
@@ -57,11 +66,25 @@ export default function SearchAndSort({ searchTerm, setSearchTerm, sortOption, s
                                     JOINED
                                 </Button>
                             </div> :
-                            <Button className="shadow-sm shadow-foreground hidden  md:flex items-center justify-center"
-                                variant='destructive'
-                                onClick={() => setIsOpen(true)}>
-                                <Plus className="h-4 w-4 mr-2" />  Create Bounty
-                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button className="ml-auto" variant="accent">
+                                        <Plus className="h-4 w-4 mr-2" /> Create <ChevronDown className="h-4 w-4 ml-2" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => setIsOpen(true)} className="cursor-pointer">
+                                        <Trophy className="h-4 w-4 mr-2" />
+                                        <span>Create Bounty</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+
+                                    <DropdownMenuItem onClick={() => setIsOpenLocationModal(true)} className="cursor-pointer">
+                                        <MapPin className="h-4 w-4 mr-2" />
+                                        <span>Create Location Based</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                     }
                     <div className="flex items-center justify-center space-x-4 ">
                         <Select value={sortOption}

@@ -10,8 +10,8 @@ import { Badge } from "~/components/shadcn/ui/badge"
 import { Button } from "~/components/shadcn/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/shadcn/ui/card"
 import { ScrollArea } from "~/components/shadcn/ui/scroll-area"
-import { useModal } from "~/lib/state/play/use-modal-store"
-import { useSelectedAutoSuggestion } from "~/lib/state/play/use-selectedAutoSuggestion"
+import { useModal } from "~/lib/state/augmented-reality/use-modal-store"
+import { useSelectedAutoSuggestion } from "~/lib/state/augmented-reality/use-selectedAutoSuggestion"
 import { api } from "~/utils/api"
 import { motion, AnimatePresence } from "framer-motion"
 import { Skeleton } from "~/components/shadcn/ui/skeleton"
@@ -367,7 +367,7 @@ function MapSection() {
       {/* Tooltip for right-click instruction */}
       <div className="absolute left-4 top-4 z-10 rounded-md bg-white/90 p-2 text-sm shadow-md backdrop-blur-sm dark:bg-gray-800/9 hidden md:block">
         <div className="flex items-center gap-2">
-          <Copy className="h-4 w-4 " />
+          <Copy className="h-4 w-4 text-primary" />
           <span>Right-click anywhere to view and copy coordinates</span>
         </div>
       </div>
@@ -425,9 +425,9 @@ function SideMapItem({
                   className="group cursor-pointer rounded-lg border border-border bg-card p-3 transition-all hover:border-primary hover:shadow-md"
                 >
                   <div className="flex items-start gap-3">
-                    <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 " />
+                    <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                     <div className="flex-1">
-                      <h3 className="font-medium group-hover:">
+                      <h3 className="font-medium group-hover:text-primary">
                         {pin.locationGroup?.title ?? "Unnamed Location"}
                       </h3>
                       <div className="mt-2 flex items-center justify-between">
@@ -478,7 +478,7 @@ function SkeletonPin() {
 
 function ManualPinButton({ handleClick }: { handleClick: () => void }) {
   return (
-    <Button type="button" onClick={handleClick} variant="chart4" className="flex items-center gap-2  shadow-md">
+    <Button type="button" onClick={handleClick} variant="accentOutline" className="flex items-center gap-2  shadow-md">
       <MapPin className="h-4 w-4" />
       <span className="hidden md:block">Drop Pin</span>
     </Button>
@@ -487,7 +487,7 @@ function ManualPinButton({ handleClick }: { handleClick: () => void }) {
 
 function ReportCollection() {
   return (
-    <Button variant="chart1" asChild className="flex items-center gap-2  shadow-md">
+    <Button variant="accentOutline" asChild className="flex items-center gap-2  shadow-md">
       <Link href="/artist/map/collection-report">
         <ClipboardList className="h-4 w-4" />
         <span className="hidden md:block">Collection Report</span>
@@ -576,7 +576,9 @@ function MyPins({
   setIsAutoCollect: (value: boolean) => void
 }) {
   const { setAllPins } = useNearbyPinsStore()
-  const pins = api.maps.pin.getMyPins.useQuery()
+  const pins = api.maps.pin.getMyPins.useQuery({
+    showExpired: false,
+  })
   const { setData, setIsOpen } = useMapOptionsModalStore()
   const { setData: setBountyData } = useCreateLocationBasedBountyStore()
   useEffect(() => {

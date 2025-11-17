@@ -11,26 +11,26 @@ import {
   networkPassphrase,
   PLATFORM_ASSET,
   PLATFORM_FEE,
-  SIMPLIFIED_FEE,
-  SIMPLIFIED_FEE_IN_XLM,
   STELLAR_URL,
   TrxBaseFee,
   TrxBaseFeeInPlatformAsset,
 } from "../constant";
 import { MOTHER_SECRET } from "../marketplace/SECRET";
 import { SignUserType, WithSing } from "../utils";
+import { getAssetToUSDCRate, getPlatformAssetPrice } from "../fan/get_token_price";
 
 const assetIssuer = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
 const assetCode = "USDC";
 
-export async function SendBountyBalanceToMotherAccount({
+export async function SendBountyBalanceToMotherAccountViaAsset({
   prize,
   signWith,
   userPubKey,
   secretKey,
+  fees,
 }: {
   prize: number;
-
+  fees: number;
   signWith: SignUserType;
   userPubKey: string;
   secretKey?: string | undefined;
@@ -44,8 +44,7 @@ export async function SendBountyBalanceToMotherAccount({
     networkPassphrase,
   });
 
-  // prize + two time trx cost (current trx cost + winner selection cost)
-  const totalAmount = prize;
+  const totalAmount = prize + fees;
 
   transaction.addOperation(
     Operation.payment({
@@ -70,17 +69,66 @@ export async function SendBountyBalanceToMotherAccount({
   }
   return { xdr: buildTrx.toXDR(), pubKey: userPubKey };
 }
+export async function SendBountyBalanceToMotherAccountViaUSDC({
+  prize,
+  signWith,
+  userPubKey,
+  secretKey,
+  fees,
+}: {
+  prize: number;
+  fees: number;
+  signWith: SignUserType;
+  userPubKey: string;
+  secretKey?: string | undefined;
+}) {
+  const server = new Horizon.Server(STELLAR_URL);
+  const motherAcc = Keypair.fromSecret(MOTHER_SECRET);
+  const account = await server.loadAccount(motherAcc.publicKey());
+  const USDC = new Asset(
+    "USDC",
+    "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+  );
+  const transaction = new TransactionBuilder(account, {
+    fee: TrxBaseFee,
+    networkPassphrase,
+  });
 
+  transaction.addOperation(
+    Operation.payment({
+      destination: motherAcc.publicKey(),
+      asset: USDC,
+      amount: (prize + fees).toFixed(7).toString(),
+      source: userPubKey,
+    }),
+  );
+  transaction.setTimeout(0);
+
+  const buildTrx = transaction.build();
+  buildTrx.sign(motherAcc);
+
+  if (signWith && "email" in signWith && secretKey) {
+    const xdr = buildTrx.toXDR();
+    const signedXDr = await WithSing({
+      xdr: xdr,
+      signWith: signWith,
+    });
+    return { xdr: signedXDr, pubKey: userPubKey };
+  }
+  return { xdr: buildTrx.toXDR(), pubKey: userPubKey };
+}
 export async function SendBountyBalanceToMotherAccountViaXLM({
   prizeInXLM,
   signWith,
   userPubKey,
   secretKey,
+  fees,
 }: {
   prizeInXLM: number;
   signWith: SignUserType;
   userPubKey: string;
   secretKey?: string | undefined;
+  fees: number;
 }) {
   const server = new Horizon.Server(STELLAR_URL);
   const motherAcc = Keypair.fromSecret(MOTHER_SECRET);
@@ -92,8 +140,7 @@ export async function SendBountyBalanceToMotherAccountViaXLM({
     networkPassphrase,
   });
 
-  //
-  const totalAmount = prizeInXLM;
+  const totalAmount = prizeInXLM + fees;
 
   transaction.addOperation(
     Operation.payment({
@@ -116,6 +163,63 @@ export async function SendBountyBalanceToMotherAccountViaXLM({
     return { xdr: signedXDr, pubKey: userPubKey };
   }
   return { xdr: buildTrx.toXDR(), pubKey: userPubKey };
+}
+
+export async function SendBountyBalanceToUserAccount({
+  prize,
+  userPubKey,
+}: {
+  prize: number;
+  userPubKey: string;
+}) {
+  const server = new Horizon.Server(STELLAR_URL);
+  const motherAcc = Keypair.fromSecret(MOTHER_SECRET);
+  const account = await server.loadAccount(motherAcc.publicKey());
+
+  const platformAssetBalance = account.balances.find((balance) => {
+    if (
+      balance.asset_type === "credit_alphanum4" ||
+      balance.asset_type === "credit_alphanum12"
+    ) {
+      return balance.asset_code === PLATFORM_ASSET.code && balance.asset_issuer === PLATFORM_ASSET.issuer
+    }
+    return false;
+  });
+  //console.log("platformAssetBalance.............", platformAssetBalance);
+
+  if (
+    !platformAssetBalance ||
+    parseFloat(platformAssetBalance.balance) < prize
+  ) {
+    throw new Error("Balance is not enough to send the asset.");
+  }
+
+  const XLMBalance = await NativeBalance({ userPub: motherAcc.publicKey() });
+
+  if (!XLMBalance?.balance || parseFloat(XLMBalance.balance) < 1.0) {
+    throw new Error(
+      "Please make sure you have at least 1 XLM in your account.",
+    );
+  }
+
+  const transaction = new TransactionBuilder(account, {
+    fee: BASE_FEE.toString(),
+    networkPassphrase,
+  });
+
+  transaction.addOperation(
+    Operation.payment({
+      destination: userPubKey,
+      source: motherAcc.publicKey(),
+      asset: PLATFORM_ASSET,
+      amount: prize.toFixed(7).toString(),
+    }),
+  );
+  transaction.setTimeout(0);
+
+  const buildTrx = transaction.build();
+  buildTrx.sign(motherAcc);
+  return buildTrx.toXDR();
 }
 export async function claimBandCoinReward({
   pubKey,
@@ -254,66 +358,6 @@ export async function claimUSDCReward({
   const xdr = buildTrx.toXDR()
   return xdr;
 }
-export async function SendBountyBalanceToUserAccount({
-  prize,
-  userPubKey,
-}: {
-  prize: number;
-  userPubKey: string;
-}) {
-  const server = new Horizon.Server(STELLAR_URL);
-  const motherAcc = Keypair.fromSecret(MOTHER_SECRET);
-  const account = await server.loadAccount(motherAcc.publicKey());
-
-  const platformAssetBalance = account.balances.find((balance) => {
-    if (
-      balance.asset_type === "credit_alphanum4" ||
-      balance.asset_type === "credit_alphanum12"
-    ) {
-      return (
-        balance.asset_code === PLATFORM_ASSET.code &&
-        balance.asset_issuer === PLATFORM_ASSET.issuer
-      );
-    }
-    return false;
-  });
-  //console.log("platformAssetBalance.............", platformAssetBalance);
-
-  if (
-    !platformAssetBalance ||
-    parseFloat(platformAssetBalance.balance) < prize
-  ) {
-    throw new Error("Balance is not enough to send the asset.");
-  }
-
-  const XLMBalance = await NativeBalance({ userPub: motherAcc.publicKey() });
-
-  if (!XLMBalance?.balance || parseFloat(XLMBalance.balance) < 1.0) {
-    throw new Error(
-      "Please make sure you have at least 1 XLM in your account.",
-    );
-  }
-
-  const transaction = new TransactionBuilder(account, {
-    fee: BASE_FEE.toString(),
-    networkPassphrase,
-  });
-
-  transaction.addOperation(
-    Operation.payment({
-      destination: userPubKey,
-      source: motherAcc.publicKey(),
-      asset: PLATFORM_ASSET,
-      amount: prize.toFixed(7).toString(),
-    }),
-  );
-  transaction.setTimeout(0);
-
-  const buildTrx = transaction.build();
-  buildTrx.sign(motherAcc);
-  return buildTrx.toXDR();
-}
-
 export async function SendBountyBalanceToUserAccountViaXLM({
   prizeInXLM,
   userPubKey,
@@ -362,10 +406,7 @@ export async function SendBountyBalanceToWinner({
       balance.asset_type === "credit_alphanum4" ||
       balance.asset_type === "credit_alphanum12"
     ) {
-      return (
-        balance.asset_code === PLATFORM_ASSET.code &&
-        balance.asset_issuer === PLATFORM_ASSET.issuer
-      );
+      return balance.asset_code === PLATFORM_ASSET.code && balance.asset_issuer === PLATFORM_ASSET.issuer;
     }
     return false;
   });
@@ -401,10 +442,10 @@ export async function SendBountyBalanceToWinner({
   });
 
   if (!hasTrust) {
-    throw new Error(
-      `User Doesn't have trust, Please trust the ${PLATFORM_ASSET.code} first.`,
-    );
+    throw new Error(`User Doesn't have trust, Please trust the ${PLATFORM_ASSET.code} first.`);
   }
+
+
 
   transaction.addOperation(
     Operation.payment({
@@ -501,10 +542,7 @@ export async function SwapUserAssetToMotherUSDC({
       balance.asset_type === "credit_alphanum4" ||
       balance.asset_type === "credit_alphanum12"
     ) {
-      return (
-        balance.asset_code === PLATFORM_ASSET.code &&
-        balance.asset_issuer === PLATFORM_ASSET.issuer
-      );
+      return balance.asset_code === PLATFORM_ASSET.code && balance.asset_issuer === PLATFORM_ASSET.issuer;
     }
     return false;
   });

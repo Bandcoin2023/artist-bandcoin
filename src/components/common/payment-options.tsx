@@ -40,6 +40,7 @@ export interface CostBreakdownItem {
   highlighted?: boolean;
 }
 
+
 export function PaymentChoose({
   XLM_EQUIVALENT,
   handleConfirm,
@@ -48,6 +49,7 @@ export function PaymentChoose({
   trigger,
   beforeTrigger,
   costBreakdown,
+  USDC_EQUIVALENT
 }: {
   requiredToken: number;
   XLM_EQUIVALENT: number;
@@ -56,8 +58,8 @@ export function PaymentChoose({
   trigger: React.ReactNode;
   beforeTrigger?: () => Promise<boolean>;
   costBreakdown?: CostBreakdownItem[];
+  USDC_EQUIVALENT?: number;
 }) {
-  console.log("const breakdonw", costBreakdown);
   const { paymentMethod, setPaymentMethod, isOpen, setIsOpen } =
     usePaymentMethodStore();
 
@@ -103,17 +105,13 @@ export function PaymentChoose({
                 htmlFor={PaymentMethodEnum.enum.asset}
                 className="flex flex-1 cursor-pointer items-center"
               >
-                {PLATFORM_ASSET.code.toLocaleLowerCase() === "bandcoin" ? (
-                  <Image
-                    alt="bandcoin"
+                {
+                  PLATFORM_ASSET.code.toLocaleLowerCase() === "action" ? <Image
+                    alt="action"
                     height={24}
                     width={24}
-                    src={"https://bandcoin.io/images/logo.png"}
-                    className="mr-3 h-6 w-6"
-                  />
-                ) : (
-                  <Coins className="mr-3 h-6 w-6" />
-                )}
+                    src={"/images/action/logo.png"} className="mr-3 h-6 w-6" /> : <Coins className="mr-3 h-6 w-6" />
+                }
                 <div className="flex-grow">
                   <div className="font-medium">
                     Pay with {PLATFORM_ASSET.code}
@@ -145,40 +143,64 @@ export function PaymentChoose({
                   </div>
                 </div>
                 <div className="text-right font-medium">
-                  {XLM_EQUIVALENT.toFixed(2)} XLM
+                  {XLM_EQUIVALENT.toFixed(0)} XLM
                 </div>
               </Label>
             </div>
+            {
+              USDC_EQUIVALENT && (
+                <div className="flex items-center space-x-2 rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50">
+                  <RadioGroupItem
+                    value={PaymentMethodEnum.enum.usdc}
+                    id={PaymentMethodEnum.enum.usdc}
+                    className=""
+                  />
+                  <Label
+                    htmlFor={PaymentMethodEnum.enum.usdc}
+                    className="flex flex-1 cursor-pointer items-center"
+                  >
+                    <DollarSign className="mr-3 h-6 w-6" />
+                    <div className="flex-grow">
+                      <div className="font-medium">Pay with USDC</div>
+                      <div className="text-sm text-gray-500">
+                        Use Stellar Lumens
+                      </div>
+                    </div>
+                    <div className="text-right font-medium">
+                      {USDC_EQUIVALENT.toFixed(0)} USDC
+                    </div>
+                  </Label>
+                </div>
+              )
+            }
           </RadioGroup>
         </div>
 
         <div className="mt-6 space-y-3 border-t border-gray-200 pt-4">
-          {costBreakdown ? (
-            costBreakdown.map((item, index) => (
-              <div
-                key={index}
-                className={`flex justify-between ${
-                  item.highlighted ? "font-semibold" : ""
-                } ${item.type === "total" ? "border-t border-gray-200 pt-2 text-lg" : "text-sm"}`}
-              >
-                <span className={item.type === "fee" ? "text-gray-500" : ""}>
-                  {item.label}
-                </span>
-                <span>
-                  {item.amount.toFixed(2)}{" "}
-                  {paymentMethod === "asset" ? PLATFORM_ASSET.code : "XLM"}
-                </span>
-              </div>
-            ))
-          ) : (
-            <></>
-          )}
+          {costBreakdown ? costBreakdown.map((item, index) => (
+            <div
+              key={index}
+              className={`flex justify-between ${item.highlighted ? 'font-semibold' : ''
+                } ${item.type === 'total' ? 'text-lg pt-2 border-t border-gray-200' : 'text-sm'}`}
+            >
+              <span className={item.type === 'fee' ? 'text-gray-500' : ''}>
+                {item.label}
+              </span>
+              <span>
+                {item.amount.toFixed(0)} {paymentMethod === "asset" ? PLATFORM_ASSET.code :
+                  paymentMethod === "xlm" ? "XLM" : paymentMethod === "usdc" ? "USDC" : ""
+                }
+              </span>
+            </div>
+          )) : <></>}
         </div>
         <div className="mt-4 text-center text-sm text-gray-500">
           Your account will be charged{" "}
           {paymentMethod === "asset"
             ? `${requiredToken} ${PLATFORM_ASSET.code}`
-            : `${XLM_EQUIVALENT} XLM`}{" "}
+            : paymentMethod === "xlm"
+              ? `${XLM_EQUIVALENT} XLM`
+              : `${USDC_EQUIVALENT} USDC`}
           to perform this action.
         </div>
         <DialogFooter className=" flex flex-row items-center justify-between gap-2">
@@ -189,11 +211,7 @@ export function PaymentChoose({
           >
             Cancel
           </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={loading}
-            className="w-full  shadow-sm shadow-foreground"
-          >
+          <Button onClick={handleConfirm} disabled={loading} className="w-full  shadow-sm shadow-foreground">
             {loading && <Loader2 className="mr-2 animate-spin" />}
             Confirm Payment
           </Button>

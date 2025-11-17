@@ -1,3 +1,5 @@
+import { ActionLocation } from "@prisma/client";
+
 export interface BountyTypes {
     id: number;
     title: string;
@@ -6,10 +8,14 @@ export interface BountyTypes {
     priceInBand: number;
     requiredBalance: number;
     currentWinnerCount: number;
-    imageUrls: string[];
-    totalWinner: number;
+    latitude?: number | null;
+    longitude?: number | null;
+    radius?: number | null;
     requiredBalanceCode: string;
     requiredBalanceIssuer: string;
+    imageUrls: string[];
+    totalWinner: number;
+    bountyType: "GENERAL" | "LOCATION_BASED" | "SCAVENGER_HUNT";
     status: "PENDING" | "APPROVED" | "REJECTED";
     creatorId: string;
     _count: {
@@ -27,9 +33,16 @@ export interface BountyTypes {
     }[],
     isJoined: boolean;
     isOwner: boolean;
+    currentStep: number | undefined;
+    ActionLocation?: ActionLocation[]
 
 }
 
+export enum BountyTypeEnum {
+    GENERAL = "GENERAL",
+    LOCATION_BASED = "LOCATION_BASED",
+    SCAVENGER_HUNT = "SCAVENGER_HUNT",
+}
 
 export enum sortOptionEnum {
     DATE_ASC = "DATE_ASC",

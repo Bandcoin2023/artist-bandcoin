@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import {
   BountyStatus,
+  BountyType,
   NotificationType,
   Prisma,
   SubmissionViewType,
@@ -16,7 +17,9 @@ import {
   claimUSDCReward,
   getHasMotherTrustOnUSDC,
   getHasUserHasTrustOnUSDC,
-  SendBountyBalanceToMotherAccount,
+
+  SendBountyBalanceToMotherAccountViaAsset,
+  SendBountyBalanceToMotherAccountViaUSDC,
   SendBountyBalanceToMotherAccountViaXLM,
   SendBountyBalanceToUserAccount,
   SendBountyBalanceToUserAccountViaXLM,
@@ -29,6 +32,7 @@ import {
   getAssetToUSDCRate,
   getplatformAssetNumberForXLM,
   getPlatformAssetPrice,
+  getXLMPrice,
 } from "~/lib/stellar/fan/get_token_price";
 import { SignUser } from "~/lib/stellar/utils";
 import {
@@ -37,8 +41,9 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { BountySchema } from "~/components/modal/edit-bounty-modal";
+import { BountyFormSchema } from "~/components/modal/create-locationbased-bounty";
 
-export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
+export const PaymentMethodEnum = z.enum(["asset", "xlm", "usdc", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
 
 export const BountyCommentSchema = z.object({
@@ -85,10 +90,8 @@ export const BountyRoute = createTRPCRouter({
       z.object({
         signWith: SignUser,
         prize: z.number().min(0.00001, { message: "Prize can't less than 0" }),
-        xlmPrice: z
-          .number()
-          .min(0.00001, { message: "XLM Price can't less than 0" }),
         method: PaymentMethodEnum,
+        fees: z.number()
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -102,19 +105,32 @@ export const BountyRoute = createTRPCRouter({
       if (input.method === PaymentMethodEnum.enum.xlm) {
         return await SendBountyBalanceToMotherAccountViaXLM({
           userPubKey: userPubKey,
-          prizeInXLM: input.xlmPrice,
+          prizeInXLM: input.prize,
           signWith: input.signWith,
           secretKey: secretKey,
+          fees: input.fees,
         });
-      } else {
-        return await SendBountyBalanceToMotherAccount({
+      } else if (input.method === PaymentMethodEnum.enum.asset) {
+        return await SendBountyBalanceToMotherAccountViaAsset({
           userPubKey: userPubKey,
           prize: input.prize,
           signWith: input.signWith,
           secretKey: secretKey,
+          fees: input.fees,
         });
       }
+      else if (input.method === PaymentMethodEnum.enum.usdc) {
+        return await SendBountyBalanceToMotherAccountViaUSDC({
+          userPubKey: userPubKey,
+          prize: input.prize,
+          signWith: input.signWith,
+          secretKey: secretKey,
+          fees: input.fees,
+        });
+      }
+
     }),
+
 
   createBounty: protectedProcedure
     .input(
@@ -184,7 +200,59 @@ export const BountyRoute = createTRPCRouter({
         await createNotification(followerId);
       }
     }),
+  createLocationBounty: protectedProcedure
+    .input(
+      BountyFormSchema
+    )
+    .mutation(async ({ input, ctx }) => {
 
+      const bounty = await ctx.db.bounty.create({
+        data: {
+          title: input.title,
+          description: input.description,
+          priceInUSD: input.usdtAmount,
+          priceInBand: input.brandAmount,
+          creatorId: ctx.session.user.id,
+          totalWinner: input.winners,
+          requiredBalance: input.requiredBalance,
+          latitude: Number(input.latitude),
+          longitude: Number(input.longitude),
+          radius: Number(input.radius),
+          requiredBalanceCode: input.requiredBalanceCode,
+          requiredBalanceIssuer: input.requiredBalanceIssuer,
+          bountyType: BountyType.LOCATION_BASED,
+        },
+      });
+      const followers = await ctx.db.follow.findMany({
+        where: { creatorId: ctx.session.user.id },
+        select: { userId: true },
+      });
+
+      const followerIds = followers.map((follower) => follower.userId);
+
+      const createNotification = async (notifierId: string) => {
+        await ctx.db.notificationObject.create({
+          data: {
+            actorId: ctx.session.user.id,
+            entityType: NotificationType.BOUNTY,
+            entityId: bounty.id,
+            isUser: true,
+            Notification: {
+              create: [
+                {
+                  notifierId,
+                  isCreator: false,
+                },
+              ],
+            },
+          },
+        });
+      };
+
+      for (const followerId of followerIds) {
+        await createNotification(followerId);
+      }
+    }),
 
   getAllBounties: publicProcedure
     .input(
@@ -193,24 +261,23 @@ export const BountyRoute = createTRPCRouter({
         cursor: z.number().nullish(),
         skip: z.number().optional(),
         search: z.string().optional(),
-        sortBy: z
-          .enum(["DATE_ASC", "DATE_DESC", "PRICE_ASC", "PRICE_DESC"])
-          .optional(),
+        sortBy: z.nativeEnum(sortOptionEnum).optional(),
         filter: z.enum(["ALL", "NOT_JOINED", "JOINED"]).optional(),
+        bountyType: z.enum(["GENERAL", "LOCATION_BASED", "SCAVENGER_HUNT"]).optional(),
       }),
     )
     .query(async ({ input, ctx }) => {
-      const { limit, cursor, skip, search, sortBy, filter } = input;
+      const { limit, cursor, skip, search, sortBy, filter, bountyType } = input
 
-      const orderBy: Prisma.BountyOrderByWithRelationInput = {};
+      const orderBy: Prisma.BountyOrderByWithRelationInput = {}
       if (sortBy === sortOptionEnum.DATE_ASC) {
-        orderBy.createdAt = "asc";
+        orderBy.createdAt = "asc"
       } else if (sortBy === sortOptionEnum.DATE_DESC) {
-        orderBy.createdAt = "desc";
+        orderBy.createdAt = "desc"
       } else if (sortBy === sortOptionEnum.PRICE_ASC) {
-        orderBy.priceInUSD = "asc";
+        orderBy.priceInUSD = "asc"
       } else if (sortBy === sortOptionEnum.PRICE_DESC) {
-        orderBy.priceInUSD = "desc";
+        orderBy.priceInUSD = "desc"
       }
 
       const where: Prisma.BountyWhereInput = {
@@ -236,7 +303,10 @@ export const BountyRoute = createTRPCRouter({
             },
           },
         }),
-      };
+        ...(bountyType && {
+          bountyType: bountyType,
+        }),
+      }
 
       const bounties = await ctx.db.bounty.findMany({
         take: limit + 1,
@@ -257,7 +327,7 @@ export const BountyRoute = createTRPCRouter({
               profileUrl: true,
             },
           },
-
+          ActionLocation: true,
           BountyWinner: {
             select: {
               user: {
@@ -265,34 +335,38 @@ export const BountyRoute = createTRPCRouter({
                   id: true,
                 },
               },
+              isSwaped: true,
             },
           },
           participants: {
             where: { userId: ctx.session?.user.id },
-            select: { userId: true },
+            select: {
+              userId: true,
+            },
           },
         },
-      });
+      })
+
       const bountyWithIsOwnerNisJoined = bounties.map((bounty) => {
         return {
           ...bounty,
           isOwner: bounty.creatorId === ctx.session?.user.id,
-          isJoined: bounty.participants.some(
-            (participant) => participant.userId === ctx.session?.user.id,
-          ),
-        };
-      });
-      let nextCursor: typeof cursor | undefined = undefined;
+          isJoined: bounty.participants.some((participant) => participant.userId === ctx.session?.user.id),
+        }
+      })
+
+      let nextCursor: typeof cursor | undefined = undefined
       if (bountyWithIsOwnerNisJoined.length > limit) {
-        const nextItem = bountyWithIsOwnerNisJoined.pop();
-        nextCursor = nextItem?.id;
+        const nextItem = bountyWithIsOwnerNisJoined.pop()
+        nextCursor = nextItem?.id
       }
+      console.log("bountyWithIsOwnerNisJoined", bountyWithIsOwnerNisJoined)
+
       return {
         bounties: bountyWithIsOwnerNisJoined,
         nextCursor: nextCursor,
-      };
+      }
     }),
-
   isAlreadyJoined: protectedProcedure
     .input(
       z.object({
@@ -713,7 +787,9 @@ export const BountyRoute = createTRPCRouter({
   getPlatformAsset: protectedProcedure.query(async ({ ctx }) => {
     return await getAssetPrice();
   }),
-
+  getXLMPrice: protectedProcedure.query(async ({ ctx }) => {
+    return await getXLMPrice();
+  }),
   getAssetToUSDCRate: protectedProcedure.query(async ({ ctx }) => {
     return await getAssetToUSDCRate();
   }),
