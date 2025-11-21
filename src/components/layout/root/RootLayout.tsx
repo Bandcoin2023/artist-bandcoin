@@ -79,7 +79,7 @@ export default function Layout({
                     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
                         <Card className="w-full max-w-[350px] mx-4">
                             <CardHeader className="text-center">
-                                <CardTitle className="text-lg sm:text-xl">Welcome to Actionverse AR</CardTitle>
+                                <CardTitle className="text-lg sm:text-xl">Welcome to Bandcoin AR</CardTitle>
                                 <CardDescription className="text-sm sm:text-base">Please login/signup to continue</CardDescription>
                             </CardHeader>
                             <CardContent className="flex items-center justify-center">
