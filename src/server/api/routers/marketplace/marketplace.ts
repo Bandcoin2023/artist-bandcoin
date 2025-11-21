@@ -70,6 +70,7 @@ export const AssetSelectAllProperty = {
   fundEndDate: true,
   percentage: true,
   Stem: true,
+  isQRItem: true,
 };
 
 export const marketRouter = createTRPCRouter({

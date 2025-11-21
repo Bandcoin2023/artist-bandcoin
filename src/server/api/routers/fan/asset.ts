@@ -74,6 +74,8 @@ export const NftFormSchema = z.object({
   songInfo: ExtraSongInfo.optional(),
   isAdmin: z.boolean().optional(),
   tier: z.string().optional(),
+  isQRItem: z.boolean().optional(),
+
 });
 
 export const shopRouter = createTRPCRouter({
@@ -125,6 +127,7 @@ export const shopRouter = createTRPCRouter({
             name,
             mediaType,
             mediaUrl,
+            isQRItem: input.isQRItem,
             marketItems: {
               create: {
                 price,
@@ -132,6 +135,7 @@ export const shopRouter = createTRPCRouter({
                 placerId: creatorId,
                 type: nftType,
                 privacy: privacy,
+                isQRItem: input.isQRItem,
               },
             },
             description,

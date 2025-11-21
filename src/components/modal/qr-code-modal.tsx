@@ -1,0 +1,641 @@
+"use client"
+
+import type React from "react"
+
+import { useState, Suspense, useRef, useEffect } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/shadcn/ui/dialog"
+import { Button } from "~/components/shadcn/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/shadcn/ui/card"
+import { Badge } from "~/components/shadcn/ui/badge"
+import { Separator } from "~/components/shadcn/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/shadcn/ui/tabs"
+import {
+    Download,
+    ExternalLink,
+    Calendar,
+    Box,
+    FileText,
+    Copy,
+    Share2,
+    Eye,
+    AlertCircle,
+    Music,
+    ImageIcon,
+    Film,
+} from "lucide-react"
+import { format } from "date-fns"
+import toast from "react-hot-toast"
+import QRCode from "react-qr-code"
+import * as THREE from "three"
+import { Canvas, useFrame, useLoader } from "@react-three/fiber"
+import { OrbitControls, Environment, Html, useProgress } from "@react-three/drei"
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader"
+import { Loader2, RotateCcw, ZoomIn, ZoomOut } from "lucide-react"
+import { BASE_URL } from "~/lib/common"
+import { AssetType, MarketAssetTypeWithoutStem } from "~/types/market/market-asset-type"
+import { PLATFORM_ASSET } from "~/lib/stellar/constant"
+
+interface QRCodeModalProps {
+    isOpen: boolean
+    onClose: () => void
+    qrItem: MarketAssetTypeWithoutStem
+}
+
+export default function QRCodeModal({ isOpen, onClose, qrItem }: QRCodeModalProps) {
+    const [showDetails, setShowDetails] = useState(false)
+    const [activeTab, setActiveTab] = useState("qr")
+
+    const mediaType = qrItem.asset.mediaType
+    const mediaUrl = qrItem.asset.mediaUrl
+
+    // Generate QR code data URL
+    const qrData = `${BASE_URL}/augmented-reality/qr/${qrItem?.id}`
+
+    const getMediaTabLabel = () => {
+        const labelMap: Record<string, { label: string; icon: React.ReactNode }> = {
+            THREE_D: { label: "3D Model", icon: <Box className="ml-1 h-3 w-3" /> },
+            IMAGE: { label: "Image", icon: <ImageIcon className="ml-1 h-3 w-3" /> },
+            VIDEO: { label: "Video", icon: <Film className="ml-1 h-3 w-3" /> },
+            MUSIC: { label: "Audio", icon: <Music className="ml-1 h-3 w-3" /> },
+        }
+        return labelMap[mediaType]
+    }
+
+    const handleDownloadQR = () => {
+        const svg = document.getElementById("qr-code-svg")
+        if (svg) {
+            const svgData = new XMLSerializer().serializeToString(svg)
+            const canvas = document.createElement("canvas")
+            const ctx = canvas.getContext("2d")
+            const img = new Image()
+            canvas.width = 300
+            canvas.height = 300
+
+            img.onload = () => {
+                if (ctx) {
+                    ctx.fillStyle = "white"
+                    ctx.fillRect(0, 0, 300, 300)
+                    ctx.drawImage(img, 0, 0, 300, 300)
+                    const link = document.createElement("a")
+                    link.download = `qr-${qrItem.asset.name.replace(/\s+/g, "-").toLowerCase()}.png`
+                    link.href = canvas.toDataURL()
+                    link.click()
+                    toast.success("QR code downloaded!")
+                }
+            }
+            img.src = "data:image/svg+xml;base64," + btoa(svgData)
+        }
+    }
+
+    const handleCopyData = () => {
+        navigator.clipboard.writeText(qrData)
+        toast.success("QR data copied to clipboard!")
+    }
+
+    const handleShare = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: qrItem.asset.name,
+                    text: qrItem.asset.description ?? "QR Item",
+                    url: window.location.origin,
+                })
+            } catch (error) {
+                console.error("Error sharing:", error)
+                handleCopyData()
+            }
+        } else {
+            handleCopyData()
+        }
+    }
+
+    const mediaLabel = getMediaTabLabel()
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        QR Code Details - {qrItem.asset.name}
+                        <Badge variant="default">Active</Badge>
+                    </DialogTitle>
+                </DialogHeader>
+
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="qr">QR Code</TabsTrigger>
+                        <TabsTrigger value="media" disabled={!mediaUrl}>
+                            {mediaLabel?.label} {mediaLabel?.icon}
+                        </TabsTrigger>
+                        <TabsTrigger value="preview">Preview</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="qr" className="space-y-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* QR Code Section */}
+                            <div className="space-y-4">
+                                <Card>
+                                    <CardHeader className="text-center">
+                                        <CardTitle>QR Code</CardTitle>
+                                        <CardDescription>Scan this code to view the content</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="flex flex-col items-center space-y-4">
+                                        <div className="bg-white p-4 rounded-lg shadow-sm border">
+                                            <QRCode
+                                                id="qr-code-svg"
+                                                value={`${BASE_URL}/augmented-reality/qr/${qrItem?.id}`}
+                                                size={256}
+                                                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                                                viewBox="0 0 256 256"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2 w-full">
+                                            <Button onClick={handleDownloadQR} className="flex-1 gap-2">
+                                                <Download className="h-4 w-4" />
+                                                Download
+                                            </Button>
+                                            <Button onClick={handleShare} variant="outline" className="flex-1 gap-2 bg-transparent">
+                                                <Share2 className="h-4 w-4" />
+                                                Share
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            <div className="space-y-4">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <FileText className="h-5 w-5" />
+                                            Item Details
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-3">
+                                            <div>
+                                                <span className="font-medium text-sm">Asset Name</span>
+                                                <p className="text-sm text-muted-foreground">{qrItem.asset.name}</p>
+                                            </div>
+
+                                            <Separator />
+
+                                            {qrItem.asset.description && (
+                                                <div>
+                                                    <span className="font-medium text-sm">Description</span>
+                                                    <p className="text-sm text-muted-foreground">{qrItem.asset.description}</p>
+                                                </div>
+                                            )}
+
+                                            {qrItem.asset.code && (
+                                                <div>
+                                                    <span className="font-medium text-sm">Asset Code</span>
+                                                    <p className="text-sm text-muted-foreground font-mono">{qrItem.asset.code}</p>
+                                                </div>
+                                            )}
+
+                                            {qrItem.asset.issuer && (
+                                                <div>
+                                                    <span className="font-medium text-sm">Issuer</span>
+                                                    <p className="text-sm text-muted-foreground font-mono">{qrItem.asset.issuer}</p>
+                                                </div>
+                                            )}
+
+                                            <Separator />
+                                            {qrItem.priceUSD && (
+                                                <div>
+                                                    <span className="font-medium text-sm">Price in USD</span>
+                                                    <p className="text-sm text-muted-foreground">{qrItem.priceUSD}</p>
+                                                </div>
+                                            )}
+                                            {
+                                                qrItem.price && (
+                                                    <div>
+                                                        <span className="font-medium text-sm">Price in {PLATFORM_ASSET.code}</span>
+                                                        <p className="text-sm text-muted-foreground">{qrItem.price} {PLATFORM_ASSET.code}</p>
+                                                    </div>
+                                                )
+                                            }
+
+                                            <Separator />
+
+
+                                            <div>
+                                                <span className="font-medium text-sm">Created</span>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {format(new Date(qrItem.createdAt), "MMM dd, yyyy HH:mm")}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="media" className="space-y-4">
+                        {mediaUrl ? (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        {mediaType === "IMAGE" && <ImageIcon className="h-5 w-5" />}
+                                        {mediaType === "VIDEO" && <Film className="h-5 w-5" />}
+                                        {mediaType === "MUSIC" && <Music className="h-5 w-5" />}
+                                        {mediaType === "THREE_D" && <Box className="h-5 w-5" />}
+                                        {mediaLabel?.label} Viewer
+                                    </CardTitle>
+                                    <CardDescription>
+                                        {mediaType === "IMAGE" && "View the image in full size"}
+                                        {mediaType === "VIDEO" && "Interactive video player"}
+                                        {mediaType === "MUSIC" && "Audio player"}
+                                        {mediaType === "THREE_D" && "Interactive 3D model - drag to rotate, scroll to zoom"}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {mediaType === "THREE_D" && <ModelViewer modelUrl={mediaUrl} height="500px" showControls={true} />}
+                                    {mediaType === "IMAGE" && (
+                                        <div className="flex justify-center bg-gray-100 rounded-lg p-4">
+                                            <img src={mediaUrl || "/placeholder.svg"} alt={qrItem.asset.name} className="max-h-96 rounded-lg" />
+                                        </div>
+                                    )}
+                                    {mediaType === "VIDEO" && (
+                                        <video controls className="w-full rounded-lg bg-black" height={400}>
+                                            <source src={mediaUrl} type="video/mp4" />
+                                            Your browser does not support the video tag.
+                                        </video>
+                                    )}
+                                    {mediaType === "MUSIC" && (
+                                        <div className="space-y-4">
+                                            <audio controls className="w-full rounded-lg">
+                                                <source src={mediaUrl} type="audio/mpeg" />
+                                                Your browser does not support the audio element.
+                                            </audio>
+                                            <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg p-6 text-white text-center">
+                                                <Music className="h-12 w-12 mx-auto mb-2" />
+                                                <h3 className="text-lg font-semibold">{qrItem.asset.name}</h3>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="mt-4 flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => window.open(mediaUrl, "_blank")}
+                                            className="gap-1"
+                                        >
+                                            <ExternalLink className="h-3 w-3" />
+                                            Open in New Tab
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(mediaUrl)
+                                                toast.success("Media URL copied!")
+                                            }}
+                                            className="gap-1"
+                                        >
+                                            <Copy className="h-3 w-3" />
+                                            Copy URL
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <Card>
+                                <CardContent className="flex items-center justify-center h-64">
+                                    <div className="text-center">
+                                        <Box className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                        <h3 className="text-lg font-medium mb-2">No Media</h3>
+                                        <p className="text-muted-foreground">This QR item doesn{"'"}t have media attached</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="preview" className="space-y-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Content Preview</CardTitle>
+                                <CardDescription>This is what users will see when they scan the QR code</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-6 rounded-lg">
+                                    <div className="space-y-6">
+                                        <div>
+                                            <h3 className="text-2xl font-bold">{qrItem.asset.name}</h3>
+                                        </div>
+
+                                        {qrItem.asset.description && (
+                                            <div className="bg-white p-4 rounded-lg border">
+                                                <p className="text-muted-foreground">{qrItem.asset.description}</p>
+                                            </div>
+                                        )}
+
+                                        {mediaUrl && (
+                                            <div className="bg-white rounded-lg border overflow-hidden">
+                                                <div className="p-4 border-b">
+                                                    <div className="flex items-center gap-2">
+                                                        {mediaType === "IMAGE" && <ImageIcon className="h-5 w-5 text-blue-600" />}
+                                                        {mediaType === "VIDEO" && <Film className="h-5 w-5 text-blue-600" />}
+                                                        {mediaType === "MUSIC" && <Music className="h-5 w-5 text-blue-600" />}
+                                                        {mediaType === "THREE_D" && <Box className="h-5 w-5 text-blue-600" />}
+                                                        <span className="font-medium">{mediaLabel?.label}</span>
+                                                    </div>
+                                                </div>
+                                                {mediaType === "THREE_D" && (
+                                                    <ModelViewer modelUrl={mediaUrl} height="300px" showControls={false} />
+                                                )}
+                                                {mediaType === "IMAGE" && (
+                                                    <img
+                                                        src={mediaUrl || "/placeholder.svg"}
+                                                        alt={qrItem.asset.name}
+                                                        className="w-full h-64 object-cover"
+                                                    />
+                                                )}
+                                                {mediaType === "VIDEO" && (
+                                                    <video controls className="w-full bg-black" height={300}>
+                                                        <source src={mediaUrl} type="video/mp4" />
+                                                    </video>
+                                                )}
+                                                {mediaType === "MUSIC" && (
+                                                    <div className="p-4 bg-gradient-to-br from-purple-500 to-pink-500">
+                                                        <div className="flex items-center justify-center gap-2 text-white">
+                                                            <Music className="h-6 w-6" />
+                                                            <span className="font-medium">{qrItem.asset.name}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <div className="bg-white p-4 rounded-lg border">
+                                            <div className="space-y-2 text-sm">
+                                                <div>
+                                                    <span className="font-medium">Asset Code:</span>
+                                                    <span className="text-muted-foreground ml-2 font-mono">{qrItem.asset.code}</span>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+interface ModelViewerProps {
+    modelUrl: string
+    className?: string
+    height?: string
+    showControls?: boolean
+}
+
+function GLBModel({ url }: { url: string }) {
+    const gltf = useLoader(GLTFLoader, url)
+    const meshRef = useRef<THREE.Group>(null)
+    const mixerRef = useRef<THREE.AnimationMixer | null>(null)
+
+    // Gentle rotation animation
+    useFrame((state, delta) => {
+        if (meshRef.current) {
+            meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.1
+        }
+
+        // Update animations if they exist
+        if (mixerRef.current) {
+            mixerRef.current.update(delta)
+        }
+    })
+
+    useEffect(() => {
+        if (gltf) {
+            const scene = gltf.scene
+
+            // Setup animations if they exist
+            if (gltf.animations && gltf.animations.length > 0) {
+                mixerRef.current = new THREE.AnimationMixer(scene)
+                gltf.animations.forEach((clip) => {
+                    const action = mixerRef.current!.clipAction(clip)
+                    action.play()
+                })
+            }
+
+            // Enable shadows
+            scene.traverse((child) => {
+                if (child instanceof THREE.Mesh) {
+                    child.castShadow = true
+                    child.receiveShadow = true
+
+                    // Ensure materials are properly configured
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach((mat) => {
+                                if (mat instanceof THREE.MeshStandardMaterial) {
+                                    mat.needsUpdate = true
+                                }
+                            })
+                        } else if (child.material instanceof THREE.MeshStandardMaterial) {
+                            child.material.needsUpdate = true
+                        }
+                    }
+                }
+            })
+
+            // Calculate bounding box and center the model
+            const box = new THREE.Box3().setFromObject(scene)
+            const size = box.getSize(new THREE.Vector3())
+            const center = box.getCenter(new THREE.Vector3())
+
+            // Center the model
+            scene.position.sub(center)
+            scene.position.set(0, 0, 0)
+
+            // Scale the model to fit in a reasonable size
+            const maxDimension = Math.max(size.x, size.y, size.z)
+            if (maxDimension > 50) {
+                const scale = 20 / maxDimension
+                scene.scale.setScalar(scale)
+            } else if (maxDimension > 20) {
+                const scale = 15 / maxDimension
+                scene.scale.setScalar(scale)
+            } else if (maxDimension < 1) {
+                const scale = 5 / maxDimension
+                scene.scale.setScalar(scale)
+            }
+        }
+
+        // Cleanup function
+        return () => {
+            if (mixerRef.current) {
+                mixerRef.current.stopAllAction()
+                mixerRef.current = null
+            }
+        }
+    }, [gltf])
+
+    return (
+        <group ref={meshRef}>
+            <primitive object={gltf.scene} />
+        </group>
+    )
+}
+
+function Model({ url }: { url: string }) {
+    return <GLBModel url={url} />
+}
+
+function Loader() {
+    const { progress } = useProgress()
+    return (
+        <Html center>
+            <div className="flex flex-col items-center gap-2 text-white">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <div className="text-sm">{Math.round(progress)}% loaded</div>
+            </div>
+        </Html>
+    )
+}
+
+function ErrorFallback({ error, onRetry, modelUrl }: { error: string; onRetry: () => void; modelUrl: string }) {
+    return (
+        <div className="flex flex-col items-center justify-center h-full text-center p-6">
+            <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+            <h3 className="text-lg font-medium mb-2">Failed to load 3D model</h3>
+            <p className="text-sm text-muted-foreground mb-4">{error}</p>
+            <div className="flex gap-2">
+                <Button onClick={onRetry} size="sm" variant="outline">
+                    Try Again
+                </Button>
+                <Button onClick={() => window.open(modelUrl, "_blank")} size="sm" variant="ghost">
+                    View File
+                </Button>
+            </div>
+        </div>
+    )
+}
+
+export function ModelViewer({ modelUrl, className = "", height = "400px", showControls = true }: ModelViewerProps) {
+    const [error, setError] = useState<string | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const [retryKey, setRetryKey] = useState(0)
+    const controlsRef = useRef<OrbitControlsImpl>(null)
+
+    useEffect(() => {
+        if (!modelUrl) {
+            setError("No model URL provided")
+            setIsLoading(false)
+            return
+        }
+        setError(null)
+        setIsLoading(true)
+    }, [modelUrl, retryKey])
+
+    const handleReset = () => {
+        if (controlsRef.current) {
+            controlsRef.current.reset()
+        }
+    }
+
+    const handleZoomIn = () => {
+        if (controlsRef.current) {
+            controlsRef.current.dollyIn(0.5)
+            controlsRef.current.update()
+        }
+    }
+
+    const handleZoomOut = () => {
+        if (controlsRef.current) {
+            controlsRef.current.dollyOut(0.5)
+            controlsRef.current.update()
+        }
+    }
+
+    const handleRetry = () => {
+        setRetryKey((prev) => prev + 1)
+        setError(null)
+    }
+
+    const handleError = (event: React.SyntheticEvent<HTMLDivElement, Event>) => {
+        console.error("3D Model loading error:", event)
+        setError("Failed to load 3D model. Please check if the file is accessible and in a supported format (GLB, GLTF).")
+        setIsLoading(false)
+    }
+
+    if (error) {
+        return (
+            <Card className={`flex items-center justify-center ${className}`} style={{ height }}>
+                <ErrorFallback error={error} onRetry={handleRetry} modelUrl={modelUrl} />
+            </Card>
+        )
+    }
+
+    return (
+        <div className={`relative ${className}`} style={{ height }}>
+            <Canvas
+                key={retryKey}
+                camera={{ fov: 45, position: [0, 0, 25] }}
+                style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}
+                onCreated={() => setIsLoading(false)}
+                gl={{ preserveDrawingBuffer: true }}
+                onError={handleError}
+            >
+                <ambientLight intensity={0.6} />
+                <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} />
+                <pointLight position={[-10, -10, -10]} intensity={0.5} />
+                <directionalLight position={[0, 10, 0]} intensity={0.5} />
+
+                <Suspense fallback={<Loader />}>
+                    <Model url={modelUrl} />
+                    <Environment preset="sunset" />
+                </Suspense>
+
+                <OrbitControls
+                    ref={controlsRef}
+                    enablePan={true}
+                    enableZoom={true}
+                    enableRotate={true}
+                    autoRotate={false}
+                    autoRotateSpeed={0.5}
+                    maxDistance={100}
+                    minDistance={0.5}
+                    maxPolarAngle={Math.PI}
+                    minPolarAngle={0}
+                    zoomSpeed={1.2}
+                    panSpeed={1.0}
+                    rotateSpeed={1.0}
+                />
+            </Canvas>
+
+            {showControls && (
+                <div className="absolute top-4 right-4 flex flex-col gap-2">
+                    <Button size="sm" variant="secondary" onClick={handleReset} className="bg-white/80 hover:bg-white">
+                        <RotateCcw className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={handleZoomIn} className="bg-white/80 hover:bg-white">
+                        <ZoomIn className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={handleZoomOut} className="bg-white/80 hover:bg-white">
+                        <ZoomOut className="h-4 w-4" />
+                    </Button>
+                </div>
+            )}
+
+            {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                    <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                        <div className="text-sm text-muted-foreground">Loading 3D model...</div>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}

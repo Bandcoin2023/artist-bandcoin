@@ -11,3 +11,8 @@ export type MarketAssetType = MarketAsset & {
 export type AssetTypeWithStems = AssetType & {
     Stem: StemTypeWithoutAssetId[];
 };
+
+
+export type MarketAssetTypeWithoutStem = MarketAsset & {
+    asset: AssetType;
+};
