@@ -250,7 +250,7 @@ export default async function handler(
         title: location.title,
         description: location.description ?? "No description provided",
         brand_name: location.creator.name,
-        url: location.link ?? "https://app.action-tokens.com/",
+        url: location.link ?? "https://bandcoin.io/",
         image_url:
           location.image ?? location.creator.profileUrl ?? WadzzoIconURL,
         collected: location.collected,
@@ -270,4 +270,4 @@ export default async function handler(
   res.status(200).json({ locations });
 }
 
-export const WadzzoIconURL = "https://app.action-tokens.com/images/action/logo.png";
+export const WadzzoIconURL = "https://bandcoin.io/images/logo.png";

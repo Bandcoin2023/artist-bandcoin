@@ -224,7 +224,7 @@ const SingleBountyItem = () => {
           transition={{ duration: 0.5 }}
         >
           <Image
-            src={bounty.imageUrls[0] ?? "https://app.action-tokens.com/images/action/logo.png"}
+            src={bounty.imageUrls[0] ?? "https://bandcoin.io/images/logo.png"}
             alt={bounty.title}
             width={800}
             height={400}

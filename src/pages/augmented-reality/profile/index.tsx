@@ -58,7 +58,7 @@ export default function SettingScreen() {
     const steps = [
         {
             target: buttonLayouts[0],
-            title: "Visit app.action-tokens.com",
+            title: "Visit bandcoin.io",
             content: "Click here to visit our website and explore our services.",
         },
         {
@@ -224,7 +224,7 @@ export default function SettingScreen() {
                                 <div className="flex items-center space-x-3">
                                     <div className="relative">
                                         <Image
-                                            src={data.image ?? "https://app.action-tokens.com/images/icons/avatar-icon.png"}
+                                            src={data.image ?? "https://bandcoin.io/images/icons/avatar-icon.png"}
                                             alt="Profile"
                                             width={56}
                                             height={56}
@@ -264,10 +264,10 @@ export default function SettingScreen() {
                                 <Button
                                     ref={visitButtonRef}
                                     className="w-full h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-xl text-sm"
-                                    onClick={() => window.open("https://app.action-tokens.com", "_blank")}
+                                    onClick={() => window.open("https://bandcoin.io", "_blank")}
                                 >
                                     <Globe className="mr-2 h-4 w-4" />
-                                    Visit app.action-tokens.com
+                                    Visit bandcoin.io
                                 </Button>
 
                                 {/* Auto Collection Toggle */}
