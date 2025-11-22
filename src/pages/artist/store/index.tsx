@@ -387,24 +387,25 @@ export default function StoredItemsView() {
                 >
                     <TabsList className="grid w-full grid-cols-5">
                         <TabsTrigger value="STORED" className="flex items-center gap-2">
-                            <ImageIcon className="h-4 w-4" />
+                            <ImageIcon className="h-4 w-4  hidden md:block" />
                             Store
                         </TabsTrigger>
                         <TabsTrigger value="ALBUM" className="flex items-center gap-2">
-                            <AlbumIcon className="h-4 w-4" />
+                            <AlbumIcon className="h-4 w-4  hidden md:block" />
                             Albums
                         </TabsTrigger>
                         <TabsTrigger value="ROYALTY" className="flex items-center gap-2">
-                            <Crown className="h-4 w-4" />
+                            <Crown className="h-4 w-4 hidden md:block" />
                             Royalty
                         </TabsTrigger>
                         <TabsTrigger value="QR" className="flex items-center gap-2">
-                            <Crown className="h-4 w-4" />
+                            <QrCode className="h-4 w-4  hidden md:block" />
                             QR
                         </TabsTrigger>
                         <TabsTrigger value="PageAsset" className="flex items-center gap-2">
-                            <Coins className="h-4 w-4" />
-                            Page Assets
+                            <Coins className="h-4 w-4  hidden md:block" />
+                            <p className="hidden md:block"> Page Assets</p>
+                            <p className="block md:hidden">Sell</p>
                         </TabsTrigger>
                     </TabsList>
 
