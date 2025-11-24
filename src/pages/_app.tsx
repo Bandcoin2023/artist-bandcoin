@@ -11,35 +11,32 @@ import dynamic from "next/dynamic";
 import { Titillium_Web } from "next/font/google";
 import "~/styles/globals.css";
 import Layout from "~/components/layout/root/RootLayout";
-import { Toaster } from "~/components/shadcn/ui/sonner"
+import { Toaster } from "~/components/shadcn/ui/sonner";
 
 const queryClient = new QueryClient();
 
 const PopupImports = dynamic(
-    async () =>
-        await import("package/connect_wallet/src/components/popup_imports"),
+  async () =>
+    await import("package/connect_wallet/src/components/popup_imports"),
 );
 
 const inner = Titillium_Web({ subsets: ["latin"], weight: "400" });
 
 const MyApp: AppType<{ session: Session | null }> = ({
-    Component,
-    pageProps: { session, ...pageProps },
+  Component,
+  pageProps: { session, ...pageProps },
 }) => {
-    return (
-        <SessionProvider session={session}>
-            <QueryClientProvider client={queryClient}>
-
-                <Layout className={inner.className}>
-                    <Component {...pageProps} />
-                    <Toaster />
-
-                </Layout>
-                <PopupImports className={inner.className} />
-
-            </QueryClientProvider>
-        </SessionProvider>
-    );
+  return (
+    <SessionProvider session={session}>
+      <QueryClientProvider client={queryClient}>
+        <Layout className={inner.className}>
+          <Component {...pageProps} />
+          <Toaster />
+        </Layout>
+        <PopupImports className={inner.className} />
+      </QueryClientProvider>
+    </SessionProvider>
+  );
 };
 
 export default api.withTRPC(MyApp);
