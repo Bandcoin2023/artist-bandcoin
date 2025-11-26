@@ -54,7 +54,7 @@ export default function Layout({
     const handleToggle = () => {
         toggle();
     };
-    if (router.pathname.includes("/augmented-reality")) {
+    if (router.pathname.includes("/action/")) {
         // if (router.pathname.includes("/action/enter")) {
         //   return <>{children}</>;
         // }
