@@ -30,6 +30,13 @@ enum MediaType {
 }
 
 // ------------------------NOTIFICATION SCHEMA-------------------------
+enum PinType {
+    EVENT
+    BOUNTY
+    EXPERIENCE
+    LAUNCH
+    OTHER
+}
 
 enum NotificationType {
     LIKE
@@ -628,6 +635,7 @@ model LocationGroup {
     link String?
 
     multiPin Boolean @default(false)
+    type     PinType @default(OTHER) // Added new type field
 
     locations      Location[]
     ActionLocation ActionLocation[]

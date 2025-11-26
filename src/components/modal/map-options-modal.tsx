@@ -537,7 +537,7 @@ function PinInfo({
             {data.image && (
                 <div className="relative w-full h-48 overflow-hidden rounded-lg">
                     <Image
-                        src={data.image ?? "/placeholder.svg"}
+                        src={data.image ?? "/images/action/logo.png"}
                         alt={data.mapTitle ?? "Pin image"}
                         fill
                         className="object-cover"
@@ -922,10 +922,13 @@ function PinInfoUpdate({
                                                     className="mt-2 rounded-lg border p-2"
                                                 >
                                                     <Image
-                                                        className="rounded  " width={120}
+                                                        className="rounded  "
+                                                        width={120}
+                                                        height={120}
+                                                        quality={100}
 
                                                         alt="preview image"
-                                                        src={coverUrl ?? image ?? "/placeholder.svg"}
+                                                        src={coverUrl ?? image ?? "/images/action/logo.png"}
                                                     />
                                                 </motion.div>
                                             )}

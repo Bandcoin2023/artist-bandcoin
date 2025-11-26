@@ -13,6 +13,7 @@ import { s3Router } from "./routers/s3";
 import { SpotifyRouter } from "./routers/spotify/root";
 import { DomainRouters } from "./routers/domain/root";
 import { qrRouter } from "./routers/qr";
+import { agentRouter } from "./routers/agent";
 
 /**
  * This is the primary router for your server.
@@ -33,7 +34,9 @@ export const appRouter = createTRPCRouter({
   s3: s3Router,
   spotify: SpotifyRouter, // Add the new Spotify router here
   domain: DomainRouters,
-  qr: qrRouter
+  qr: qrRouter,
+  agent: agentRouter,
+
 });
 
 // export type definition of API

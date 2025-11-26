@@ -1,26 +1,26 @@
-"use client"
-import clsx from "clsx"
-import { useSession } from "next-auth/react"
+"use client";
+import clsx from "clsx";
+import { useSession } from "next-auth/react";
 
-import type React from "react"
-import { ChevronLeft } from "lucide-react"
+import type React from "react";
+import { ChevronLeft } from "lucide-react";
 
-import { ThemeProvider } from "../../providers/theme-provider"
-import { ConnectWalletButton } from "package/connect_wallet"
+import { ThemeProvider } from "../../providers/theme-provider";
+import { ConnectWalletButton } from "package/connect_wallet";
 
-import Header from "../Header"
-import Sidebar from "../Left-sidebar/sidebar"
-import { cn } from "~/lib/utils"
-import { useSidebar } from "~/hooks/use-sidebar"
-import ModalProvider from "~/components/providers/modal-provider"
-import { Toaster } from "~/components/shadcn/ui/toaster"
-import { useRouter } from "next/router"
+import Header from "../Header";
+import Sidebar from "../Left-sidebar/sidebar";
+import { cn } from "~/lib/utils";
+import { useSidebar } from "~/hooks/use-sidebar";
+import ModalProvider from "~/components/providers/modal-provider";
+import { Toaster } from "~/components/shadcn/ui/toaster";
+import { useRouter } from "next/router";
 
-import CreatorLayout from "./CreatorLayout"
-import { MiniPlayerProvider } from "~/components/player/mini-player-provider"
-import LoginRequiredModal from "~/components/modal/login-required-modal"
-import { BottomPlayerProvider } from "~/components/player/context/bottom-player-context"
-import { StemPlayer } from "~/components/player/bottom-player"
+import CreatorLayout from "./CreatorLayout";
+import { MiniPlayerProvider } from "~/components/player/mini-player-provider";
+import LoginRequiredModal from "~/components/modal/login-required-modal";
+import { BottomPlayerProvider } from "~/components/player/context/bottom-player-context";
+import { StemPlayer } from "~/components/player/bottom-player";
 import {
     Card,
     CardContent,
@@ -28,59 +28,63 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/shadcn/ui/card";
-import ARModalProvider from "~/components/providers/augmented-reality/augmented-modal-provider"
-import ARLayout from "./ARLayout"
+import ARModalProvider from "~/components/providers/augmented-reality/augmented-modal-provider";
+import ARLayout from "./ARLayout";
 export default function Layout({
     children,
     className,
 }: {
-    children: React.ReactNode
-    className?: string
+    children: React.ReactNode;
+    className?: string;
 }) {
-    const session = useSession()
-    const { isMinimized, toggle } = useSidebar()
+    const session = useSession();
+    const { isMinimized, toggle } = useSidebar();
 
-    const router = useRouter()
+    const router = useRouter();
 
-    const isArtistRoutes = router.pathname.startsWith("/artist")
-    const publicRoutes = ["/about", "/privacy", "/support", "/"]
-    const isPublicRoute = publicRoutes.includes(router.pathname)
-    const isStudioRoute = router.pathname.startsWith("/artist/studio")
-    const isAugmentedRealityRoute = router.pathname.startsWith("/augmented-reality/ar");
+    const isArtistRoutes = router.pathname.startsWith("/artist");
+    const publicRoutes = ["/about", "/privacy", "/support", "/"];
+    const isPublicRoute = publicRoutes.includes(router.pathname);
+    const isStudioRoute = router.pathname.startsWith("/artist/studio");
+    // Check for AR camera/QR routes that should NOT get ARLayout wrapper
+    const isAugmentedRealityRoute =
+        router.pathname.startsWith("/action/ar/") ||
+        router.pathname === "/action/ar";
 
     const handleToggle = () => {
-        toggle()
-    }
+        toggle();
+    };
     if (router.pathname.includes("/augmented-reality")) {
-        // if (router.pathname.includes("/augmented-reality/enter")) {
+        // if (router.pathname.includes("/action/enter")) {
         //   return <>{children}</>;
         // }
         return (
             <>
-                {session?.status === "authenticated" || router.pathname.includes("/augmented-reality/qr") ? (
-                    <div className="h-screen w-full overflow-hidden fixed inset-0">
-                        {
-                            isAugmentedRealityRoute ? (
-
-                                <>
-                                    <ARModalProvider />
-                                    {children}
-                                </>
-                            ) : (
-                                <ARLayout>
-                                    <ARModalProvider />
-                                    {children}
-                                </ARLayout>
-                            )
-                        }
-
+                {session?.status === "authenticated" ||
+                    router.pathname.includes("/action/qr") ? (
+                    <div className="fixed inset-0 h-screen w-full overflow-hidden">
+                        {isAugmentedRealityRoute ? (
+                            <>
+                                <ARModalProvider />
+                                {children}
+                            </>
+                        ) : (
+                            <ARLayout>
+                                <ARModalProvider />
+                                {children}
+                            </ARLayout>
+                        )}
                     </div>
                 ) : (
                     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-                        <Card className="w-full max-w-[350px] mx-4">
+                        <Card className="mx-4 w-full max-w-[350px]">
                             <CardHeader className="text-center">
-                                <CardTitle className="text-lg sm:text-xl">Welcome to Bandcoin AR</CardTitle>
-                                <CardDescription className="text-sm sm:text-base">Please login/signup to continue</CardDescription>
+                                <CardTitle className="text-lg sm:text-xl">
+                                    Welcome to Bandcoin AR
+                                </CardTitle>
+                                <CardDescription className="text-sm sm:text-base">
+                                    Please login/signup to continue
+                                </CardDescription>
                             </CardHeader>
                             <CardContent className="flex items-center justify-center">
                                 <ConnectWalletButton />
@@ -89,10 +93,15 @@ export default function Layout({
                     </div>
                 )}
             </>
-        )
+        );
     }
     return (
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem
+            disableTransitionOnChange
+        >
             <MiniPlayerProvider>
                 <BottomPlayerProvider>
                     <div className={clsx("flex h-screen w-full flex-col")}>
@@ -109,8 +118,8 @@ export default function Layout({
                                 </div>
                             )
                         ) : (
-                            <div className="grid w-full h-[calc(100vh-10.8vh)] grid-cols-[auto_1fr] scrollbar-hide overflow-hidden">
-                                <div className="relative bg-secondary shadow-sm shadow-primary transition-all duration-500 ease-in-out overflow-y-auto scrollbar-hide">
+                            <div className="grid h-[calc(100vh-10.8vh)] w-full grid-cols-[auto_1fr] overflow-hidden scrollbar-hide">
+                                <div className="relative overflow-y-auto bg-secondary shadow-sm shadow-primary transition-all duration-500 ease-in-out scrollbar-hide">
                                     <Sidebar />
                                     <ChevronLeft
                                         className={cn(
@@ -150,5 +159,5 @@ export default function Layout({
                 </BottomPlayerProvider>
             </MiniPlayerProvider>
         </ThemeProvider>
-    )
+    );
 }

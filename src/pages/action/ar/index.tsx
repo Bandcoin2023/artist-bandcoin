@@ -410,7 +410,7 @@ const ARPage = () => {
         setTimeout(() => {
           setShowSuccess(false)
           setCollectedPin(null)
-          router.push("/augmented-reality/home")
+          router.push("/action/home")
         }, 2000)
       }, 4000)
     } catch (error) {
@@ -1017,7 +1017,7 @@ const ARPage = () => {
               >
                 <Image
 
-                  src="/augmented-reality/assets/images/capture.png"
+                  src="/action/assets/images/capture.png"
                   alt={selectedPin.brand_name}
                   width={80}
                   height={80}

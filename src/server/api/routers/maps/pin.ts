@@ -357,11 +357,12 @@ export const pinRouter = createTRPCRouter({
 
       const pins = await ctx.db.location.findMany({
         where: {
+          hidden: false,
           locationGroup: {
             creatorId: ctx.session.user.id,
             ...dateCondition,
-            hidden: false,
             OR: [{ approved: true }, { approved: null }],
+
           },
         },
         include: {
@@ -387,12 +388,18 @@ export const pinRouter = createTRPCRouter({
                       remaining: true,
                       assetId: true,
                     },
+                    where: {
+                      hidden: false
+                    }
                   },
                   latitude: true,
                   longitude: true,
                   id: true,
                   autoCollect: true,
                 },
+                where: {
+                  hidden: false
+                }
               },
             },
           },
@@ -401,7 +408,6 @@ export const pinRouter = createTRPCRouter({
 
       return pins;
     }),
-
   getCreatorPins: adminProcedure
     .input(
       z.object({
