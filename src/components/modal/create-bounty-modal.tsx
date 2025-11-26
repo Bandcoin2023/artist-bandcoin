@@ -314,8 +314,9 @@ const CreateBountyModal = () => {
       prize: paymentMethod === "asset" ? Number(getValues("prize")) :
         paymentMethod === "xlm" ? Number(getValues("prizeInUSD") / (XLMRate ?? 1)) :
           Number(getValues("prizeInUSD") / (XLMRate ?? 1)),
-      fees: paymentMethod === "asset" ? totalFees :
-        paymentMethod === "xlm" ? 1 : 3 * (Number(getValues("prizeInUSD") ?? 1) * (XLMRate ?? 1)),
+      fees: 0,
+      // paymentMethod === "asset" ? totalFees :
+      // paymentMethod === "xlm" ? 1 : 3 * (Number(getValues("prizeInUSD") ?? 1) * (XLMRate ?? 1)),
       method: paymentMethod,
     })
   };
@@ -527,11 +528,12 @@ const CreateBountyModal = () => {
                           },
                           {
                             label: "Platform Fee",
-                            amount: paymentMethod === "asset"
-                              ? totalFees
-                              : paymentMethod === "xlm"
-                                ? 1 : (3 * (Number(getValues("prizeInUSD") ?? 1) * (XLMRate ?? 1)))
-                            ,
+                            amount: 0,
+                            // paymentMethod === "asset"
+                            // ? totalFees
+                            // : paymentMethod === "xlm"
+                            //   ? 1 : (3 * (Number(getValues("prizeInUSD") ?? 1) * (XLMRate ?? 1)))
+
                             highlighted: false,
                             type: "fee",
                           },
