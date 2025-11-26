@@ -527,7 +527,7 @@ export default function HomeScreen() {
 
                     {/* Map Controls - Fixed positioning */}
                     <div
-                        className={`absolute bottom-36 right-2 z-20 flex flex-col gap-3`}
+                        className={`absolute bottom-44 right-2 z-20 flex flex-col gap-3`}
                     >
                         {/* AR Scan Button - Main Action */}
                         <motion.button
