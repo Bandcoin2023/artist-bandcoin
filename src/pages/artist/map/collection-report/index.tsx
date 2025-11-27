@@ -33,10 +33,7 @@ import {
   TableRow,
 } from "~/components/shadcn/ui/table";
 import { Button } from "~/components/shadcn/ui/button";
-import {
-  type CreatorConsumedPin,
-  useModal,
-} from "~/lib/state/play/use-modal-store";
+
 import { addrShort } from "~/utils/utils";
 import {
   Card,
@@ -88,10 +85,11 @@ type ConsumerType = {
     id: string;
     email: string | null;
   };
-  claimed_at: Date | null;
+  claimedAt: Date | null;
 };
 
 import { useRouter } from "next/navigation";
+import { CreatorConsumedPin } from "~/lib/state/augmented-reality/use-modal-store";
 
 const CreatorCollectionReport = ({
   isAdmin,
@@ -510,7 +508,6 @@ export function TableData({
   isLoading: boolean;
   isRefetching: boolean;
 }) {
-  const { onOpen } = useModal();
   const router = useRouter();
   // Add these types and state at the beginning of the TableData function
   type SortField = "title" | "startDate" | "consumers" | "id";
@@ -1066,7 +1063,7 @@ export function TableData({
                   location.consumers.map((consumer, consumerIndex) => (
                     <TableRow
                       onClick={() => {
-                        router.push(`/artist/map/collection-report/${location.id}`);
+                        router.push(`/organization/map/collection-report/${location.id}`);
                       }}
                       key={`${pin.id}-${location.id}-${consumer.user.id}-${consumerIndex}`}
                       className={cn(
@@ -1191,9 +1188,9 @@ export function TableData({
                       {visibleColumns.claimed_at && (
                         <TableCell>
                           <div className="text-xs">
-                            {consumer.claimed_at
+                            {consumer.claimedAt
                               ? new Date(
-                                consumer.claimed_at,
+                                consumer.claimedAt,
                               ).toLocaleDateString()
                               : "N/A"}
                           </div>
@@ -1503,7 +1500,7 @@ function DownloadPinLocationAsCSV(
     consumer_email: (_, __, consumer) => consumer.user.email ?? "",
     consumer_id: (_, __, consumer) => consumer.user.id,
     claimed_at: (_, __, consumer) =>
-      consumer.claimed_at ? new Date(consumer.claimed_at).toISOString() : "",
+      consumer.claimedAt ? new Date(consumer.claimedAt).toISOString() : "",
   };
 
   // Create CSV content with only selected fields
