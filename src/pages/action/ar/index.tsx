@@ -1017,7 +1017,7 @@ const ARPage = () => {
               >
                 <Image
 
-                  src="/action/assets/images/capture.png"
+                  src="/augmented-reality/assets/images/capture.png"
                   alt={selectedPin.brand_name}
                   width={80}
                   height={80}
