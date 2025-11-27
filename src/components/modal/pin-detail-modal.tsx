@@ -375,7 +375,7 @@ const MapOptionModal = () => {
                                                 className="flex h-auto items-center justify-start gap-2 py-3 bg-transparent"
                                                 onClick={() => {
                                                     handleClose()
-                                                    router.push(`/report/${data.id}`)
+                                                    router.push(`/artist/map/collection-report/${data.id}`)
 
                                                 }}
                                             >

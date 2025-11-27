@@ -229,7 +229,7 @@ function MapDashboardContent() {
         }}
       />
 
-      <Link href="/organization/map/collection-report">
+      <Link href="/artist/map/collection-report">
         <Button className="absolute bottom-28 right-6">
           <ClipboardList className="mr-2 h-4 w-4" />
           Collection Reports

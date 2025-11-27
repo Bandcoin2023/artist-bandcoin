@@ -553,7 +553,7 @@ export default function HomeScreen() {
                     </div>
                     {/* Refresh Button */}
                     <div
-                        className={`absolute bottom-36 right-16 z-20 flex flex-col gap-3`}
+                        className={`absolute bottom-44 right-16 z-20 flex flex-col gap-3`}
                     >
                         <motion.button
                             ref={refreshButtonRef}
@@ -631,6 +631,7 @@ function MyPins({ locations }: { locations: ConsumedLocation[] }) {
                             Collection: location,
                         })
                     }
+
                 >
                     <motion.div
                         className="cursor-pointer"
@@ -639,6 +640,17 @@ function MyPins({ locations }: { locations: ConsumedLocation[] }) {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ duration: 0.3, delay: 0.05 * index }}
+                        style={{
+                            height: 30,
+                            width: 30,
+                            borderWidth: 2,
+                            ...(
+                                !location.auto_collect && {
+                                    borderRadius: 20, // Add borderRadius only when auto_collect is false
+                                }
+                            ),
+                            ...(location.collected && { opacity: 0.4 }),
+                        }}
                     >
                         <div className="relative">
                             <div className="h-12 w-12 overflow-hidden rounded-full border-2 border-white bg-white shadow-lg">
@@ -648,6 +660,7 @@ function MyPins({ locations }: { locations: ConsumedLocation[] }) {
                                     alt="Pin"
                                     src={location.brand_image_url || "/placeholder.svg"}
                                     className="h-full w-full object-cover"
+
                                 />
                             </div>
                             {location.collection_limit_remaining > 0 &&

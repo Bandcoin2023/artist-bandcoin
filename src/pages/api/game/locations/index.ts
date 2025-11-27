@@ -104,12 +104,15 @@ export default async function handler(
 
     const locationGroup = await db.locationGroup.findMany({
       where: {
-        hidden: false,
         ...extraFilter,
         approved: { equals: true },
+        // hide groups that end in the past
         endDate: { gte: new Date() },
+        // hide groups that start in the future (only show groups whose startDate is <= now)
+        startDate: { lte: new Date() },
         subscriptionId: { equals: null },
         remaining: { gt: 0 },
+        hidden: false,
       },
       include: {
         locations: {
@@ -134,7 +137,6 @@ export default async function handler(
         },
       },
     });
-    console.log("locationGroup", locationGroup);
     const pins = locationGroup
       .flatMap((group) => {
         const multiPin = group.multiPin;
@@ -217,5 +219,4 @@ export default async function handler(
 
   res.status(200).json({ locations });
 }
-
 export const WadzzoIconURL = "https://bandcoin.io/images/logo.png";
