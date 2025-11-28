@@ -1063,7 +1063,7 @@ export function TableData({
                   location.consumers.map((consumer, consumerIndex) => (
                     <TableRow
                       onClick={() => {
-                        router.push(`/organization/map/collection-report/${location.id}`);
+                        router.push(`/artist/map/collection-report/${location.id}`);
                       }}
                       key={`${pin.id}-${location.id}-${consumer.user.id}-${consumerIndex}`}
                       className={cn(
