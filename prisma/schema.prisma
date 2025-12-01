@@ -365,6 +365,7 @@ model User {
 
     SpotifyTrack       SpotifyTrack[]
     ClaimSpotifyReward ClaimSpotifyReward[]
+    bountyRedeems      BountyRedeem[]
 }
 
 model SpotifyAccount {
@@ -704,6 +705,7 @@ model Bounty {
     radius                Float?
     priceInUSD            Float
     priceInBand           Float
+    payNow                Boolean             @default(false)
     totalWinner           Int
     currentWinnerCount    Int                 @default(0)
     priceInXLM            Float?
@@ -726,6 +728,7 @@ model Bounty {
     bountyType            BountyType          @default(GENERAL)
 
     ActionLocation ActionLocation[]
+    bountyRedeems  BountyRedeem[]
 
     @@index([title, description])
 }
@@ -848,6 +851,22 @@ enum SubmissionViewType {
 
 // I want to add asset redeeming feature
 
+model BountyRedeem {
+    id               Int             @id @default(autoincrement())
+    bountyId         Int
+    bounty           Bounty          @relation(fields: [bountyId], references: [id], onDelete: Cascade)
+    code             String
+    isRedeemed       Boolean         @default(false)
+    redeemedBy       String?
+    redeemedUser     User?           @relation(fields: [redeemedBy], references: [id], onDelete: SetNull)
+    redeemedAt       DateTime?
+    createdAt        DateTime        @default(now())
+    redeemConsumer   RedeemConsumer? @relation(fields: [redeemConsumerId], references: [id])
+    redeemConsumerId Int?
+
+    @@unique([bountyId, code])
+}
+
 model Redeem {
     code            String           @id
     totalRedeemable Int
@@ -857,12 +876,13 @@ model Redeem {
 }
 
 model RedeemConsumer {
-    id         Int      @id @default(autoincrement())
-    userId     String
-    user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    code       String
-    redeemCode Redeem   @relation(fields: [code], references: [code], onDelete: Cascade)
-    redeemedAt DateTime @default(now())
+    id            Int            @id @default(autoincrement())
+    userId        String
+    user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+    code          String
+    redeemCode    Redeem         @relation(fields: [code], references: [code], onDelete: Cascade)
+    redeemedAt    DateTime       @default(now())
+    bountyRedeems BountyRedeem[]
 }
 
 model SellPageAsset {

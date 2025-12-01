@@ -32,7 +32,7 @@ const CreatorBounty = () => {
     return (
 
         <div className="
-            min-h-screen  w-full">
+            min-h-screen  w-full overflow-y-auto">
             <div className="sticky top-0 z-10 ">
                 <SearchAndSort
                     searchTerm={searchTerm}
@@ -45,7 +45,7 @@ const CreatorBounty = () => {
 
             </div>
 
-            <div className="my-4 flex min-h-[calc(100vh-20vh)]  flex-col gap-4 ">
+            <div className="my-4 flex min-h-[calc(100vh-20vh)]  flex-col gap-4  ">
 
                 <div className="">
                     {

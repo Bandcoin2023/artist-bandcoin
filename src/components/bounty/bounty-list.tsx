@@ -62,7 +62,7 @@ export default function BountyList({
     }
 
     return (
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3  ">
             {bounties.map((bounty) => (
                 <Card
                     key={bounty.id}
@@ -79,7 +79,7 @@ export default function BountyList({
                         />
                         <div className="absolute top-0 right-0 m-4">
                             <Badge variant="secondary" className="bg-primary ">
-                                ${bounty.priceInUSD}
+                                {bounty.priceInUSD > 0 ? "USDC" : bounty.priceInBand > 0 ? PLATFORM_ASSET.code.toLocaleUpperCase() : "Free"}
                             </Badge>
                         </div>
                     </CardHeader>
@@ -108,7 +108,11 @@ export default function BountyList({
                             <div className="flex items-center text-sm">
                                 <Award className="mr-1 inline-block h-4 w-4" />
                                 <span className="font-semibold">
-                                    {bounty.priceInBand.toFixed(2)} {PLATFORM_ASSET.code.toLocaleUpperCase()}
+                                    {bounty.priceInBand > 0
+                                        ? `${bounty.priceInBand.toFixed(0)} ${PLATFORM_ASSET.code.toLocaleUpperCase()}`
+                                        : bounty.priceInUSD > 0 ?
+                                            `$${bounty.priceInUSD.toFixed(2)} USDC`
+                                            : "Free"}
                                 </span>
                             </div>
                             <Badge

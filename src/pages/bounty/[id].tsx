@@ -124,6 +124,7 @@ import { useViewBountySubmissionModalStore } from "~/components/store/view-bount
 import { Circle } from "~/components/common/circle";
 import { BountyTypes } from "~/types/bounty/bounty-type";
 import { a } from "vitest/dist/suite-dWqIFb_-";
+import { usePaymentMethodStore } from "~/components/common/payment-options";
 type Message = {
   role: UserRole;
   message: string;
@@ -502,13 +503,10 @@ const UserBountyPage = () => {
                           className="bg-primary/90 shadow-sm hover:bg-primary"
                         >
                           <Trophy className="mr-1 h-4 w-4" />
-                          {data?.priceInUSD} USD
+                          {data?.priceInUSD > 0 ? `$${data.priceInUSD.toFixed(2)} USDC` : `${data?.priceInBand.toFixed(3)} ${PLATFORM_ASSET.code.toLocaleUpperCase()}`}
                         </Badge>
-                        <Badge variant="secondary" className=" shadow-sm">
-                          <Award className="mr-1 h-4 w-4" />
-                          {data?.priceInBand.toFixed(3)}{" "}
-                          {PLATFORM_ASSET.code.toLocaleUpperCase()}
-                        </Badge>
+
+
                         <Badge
                           variant="outline"
                           className="border-white/30 bg-black/40 text-white shadow-sm backdrop-blur-sm"
@@ -1055,7 +1053,7 @@ const UserBountyPage = () => {
                             </DialogDescription>
                           </DialogHeader>
 
-                          {!getMotherTrustLine.data ? (
+                          {!getMotherTrustLine.data && data.priceInUSD > 0 ? (
                             <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20">
                               <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
                                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
@@ -1078,91 +1076,88 @@ const UserBountyPage = () => {
                           ) : (
                             <div className="space-y-6">
                               <div className="grid gap-4">
-                                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                                  <Button
-                                    className="group relative h-16 w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
-                                    size="lg"
-                                    onClick={() => {
-                                      ClaimUSDCReward.mutate({
-                                        bountyId: Number(id),
-                                        rewardAmount: data.priceInUSD,
-                                        signWith: needSign(),
-                                        winnerId: data.BountyWinner.find(
-                                          (winner) => winner.user.id === session.data?.user.id
-                                        )?.id ?? -1
-                                      });
-                                    }}
-                                  >
-                                    <div className="flex items-center gap-4">
-                                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
-                                        <DollarSign className="h-5 w-5" />
-                                      </div>
-                                      <div className="text-left">
-                                        {
-                                          ClaimUSDCReward.isLoading ? (
-                                            <>
-                                              <div className="font-semibold">Claiming USDC Rewards</div>
-                                              <div className="text-sm text-emerald-100">Stable digital currency</div>
-                                            </>
-                                          ) : (
-                                            <>
-                                              <div className="font-semibold">Claim {data.priceInUSD} USDC  Rewards</div>
-                                              <div className="text-sm text-emerald-100">Stable digital currency</div>
-                                            </>
-                                          )
-                                        }
-                                      </div>
-                                    </div>
-                                  </Button>
-                                </motion.div>
+                                {
+                                  data.priceInUSD > 0 ? (
+                                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                      <Button
+                                        className="group relative h-16 w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                                        size="lg"
+                                        onClick={() => {
+                                          ClaimUSDCReward.mutate({
+                                            bountyId: Number(id),
+                                            rewardAmount: data.priceInUSD,
+                                            signWith: needSign(),
+                                            winnerId: data.BountyWinner.find(
+                                              (winner) => winner.user.id === session.data?.user.id
+                                            )?.id ?? -1
+                                          });
+                                        }}
+                                      >
+                                        <div className="flex items-center gap-4">
+                                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                                            <DollarSign className="h-5 w-5" />
+                                          </div>
+                                          <div className="text-left">
+                                            {
+                                              ClaimUSDCReward.isLoading ? (
+                                                <>
+                                                  <div className="font-semibold">Claiming USDC Rewards</div>
+                                                  <div className="text-sm text-emerald-100">Stable digital currency</div>
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <div className="font-semibold">Claim {data.priceInUSD} USDC  Rewards</div>
+                                                  <div className="text-sm text-emerald-100">Stable digital currency</div>
+                                                </>
+                                              )
+                                            }
+                                          </div>
+                                        </div>
+                                      </Button>
+                                    </motion.div>
+                                  ) :
+                                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                      <Button
+                                        className="group relative h-16 w-full bg-gradient-to-r from-accent to-purple-600 hover:from-accent/90 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                                        size="lg"
+                                        disabled={ClaimBandCoinReward.isLoading || UpdateWinnerInformation.isLoading}
+                                        onClick={() => ClaimBandCoinReward.mutate({
+                                          bountyId: Number(id),
+                                          rewardAmount: data.priceInBand,
+                                          signWith: needSign(),
+                                          winnerId: data.BountyWinner.find(
+                                            (winner) => winner.user.id === session.data?.user.id
+                                          )?.id ?? -1
+                                        })}
+                                      >
+                                        <div className="flex items-center gap-4">
+                                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                                            <Coins className="h-5 w-5" />
+                                          </div>
+                                          <div className="text-left">
+                                            {
+                                              (
+                                                ClaimBandCoinReward.isLoading || UpdateWinnerInformation.isLoading) ? (
+                                                <>
+                                                  <div className="font-semibold">Claiming {PLATFORM_ASSET.code} Rewards</div>
+                                                  <div className="text-sm text-purple-100">Platform native token</div>
+                                                </>
 
-                                <div className="relative flex items-center justify-center py-2">
-                                  <div className="absolute inset-0 flex items-center">
-                                    <div className="w-full border-t border-border" />
-                                  </div>
-                                  <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-muted border border-border">
-                                    <span className="text-xs font-medium text-muted-foreground">OR</span>
-                                  </div>
-                                </div>
+                                              ) : (
+                                                <>
+                                                  <div className="font-semibold">Claim {data.priceInBand} {PLATFORM_ASSET.code} Rewards</div>
+                                                  <div className="text-sm text-purple-100">Platform native token</div>
+                                                </>
+                                              )
+                                            }
+                                          </div>
+                                        </div>
+                                      </Button>
+                                    </motion.div>
+                                }
 
-                                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                                  <Button
-                                    className="group relative h-16 w-full bg-gradient-to-r from-accent to-purple-600 hover:from-accent/90 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
-                                    size="lg"
-                                    disabled={ClaimBandCoinReward.isLoading || UpdateWinnerInformation.isLoading}
-                                    onClick={() => ClaimBandCoinReward.mutate({
-                                      bountyId: Number(id),
-                                      rewardAmount: data.priceInBand,
-                                      signWith: needSign(),
-                                      winnerId: data.BountyWinner.find(
-                                        (winner) => winner.user.id === session.data?.user.id
-                                      )?.id ?? -1
-                                    })}
-                                  >
-                                    <div className="flex items-center gap-4">
-                                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
-                                        <Coins className="h-5 w-5" />
-                                      </div>
-                                      <div className="text-left">
-                                        {
-                                          (
-                                            ClaimBandCoinReward.isLoading || UpdateWinnerInformation.isLoading) ? (
-                                            <>
-                                              <div className="font-semibold">Claiming {PLATFORM_ASSET.code} Rewards</div>
-                                              <div className="text-sm text-purple-100">Platform native token</div>
-                                            </>
 
-                                          ) : (
-                                            <>
-                                              <div className="font-semibold">Claim {data.priceInBand} {PLATFORM_ASSET.code} Rewards</div>
-                                              <div className="text-sm text-purple-100">Platform native token</div>
-                                            </>
-                                          )
-                                        }
-                                      </div>
-                                    </div>
-                                  </Button>
-                                </motion.div>
+
                               </div>
 
                               <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/10">
@@ -1219,7 +1214,7 @@ const UserBountyPage = () => {
                 </div>
               </CardFooter>
             </Card>
-          </motion.div>
+          </motion.div >
         ) : data.requiredBalance > platformAssetBalance ? (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -1352,7 +1347,7 @@ const UserBountyPage = () => {
             </Card>
           </motion.div>
         )}
-      </div>
+      </div >
     );
   }
 };
@@ -1367,6 +1362,7 @@ interface extendedBountySubmission extends BountySubmission {
 }
 
 const AdminBountyPage = () => {
+  const session = useSession();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { setIsOpen: setAttachmentModal, setData: setAttachment } =
     useViewBountySubmissionModalStore();
@@ -1381,6 +1377,7 @@ const AdminBountyPage = () => {
   const { setData, setIsOpen } = useEditBuyModalStore();
   const [selectedSubmission, setSelectedSubmission] =
     useState<extendedBountySubmission | null>(null);
+  const { paymentMethod, } = usePaymentMethodStore()
 
   const isLocationBasedBounty = (bounty: Bounty) => {
     console.log(bounty?.latitude, bounty?.longitude, bounty?.radius);
@@ -1461,13 +1458,56 @@ const AdminBountyPage = () => {
   });
 
 
+  const SendBalanceToBountyMother = api.bounty.Bounty.sendBountyBalanceToMotherAcc.useMutation({
+    onSuccess: async (data, { method, bountyId, userId }) => {
+      if (data) {
+        try {
+          const clientResponse = await clientsign({
+            presignedxdr: data.xdr,
+            walletType: session.data?.user?.walletType,
+            pubkey: data.pubKey,
+            test: clientSelect(),
+          })
+          if (clientResponse) {
+            MakeWinnerMutation.mutate({
+              BountyId: bountyId ?? 0,
+              userId: userId ?? "",
+            });
+          } else {
+            toast.error("Error in signing transaction")
+          }
+          setIsOpen(false)
+        } catch (error) {
+          console.error("Error sending balance to bounty mother", error)
+        }
+      }
+    },
+    onError: (error) => {
+      console.error("Error creating bounty", error)
+      toast.error(error.message)
+      setIsOpen(false)
+    },
+  })
 
-  const handleWinner = (bountyId: number, userId: string, prize: number) => {
+  const handleWinner = ({ payNow, bountyId, priceInUSD, userId, prize }: { payNow: boolean, bountyId: number, priceInUSD: number, userId: string, prize: number }) => {
     setLoadingBountyId(bountyId);
-    MakeWinnerMutation.mutate({
-      BountyId: bountyId,
-      userId: userId,
-    });
+
+    if (!payNow) {
+      SendBalanceToBountyMother.mutate({
+        signWith: needSign(),
+        prize: prize > 0 ? prize : priceInUSD,
+        fees: 0,
+        method: paymentMethod,
+        bountyId: bountyId,
+        userId: userId,
+      })
+    }
+    else {
+      MakeWinnerMutation.mutate({
+        BountyId: bountyId,
+        userId: userId,
+      });
+    }
     setLoadingBountyId(null);
   };
 
@@ -1601,13 +1641,10 @@ const AdminBountyPage = () => {
                         className="bg-primary/90 shadow-sm hover:bg-primary"
                       >
                         <Trophy className="mr-1 h-4 w-4" />
-                        {data?.priceInUSD} USD
+                        {data?.priceInUSD > 0 ? `$${data.priceInUSD.toFixed(2)} USDC` : `${data?.priceInBand.toFixed(3)} ${PLATFORM_ASSET.code.toLocaleUpperCase()}`}
+
                       </Badge>
-                      <Badge variant="secondary" className=" shadow-sm">
-                        <Award className="mr-1 h-4 w-4" />
-                        {data?.priceInBand.toFixed(3)}{" "}
-                        {PLATFORM_ASSET.code.toLocaleUpperCase()}
-                      </Badge>
+
                       <Badge
                         variant="outline"
                         className="border-white/30 bg-black/40 text-white shadow-sm backdrop-blur-sm"
@@ -1890,9 +1927,13 @@ const AdminBountyPage = () => {
                             className="flex-1 bg-primary hover:bg-primary/90"
                             onClick={() =>
                               handleWinner(
-                                data.id,
-                                selectedSubmission.userId,
-                                data.priceInBand,
+                                {
+                                  payNow: data.payNow,
+                                  bountyId: data.id,
+                                  priceInUSD: data.priceInUSD,
+                                  userId: selectedSubmission.userId,
+                                  prize: data.priceInBand,
+                                }
                               )
                             }
                           >

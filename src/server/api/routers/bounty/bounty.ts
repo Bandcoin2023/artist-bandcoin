@@ -10,6 +10,7 @@ import {
 import { getAccSecretFromRubyApi } from "package/connect_wallet/src/lib/stellar/get-acc-secret";
 import { z } from "zod";
 import { MediaType } from "@prisma/client";
+import { nanoid } from 'nanoid'
 
 import {
   checkXDRSubmitted,
@@ -91,7 +92,9 @@ export const BountyRoute = createTRPCRouter({
         signWith: SignUser,
         prize: z.number().min(0.00001, { message: "Prize can't less than 0" }),
         method: PaymentMethodEnum,
-        fees: z.number()
+        fees: z.number(),
+        userId: z.string().optional(),
+        bountyId: z.number().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -131,28 +134,37 @@ export const BountyRoute = createTRPCRouter({
 
     }),
 
-
   createBounty: protectedProcedure
     .input(
-      z.object({
-        title: z.string().min(1, { message: "Title can't be empty" }),
-        totalWinner: z
-          .number()
-          .min(1, { message: "Please select at least 1 winner" }),
-        prizeInUSD: z
-          .number()
-          .min(0.00001, { message: "Prize can't less than 0" }),
-        prize: z.number().min(0.00001, { message: "Prize can't less than 0" }),
-        requiredBalance: z
-          .number()
-          .min(0, { message: "Required Balance can't be less than 0" }),
-        content: z.string().min(2, { message: "Description can't be empty" }),
-
-        priceInXLM: z.number().optional(),
-        requiredBalanceCode: z.string().min(2, { message: "Asset Code can't be empty" }),
-        requiredBalanceIssuer: z.string().min(2, { message: "Asset Isseuer can't be empty" }),
-        medias: z.array(MediaInfo).optional(),
-      }),
+      z
+        .object({
+          title: z.string().min(1, { message: "Title can't be empty" }),
+          totalWinner: z
+            .number()
+            .min(1, { message: "Please select at least 1 winner" }),
+          // allow zero for either field but require at least one > 0 via refine below
+          prizeInUSD: z.number().min(0, { message: "Prize can't be negative" }),
+          prize: z.number().min(0, { message: "Prize can't be negative" }),
+          requiredBalance: z
+            .number()
+            .min(0, { message: "Required Balance can't be less than 0" }),
+          content: z.string().min(2, { message: "Description can't be empty" }),
+          priceInXLM: z.number().optional(),
+          requiredBalanceCode: z.string().min(2, { message: "Asset Code can't be empty" }),
+          requiredBalanceIssuer: z.string().min(2, { message: "Asset Isseuer can't be empty" }),
+          medias: z.array(MediaInfo).optional(),
+          generateRedeemCodes: z.boolean().default(false), // <-- NEW FIELD
+        })
+        .refine(
+          (data) => {
+            // At least one of prizeInUSD or prize must be greater than zero
+            return (data.prizeInUSD && data.prizeInUSD > 0) || (data.prize && data.prize > 0)
+          },
+          {
+            message: "Either prizeInUSD or prize must be greater than 0",
+            path: ["prizeInUSD"],
+          },
+        ),
     )
     .mutation(async ({ input, ctx }) => {
       const bounty = await ctx.db.bounty.create({
@@ -167,9 +179,26 @@ export const BountyRoute = createTRPCRouter({
           requiredBalance: input.requiredBalance,
           requiredBalanceCode: input.requiredBalanceCode,
           requiredBalanceIssuer: input.requiredBalanceIssuer,
+          payNow: true,
           imageUrls: input.medias ? input.medias.map((media) => media.url) : [],
         },
       });
+
+      // <-- GENERATE REDEEM CODES IF ENABLED
+      if (input.generateRedeemCodes) {
+        const redeemCodes = Array.from({ length: input.totalWinner }, () => ({
+          bountyId: bounty.id,
+          code: nanoid(6).toUpperCase(), // Generates unique 12-char codes like "V1STGXS8_Z5J"
+          isRedeemed: false,
+        }));
+
+        await ctx.db.bountyRedeem.createMany({
+          data: redeemCodes,
+        });
+      }
+      // END REDEEM CODE GENERATION
+
+      // ... rest of notification logic
       const followers = await ctx.db.follow.findMany({
         where: { creatorId: ctx.session.user.id },
         select: { userId: true },
@@ -199,6 +228,105 @@ export const BountyRoute = createTRPCRouter({
       for (const followerId of followerIds) {
         await createNotification(followerId);
       }
+
+      return bounty;
+    }),
+  createBountyPayLater: protectedProcedure
+    .input(
+      z
+        .object({
+          title: z.string().min(1, { message: "Title can't be empty" }),
+          totalWinner: z
+            .number()
+            .min(1, { message: "Please select at least 1 winner" }),
+          // allow zero for either field but require at least one > 0 via refine below
+          prizeInUSD: z.number().min(0, { message: "Prize can't be negative" }),
+          prize: z.number().min(0, { message: "Prize can't be negative" }),
+          requiredBalance: z
+            .number()
+            .min(0, { message: "Required Balance can't be less than 0" }),
+          content: z.string().min(2, { message: "Description can't be empty" }),
+          priceInXLM: z.number().optional(),
+          requiredBalanceCode: z.string().min(2, { message: "Asset Code can't be empty" }),
+          requiredBalanceIssuer: z.string().min(2, { message: "Asset Isseuer can't be empty" }),
+          medias: z.array(MediaInfo).optional(),
+          generateRedeemCodes: z.boolean().default(false), // <-- NEW FIELD
+        })
+        .refine(
+          (data) => {
+            // At least one of prizeInUSD or prize must be greater than zero
+            return (data.prizeInUSD && data.prizeInUSD > 0) || (data.prize && data.prize > 0)
+          },
+          {
+            message: "Either prizeInUSD or prize must be greater than 0",
+            path: ["prizeInUSD"],
+          },
+        ),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const bounty = await ctx.db.bounty.create({
+        data: {
+          title: input.title,
+          description: input.content,
+          priceInUSD: input.prizeInUSD,
+          priceInBand: input.prize,
+          creatorId: ctx.session.user.id,
+          priceInXLM: input.priceInXLM,
+          totalWinner: input.totalWinner,
+          requiredBalance: input.requiredBalance,
+          requiredBalanceCode: input.requiredBalanceCode,
+          requiredBalanceIssuer: input.requiredBalanceIssuer,
+          payNow: false,
+          imageUrls: input.medias ? input.medias.map((media) => media.url) : [],
+        },
+      });
+
+      // <-- GENERATE REDEEM CODES IF ENABLED
+      if (input.generateRedeemCodes) {
+        const redeemCodes = Array.from({ length: input.totalWinner }, () => ({
+          bountyId: bounty.id,
+          code: nanoid(6).toUpperCase(), // Generates unique 12-char codes like "V1STGXS8_Z5J"
+          isRedeemed: false,
+        }));
+
+        await ctx.db.bountyRedeem.createMany({
+          data: redeemCodes,
+        });
+      }
+      // END REDEEM CODE GENERATION
+
+      // ... rest of notification logic
+      const followers = await ctx.db.follow.findMany({
+        where: { creatorId: ctx.session.user.id },
+        select: { userId: true },
+      });
+
+      const followerIds = followers.map((follower) => follower.userId);
+
+      const createNotification = async (notifierId: string) => {
+        await ctx.db.notificationObject.create({
+          data: {
+            actorId: ctx.session.user.id,
+            entityType: NotificationType.BOUNTY,
+            entityId: bounty.id,
+            isUser: true,
+            Notification: {
+              create: [
+                {
+                  notifierId,
+                  isCreator: false,
+                },
+              ],
+            },
+          },
+        });
+      };
+
+      for (const followerId of followerIds) {
+        await createNotification(followerId);
+      }
+
+      return bounty;
     }),
   createLocationBounty: protectedProcedure
     .input(
