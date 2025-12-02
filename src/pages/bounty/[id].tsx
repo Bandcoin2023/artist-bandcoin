@@ -1106,7 +1106,7 @@ const UserBountyPage = () => {
                                                 </>
                                               ) : (
                                                 <>
-                                                  <div className="font-semibold">Claim {data.priceInUSD} USDC  Rewards</div>
+                                                  <div className="font-semibold">Claim {data.priceInUSD / data.totalWinner} USDC  Rewards</div>
                                                   <div className="text-sm text-emerald-100">Stable digital currency</div>
                                                 </>
                                               )
@@ -1145,7 +1145,7 @@ const UserBountyPage = () => {
 
                                               ) : (
                                                 <>
-                                                  <div className="font-semibold">Claim {data.priceInBand} {PLATFORM_ASSET.code} Rewards</div>
+                                                  <div className="font-semibold">Claim {data.priceInBand / data.totalWinner} {PLATFORM_ASSET.code} Rewards</div>
                                                   <div className="text-sm text-purple-100">Platform native token</div>
                                                 </>
                                               )
@@ -1899,9 +1899,12 @@ const AdminBountyPage = () => {
                           <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
                             <p className="text-sm text-amber-800 dark:text-amber-300">
                               The prize amount of{" "}
-                              {(data.priceInBand / data.totalWinner).toFixed(3)}{" "}
-                              {PLATFORM_ASSET.code} or{" "}
-                              {data.priceInUSD / data.totalWinner} USDC user can
+                              {
+                                data.priceInBand > 0 ?
+                                  `${(data.priceInBand / data.totalWinner).toFixed(5)} ${PLATFORM_ASSET.code.toLocaleUpperCase()}`
+                                  :
+                                  `$${(data.priceInUSD / data.totalWinner).toFixed(5)} USDC`
+                              } will be{" "}
                               claim later.
                             </p>
                           </div>
@@ -1915,6 +1918,7 @@ const AdminBountyPage = () => {
                             Cancel
                           </Button>
                           <Button
+                            variant={"accent"}
                             disabled={
                               loadingBountyId === data.id ||
                               data.totalWinner <= data.currentWinnerCount ||
@@ -1924,15 +1928,16 @@ const AdminBountyPage = () => {
                               ) ||
                               MakeWinnerMutation.isLoading
                             }
-                            className="flex-1 bg-primary hover:bg-primary/90"
+
+                            className="flex-1 shadow-sm shadow-foreground"
                             onClick={() =>
                               handleWinner(
                                 {
                                   payNow: data.payNow,
                                   bountyId: data.id,
-                                  priceInUSD: data.priceInUSD,
+                                  priceInUSD: data.priceInUSD / data.totalWinner,
                                   userId: selectedSubmission.userId,
-                                  prize: data.priceInBand,
+                                  prize: data.priceInBand / data.totalWinner,
                                 }
                               )
                             }

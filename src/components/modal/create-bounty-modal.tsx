@@ -114,6 +114,8 @@ const BountySchema = z
 
 type FormStep = "details" | "media" | "settings" | "review"
 const FORM_STEPS: FormStep[] = ["details", "media", "settings", "review"]
+const USDCIssuer = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
+const USDCCode = "USDC";
 
 enum assetType {
   PAGEASSET = "PAGEASSET",
@@ -228,6 +230,8 @@ const CreateBountyModal = () => {
     },
   })
 
+
+
   const CreateBountyPayLaterMutation = api.bounty.Bounty.createBountyPayLater.useMutation({
     onSuccess: async () => {
       toast.success("Bounty Created Successfully! Payment pending. 🎉")
@@ -301,7 +305,6 @@ const CreateBountyModal = () => {
     },
   })
 
-  const XLMRate = api.bounty.Bounty.getXLMPrice.useQuery().data
 
   const onSubmit: SubmitHandler<z.infer<typeof BountySchema>> = (data) => {
     data.medias = media
@@ -372,6 +375,12 @@ const CreateBountyModal = () => {
     }
     return (watchedUsdcAmount ?? 0)
   }
+
+  useEffect(() => {
+    console.log("Watched Reward Type changed:", watchedRewardType);
+    setPaymentMethod(watchedRewardType === "usdc" ? "usdc" : "asset")
+  }, [watchedRewardType])
+
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={handleClose}>
@@ -506,6 +515,7 @@ const CreateBountyModal = () => {
                   variant="outline"
                   onClick={goToPreviousStep}
                   disabled={activeStep === "details" || loading}
+                  className=""
                 >
                   <ChevronLeft className="mr-2 h-4 w-4" />
                   Back
@@ -572,12 +582,8 @@ const CreateBountyModal = () => {
                             requiredToken: getPrizeAmount() + totalFees
                           })}
 
-                        handleConfirm={async () => {
-                          setPaymentMethod(watchedRewardType === "usdc" ? "usdc" : "asset")
+                        handleConfirm={handleSubmit(onSubmit)}
 
-                          await handleSubmit(onSubmit)();
-
-                        }}
                         loading={loading}
                         trigger={
                           <Button disabled={loading || !isValid} className="shadow-sm shadow-foreground">
@@ -615,17 +621,60 @@ function DetailsStep() {
     watch,
     formState: { errors },
   } = useFormContext<z.infer<typeof BountySchema>>()
+  const session = useSession()
+  const { needSign } = useNeedSign();
 
   const title = watch("title", "")
   const rewardType = watch("rewardType")
   const usdcAmount = watch("usdcAmount")
   const platformAssetAmount = watch("platformAssetAmount")
   const totalWinner = watch("totalWinner")
-
+  const [loading, setLoading] = useState(false);
   const handleEditorChange = (value: string): void => {
     setValue("content", value)
   }
+  const CheckUSDCTrustLine = api.bounty.Bounty.checkUSDCTrustLine.useQuery(undefined, {
+    enabled: session.status === "authenticated" && getValues("rewardType") === "usdc",
+  })
+  const AddTrustMutation =
+    api.walletBalance.wallBalance.addTrustLine.useMutation({
+      onSuccess: async (data) => {
+        try {
+          const clientResponse = await clientsign({
+            walletType: session?.data?.user?.walletType,
+            presignedxdr: data.xdr,
+            pubkey: data.pubKey,
+            test: clientSelect(),
+          });
 
+          if (clientResponse) {
+            toast.success("Added trustline successfully");
+            try {
+              await api
+                .useUtils()
+                .walletBalance.wallBalance.getWalletsBalance.refetch();
+            } catch (refetchError) {
+              console.log("Error refetching balance", refetchError);
+            }
+          } else {
+            toast.error("No Data Found at TrustLine Operation");
+          }
+        } catch (error) {
+          if (error instanceof Error) {
+            toast.error(`Error: ${error.message}`);
+          } else {
+            toast.error("An unknown error occurred.");
+          }
+          console.log("Error", error);
+        } finally {
+          setLoading(false);
+        }
+      },
+      onError: (error) => {
+        setLoading(false);
+        toast.error(error.message);
+      },
+    });
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -800,13 +849,13 @@ function DetailsStep() {
 
           {/* Reward Summary */}
           {(rewardType === "usdc" ? (usdcAmount ?? 0) > 0 : (platformAssetAmount ?? 0) > 0) && (
-            <div className="rounded-lg bg-muted/50 p-4">
-              <div className="flex items-center justify-between">
+            <div className="rounded-lg bg-muted/50 p-4 flex justify-between items-center">
+              <div className="flex  items-center justify-between w-full">
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Total Pool</p>
                   <p className="text-lg font-semibold">
                     {rewardType === "usdc"
-                      ? `$${(usdcAmount ?? 0).toFixed(2)} USDC`
+                      ? `$${(usdcAmount ?? 0).toFixed(5)} USDC`
                       : `${(platformAssetAmount ?? 0).toFixed(5)} ${PLATFORM_ASSET.code.toUpperCase()}`}
                   </p>
                 </div>
@@ -821,6 +870,30 @@ function DetailsStep() {
                   </div>
                 )}
               </div>
+              {
+                rewardType === "usdc" && CheckUSDCTrustLine.data === false && (
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      AddTrustMutation.mutate({
+                        asset_code: USDCCode,
+                        asset_issuer: USDCIssuer,
+                        signWith: needSign(),
+                      })}
+                    disabled={AddTrustMutation.isLoading}
+                    variant={"outline"}
+                  >
+                    {AddTrustMutation.isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Adding Trust
+                      </>
+                    ) : (
+                      "Add Trust"
+                    )}
+                  </Button>
+                )
+              }
             </div>
           )}
         </CardContent>

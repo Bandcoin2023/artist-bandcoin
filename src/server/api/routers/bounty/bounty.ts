@@ -19,6 +19,8 @@ import {
   getHasMotherTrustOnUSDC,
   getHasUserHasTrustOnUSDC,
 
+  getUserHasTrustOnUSDC,
+
   SendBountyBalanceToMotherAccountViaAsset,
   SendBountyBalanceToMotherAccountViaUSDC,
   SendBountyBalanceToMotherAccountViaXLM,
@@ -1831,5 +1833,12 @@ export const BountyRoute = createTRPCRouter({
       );
 
       return messages.length > 0 ? messages : [];
+    }),
+
+  checkUSDCTrustLine: protectedProcedure
+
+    .query(async ({ input, ctx }) => {
+      const userId = ctx.session.user.id;
+      return await getUserHasTrustOnUSDC(userId);
     }),
 });
