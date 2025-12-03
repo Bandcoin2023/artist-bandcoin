@@ -388,7 +388,7 @@ const CreateBountyModal = () => {
         onInteractOutside={(e) => e.preventDefault()}
         className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-xl p-2"
       >
-        {showConfetti && (
+        {/* {showConfetti && (
           <div className="pointer-events-none fixed inset-0 z-50">
             <div className="absolute inset-0 flex items-center justify-center">
               <motion.div
@@ -430,7 +430,7 @@ const CreateBountyModal = () => {
               />
             ))}
           </div>
-        )}
+        )} */}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -533,7 +533,8 @@ const CreateBountyModal = () => {
                       type="button"
                       variant="outline"
                       onClick={handlePayLater}
-                      disabled={loading || !isValid}
+                      disabled={loading || !isValid || watchedGenerateRedeemCodes}
+                      title={watchedGenerateRedeemCodes ? "Pay now is required when generating redeem codes" : ""}
                       className="border-amber-300 hover:bg-amber-50 bg-transparent"
                     >
                       {loading ? (
@@ -864,7 +865,7 @@ function DetailsStep() {
                     <p className="text-xs text-muted-foreground">Per Winner</p>
                     <p className="text-lg font-semibold">
                       {rewardType === "usdc"
-                        ? `$${(((usdcAmount ?? 0) / (totalWinner ?? 1))).toFixed(2)}`
+                        ? `$${(((usdcAmount ?? 0) / (totalWinner ?? 1))).toFixed(5)}`
                         : `${(((platformAssetAmount ?? 0) / (totalWinner ?? 1))).toFixed(5)}`}
                     </p>
                   </div>
@@ -1052,7 +1053,7 @@ function SettingsStep() {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid grid-cols-2 gap-4 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
             {/* Required Asset Selection */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">
@@ -1065,6 +1066,7 @@ function SettingsStep() {
                     setValue("requiredBalanceCode", parts[0] ?? "", { shouldValidate: true })
                     setValue("requiredBalanceIssuer", parts[1] ?? "", { shouldValidate: true })
                     setValue("requiredBalance", 0)
+                    console.log("Selected Asset Parts:", parts)
                     setSelectedAsset({
                       assetCode: parts[0] ?? "",
                       assetIssuer: parts[1] ?? "",
@@ -1092,11 +1094,11 @@ function SettingsStep() {
                     {pageAssetbal.data && (
                       <>
                         <SelectItem
-                          value={`${pageAssetbal.data.assetCode} ${pageAssetbal.data.assetCode} ${pageAssetbal.data.balance} PAGEASSET`}
+                          value={`${pageAssetbal.data.assetCode} ${pageAssetbal.data.assetIssuer} ${pageAssetbal.data.balance} PAGEASSET`}
                           className="px-3 py-3 w-full hover:bg-purple-50/80 focus:bg-purple-50 cursor-pointer transition-colors"
                         >
-                          <div className="grid grid-cols-2 items-center justify-between w-full mx-5">
-                            <div className="flex items-center gap-3">
+                          <div className="grid grid-cols-2 items-center justify-between w-full ">
+                            <div className="flex items-center justify-start gap-3">
                               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
                                 <span className="text-xs font-bold text-purple-700">
                                   {pageAssetbal.data.assetCode.slice(0, 2)}
@@ -1128,7 +1130,7 @@ function SettingsStep() {
                           value={`${PLATFORM_ASSET.code} ${PLATFORM_ASSET.issuer} ${platformAssetBalance} PLATFORMASSET`}
                           className="px-3 py-3 hover:bg-amber-50/80 focus:bg-amber-50 cursor-pointer transition-colors"
                         >
-                          <div className="items-center justify-between w-full mx-5 grid grid-cols-2">
+                          <div className="items-center justify-between w-full grid grid-cols-2">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center">
                                 <span className="text-xs font-bold text-amber-700">
@@ -1177,7 +1179,7 @@ function SettingsStep() {
                             value={`${asset.asset_code} ${asset.asset_issuer} ${asset.balance} SHOPASSET`}
                             className="px-3 py-3 hover:bg-blue-50/80 focus:bg-blue-50 cursor-pointer transition-colors"
                           >
-                            <div className="grid items-center justify-between w-full mx-5">
+                            <div className="grid items-center justify-between w-full">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
                                   <span className="text-xs font-bold text-blue-700">{asset.asset_code.slice(0, 2)}</span>
@@ -1363,7 +1365,7 @@ function ReviewStep({
                 <span className="text-muted-foreground">Prize Amount:</span>
                 <span className="font-medium">
                   {rewardType === "usdc"
-                    ? `$${usdcAmount ?? 0} USDC`
+                    ? `$${usdcAmount?.toFixed(5) ?? 0} USDC`
                     : `${(platformAssetAmount ?? 0).toFixed(5)} ${PLATFORM_ASSET.code.toUpperCase()}`}
                 </span>
               </div>
@@ -1375,7 +1377,7 @@ function ReviewStep({
                 <span className="text-muted-foreground">Prize per Winner:</span>
                 <span className="font-medium">
                   {rewardType === "usdc"
-                    ? `$${((usdcAmount ?? 0) / (winners || 1)).toFixed(2)} USDC`
+                    ? `$${((usdcAmount ?? 0) / (winners || 1)).toFixed(5)} USDC`
                     : `${((platformAssetAmount ?? 0) / (winners || 1)).toFixed(5)} ${PLATFORM_ASSET.code.toUpperCase()}`}
                 </span>
               </div>

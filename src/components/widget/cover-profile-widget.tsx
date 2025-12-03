@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { CheckCircle2, Globe, Twitter, Instagram, Calendar, Camera, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, Edit, Save, X } from 'lucide-react'
+import { CheckCircle2, Globe, Twitter, Instagram, Calendar, Camera, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, Edit, Save, X, UserPlus } from 'lucide-react'
 import { Button } from "~/components/shadcn/ui/button"
 import { Slider } from "~/components/shadcn/ui/slider"
 import { Input } from "~/components/shadcn/ui/input"
@@ -28,6 +28,7 @@ import CustomHTMLWidget from "./custom-html-widget"
 import CalendarWidget from "./calendar-widget"
 import { CommentFormatter } from "../common/comment-formatter"
 import { useSession } from "next-auth/react"
+import FollowCreatorButton from "../creator/follow-creator-button"
 
 // Add a global style fix at the top of the component to ensure proper z-index and backdrop for all popover/sheet components
 
@@ -428,7 +429,6 @@ export default function CoverProfileWidget({
                 return renderStandardMode()
         }
     }
-
     // Render standard display mode
     const renderStandardMode = () => (
         <>
@@ -445,6 +445,7 @@ export default function CoverProfileWidget({
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
             >
+                {/* ... existing cover photo code ... */}
                 <div className="absolute inset-0 overflow-hidden">
                     <Image src={creatorData?.coverUrl ?? "/placeholder.svg"} alt="Cover" fill className="object-cover" priority />
                     {/* Cover overlay */}
@@ -472,13 +473,11 @@ export default function CoverProfileWidget({
                         <div className="h-24 w-24 md:h-32 md:w-32 rounded-full overflow-hidden border-4 border-background shadow-xl">
                             <CustomAvatar url={creatorData?.profileUrl} className="h-full w-full border-2 border-background" />
                         </div>
-
                         {creatorData?.approved && (
                             <div className="absolute bottom-1 right-1 bg-primary  rounded-full p-1 shadow-lg">
                                 <CheckCircle2 className="h-5 w-5" />
                             </div>
                         )}
-
                         {profileEditMode && (
                             <Button
                                 onClick={() => document.getElementById("profile-upload")?.click()}
@@ -492,8 +491,6 @@ export default function CoverProfileWidget({
                     </div>
                 </div>
 
-
-
                 {profileEditMode && (
                     <Button
                         onClick={() => document.getElementById("cover-upload")?.click()}
@@ -505,22 +502,21 @@ export default function CoverProfileWidget({
                         <span>Change Cover</span>
                     </Button>
                 )}
-                {
-                    profileEditMode && creatorData.id === session?.data?.user.id && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="secondary" size="sm" className="absolute top-2 left-2">
-                                    Profile Position
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="bg-background border border-border z-50">
-                                <DropdownMenuItem onClick={() => updateSetting("profilePosition", "left")}>Left</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => updateSetting("profilePosition", "center")}>Center</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => updateSetting("profilePosition", "right")}>Right</DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )
-                }
+
+                {profileEditMode && creatorData.id === session?.data?.user.id && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="secondary" size="sm" className="absolute top-2 left-2">
+                                Profile Position
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-background border border-border z-50">
+                            <DropdownMenuItem onClick={() => updateSetting("profilePosition", "left")}>Left</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateSetting("profilePosition", "center")}>Center</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateSetting("profilePosition", "right")}>Right</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
 
                 {profileEditMode && creatorData.id === session?.data?.user.id && (
                     <Button
@@ -547,18 +543,12 @@ export default function CoverProfileWidget({
                             step={10}
                             onValueChange={(value) => {
                                 startResize()
-                                // Use a less frequent update interval during active resize
                                 const newHeight = value[0] ?? DEFAULT_SETTINGS.coverHeight
-                                // Only update if the change is significant (5px or more)
                                 if (Math.abs(newHeight - widgetSettings.coverHeight) >= 5) {
-                                    // Update the setting without hiding controls
                                     setWidgetSettings((prev) => ({ ...prev, coverHeight: newHeight }))
-
-                                    // Debounce the parent update to avoid too many re-renders
                                     if (updateTimeoutRef.current) {
                                         clearTimeout(updateTimeoutRef.current)
                                     }
-
                                     updateTimeoutRef.current = setTimeout(() => {
                                         if (onSettingsChange) {
                                             const updatedSettings = { ...widgetSettings, coverHeight: newHeight }
@@ -576,7 +566,6 @@ export default function CoverProfileWidget({
                         </div>
                     </div>
                 )}
-
             </div>
 
             {/* Profile Info */}
@@ -617,15 +606,16 @@ export default function CoverProfileWidget({
                                 {editedProfile.name}
                                 {creatorData?.approved && <CheckCircle2 className="h-5 w-5 " />}
                             </h2>
+                            {!profileEditMode && !editMode && (
+                                <FollowCreatorButton creatorId={creatorData?.id} />
+                            )}
                         </div>
                         <p className="mt-1 text-muted-foreground line-clamp-2">
-                            <CommentFormatter
-                                content={editedProfile.bio}
-                            />
+                            <CommentFormatter content={editedProfile.bio} />
                         </p>
                     </div>
                 )}
-
+                {/* ... existing social links code ... */}
                 <div className="mt-4 space-y-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {creatorData?.website && (
                         <div>
@@ -666,7 +656,6 @@ export default function CoverProfileWidget({
                             </Link>
                         </div>
                     )}
-
                     <div className="flex items-center text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4 mr-2" />
                         <span>Joined {new Date(creatorData?.joinedAt).toLocaleDateString()}</span>
@@ -706,7 +695,6 @@ export default function CoverProfileWidget({
                             }}
                         />
                     )}
-
                     {/* Text overlay */}
                     {widgetSettings.coverTextOverlay && (
                         <div
@@ -746,7 +734,6 @@ export default function CoverProfileWidget({
                                 <span>Change Cover</span>
                             </Button>
                         )}
-
                         {!profileEditMode && creatorData.id === session?.data?.user.id && (
                             <Button
                                 variant="secondary"
@@ -759,7 +746,6 @@ export default function CoverProfileWidget({
                                 <span className="ml-1">Height</span>
                             </Button>
                         )}
-
                         {showHeightControls && (
                             <div
                                 className="absolute bottom-12 right-2 bg-background/90 backdrop-blur-sm p-3 rounded-md shadow-md w-48"
@@ -772,9 +758,7 @@ export default function CoverProfileWidget({
                                     step={10}
                                     onValueChange={(value) => {
                                         startResize()
-                                        // Use a less frequent update interval during active resize
                                         const newHeight = value[0] ?? DEFAULT_SETTINGS.coverHeight
-                                        // Only update if the change is significant (5px or more)
                                         if (Math.abs(newHeight - widgetSettings.coverHeight) >= 5) {
                                             updateSetting("coverHeight", newHeight)
                                         }
@@ -824,13 +808,11 @@ export default function CoverProfileWidget({
                                     className="h-full w-full object-cover"
                                 />
                             </div>
-
                             {creatorData?.approved && (
                                 <div className="absolute bottom-0 right-0 bg-primary  rounded-full p-1 shadow-lg">
                                     <CheckCircle2 className="h-4 w-4" />
                                 </div>
                             )}
-
                             {profileEditMode && (
                                 <Button
                                     onClick={() => document.getElementById("profile-upload")?.click()}
@@ -842,7 +824,6 @@ export default function CoverProfileWidget({
                                 </Button>
                             )}
                         </div>
-
                         {(profileEditMode ?? profileEditMode) ? (
                             <div className="w-full mt-3 space-y-2">
                                 <Input
@@ -857,18 +838,17 @@ export default function CoverProfileWidget({
                                     rows={3}
                                 />
                                 <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" onClick={handleCancelEditProfile} className="flex-1">
+                                    <Button variant="outline" size="sm" onClick={handleCancelEditProfile} className="flex-1 bg-transparent">
                                         Cancel
                                     </Button>
                                     <Button
                                         disabled={
-                                            UpdateCreatorProfileInfo.isLoading || (
-                                                !!formErrors.name ||
-                                                !!formErrors.bio ||
-                                                !!formErrors.website ||
-                                                !!formErrors.twitter ||
-                                                !!formErrors.instagram
-                                            )
+                                            UpdateCreatorProfileInfo.isLoading ||
+                                            !!formErrors.name ||
+                                            !!formErrors.bio ||
+                                            !!formErrors.website ||
+                                            !!formErrors.twitter ||
+                                            !!formErrors.instagram
                                         }
                                         size="sm"
                                         onClick={handleSaveProfile}
@@ -888,6 +868,9 @@ export default function CoverProfileWidget({
                                     {creatorData?.approved && <CheckCircle2 className="h-4 w-4 " />}
                                 </h2>
                                 <p className="mt-1 text-sm text-muted-foreground text-center line-clamp-3">{editedProfile.bio}</p>
+                                {!profileEditMode && !editMode && (
+                                    <FollowCreatorButton creatorId={creatorData?.id} />
+                                )}
                             </>
                         )}
                     </div>
@@ -932,7 +915,6 @@ export default function CoverProfileWidget({
                                 </Link>
                             </div>
                         )}
-
                         <div className="flex items-center text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4 mr-2" />
                             <span>Joined {new Date(creatorData?.joinedAt).toLocaleDateString()}</span>
@@ -1023,13 +1005,11 @@ export default function CoverProfileWidget({
                                     className="h-full w-full object-cover"
                                 />
                             </div>
-
                             {creatorData?.approved && (
                                 <div className="absolute bottom-1 right-1 bg-primary  rounded-full p-1 shadow-lg">
                                     <CheckCircle2 className="h-5 w-5" />
                                 </div>
                             )}
-
                             {profileEditMode && (
                                 <Button
                                     onClick={() => document.getElementById("profile-upload")?.click()}
@@ -1041,7 +1021,6 @@ export default function CoverProfileWidget({
                                 </Button>
                             )}
                         </div>
-
                         {(profileEditMode ?? profileEditMode) ? (
                             <div className="mt-4 w-full space-y-2">
                                 <Input
@@ -1061,14 +1040,12 @@ export default function CoverProfileWidget({
                                     </Button>
                                     <Button
                                         disabled={
-                                            UpdateCreatorProfileInfo.isLoading || (
-
-                                                !!formErrors.name ||
-                                                !!formErrors.bio ||
-                                                !!formErrors.website ||
-                                                !!formErrors.twitter ||
-                                                !!formErrors.instagram
-                                            )
+                                            UpdateCreatorProfileInfo.isLoading ||
+                                            !!formErrors.name ||
+                                            !!formErrors.bio ||
+                                            !!formErrors.website ||
+                                            !!formErrors.twitter ||
+                                            !!formErrors.instagram
                                         }
                                         onClick={handleSaveProfile}
                                     >
@@ -1089,11 +1066,11 @@ export default function CoverProfileWidget({
                                     {creatorData?.approved && <CheckCircle2 className="h-5 w-5 " />}
                                 </h2>
                                 <p className="mt-2 text-white/90 max-w-lg" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>
-                                    <CommentFormatter
-                                        content={editedProfile.bio}
-                                    />
+                                    <CommentFormatter content={editedProfile.bio} />
                                 </p>
-
+                                {!profileEditMode && !editMode && (
+                                    <FollowCreatorButton creatorId={creatorData?.id} />
+                                )}
                                 <div className="mt-6 flex gap-4 flex-wrap justify-center">
                                     {creatorData?.website && (
                                         <Link
@@ -1148,7 +1125,6 @@ export default function CoverProfileWidget({
                                 <span>Change Cover</span>
                             </Button>
                         )}
-
                         {!profileEditMode && creatorData.id === session?.data?.user.id && (
                             <Button
                                 variant="secondary"
@@ -1161,7 +1137,6 @@ export default function CoverProfileWidget({
                                 <span className="ml-1">Height</span>
                             </Button>
                         )}
-
                         {showHeightControls && (
                             <div
                                 className="absolute bottom-12 right-2 bg-background/90 backdrop-blur-sm p-3 rounded-md shadow-md w-48"
@@ -1174,9 +1149,7 @@ export default function CoverProfileWidget({
                                     step={20}
                                     onValueChange={(value) => {
                                         startResize()
-                                        // Use a less frequent update interval during active resize
                                         const newHeight = value[0] ?? DEFAULT_SETTINGS.coverHeight
-                                        // Only update if the change is significant (5px or more)
                                         if (Math.abs(newHeight - widgetSettings.coverHeight) >= 5) {
                                             updateSetting("coverHeight", newHeight)
                                         }
@@ -1190,7 +1163,6 @@ export default function CoverProfileWidget({
                                 </div>
                             </div>
                         )}
-
                         {widgetSettings.heroContentPosition === "over" && (
                             <div className="absolute bottom-2 left-2 bg-background/90 backdrop-blur-sm p-2 rounded-md shadow-md">
                                 <div className="flex items-center gap-2">
@@ -1202,9 +1174,7 @@ export default function CoverProfileWidget({
                                         step={10}
                                         onValueChange={(value) => {
                                             startResize()
-                                            // Use a less frequent update interval during active resize
                                             const newSize = value[0] ?? DEFAULT_SETTINGS.heroProfileSize
-                                            // Only update if the change is significant (5px or more)
                                             if (Math.abs(newSize - widgetSettings.heroProfileSize) >= 5) {
                                                 updateSetting("heroProfileSize", newSize)
                                             }
@@ -1244,13 +1214,11 @@ export default function CoverProfileWidget({
                                 className="h-full w-full object-cover"
                             />
                         </div>
-
                         {creatorData?.approved && (
                             <div className="absolute bottom-1 right-1 bg-primary  rounded-full p-1 shadow-lg">
                                 <CheckCircle2 className="h-5 w-5" />
                             </div>
                         )}
-
                         {profileEditMode && (
                             <Button
                                 onClick={() => document.getElementById("profile-upload")?.click()}
@@ -1261,7 +1229,6 @@ export default function CoverProfileWidget({
                                 <Camera className="h-4 w-4" />
                             </Button>
                         )}
-
                         {editMode && (
                             <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-background/90 backdrop-blur-sm p-2 rounded-md shadow-md">
                                 <div className="flex items-center gap-2">
@@ -1273,9 +1240,7 @@ export default function CoverProfileWidget({
                                         step={10}
                                         onValueChange={(value) => {
                                             startResize()
-                                            // Use a less frequent update interval during active resize
                                             const newSize = value[0] ?? DEFAULT_SETTINGS.heroProfileSize
-                                            // Only update if the change is significant (5px or more)
                                             if (Math.abs(newSize - widgetSettings.heroProfileSize) >= 5) {
                                                 updateSetting("heroProfileSize", newSize)
                                             }
@@ -1287,7 +1252,6 @@ export default function CoverProfileWidget({
                             </div>
                         )}
                     </div>
-
                     {(profileEditMode ?? profileEditMode) ? (
                         <div className="w-full max-w-md space-y-2">
                             <Input
@@ -1307,14 +1271,12 @@ export default function CoverProfileWidget({
                                 </Button>
                                 <Button
                                     disabled={
-                                        UpdateCreatorProfileInfo.isLoading || (
-                                            !!formErrors.name ||
-                                            !!formErrors.bio ||
-                                            !!formErrors.website ||
-                                            !!formErrors.twitter ||
-                                            !!formErrors.instagram
-                                        )
-
+                                        UpdateCreatorProfileInfo.isLoading ||
+                                        !!formErrors.name ||
+                                        !!formErrors.bio ||
+                                        !!formErrors.website ||
+                                        !!formErrors.twitter ||
+                                        !!formErrors.instagram
                                     }
                                     onClick={handleSaveProfile}
                                 >
@@ -1332,10 +1294,11 @@ export default function CoverProfileWidget({
                                 {creatorData?.approved && <CheckCircle2 className="h-5 w-5 " />}
                             </h2>
                             <p className="mt-2 text-muted-foreground max-w-lg">
-                                <CommentFormatter
-                                    content={editedProfile.bio}
-                                /></p>
-
+                                <CommentFormatter content={editedProfile.bio} />
+                            </p>
+                            {!profileEditMode && !editMode && (
+                                <FollowCreatorButton creatorId={creatorData?.id} />
+                            )}
                             <div className="mt-6 flex gap-4 flex-wrap justify-center">
                                 {creatorData?.website && (
                                     <Link
@@ -1373,7 +1336,6 @@ export default function CoverProfileWidget({
                             </div>
                         </>
                     )}
-
                     <CalendarWidget />
                 </div>
             )}
@@ -1409,7 +1371,6 @@ export default function CoverProfileWidget({
                             }}
                         />
                     )}
-
                     {/* Text overlay */}
                     {widgetSettings.coverTextOverlay && (
                         <div
@@ -1440,7 +1401,6 @@ export default function CoverProfileWidget({
                     <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-white/50 mr-3">
                         <CustomAvatar url={creatorData?.profileUrl ?? "/placeholder.svg"} className="h-full w-full object-cover" />
                     </div>
-
                     <div className="flex-1">
                         <h2
                             className="text-white text-lg font-bold flex items-center gap-1"
@@ -1462,7 +1422,6 @@ export default function CoverProfileWidget({
                                 </>
                             )}
                         </h2>
-
                         <div className="flex gap-3 text-white/80 text-xs">
                             {creatorData?.twitter && (
                                 <Link
@@ -1488,7 +1447,10 @@ export default function CoverProfileWidget({
                             )}
                         </div>
                     </div>
+                    {!profileEditMode && !editMode && (
+                        <FollowCreatorButton creatorId={creatorData?.id} />
 
+                    )}
                     {profileEditMode && (
                         <Button
                             size="sm"
@@ -1501,7 +1463,6 @@ export default function CoverProfileWidget({
                             Edit
                         </Button>
                     )}
-
                     {profileEditMode && (
                         <div className="flex gap-1">
                             <Button size="sm" variant="outline" onClick={handleCancelEditProfile}>
@@ -1539,7 +1500,6 @@ export default function CoverProfileWidget({
                                 <span>Change Cover</span>
                             </Button>
                         )}
-
                         {!profileEditMode && (
                             <Button
                                 variant="secondary"
@@ -1552,7 +1512,6 @@ export default function CoverProfileWidget({
                                 <span className="ml-1">Height</span>
                             </Button>
                         )}
-
                         {showHeightControls && (
                             <div
                                 className="absolute top-12 left-2 bg-background/90 backdrop-blur-sm p-3 rounded-md shadow-md w-48"
@@ -1565,9 +1524,7 @@ export default function CoverProfileWidget({
                                     step={10}
                                     onValueChange={(value) => {
                                         startResize()
-                                        // Use a less frequent update interval during active resize
                                         const newHeight = value[0] ?? DEFAULT_SETTINGS.coverHeight
-                                        // Only update if the change is significant (5px or more)
                                         if (Math.abs(newHeight - widgetSettings.coverHeight) >= 5) {
                                             updateSetting("coverHeight", newHeight)
                                         }
@@ -1598,9 +1555,7 @@ export default function CoverProfileWidget({
                 </div>
             ) : (
                 <div className="p-4 text-sm text-muted-foreground">
-                    <CommentFormatter
-                        content={editedProfile.bio}
-                    />
+                    <CommentFormatter content={editedProfile.bio} />
                 </div>
             )}
 
@@ -1637,7 +1592,6 @@ export default function CoverProfileWidget({
                             opacity: 0.7,
                         }}
                     />
-
                     {/* Band name overlay */}
                     <div
                         className="absolute inset-0 flex flex-col items-center justify-center text-center px-6"
@@ -1676,9 +1630,10 @@ export default function CoverProfileWidget({
                                 </div>
                             </>
                         )}
-
                         <p className="text-white/90 max-w-2xl text-lg">{profileEditMode ? editedProfile.bio : creatorData?.bio}</p>
-
+                        {!profileEditMode && !editMode && (
+                            <FollowCreatorButton creatorId={creatorData?.id} />
+                        )}
                         {/* Social links */}
                         <div className="flex gap-4 mt-4">
                             {creatorData?.website && (
@@ -1723,7 +1678,6 @@ export default function CoverProfileWidget({
                                 <span>Change Cover</span>
                             </Button>
                         )}
-
                         {!profileEditMode && (
                             <Button
                                 variant="secondary"
@@ -1736,7 +1690,6 @@ export default function CoverProfileWidget({
                                 <span className="ml-1">Height</span>
                             </Button>
                         )}
-
                         {showHeightControls && (
                             <div
                                 className="absolute bottom-12 right-2 bg-background/90 backdrop-blur-sm p-3 rounded-md shadow-md w-48"
@@ -1749,9 +1702,7 @@ export default function CoverProfileWidget({
                                     step={20}
                                     onValueChange={(value) => {
                                         startResize()
-                                        // Use a less frequent update interval during active resize
                                         const newHeight = value[0] ?? DEFAULT_SETTINGS.coverHeight
-                                        // Only update if the change is significant (5px or more)
                                         if (Math.abs(newHeight - widgetSettings.coverHeight) >= 5) {
                                             updateSetting("coverHeight", newHeight)
                                         }
@@ -1765,7 +1716,6 @@ export default function CoverProfileWidget({
                                 </div>
                             </div>
                         )}
-
                         {profileEditMode && (
                             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
                                 <Button variant="outline" onClick={handleCancelEditProfile}>
@@ -1773,14 +1723,12 @@ export default function CoverProfileWidget({
                                 </Button>
                                 <Button
                                     disabled={
-                                        UpdateCreatorProfileInfo.isLoading || (
-                                            !!formErrors.name ||
-                                            !!formErrors.bio ||
-                                            !!formErrors.website ||
-                                            !!formErrors.twitter ||
-                                            !!formErrors.instagram
-                                        )
-
+                                        UpdateCreatorProfileInfo.isLoading ||
+                                        !!formErrors.name ||
+                                        !!formErrors.bio ||
+                                        !!formErrors.website ||
+                                        !!formErrors.twitter ||
+                                        !!formErrors.instagram
                                     }
                                     onClick={handleSaveProfile}
                                 >
@@ -1804,6 +1752,7 @@ export default function CoverProfileWidget({
             </div>
         </div>
     )
+
 
     return (
         <div

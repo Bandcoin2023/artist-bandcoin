@@ -436,20 +436,20 @@ export default function SingleCreatorViewPage({
   const loadUserLayout = (
     dashboard:
       | {
-          id: string;
-          name: string;
-          widgets: {
-            widgetId: string;
-            size: "small" | "medium" | "large";
-            order: number;
-            pinned: boolean;
-            groupId?: string | null;
-            customWidth?: number | null;
-            settings?: Record<string, unknown> | null;
-          }[];
-          isDefault: boolean;
-          isPublic: boolean;
-        }
+        id: string;
+        name: string;
+        widgets: {
+          widgetId: string;
+          size: "small" | "medium" | "large";
+          order: number;
+          pinned: boolean;
+          groupId?: string | null;
+          customWidth?: number | null;
+          settings?: Record<string, unknown> | null;
+        }[];
+        isDefault: boolean;
+        isPublic: boolean;
+      }
       | undefined,
   ) => {
     if (!dashboard) return; // Early return if dashboard is undefined
@@ -1215,10 +1215,7 @@ export default function SingleCreatorViewPage({
 
   return (
     <div ref={dashboardContainerRef} className="relative flex h-full flex-col">
-      {/* Follow/Unfollow Button - Positioned absolutely on top-right */}
-      <div className="absolute right-4 top-4 z-50">
-        <FollowCreatorButton creatorId={id} />
-      </div>
+
 
       <div className="dashboard-content flex-1 overflow-auto p-4">
         <div className="flex flex-col gap-4">
@@ -1328,12 +1325,12 @@ export default function SingleCreatorViewPage({
                 dimensions.height =
                   widget.id === "cover-profile"
                     ? HEIGHT_MAP[
-                        (widget.settings?.height as WidgetHeight) || "2XL"
-                      ]
+                    (widget.settings?.height as WidgetHeight) || "2XL"
+                    ]
                     : getResponsiveHeight(
-                        (widget.settings?.height as WidgetHeight) || "M",
-                        windowWidth,
-                      );
+                      (widget.settings?.height as WidgetHeight) || "M",
+                      windowWidth,
+                    );
                 const isPinned = widget.pinned;
 
                 // Always use full width on small/medium devices, and always full width for cover-profile

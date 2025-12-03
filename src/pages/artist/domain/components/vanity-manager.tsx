@@ -133,6 +133,12 @@ export default function VanityURLManager({ creator }: { creator: CreatorWithSubs
 
     const checkAvailability = api.fan.creator.checkVanityURLAvailability.useMutation({
         onSuccess: (data) => {
+            const current = watch("vanityURL")
+            // If the vanity belongs to the current user, consider it available (useful for renew flow)
+            if (!data.isAvailable && current && updatedCreator?.vanityURL && current === updatedCreator.vanityURL) {
+                setIsAvailable(true)
+                return
+            }
             setIsAvailable(data.isAvailable)
         },
     })
@@ -164,7 +170,8 @@ export default function VanityURLManager({ creator }: { creator: CreatorWithSubs
             toast.error("Vanity URL cannot be empty")
             return
         }
-        if (!isAvailable) {
+        // Allow renewing the same vanity even if availability check returns false
+        if (!isAvailable && data.vanityURL !== updatedCreator?.vanityURL) {
             toast.error("This vanity URL is not available")
             return
         }
@@ -280,8 +287,8 @@ export default function VanityURLManager({ creator }: { creator: CreatorWithSubs
                     <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Pricing</h4>
                     <p className="text-sm font-medium">
                         {subscriptionStatus === "active"
-                            ? `${PLATFORM_ASSET.code.toLocaleLowerCase() === "wadzzo" ? "500 Wadzzo" : "750,000 Bandcoin"} to change`
-                            : `${PLATFORM_ASSET.code.toLocaleLowerCase() === "wadzzo" ? "200 Wadzzo" : "300,000 Bandcoin"}/month`}
+                            ? `${PLATFORM_ASSET.code.toLocaleLowerCase() === "wadzzo" ? "500 Wadzzo" : "750 Bandcoin"} to change`
+                            : `${PLATFORM_ASSET.code.toLocaleLowerCase() === "wadzzo" ? "200 Wadzzo" : "300 Bandcoin"}/month`}
                     </p>
                 </div>
 

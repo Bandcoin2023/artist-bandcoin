@@ -31,11 +31,6 @@ const Bounty = () => {
         },
     )
 
-
-
-
-
-
     return (
         <div className="
            relative  flex h-[calc(100vh-10.8vh)] flex-col gap-4 overflow-y-auto scrollbar-hide w-full">

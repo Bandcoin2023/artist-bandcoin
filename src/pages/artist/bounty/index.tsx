@@ -32,7 +32,7 @@ const CreatorBounty = () => {
     return (
 
         <div className="
-            min-h-screen  w-full overflow-y-auto">
+            min-h-full  w-full overflow-y-auto">
             <div className="sticky top-0 z-10 ">
                 <SearchAndSort
                     searchTerm={searchTerm}

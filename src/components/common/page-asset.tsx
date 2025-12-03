@@ -4,6 +4,7 @@ import { usePopUpState } from "~/lib/state/right-pop";
 import { usePageAssetRightStore } from "~/lib/state/wallete/page_asset_right";
 import { useTagStore } from "~/lib/state/wallete/tag";
 import AssetView from "./asset";
+import { Mode, useModeStore } from "../store/mode-store";
 
 export type CreatorPageAssetType = {
     name: string;
@@ -22,8 +23,14 @@ export type CreatorPageAssetType = {
 
 function PageAssetComponent({ item }: { item: CreatorPageAssetType }) {
     const router = useRouter();
+    const {
+
+        setSelectedMode,
+
+    } = useModeStore();
     return (
         <div onClick={async () => {
+            setSelectedMode(Mode.USER);
             await router.push(`/artist/${item.id}`);
         }}>
             <AssetView

@@ -856,8 +856,10 @@ model BountyRedeem {
     bountyId         Int
     bounty           Bounty          @relation(fields: [bountyId], references: [id], onDelete: Cascade)
     code             String
+    isMarkedUsed     Boolean         @default(false)
     isRedeemed       Boolean         @default(false)
     redeemedBy       String?
+    redeemUserId     String?
     redeemedUser     User?           @relation(fields: [redeemedBy], references: [id], onDelete: SetNull)
     redeemedAt       DateTime?
     createdAt        DateTime        @default(now())

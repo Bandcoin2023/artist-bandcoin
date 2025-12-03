@@ -44,7 +44,7 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { BountySchema } from "~/components/modal/edit-bounty-modal";
-import { BountyFormSchema } from "~/components/modal/create-locationbased-bounty";
+import { LocationBasedBountyFormSchema } from "~/components/modal/create-locationbased-bounty";
 
 export const PaymentMethodEnum = z.enum(["asset", "xlm", "usdc", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
@@ -186,7 +186,6 @@ export const BountyRoute = createTRPCRouter({
         },
       });
 
-      // <-- GENERATE REDEEM CODES IF ENABLED
       if (input.generateRedeemCodes) {
         const redeemCodes = Array.from({ length: input.totalWinner }, () => ({
           bountyId: bounty.id,
@@ -198,9 +197,7 @@ export const BountyRoute = createTRPCRouter({
           data: redeemCodes,
         });
       }
-      // END REDEEM CODE GENERATION
 
-      // ... rest of notification logic
       const followers = await ctx.db.follow.findMany({
         where: { creatorId: ctx.session.user.id },
         select: { userId: true },
@@ -283,7 +280,6 @@ export const BountyRoute = createTRPCRouter({
         },
       });
 
-      // <-- GENERATE REDEEM CODES IF ENABLED
       if (input.generateRedeemCodes) {
         const redeemCodes = Array.from({ length: input.totalWinner }, () => ({
           bountyId: bounty.id,
@@ -295,9 +291,7 @@ export const BountyRoute = createTRPCRouter({
           data: redeemCodes,
         });
       }
-      // END REDEEM CODE GENERATION
 
-      // ... rest of notification logic
       const followers = await ctx.db.follow.findMany({
         where: { creatorId: ctx.session.user.id },
         select: { userId: true },
@@ -332,16 +326,17 @@ export const BountyRoute = createTRPCRouter({
     }),
   createLocationBounty: protectedProcedure
     .input(
-      BountyFormSchema
+      LocationBasedBountyFormSchema
     )
     .mutation(async ({ input, ctx }) => {
 
       const bounty = await ctx.db.bounty.create({
         data: {
           title: input.title,
+          payNow: true,
           description: input.description,
-          priceInUSD: input.usdtAmount,
-          priceInBand: input.brandAmount,
+          priceInUSD: input.usdcAmount ?? 0,
+          priceInBand: input.platformAssetAmount ?? 0,
           creatorId: ctx.session.user.id,
           totalWinner: input.winners,
           requiredBalance: input.requiredBalance,
@@ -353,6 +348,85 @@ export const BountyRoute = createTRPCRouter({
           bountyType: BountyType.LOCATION_BASED,
         },
       });
+      if (input.generateRedeemCodes) {
+        const redeemCodes = Array.from({ length: input.winners }, () => ({
+          bountyId: bounty.id,
+          code: nanoid(6).toUpperCase(), // Generates unique 12-char codes like "V1STGXS8_Z5J"
+          isRedeemed: false,
+        }));
+
+        await ctx.db.bountyRedeem.createMany({
+          data: redeemCodes,
+        });
+      }
+
+      const followers = await ctx.db.follow.findMany({
+        where: { creatorId: ctx.session.user.id },
+        select: { userId: true },
+      });
+
+      const followerIds = followers.map((follower) => follower.userId);
+
+      const createNotification = async (notifierId: string) => {
+        await ctx.db.notificationObject.create({
+          data: {
+            actorId: ctx.session.user.id,
+            entityType: NotificationType.BOUNTY,
+            entityId: bounty.id,
+            isUser: true,
+            Notification: {
+              create: [
+                {
+                  notifierId,
+                  isCreator: false,
+                },
+              ],
+            },
+          },
+        });
+      };
+
+      for (const followerId of followerIds) {
+        await createNotification(followerId);
+      }
+    }),
+  createLocationBountyPayLater: protectedProcedure
+    .input(
+      LocationBasedBountyFormSchema
+    )
+    .mutation(async ({ input, ctx }) => {
+
+      const bounty = await ctx.db.bounty.create({
+        data: {
+          title: input.title,
+          payNow: false,
+          description: input.description,
+          priceInUSD: input.usdcAmount ?? 0,
+          priceInBand: input.platformAssetAmount ?? 0,
+          creatorId: ctx.session.user.id,
+          totalWinner: input.winners,
+          requiredBalance: input.requiredBalance,
+          latitude: Number(input.latitude),
+          longitude: Number(input.longitude),
+          radius: Number(input.radius),
+          requiredBalanceCode: input.requiredBalanceCode,
+          requiredBalanceIssuer: input.requiredBalanceIssuer,
+          bountyType: BountyType.LOCATION_BASED,
+        },
+      });
+
+      if (input.generateRedeemCodes) {
+        const redeemCodes = Array.from({ length: input.winners }, () => ({
+          bountyId: bounty.id,
+          code: nanoid(6).toUpperCase(), // Generates unique 12-char codes like "V1STGXS8_Z5J"
+          isRedeemed: false,
+        }));
+
+        await ctx.db.bountyRedeem.createMany({
+          data: redeemCodes,
+        });
+      }
+
       const followers = await ctx.db.follow.findMany({
         where: { creatorId: ctx.session.user.id },
         select: { userId: true },
@@ -996,6 +1070,7 @@ export const BountyRoute = createTRPCRouter({
           .number()
           .min(1, { message: "Bounty ID can't be less than 0" }),
         userId: z.string().min(1, { message: "User ID can't be less than 0" }),
+        isRedeem: z.boolean().optional().default(false),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -1020,7 +1095,7 @@ export const BountyRoute = createTRPCRouter({
       if (bounty.currentWinnerCount === bounty.totalWinner) {
         throw new Error("Bounty has reached the maximum number of winners");
       }
-      if (bounty.creatorId !== ctx.session.user.id) {
+      if (!input.isRedeem && bounty.creatorId !== ctx.session.user.id) {
         throw new Error("You are not the owner of this bounty");
       }
       await ctx.db.bounty.update({
@@ -1840,5 +1915,75 @@ export const BountyRoute = createTRPCRouter({
     .query(async ({ input, ctx }) => {
       const userId = ctx.session.user.id;
       return await getUserHasTrustOnUSDC(userId);
+    }),
+
+  getBountyRedeemCodes: protectedProcedure
+    .input(
+      z.object({
+        bountyId: z.number(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const redeemCodes = await ctx.db.bountyRedeem.findMany({
+        where: {
+          bountyId: input.bountyId,
+        },
+        include: {
+          redeemedUser: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      })
+
+      return redeemCodes
+    }),
+  redeemBountyCode: protectedProcedure
+    .input(
+      z.object({
+        bountyId: z.number(),
+        code: z.string().min(1, { message: "Redeem code can't be empty" }),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      // Check if the code exists and is not redeemed
+      const redeemCode = await ctx.db.bountyRedeem.findFirst({
+        where: {
+          bountyId: input.bountyId,
+          code: input.code,
+          redeemedAt: null,
+        },
+      });
+
+      if (!redeemCode) {
+        throw new Error("Invalid or already redeemed code");
+      }
+
+      // Mark the code as redeemed
+      await ctx.db.bountyRedeem.update({
+        where: { id: redeemCode.id },
+        data: { redeemedAt: new Date(), redeemUserId: userId, isRedeemed: true },
+      });
+
+      return { success: true };
+    }),
+  markRedeemCode: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.bountyRedeem.update({
+        where: { id: input.id },
+        data: { isMarkedUsed: true },
+      });
     }),
 });
