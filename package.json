@@ -23,6 +23,7 @@
     "@aws-sdk/s3-request-presigner": "^3.717.0",
     "@creit-tech/xbull-wallet-connect": "github:Creit-Tech/xBull-Wallet-Connect",
     "@google/genai": "^1.7.0",
+    "@google/generative-ai": "^0.24.1",
     "@headlessui/react": "^1.7.19",
     "@heroicons/react": "^2.1.5",
     "@hookform/resolvers": "^3.9.0",

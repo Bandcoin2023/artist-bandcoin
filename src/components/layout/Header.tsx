@@ -2,7 +2,7 @@ import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { twMerge } from "tailwind-merge";
 
-import { ArrowRight, Bell, Menu, Plus, ShoppingBag, ShoppingCart, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, Bell, Menu, Plus, Settings, ShoppingBag, ShoppingCart, Sparkles, Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import Link from "next/link";
@@ -122,7 +122,7 @@ function Header() {
                                     sizes="56px"
                                 />
                             </div>
-                            <h1 className="relative text-xl font-bold capitalize text-white md:text-4xl">
+                            <h1 className="hidden md:block relative text-xl font-bold capitalize text-white md:text-4xl">
                                 {PLATFORM_ASSET.code.toLocaleUpperCase()}
                                 <p className="absolute right-0 top-0 -mr-4 -mt-1 text-xs">TM</p>
                             </h1>
@@ -209,6 +209,15 @@ const HeaderButtons = () => {
                     <div className="absolute -top-2 left-0 h-4 w-4  rounded-full bg-red-500"></div>
                 )}
                 <Bell />
+            </Button>
+            <Button
+                className=" relative "
+                onClick={async () => {
+                    await router.push("/settings");
+                }}
+            >
+
+                <Settings />
             </Button>
             {/* Main Neon Try Studio Button */}
 

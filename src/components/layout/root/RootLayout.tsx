@@ -45,7 +45,7 @@ export default function Layout({
     const isArtistRoutes = router.pathname.startsWith("/artist");
     const publicRoutes = ["/about", "/privacy", "/support", "/"];
     const isPublicRoute = publicRoutes.includes(router.pathname);
-    const isStudioRoute = router.pathname.startsWith("/artist/studio");
+    const isStudioRoute = router.pathname.startsWith("/artist/studio") || router.pathname.startsWith("/ai-generation");
     // Check for AR camera/QR routes that should NOT get ARLayout wrapper
     const isAugmentedRealityRoute =
         router.pathname.startsWith("/action/ar/") ||
