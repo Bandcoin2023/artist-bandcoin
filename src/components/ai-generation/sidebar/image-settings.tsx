@@ -11,10 +11,18 @@ import {
   RectangleHorizontal,
   RectangleVertical,
   Grid3X3,
+  ImageIcon,
+  Camera,
+  Shuffle,
+  Upload,
+  X,
 } from "lucide-react"
 import { cn } from "~/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/shadcn/ui/select"
-import { useGenerationStore } from "~/lib/generation-store"
+import { CAMERA_GEAR_OPTIONS, getRemixVarietyLabel, useGenerationStore } from "~/lib/generation-store"
+import { Slider } from "~/components/shadcn/ui/slider"
+import { useRef } from "react"
+
 
 export function ImageSettings() {
   const {
@@ -29,8 +37,15 @@ export function ImageSettings() {
     setSelectedSize,
     numberOfImages,
     setNumberOfImages,
+    selectedCameraGear,
+    setSelectedCameraGear,
+    remixVariety,
+    setRemixVariety,
+    referenceImage,
+    setReferenceImage,
   } = useGenerationStore()
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { capabilities } = selectedImageModel
 
   const aspectRatioIcons: Record<string, React.ReactNode> = {
@@ -43,8 +58,57 @@ export function ImageSettings() {
     Custom: <Grid3X3 className="w-4 h-4" />,
   }
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setReferenceImage(reader.result as string)
+        console.log("Reference image set", reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveReference = () => {
+    setReferenceImage(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
   return (
     <div className="space-y-5">
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <ImageIcon className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm text-foreground">Reference Image</span>
+          <HelpCircle className="w-4 h-4 text-muted-foreground" />
+        </div>
+
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+
+        {referenceImage ? (
+          <div className="relative rounded-lg overflow-hidden border border-border">
+            <img src={referenceImage || "/placeholder.svg"} alt="Reference" className="w-full h-32 object-cover" />
+            <button
+              onClick={handleRemoveReference}
+              className="absolute top-2 right-2 p-1 bg-background/80 rounded-full hover:bg-background transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/5 transition-colors"
+          >
+            <Upload className="w-5 h-5 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Upload reference image</span>
+          </button>
+        )}
+      </div>
+
       {/* Prompt Enhance */}
       {/* {capabilities.hasPromptEnhance && (
         <div>
@@ -87,6 +151,51 @@ export function ImageSettings() {
         </div>
       )}
 
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Camera className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm text-foreground">Camera Gear</span>
+        </div>
+        <Select value={selectedCameraGear} onValueChange={setSelectedCameraGear}>
+          <SelectTrigger className="w-full bg-secondary border-border">
+            <SelectValue placeholder="Select camera" />
+          </SelectTrigger>
+          <SelectContent>
+            {CAMERA_GEAR_OPTIONS.map((camera) => (
+              <SelectItem key={camera.value} value={camera.value}>
+                <div className="flex flex-col">
+                  <span>{camera.label}</span>
+                  <span className="text-xs text-muted-foreground">{camera.description}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Shuffle className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm text-foreground">Remix Variety</span>
+          </div>
+          <span className="text-sm text-primary">{getRemixVarietyLabel(remixVariety)}</span>
+        </div>
+        <div className="px-1">
+          <Slider
+            value={[remixVariety]}
+            onValueChange={(value) => value[0] !== undefined && setRemixVariety(value[0])}
+            max={100}
+            step={1}
+            className="w-full"
+          />
+          <div className="flex justify-between mt-1">
+            <span className="text-xs text-muted-foreground">Precision</span>
+            <span className="text-xs text-muted-foreground">Wild</span>
+          </div>
+        </div>
+      </div>
+
       {/* Image Dimensions */}
       <div>
         <div className="flex items-center gap-2 mb-3">
@@ -116,28 +225,22 @@ export function ImageSettings() {
         </div>
 
         {/* Size Buttons */}
-        <div className="">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-sm text-foreground">Sizes</span>
-          </div>
-
-          <div className="flex gap-2 w-full">
-            {capabilities.sizes.map((size) => (
-              <button
-                key={size.value}
-                onClick={() => setSelectedSize(size.value)}
-                className={cn(
-                  "flex-1 flex flex-col items-center py-2 px-3 rounded-lg border transition-colors",
-                  selectedSize === size.value
-                    ? "bg-accent"
-                    : "bg-secondary border-border text-muted-foreground hover:border-muted-foreground",
-                )}
-              >
-                <span className="text-sm font-medium">{size.label}</span>
-                <span className="text-xs opacity-70">{size.dimensions}</span>
-              </button>
-            ))}
-          </div>
+        <div className="flex gap-2">
+          {capabilities.sizes.map((size) => (
+            <button
+              key={size.value}
+              onClick={() => setSelectedSize(size.value)}
+              className={cn(
+                "flex-1 flex flex-col items-center py-2 px-3 rounded-lg border transition-colors",
+                selectedSize === size.value
+                  ? "bg-accent"
+                  : "bg-secondary border-border text-muted-foreground hover:border-muted-foreground",
+              )}
+            >
+              <span className="text-sm font-medium">{size.label}</span>
+              <span className="text-xs opacity-70">{size.dimensions}</span>
+            </button>
+          ))}
         </div>
       </div>
 

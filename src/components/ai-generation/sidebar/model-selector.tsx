@@ -18,6 +18,7 @@ export function ModelSelector() {
     setSelectedImageModel,
     selectedVideoModel,
     setSelectedVideoModel,
+    resetToDefaults,
   } = useGenerationStore()
 
   const currentModel = mediaType === "image" ? selectedImageModel : selectedVideoModel
@@ -29,8 +30,9 @@ export function ModelSelector() {
   }
 
   const handleSelectVideoModel = (model: VideoModelConfig) => {
-    setSelectedVideoModel(model)
     setMediaType("video")
+    resetToDefaults()
+    setSelectedVideoModel(model)
     setOpen(false)
   }
 

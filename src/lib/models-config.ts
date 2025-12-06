@@ -1,5 +1,7 @@
 // Configuration for all AI models with their capabilities
 
+import { VideoSeconds } from "openai/resources/videos"
+
 export type MediaType = "image" | "video"
 
 export interface ImageModelConfig {
@@ -29,7 +31,7 @@ export interface VideoModelConfig {
   features: string[]
   isNew?: boolean
   capabilities: {
-    durations: number[]
+    durations: VideoSeconds[]
     hasQuality: boolean
     qualities?: { label: string; resolution: string }[]
     aspectRatios: string[]
@@ -94,8 +96,8 @@ export const IMAGE_MODELS: ImageModelConfig[] = [
     },
   },
   {
-    id: "imagen-3",
-    name: "Imagen 3",
+    id: "nano-banana",
+    name: "Nano Banana",
     provider: "google",
     description: "Google's most advanced image generation model",
     thumbnail: "/model/google-imagen-abstract-colorful.jpg",
@@ -115,8 +117,8 @@ export const IMAGE_MODELS: ImageModelConfig[] = [
     },
   },
   {
-    id: "imagen-3-fast",
-    name: "Imagen 3 Fast",
+    id: "nano-banana-pro",
+    name: "Nano Banana Pro",
     provider: "google",
     description: "Fast turnaround for image concepts and visuals",
     thumbnail: "/model/google-imagen-fast-lightning.jpg",
@@ -146,7 +148,7 @@ export const VIDEO_MODELS: VideoModelConfig[] = [
     features: ["Start Frame"],
     isNew: false,
     capabilities: {
-      durations: [4, 8, 12],
+      durations: ["4", "8", "12"],
       hasQuality: true,
       qualities: [
         { label: "Quality", resolution: "720p" },
@@ -164,7 +166,7 @@ export const VIDEO_MODELS: VideoModelConfig[] = [
     features: ["Start Frame", "Audio"],
     isNew: false,
     capabilities: {
-      durations: [4, 8, 12],
+      durations: ["4", "8", "12"],
       hasQuality: false,
       aspectRatios: ["16:9", "9:16"],
     },
@@ -178,7 +180,7 @@ export const VIDEO_MODELS: VideoModelConfig[] = [
     features: ["Start Frame", "End Frame", "Image Reference", "Audio"],
     isNew: true,
     capabilities: {
-      durations: [4, 6, 8],
+      durations: ["4", "8"],
       hasQuality: true,
       qualities: [
         { label: "Quality", resolution: "720p" },
@@ -196,7 +198,7 @@ export const VIDEO_MODELS: VideoModelConfig[] = [
     features: ["Fast", "Start Frame", "End Frame", "Audio"],
     isNew: true,
     capabilities: {
-      durations: [4, 6],
+      durations: ["4", "8"],
       hasQuality: false,
       aspectRatios: ["16:9", "9:16"],
     },

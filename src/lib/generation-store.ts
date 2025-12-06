@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import type { ImageModelConfig, VideoModelConfig } from "./models-config"
 import { IMAGE_MODELS, VIDEO_MODELS } from "./models-config"
+import { VideoSeconds } from "openai/resources/videos"
 
 export type MediaType = "image" | "video"
 
@@ -13,6 +14,21 @@ export interface GeneratedItem {
   timestamp: Date
   selected: boolean
 }
+
+export const CAMERA_GEAR_OPTIONS = [
+  { value: "default", label: "Default", description: "No specific camera style" },
+  { value: "nikon-z9", label: "Nikon Z9", description: "Professional mirrorless, sharp details" },
+  { value: "canon-r5", label: "Canon EOS R5", description: "High resolution, vibrant colors" },
+  { value: "sony-a7rv", label: "Sony A7R V", description: "Outstanding dynamic range" },
+  { value: "dji-mavic", label: "DJI Mavic 3", description: "Aerial drone photography" },
+  { value: "gopro-hero", label: "GoPro Hero 12", description: "Action camera, wide angle" },
+  { value: "hasselblad", label: "Hasselblad X2D", description: "Medium format, exceptional detail" },
+  { value: "leica-m11", label: "Leica M11", description: "Classic rangefinder, timeless look" },
+  { value: "fujifilm-gfx", label: "Fujifilm GFX 100S", description: "Medium format, film simulation" },
+  { value: "phase-one", label: "Phase One IQ4", description: "Ultra high resolution, studio" },
+  { value: "red-v-raptor", label: "RED V-RAPTOR", description: "Cinema camera, cinematic look" },
+  { value: "arri-alexa", label: "ARRI ALEXA 35", description: "Film industry standard" },
+]
 
 interface GenerationState {
   // Media type
@@ -33,11 +49,20 @@ interface GenerationState {
   numberOfImages: number
   setNumberOfImages: (count: number) => void
 
+  selectedCameraGear: string
+  setSelectedCameraGear: (gear: string) => void
+
+  remixVariety: number
+  setRemixVariety: (value: number) => void
+
+  referenceImage: string | null
+  setReferenceImage: (image: string | null) => void
+
   // Video settings
   selectedVideoModel: VideoModelConfig
   setSelectedVideoModel: (model: VideoModelConfig) => void
-  selectedDuration: number
-  setSelectedDuration: (duration: number) => void
+  selectedDuration: VideoSeconds
+  setSelectedDuration: (duration: VideoSeconds) => void
   selectedQuality: string
   setSelectedQuality: (quality: string) => void
   selectedVideoAspectRatio: string
@@ -56,6 +81,14 @@ interface GenerationState {
 
   // Reset
   resetToDefaults: () => void
+}
+
+export function getRemixVarietyLabel(value: number): string {
+  if (value <= 20) return "Precision"
+  if (value <= 40) return "Subtle"
+  if (value <= 60) return "Balanced"
+  if (value <= 80) return "Creative"
+  return "Wild"
 }
 
 export const useGenerationStore = create<GenerationState>((set, get) => ({
@@ -84,16 +117,25 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
   numberOfImages: 1,
   setNumberOfImages: (count) => set({ numberOfImages: count }),
 
+  selectedCameraGear: "default",
+  setSelectedCameraGear: (gear) => set({ selectedCameraGear: gear }),
+
+  remixVariety: 30,
+  setRemixVariety: (value) => set({ remixVariety: value }),
+
+  referenceImage: null,
+  setReferenceImage: (image) => set({ referenceImage: image }),
+
   // Video settings
   selectedVideoModel: VIDEO_MODELS[0],
   setSelectedVideoModel: (model) =>
     set({
       selectedVideoModel: model,
       selectedDuration: model.capabilities.durations[0],
-      selectedQuality: model.capabilities.qualities?.[0]?.label ?? "",
+      selectedQuality: model.capabilities.qualities?.[0]?.label || "",
       selectedVideoAspectRatio: model.capabilities.aspectRatios[0],
     }),
-  selectedDuration: 4,
+  selectedDuration: "4",
   setSelectedDuration: (duration) => set({ selectedDuration: duration }),
   selectedQuality: "Quality",
   setSelectedQuality: (quality) => set({ selectedQuality: quality }),
@@ -130,6 +172,9 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
         selectedAspectRatio: IMAGE_MODELS[0].capabilities.aspectRatios[0],
         selectedSize: IMAGE_MODELS[0].capabilities.sizes[0].value,
         numberOfImages: 1,
+        selectedCameraGear: "default",
+        remixVariety: 30,
+        referenceImage: null,
       })
     } else {
       set({
@@ -137,6 +182,7 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
         selectedDuration: VIDEO_MODELS[0].capabilities.durations[0],
         selectedQuality: VIDEO_MODELS[0].capabilities.qualities?.[0]?.label ?? "",
         selectedVideoAspectRatio: VIDEO_MODELS[0].capabilities.aspectRatios[0],
+        referenceImage: null,
       })
     }
   },

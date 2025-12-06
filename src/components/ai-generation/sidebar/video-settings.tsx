@@ -40,7 +40,7 @@ export function VideoSettings() {
               onClick={() => setSelectedDuration(duration)}
               className={cn(
                 "flex-1 py-2.5 rounded-lg border transition-colors text-sm font-medium",
-                selectedDuration === duration
+                selectedDuration === duration.toString()
                   ? "bg-accent"
                   : "bg-secondary border-border text-muted-foreground hover:border-muted-foreground",
               )}

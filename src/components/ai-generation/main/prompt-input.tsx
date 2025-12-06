@@ -2,9 +2,10 @@
 import { Sparkles, Loader2, ImageIcon, Video } from "lucide-react"
 import { Button } from "~/components/shadcn/ui/button"
 import { Textarea } from "~/components/shadcn/ui/textarea"
-import { useGenerationStore } from "~/lib/generation-store"
+import { CAMERA_GEAR_OPTIONS, getRemixVarietyLabel, useGenerationStore } from "~/lib/generation-store"
 import type { GeneratedItem } from "~/lib/generation-store"
 import { cn } from "~/lib/utils"
+
 
 export function PromptInput() {
   const {
@@ -23,9 +24,13 @@ export function PromptInput() {
     selectedQuality,
     selectedVideoAspectRatio,
     addGeneratedItems,
+    referenceImage,
+    selectedCameraGear,
+    remixVariety,
   } = useGenerationStore()
 
   const currentModel = mediaType === "image" ? selectedImageModel : selectedVideoModel
+  const cameraGearLabel = CAMERA_GEAR_OPTIONS.find((g) => g.value === selectedCameraGear)?.label ?? "Default"
 
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return
@@ -46,6 +51,9 @@ export function PromptInput() {
           size: selectedSize,
           aspectRatio: selectedAspectRatio,
           numberOfImages,
+          referenceImage,
+          cameraGear: selectedCameraGear,
+          remixVariety,
           // Video specific
           duration: selectedDuration,
           quality: selectedQuality,
@@ -53,7 +61,7 @@ export function PromptInput() {
         }),
       })
 
-      const data = await response.json()
+      const data = await response.json() as { items?: Array<{ url: string }> }
 
       if (data.items) {
         const newItems: GeneratedItem[] = data.items.map((item: { url: string }, index: number) => ({
@@ -89,7 +97,7 @@ export function PromptInput() {
           </span>
         </div>
         <div className="h-4 w-px bg-border" />
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
           {mediaType === "image" ? (
             <>
               <span>{selectedStyle}</span>
@@ -101,6 +109,24 @@ export function PromptInput() {
               <span>
                 {numberOfImages} {numberOfImages > 1 ? "images" : "image"}
               </span>
+              {selectedCameraGear !== "default" && (
+                <>
+                  <span>•</span>
+                  <span className="text-amber-500">{cameraGearLabel}</span>
+                </>
+              )}
+              {remixVariety !== 30 && (
+                <>
+                  <span>•</span>
+                  <span className="text-purple-500">{getRemixVarietyLabel(remixVariety)}</span>
+                </>
+              )}
+              {referenceImage && (
+                <>
+                  <span>•</span>
+                  <span className="text-cyan-500">Ref Image</span>
+                </>
+              )}
             </>
           ) : (
             <>
@@ -113,10 +139,31 @@ export function PromptInput() {
                   <span>{selectedQuality}</span>
                 </>
               )}
+              {referenceImage && (
+                <>
+                  <span>•</span>
+                  <span className="text-cyan-500">Start Frame</span>
+                </>
+              )}
             </>
           )}
         </div>
       </div>
+
+      {referenceImage && (
+        <div className="px-4 py-2 border-b border-border bg-secondary/30">
+          <div className="flex items-center gap-2">
+            <img
+              src={referenceImage || "/placeholder.svg"}
+              alt="Reference"
+              className="w-12 h-12 rounded object-cover border border-border"
+            />
+            <span className="text-xs text-muted-foreground">
+              {mediaType === "image" ? "Reference image attached" : "Start frame attached"}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="p-4">
         <div className="flex gap-3">
