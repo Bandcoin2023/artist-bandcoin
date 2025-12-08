@@ -17,6 +17,7 @@ import {
 import { useContentGenerator } from "~/hooks/use-content-generator"
 
 import { Remark } from "react-remark"
+import { MarkdownRenderer } from "../markdown-renderer"
 
 const platformIcons = {
   twitter: Twitter,
@@ -27,7 +28,7 @@ const platformIcons = {
 
 export function OutputPanel() {
   const { contentMode, socialParams, generatedContent, isGenerating, copied, copyToClipboard } = useContentGenerator()
-  console.log("Generated Content:", generatedContent)
+  // console.log("Generated Content:", generatedContent)
   const outputRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -81,9 +82,9 @@ export function OutputPanel() {
         {generatedContent ? (
           <div className="">
             <div className="">
-              <Remark>
-                {generatedContent}
-              </Remark>
+
+              <MarkdownRenderer content={generatedContent} />
+
             </div>
           </div>
         ) : (

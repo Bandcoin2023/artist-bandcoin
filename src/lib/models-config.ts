@@ -151,8 +151,8 @@ export const VIDEO_MODELS: VideoModelConfig[] = [
       durations: ["4", "8", "12"],
       hasQuality: true,
       qualities: [
-        { label: "Quality", resolution: "720p" },
-        { label: "High Quality", resolution: "1080p" },
+        { label: "standard", resolution: "720p" },
+        { label: "hd", resolution: "1080p" },
       ],
       aspectRatios: ["16:9", "9:16"],
     },
@@ -183,8 +183,8 @@ export const VIDEO_MODELS: VideoModelConfig[] = [
       durations: ["4", "8"],
       hasQuality: true,
       qualities: [
-        { label: "Quality", resolution: "720p" },
-        { label: "High Quality", resolution: "1080p" },
+        { label: "standard", resolution: "720p" },
+        { label: "hd", resolution: "1080p" },
       ],
       aspectRatios: ["16:9", "9:16"],
     },
