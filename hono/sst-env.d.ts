@@ -5,10 +5,26 @@
 
 declare module "sst" {
   export interface Resource {
+    "BEARER_TOKEN": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "GEMINI_API_KEY": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "GenerationJobs": {
+      "name": string
+      "type": "sst.aws.Dynamo"
+    }
     "Hono": {
       "name": string
       "type": "sst.aws.Function"
       "url": string
+    }
+    "OPENAI_API_KEY": {
+      "type": "sst.sst.Secret"
+      "value": string
     }
   }
 }

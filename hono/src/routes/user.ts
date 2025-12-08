@@ -46,3 +46,36 @@ export const userRoute = createRoute({
     },
   },
 });
+
+const AuthUserSchema = z
+  .object({
+    id: z.string().openapi({ example: "123" }),
+    email: z.string().email().openapi({ example: "user@example.com" }),
+    role: z.string().openapi({ example: "user" }),
+    isAuthenticated: z.boolean().openapi({ example: true }),
+  })
+  .openapi("AuthUser");
+
+// Protected route
+export const userAuthRoute = createRoute({
+  method: "get",
+  path: "/users/auth",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: AuthUserSchema,
+        },
+      },
+      description: "Get authenticated user information",
+    },
+    401: {
+      description: "Unauthorized - Invalid or missing bearer token",
+    },
+  },
+});

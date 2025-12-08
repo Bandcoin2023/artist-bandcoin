@@ -13,7 +13,8 @@ app.doc("/openapi.json", {
   openapi: "3.0.0",
   info: {
     version: "1.0.0",
-    title: "My API",
+    title: "Bandcoin Hono API",
+    description: "AI Generation API with OpenAI and Google AI integration",
   },
 });
 

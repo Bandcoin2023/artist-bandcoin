@@ -1,5 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { userRoute } from "./user";
+import { userAuthRoute, userRoute } from "./user";
+import { bearerAuth } from "hono/bearer-auth";
+import { generateRouter } from "./generate";
 
 export const router = new OpenAPIHono();
 
@@ -13,6 +15,21 @@ router.openapi(userRoute, (c) => {
   });
 });
 
-// Add more routes here as you create them
-// router.openapi(postRoute, handler);
-// router.openapi(productRoute, handler);
+// Protected route - /users/auth
+router.use(
+  "/users/auth",
+  bearerAuth({
+    token: process.env.BEARER_TOKEN || "your-secret-token",
+  }),
+);
+router.openapi(userAuthRoute, (c) => {
+  return c.json({
+    id: "123",
+    email: "user@example.com",
+    role: "user",
+    isAuthenticated: true,
+  });
+});
+
+// Register generate routes
+router.route("/generate", generateRouter);
