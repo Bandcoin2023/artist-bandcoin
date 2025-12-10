@@ -80,7 +80,6 @@ ${includeMetaTags ? "- SEO Meta Title (under 60 chars) and Meta Description (und
 ${includeTableOfContents ? "- Table of Contents with anchor links" : ""}
 ${includeFAQ ? "- FAQ Section with 5-7 common questions and answers" : ""}
 ${includeInternalLinks ? "- Placeholder suggestions for internal links [INTERNAL LINK: topic]" : ""}
-${includeImages ? "- Image suggestions with alt text descriptions [IMAGE: description]" : ""}
 ${includeStats ? "- Relevant statistics and data points with sources" : ""}
 ${includeQuotes ? "- Expert quotes and citations" : ""}
 
