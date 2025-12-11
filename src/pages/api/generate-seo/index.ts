@@ -1,13 +1,14 @@
 import OpenAI from "openai"
 import { GoogleGenAI } from "@google/genai";
 import { NextApiRequest, NextApiResponse } from "next";
+import { env } from "~/env";
 
-const openai = process.env.NEXT_PUBLIC_OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY })
+const openai = env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: env.OPENAI_API_KEY })
   : null;
 
-const googleAI = process.env.NEXT_PUBLIC_GEMINI_API_KEY
-  ? new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY })
+const googleAI = env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: env.GEMINI_API_KEY })
   : null;
 
 export default async function handler(
@@ -79,7 +80,6 @@ ${includeMetaTags ? "- SEO Meta Title (under 60 chars) and Meta Description (und
 ${includeTableOfContents ? "- Table of Contents with anchor links" : ""}
 ${includeFAQ ? "- FAQ Section with 5-7 common questions and answers" : ""}
 ${includeInternalLinks ? "- Placeholder suggestions for internal links [INTERNAL LINK: topic]" : ""}
-${includeImages ? "- Image suggestions with alt text descriptions [IMAGE: description]" : ""}
 ${includeStats ? "- Relevant statistics and data points with sources" : ""}
 ${includeQuotes ? "- Expert quotes and citations" : ""}
 

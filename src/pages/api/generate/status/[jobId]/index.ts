@@ -33,6 +33,7 @@ export default async function handler(
     const contentType = response.headers.get("content-type");
     if (contentType?.includes("application/json")) {
       const data = await response.json();
+      console.log("data", data)
       return res.status(response.status).json(data);
     } else {
       const text = await response.text();

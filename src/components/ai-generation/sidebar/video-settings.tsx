@@ -70,7 +70,7 @@ export function VideoSettings() {
                     : "bg-secondary border-border text-muted-foreground hover:border-muted-foreground",
                 )}
               >
-                <span className="text-sm font-medium">{quality.label}</span>
+                <span className="text-sm font-medium">{quality.label.toLocaleUpperCase()}</span>
                 <span className="text-xs opacity-70">{quality.resolution}</span>
               </button>
             ))}

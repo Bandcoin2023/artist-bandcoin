@@ -39,6 +39,9 @@ export const env = createEnv({
     AWS_BUCKET_REGION: z.string(),
     AWS_ACCESS_KEY: z.string(),
     AWS_SECRET_ACCESS_KEY: z.string(),
+    // AI
+    GEMINI_API_KEY: z.string(),
+    OPENAI_API_KEY: z.string(),
   },
 
   /**
@@ -103,6 +106,9 @@ export const env = createEnv({
     AWS_BUCKET_REGION: process.env.NEXT_AWS_BUCKET_REGION,
     AWS_ACCESS_KEY: process.env.NEXT_AWS_ACCESS_KEY,
     AWS_SECRET_ACCESS_KEY: process.env.NEXT_AWS_SECRET_ACCESS_KEY,
+    // AI
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

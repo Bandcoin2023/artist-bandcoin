@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai"
+import { env } from "~/env"
 
 // Improved audio decoding utilities
 function decode(base64String: string): Uint8Array {
@@ -160,7 +161,7 @@ export class LyriaRealTimeSession {
   constructor(callbacks: MusicSessionCallbacks) {
     this.callbacks = callbacks
 
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
+    const apiKey = env.GEMINI_API_KEY
     if (!apiKey) {
       throw new Error("NEXT_PUBLIC_GEMINI_API_KEY environment variable is required")
     }
