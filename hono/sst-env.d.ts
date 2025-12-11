@@ -13,6 +13,10 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "GeneratedImages": {
+      "name": string
+      "type": "sst.aws.Bucket"
+    }
     "GenerationJobs": {
       "name": string
       "type": "sst.aws.Dynamo"

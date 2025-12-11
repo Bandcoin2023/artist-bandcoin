@@ -5,6 +5,7 @@ import type {
   PixelSize,
   RemixSettings,
 } from "../types/generation.types";
+import { S3UploadService } from "./s3-upload.service";
 
 const googleAI = new GoogleGenAI({});
 
@@ -92,8 +93,15 @@ Output dimensions should be approximately ${pixelSize.width}x${pixelSize.height}
             if (part.inlineData?.data) {
               const base64Data = part.inlineData.data;
               const mimeType = part.inlineData.mimeType ?? "image/png";
+
+              // Upload base64 image to S3 and get public URL
+              const imageUrl = await S3UploadService.uploadBase64Image(
+                base64Data,
+                mimeType,
+              );
+
               items.push({
-                url: `data:${mimeType};base64,${base64Data}`,
+                url: imageUrl,
                 type: "image",
               });
             }

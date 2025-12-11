@@ -14,12 +14,13 @@ export const CreateJobRequestSchema = z.object({
   size: z.string().optional().openapi({ example: "1024x1024" }),
   aspectRatio: z.string().optional().openapi({ example: "16:9" }),
   numberOfImages: z.number().int().min(1).max(10).openapi({ example: 1 }),
-  duration: z.number().optional().openapi({ example: 5 }),
+  duration: z.enum(["4", "8", "12"]).optional().openapi({ example: "4" }),
   quality: z
     .enum(["standard", "hd"])
     .optional()
+    .nullable()
     .openapi({ example: "standard" }),
-  referenceImage: z.string().optional().openapi({
+  referenceImage: z.string().optional().nullable().openapi({
     example: "data:image/png;base64,iVBORw0KG...",
   }),
   cameraGear: z.string().optional().openapi({ example: "canon-r5" }),

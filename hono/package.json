@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.946.0",
+    "@aws-sdk/client-s3": "^3.948.0",
     "@aws-sdk/lib-dynamodb": "^3.946.0",
     "@google/genai": "^1.31.0",
     "@hono/swagger-ui": "^0.5.2",

@@ -7,8 +7,8 @@ async function testFlow() {
     body: JSON.stringify({
       prompt: "a sunset",
       mediaType: "image",
-      model: "dall-e-3",
-      provider: "openai",
+      model: "gemini-pro-image",
+      provider: "google",
       numberOfImages: 1,
     }),
   });

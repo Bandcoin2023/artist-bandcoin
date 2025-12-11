@@ -19,6 +19,11 @@ export default $config({
       ttl: "ttl",
     });
 
+    // S3 bucket for generated images
+    const generatedImagesBucket = new sst.aws.Bucket("GeneratedImages", {
+      public: true,
+    });
+
     // Secrets
     const openaiApiKey = new sst.Secret("OPENAI_API_KEY");
     const geminiApiKey = new sst.Secret("GEMINI_API_KEY");
@@ -27,7 +32,7 @@ export default $config({
     new sst.aws.Function("Hono", {
       url: true,
       handler: "src/index.handler",
-      link: [generationJobsTable],
+      link: [generationJobsTable, generatedImagesBucket],
       timeout: "15 minutes",
       environment: {
         GENERATION_JOBS_TABLE: generationJobsTable.name,
