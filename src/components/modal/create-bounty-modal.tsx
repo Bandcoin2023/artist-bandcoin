@@ -56,6 +56,7 @@ import { UploadS3Button } from "../common/upload-button"
 import { Editor } from "../common/quill-editor"
 import { useCreateBountyStore } from "../store/create-bounty-store"
 import { cn } from "~/lib/utils"
+import { USDC_ASSET_CODE, USDC_ISSUER } from "~/lib/usdc"
 
 // Schema definitions
 const MediaInfo = z.object({
@@ -877,8 +878,8 @@ function DetailsStep() {
                     type="button"
                     onClick={() =>
                       AddTrustMutation.mutate({
-                        asset_code: USDCCode,
-                        asset_issuer: USDCIssuer,
+                        asset_code: USDC_ASSET_CODE,
+                        asset_issuer: USDC_ISSUER,
                         signWith: needSign(),
                       })}
                     disabled={AddTrustMutation.isLoading}

@@ -331,9 +331,9 @@ const UserBountyPage = () => {
       if (data) {
         try {
           const result = await clientsign({
-            presignedxdr: data,
-            pubkey: session.data?.user.id,
-            walletType: session.data?.user.walletType,
+            presignedxdr: data.xdr,
+            walletType: data.needSign ? session.data?.user?.walletType : WalletType.isAdmin,
+            pubkey: session.data?.user?.id,
             test: clientSelect(),
           })
 
@@ -1612,11 +1612,18 @@ const AdminBountyPage = () => {
     setLoadingBountyId(null);
   };
 
-  const handleDelete = (id: number, prize: number) => {
-    setLoadingBountyId(id);
-    GetDeleteXDR.mutate({ prize: prize, bountyId: id });
-    setLoadingBountyId(null);
-  };
+  const handleDelete = (id: number, prizeInBand: number, prizeInUSD: number, payNow: boolean) => {
+    if (payNow) {
+      setLoadingBountyId(id)
+      GetDeleteXDR.mutate({ prizeInBand: prizeInBand, prizeInUSD: prizeInUSD, bountyId: id })
+      setLoadingBountyId(null)
+    }
+    else {
+      DeleteMutation.mutate({
+        BountyId: id ?? 0,
+      })
+    }
+  }
 
   const UpdateSubmissionStatusMutation =
     api.bounty.Bounty.updateBountySubmissionStatus.useMutation();
@@ -2189,9 +2196,8 @@ const AdminBountyPage = () => {
                           }
                           variant="destructive"
                           className="flex-1"
-                          onClick={() =>
-                            handleDelete(data.id, data.priceInBand)
-                          }
+                          onClick={() => handleDelete(data.id, data.priceInBand, data.priceInUSD, data.payNow)}
+
                         >
                           {DeleteMutation.isLoading ? (
                             <div className="flex items-center gap-2">
