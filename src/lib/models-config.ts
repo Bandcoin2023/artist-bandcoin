@@ -96,7 +96,7 @@ export const IMAGE_MODELS: ImageModelConfig[] = [
     },
   },
   {
-    id: "nano-banana",
+    id: "imagen-2",
     name: "Nano Banana",
     provider: "google",
     description: "Google's most advanced image generation model",
@@ -117,7 +117,7 @@ export const IMAGE_MODELS: ImageModelConfig[] = [
     },
   },
   {
-    id: "nano-banana-pro",
+    id: "imagen-3",
     name: "Nano Banana Pro",
     provider: "google",
     description: "Fast turnaround for image concepts and visuals",

@@ -1,8 +1,15 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { Resource } from "sst";
+
+import { env } from "~/env";
 
 export class S3UploadService {
-  private static s3Client = new S3Client({});
+  private static s3Client = new S3Client({
+    region: env.AWS_BUCKET_REGION,
+    credentials: {
+      accessKeyId: env.AWS_ACCESS_KEY,
+      secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+    },
+  });
 
   /**
    * Upload a base64 image to S3 and return the public URL
@@ -31,7 +38,7 @@ export class S3UploadService {
 
       // Upload to S3
       const command = new PutObjectCommand({
-        Bucket: Resource.GeneratedImages.name,
+        Bucket: env.AWS_BUCKET_NAME,
         Key: filename,
         Body: buffer,
         ContentType: mimeType,
@@ -39,11 +46,8 @@ export class S3UploadService {
 
       await this.s3Client.send(command);
 
-      // Return public URL
-      const region = process.env.AWS_REGION || "us-east-1";
-      const url = `https://${Resource.GeneratedImages.name}.s3.${region}.amazonaws.com/${filename}`;
+      return `https://${env.AWS_BUCKET_NAME}.s3.amazonaws.com/${filename}`;
 
-      return url;
     } catch (error) {
       console.error("Error uploading to S3:", error);
       throw new Error(

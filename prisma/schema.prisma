@@ -231,6 +231,7 @@ model Creator {
     CreatorCustomDomain CreatorCustomDomain[]
     SellPageAsset       SellPageAsset[]
     ActionLocation      ActionLocation[]
+    aiGeneratedContents AiGeneratedContent[]
 
     @@index([bio, name])
 }
@@ -948,4 +949,14 @@ model ClaimSpotifyReward {
     rewardAmount   Float // Amount claimed in this specific claim
 
     @@index([userId, spotifyTrackId, lastClaimedAt]) // Index for efficient querying
+}
+
+model AiGeneratedContent {
+    id          Int       @id @default(autoincrement())
+    creatorId   String
+    creator     Creator   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+    prompt      String
+    contentUrl  String
+    contentType MediaType
+    createdAt   DateTime  @default(now())
 }

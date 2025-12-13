@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import type { ImageModelConfig, VideoModelConfig } from "./models-config"
 import { IMAGE_MODELS, VIDEO_MODELS } from "./models-config"
-import { VideoSeconds } from "openai/resources/videos"
+import type { VideoSeconds } from "openai/resources/videos"
 
 export type MediaType = "image" | "video"
 
@@ -34,7 +34,8 @@ interface GenerationState {
   // Media type
   mediaType: MediaType
   setMediaType: (type: MediaType) => void
-
+  activeItemId: string | null
+  setActiveItemId: (id: string | null) => void
   // Image settings
   selectedImageModel: ImageModelConfig
   setSelectedImageModel: (model: ImageModelConfig) => void
@@ -95,15 +96,17 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
   // Media type
   mediaType: "image",
   setMediaType: (type) => set({ mediaType: type }),
+  activeItemId: null,
+  setActiveItemId: (id: string | null) => set({ activeItemId: id }),
 
   // Image settings
-  selectedImageModel: IMAGE_MODELS[0],
+  selectedImageModel: IMAGE_MODELS[0]!,
   setSelectedImageModel: (model) =>
     set({
       selectedImageModel: model,
       selectedStyle: model.capabilities.styles?.[0] ?? "Dynamic",
-      selectedAspectRatio: model.capabilities.aspectRatios[0],
-      selectedSize: model.capabilities.sizes[0].value,
+      selectedAspectRatio: model.capabilities.aspectRatios[0]!,
+      selectedSize: model.capabilities.sizes[0]!.value,
       numberOfImages: 1,
     }),
   promptEnhance: "Auto",
@@ -127,13 +130,13 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
   setReferenceImage: (image) => set({ referenceImage: image }),
 
   // Video settings
-  selectedVideoModel: VIDEO_MODELS[0],
+  selectedVideoModel: VIDEO_MODELS[0]!,
   setSelectedVideoModel: (model) =>
     set({
       selectedVideoModel: model,
-      selectedDuration: model.capabilities.durations[0],
-      selectedQuality: model.capabilities.qualities?.[0]?.label || "hd",
-      selectedVideoAspectRatio: model.capabilities.aspectRatios[0],
+      selectedDuration: model.capabilities.durations[0]!,
+      selectedQuality: model.capabilities.qualities?.[0]?.label ?? "hd",
+      selectedVideoAspectRatio: model.capabilities.aspectRatios[0]!,
     }),
   selectedDuration: "4",
   setSelectedDuration: (duration) => set({ selectedDuration: duration }),
@@ -149,9 +152,13 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
   setIsGenerating: (value) => set({ isGenerating: value }),
   generatedItems: [],
   addGeneratedItems: (items) =>
-    set((state) => ({
-      generatedItems: [...items, ...state.generatedItems],
-    })),
+    set((state) => {
+      const newItems = [...items, ...state.generatedItems]
+      return {
+        generatedItems: newItems,
+        activeItemId: items.length > 0 ? items[0]?.id : state.activeItemId,
+      }
+    }),
   toggleItemSelection: (id) =>
     set((state) => ({
       generatedItems: state.generatedItems.map((item) =>
@@ -166,23 +173,25 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
     const type = get().mediaType
     if (type === "image") {
       set({
-        selectedImageModel: IMAGE_MODELS[0],
+        selectedImageModel: IMAGE_MODELS[0]!,
         promptEnhance: "Auto",
-        selectedStyle: IMAGE_MODELS[0].capabilities.styles?.[0] ?? "Dynamic",
-        selectedAspectRatio: IMAGE_MODELS[0].capabilities.aspectRatios[0],
-        selectedSize: IMAGE_MODELS[0].capabilities.sizes[0].value,
+        selectedStyle: IMAGE_MODELS[0]!.capabilities.styles?.[0] ?? "Dynamic",
+        selectedAspectRatio: IMAGE_MODELS[0]!.capabilities.aspectRatios[0]!,
+        selectedSize: IMAGE_MODELS[0]!.capabilities.sizes[0]!.value,
         numberOfImages: 1,
         selectedCameraGear: "default",
         remixVariety: 30,
         referenceImage: null,
+        activeItemId: null,
       })
     } else {
       set({
-        selectedVideoModel: VIDEO_MODELS[0],
-        selectedDuration: VIDEO_MODELS[0].capabilities.durations[0],
-        selectedQuality: VIDEO_MODELS[0].capabilities.qualities?.[0]?.label ?? "",
-        selectedVideoAspectRatio: VIDEO_MODELS[0].capabilities.aspectRatios[0],
+        selectedVideoModel: VIDEO_MODELS[0]!,
+        selectedDuration: VIDEO_MODELS[0]!.capabilities.durations[0]!,
+        selectedQuality: VIDEO_MODELS[0]!.capabilities.qualities?.[0]?.label ?? "",
+        selectedVideoAspectRatio: VIDEO_MODELS[0]!.capabilities.aspectRatios[0]!,
         referenceImage: null,
+        activeItemId: null,
       })
     }
   },

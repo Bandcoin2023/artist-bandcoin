@@ -5,6 +5,7 @@ import { FileText, Sparkles, Loader2, Twitter, Linkedin, Instagram, Facebook } f
 import { useContentGenerator } from "~/hooks/use-content-generator"
 import { SEOOutput } from "./seo-output"
 import { SocialMediaOutput } from "./social-media-output"
+import { api } from "~/utils/api"
 
 const platformIcons = {
   twitter: Twitter,
@@ -16,7 +17,6 @@ const platformIcons = {
 export function OutputPanel() {
   const { contentMode, socialParams, generatedContent, isGenerating, copied, copyToClipboard } = useContentGenerator()
   const outputRef = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
     if (outputRef.current && generatedContent) {
       outputRef.current.scrollTop = 0

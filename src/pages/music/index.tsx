@@ -423,17 +423,21 @@ function MusicCarousel() {
                                     : "ADMIN"}
                             </span>
                         </p>
-                        <Button
-                            size="sm"
-                            variant="destructive"
-                            className="w-full shadow-sm shadow-black "
-                            onClick={() => {
-                                setData(RecentAddedSong.data[currentSlide] as SongItemType);
-                                setIsOpen(true);
-                            }}
-                        >
-                            BUY NOW
-                        </Button>
+                        {
+                            RecentAddedSong.data.length > 0 && (
+                                <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="w-full shadow-sm shadow-black "
+                                    onClick={() => {
+                                        setData(RecentAddedSong.data[currentSlide] as SongItemType);
+                                        setIsOpen(true);
+                                    }}
+                                >
+                                    BUY NOW
+                                </Button>
+                            )
+                        }
                     </div>
                 </div>
 

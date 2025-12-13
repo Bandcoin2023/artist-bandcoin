@@ -6,8 +6,8 @@ import { CAMERA_GEAR_OPTIONS, getRemixVarietyLabel, useGenerationStore } from "~
 import type { GeneratedItem } from "~/lib/generation-store"
 import { cn } from "~/lib/utils"
 import { useState, useRef, useCallback } from "react"
+import { api } from "~/utils/api"
 
-// Types for async job responses
 interface JobStatusResponse {
   jobId: string
   status: "pending" | "processing" | "completed" | "failed"
@@ -28,9 +28,8 @@ interface JobCreateResponse {
   message?: string
 }
 
-// Polling configuration
-const POLL_INTERVAL = 2000 // 2 seconds
-const MAX_POLL_ATTEMPTS = 150 // 5 minutes max (150 * 2s)
+const POLL_INTERVAL = 2000
+const MAX_POLL_ATTEMPTS = 150
 
 interface ActiveJob {
   jobId: string
@@ -80,8 +79,8 @@ export function PromptInput() {
             signal: abortController.signal,
           })
 
-          const data = await response.json() as JobStatusResponse
-          console.log("[v0] Poll response:", data)
+          const data = (await response.json()) as JobStatusResponse
+          console.log(" Poll response:", data)
 
           if (data.status === "completed") {
             setStatusMessage("Generation complete!")
@@ -92,13 +91,11 @@ export function PromptInput() {
             throw new Error(data.error || "Generation failed")
           }
 
-          // Update status message for user feedback
           const progressText = data.progress ? ` (${data.progress}%)` : ""
           setStatusMessage(
             data.status === "processing" ? `Processing your request...${progressText}` : "Waiting in queue...",
           )
 
-          // Wait before next poll
           await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL))
         } catch (error) {
           if (error instanceof Error && error.name === "AbortError") {
@@ -112,6 +109,7 @@ export function PromptInput() {
     },
     [],
   )
+  const createGeneratedItem = api.ai.createAiContent.useMutation()
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return
@@ -123,13 +121,11 @@ export function PromptInput() {
     const abortController = new AbortController()
     const jobId = `temp-${Date.now()}`
 
-    // Track this job
     const newJob: ActiveJob = { jobId, prompt: currentPrompt, abortController }
     activeJobsRef.current = [...activeJobsRef.current, newJob]
     setActiveJobs([...activeJobsRef.current])
 
     try {
-      // Step 1: Create the generation job
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -138,7 +134,6 @@ export function PromptInput() {
           mediaType,
           model: currentModel.id,
           provider: currentModel.provider,
-          // Image specific
           style: selectedStyle,
           size: selectedSize,
           aspectRatio: selectedAspectRatio,
@@ -146,7 +141,6 @@ export function PromptInput() {
           referenceImage,
           cameraGear: selectedCameraGear,
           remixVariety,
-          // Video specific
           duration: selectedDuration,
           quality: selectedQuality ?? "hd",
           videoAspectRatio: selectedVideoAspectRatio,
@@ -154,23 +148,21 @@ export function PromptInput() {
         signal: abortController.signal,
       })
 
-      const jobData = await response.json() as JobCreateResponse
-      console.log("[v0] Job created:", jobData)
+      const jobData = (await response.json()) as JobCreateResponse
+      console.log(" Job created:", jobData)
 
       if (!jobData.jobId) {
         throw new Error("Failed to create generation job")
       }
 
-      // Update job with real jobId
       const realJobId = jobData.jobId
       activeJobsRef.current = activeJobsRef.current.map((j) => (j.jobId === jobId ? { ...j, jobId: realJobId } : j))
       setActiveJobs([...activeJobsRef.current])
 
       setStatusMessage("Job created, waiting for processing...")
 
-      // Step 2: Poll for completion
       const result = await pollJobStatus(realJobId, abortController)
-      console.log("[v0] Final result:", result)
+      console.log(" Final result:", result)
 
       const urls: string[] = []
       if (result.result?.items && Array.isArray(result.result.items)) {
@@ -181,7 +173,7 @@ export function PromptInput() {
         }
       }
 
-      console.log("[v0] Extracted URLs:", urls)
+      console.log(" Extracted URLs:", urls)
 
       if (urls.length > 0) {
         const newItems: GeneratedItem[] = urls.map((url: string, index: number) => ({
@@ -193,32 +185,36 @@ export function PromptInput() {
           timestamp: new Date(),
           selected: false,
         }))
-        console.log("[v0] Adding items:", newItems)
+
+        urls.map((url: string) => {
+          createGeneratedItem.mutate({
+            contentUrl: url,
+            prompt: currentPrompt,
+            contentType: mediaType === "image" ? "IMAGE" : "VIDEO",
+          })
+        })
+
         addGeneratedItems(newItems)
       } else {
-        console.log("[v0] No URLs found in result")
+        console.log(" No URLs found in result")
         setStatusMessage("No images returned from generation")
       }
     } catch (error) {
-      console.error("[v0] Generation failed:", error)
+      console.error(" Generation failed:", error)
       setStatusMessage(error instanceof Error ? error.message : "Generation failed")
     } finally {
-      // Remove this job from active jobs
       activeJobsRef.current = activeJobsRef.current.filter((j) => j.prompt !== currentPrompt)
       setActiveJobs([...activeJobsRef.current])
 
-      // Only set isGenerating to false if no more active jobs
       if (activeJobsRef.current.length === 0) {
         setIsGenerating(false)
       }
 
-      // Clear status after a delay
       setTimeout(() => setStatusMessage(""), 3000)
     }
   }
 
   const handleCancel = () => {
-    // Cancel all active jobs
     for (const job of activeJobsRef.current) {
       job.abortController.abort()
     }
@@ -242,58 +238,7 @@ export function PromptInput() {
             {currentModel.provider === "openai" ? "OpenAI" : "Google"}
           </span>
         </div>
-        <div className="h-4 w-px bg-border" />
-        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-          {mediaType === "image" ? (
-            <>
-              <span>{selectedStyle}</span>
-              <span>•</span>
-              <span>{selectedAspectRatio}</span>
-              <span>•</span>
-              <span>{selectedSize}</span>
-              <span>•</span>
-              <span>
-                {numberOfImages} {numberOfImages > 1 ? "images" : "image"}
-              </span>
-              {selectedCameraGear !== "default" && (
-                <>
-                  <span>•</span>
-                  <span className="text-amber-500">{cameraGearLabel}</span>
-                </>
-              )}
-              {remixVariety !== 30 && (
-                <>
-                  <span>•</span>
-                  <span className="text-purple-500">{getRemixVarietyLabel(remixVariety)}</span>
-                </>
-              )}
-              {referenceImage && (
-                <>
-                  <span>•</span>
-                  <span className="text-cyan-500">Ref Image</span>
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              <span>{selectedDuration}s</span>
-              <span>•</span>
-              <span>{selectedVideoAspectRatio}</span>
-              {selectedQuality && (
-                <>
-                  <span>•</span>
-                  <span>{selectedQuality}</span>
-                </>
-              )}
-              {referenceImage && (
-                <>
-                  <span>•</span>
-                  <span className="text-cyan-500">Start Frame</span>
-                </>
-              )}
-            </>
-          )}
-        </div>
+
       </div>
 
       {referenceImage && (
@@ -340,14 +285,9 @@ export function PromptInput() {
           </div>
         )}
 
-        <div className="flex items-center justify-between mt-3">
-          <p className="text-xs text-muted-foreground">
-            Press <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-xs">Enter</kbd> to
-            generate or{" "}
-            <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-xs">Shift+Enter</kbd> for new
-            line
-          </p>
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between mt-3 ">
+
+          <div className="flex items-center gap-2 w-full">
             {isGenerating && (
               <Button onClick={handleCancel} variant="outline" className="px-4 bg-transparent">
                 Cancel
@@ -357,7 +297,7 @@ export function PromptInput() {
               onClick={handleGenerate}
               disabled={!prompt.trim()}
               className={cn(
-                "px-6 gap-2",
+                "px-6 gap-2 w-full",
                 mediaType === "image"
                   ? "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
                   : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600",

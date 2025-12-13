@@ -79,35 +79,38 @@ export function ImageSettings() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <ImageIcon className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm text-foreground">Reference Image</span>
-          <HelpCircle className="w-4 h-4 text-muted-foreground" />
-        </div>
+      {
+        selectedImageModel.id === "dall-e-2" ?
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <ImageIcon className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-foreground">Reference Image</span>
+              <HelpCircle className="w-4 h-4 text-muted-foreground" />
+            </div>
 
-        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
 
-        {referenceImage ? (
-          <div className="relative rounded-lg overflow-hidden border border-border">
-            <img src={referenceImage || "/placeholder.svg"} alt="Reference" className="w-full h-32 object-cover" />
-            <button
-              onClick={handleRemoveReference}
-              className="absolute top-2 right-2 p-1 bg-background/80 rounded-full hover:bg-background transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/5 transition-colors"
-          >
-            <Upload className="w-5 h-5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Upload reference image</span>
-          </button>
-        )}
-      </div>
+            {referenceImage ? (
+              <div className="relative rounded-lg overflow-hidden border border-border">
+                <img src={referenceImage || "/placeholder.svg"} alt="Reference" className="w-full h-32 object-cover" />
+                <button
+                  onClick={handleRemoveReference}
+                  className="absolute top-2 right-2 p-1 bg-background/80 rounded-full hover:bg-background transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/5 transition-colors"
+              >
+                <Upload className="w-5 h-5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Upload reference image</span>
+              </button>
+            )}
+          </div> : null
+      }
 
       {/* Prompt Enhance */}
       {/* {capabilities.hasPromptEnhance && (

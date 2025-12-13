@@ -1,40 +1,115 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
+import type {
+  VideoModel,
+  VideoSeconds,
+  VideoSize,
+} from "openai/resources/videos";
+import { env } from "~/env";
+import { qstash, generateJobId, createJob } from "~/lib/qstash"
+import { getToken } from "next-auth/jwt";
 
-const HONO_API_URL = process.env.HONO_API_URL;
-const HONO_API_KEY = process.env.HONO_API_KEY;
+
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  const token = await getToken({ req });
+  if (!token?.sub) {
+    res.status(401).json({
+      error: "User is not authenticated",
+    });
+    return;
+  }
+
+  if (req.method === "GET") {
+    return res.status(200).json({
+      message: "AI Generation API",
+      endpoints: {
+        POST: "Generate images or videos",
+        status: "GET /api/generate/status/[jobId]",
+      },
+    });
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    // Forward request to Hono Lambda
-    const response = await fetch(`${HONO_API_URL}/api/v1/generate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${HONO_API_KEY}`,
+    const {
+      prompt,
+      mediaType,
+      model,
+      provider,
+      style,
+      size,
+      aspectRatio,
+      numberOfImages,
+      duration,
+      quality,
+      referenceImage,
+      cameraGear,
+      remixVariety,
+      videoAspectRatio,
+    } = req.body as {
+      prompt: string;
+      mediaType: "image" | "video";
+      model: string;
+      provider: "openai" | "google";
+      style?: string;
+      size?: string;
+      aspectRatio?: string;
+      numberOfImages: number;
+      duration?: VideoSeconds;
+      quality?: "standard" | "hd";
+      referenceImage?: string;
+      cameraGear?: string;
+      remixVariety?: number;
+      videoAspectRatio: string,
+    };
+    // Generate a unique job ID
+    const jobId = generateJobId()
+    // Create job record in Redis
+    await createJob(jobId, {
+      status: "pending",
+      message: "Job queued for processing",
+    })
+    // Get the base URL for the webhook
+    const baseUrl = "https://bandcoin.io/"
+    // Queue the job via QStash - this returns immediately
+    await qstash.publishJSON({
+      url: `${baseUrl}/api/generate/process`,
+      body: {
+        jobId,
+        prompt,
+        mediaType,
+        model,
+        provider,
+        style,
+        size,
+        aspectRatio,
+        numberOfImages,
+        referenceImage,
+        cameraGear,
+        remixVariety,
+        duration,
+        quality,
+        videoAspectRatio,
       },
-      body: JSON.stringify(req.body),
-    });
+      retries: 1,
+    })
+    console.log("JobId", jobId)
+    return res.json({
+      jobId,
+      status: "pending",
+      message: "Generation job queued successfully",
+    })
 
-    // Handle non-JSON responses (like 401 Unauthorized)
-    const contentType = response.headers.get("content-type");
-    if (contentType?.includes("application/json")) {
-      const data = await response.json();
-      return res.status(response.status).json(data);
-    } else {
-      const text = await response.text();
-      return res
-        .status(response.status)
-        .json({ error: text || "Request failed" });
-    }
   } catch (error) {
-    console.error("Generate proxy error:", error);
-    return res.status(500).json({ error: "Failed to create generation job" });
+    console.error("Generation error:", error);
+    return res.status(500).json({ error: "Failed to generate content" });
   }
 }

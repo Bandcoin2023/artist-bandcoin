@@ -2,6 +2,7 @@ import OpenAI from "openai"
 import { GoogleGenAI } from "@google/genai";
 import { NextApiRequest, NextApiResponse } from "next";
 import { env } from "~/env";
+import { getToken } from "next-auth/jwt";
 
 const openai = env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: env.OPENAI_API_KEY })
@@ -22,6 +23,13 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  const token = await getToken({ req });
+  if (!token?.sub) {
+    res.status(401).json({
+      error: "User is not authenticated",
+    });
+    return;
+  }
   try {
     const {
       topic,

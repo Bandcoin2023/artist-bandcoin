@@ -8,17 +8,21 @@ import { ModelSelector } from "./model-selector"
 import { ImageSettings } from "./image-settings"
 import { VideoSettings } from "./video-settings"
 import { useGenerationStore } from "~/lib/generation-store"
+import { PromptInput } from "../main/prompt-input"
 
 export function GenerationSidebar() {
   const { mediaType, resetToDefaults } = useGenerationStore()
 
   return (
-    <aside className="w-80 bg-card border-r border-border flex flex-col h-full overflow-hidden ">
-      <div className="flex-1 overflow-y-auto p-4 space-y-5">
+    <aside className="w-80 h-[calc(100vh-10.8vh)] bg-card border-r border-border flex flex-col  overflow-hidden ">
+      <div className="flex-1 overflow-y-auto p-4 space-y-5 scrollbar-hide">
         {/* Model Selector */}
+
         <ModelSelector />
+        <PromptInput />
         {/* Dynamic Settings based on media type */}
         {mediaType === "image" ? <ImageSettings /> : <VideoSettings />}
+
       </div>
     </aside>
   )

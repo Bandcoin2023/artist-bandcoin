@@ -14,6 +14,7 @@ import { SpotifyRouter } from "./routers/spotify/root";
 import { DomainRouters } from "./routers/domain/root";
 import { qrRouter } from "./routers/qr";
 import { agentRouter } from "./routers/agent";
+import { aiRouter } from "./routers/ai";
 
 /**
  * This is the primary router for your server.
@@ -36,6 +37,7 @@ export const appRouter = createTRPCRouter({
   domain: DomainRouters,
   qr: qrRouter,
   agent: agentRouter,
+  ai: aiRouter,
 
 });
 

@@ -1,7 +1,0 @@
-# API Keys
-OPENAI_API_KEY=sk-...
-GOOGLE_API_KEY=...
-BEARER_TOKEN=your-secret-token
-
-# Optional: Add more secrets as needed
-# ANOTHER_SECRET=value
