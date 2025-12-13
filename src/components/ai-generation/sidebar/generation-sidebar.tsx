@@ -14,7 +14,7 @@ export function GenerationSidebar() {
   const { mediaType, resetToDefaults } = useGenerationStore()
 
   return (
-    <aside className="w-80 h-[calc(100vh-10.8vh)] bg-card border-r border-border flex flex-col  overflow-hidden ">
+    <aside className="w-96 h-[calc(100vh-10.8vh)] bg-card border-r border-border flex flex-col  overflow-hidden ">
       <div className="flex-1 overflow-y-auto p-4 space-y-5 scrollbar-hide">
         {/* Model Selector */}
 

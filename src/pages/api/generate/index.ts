@@ -9,6 +9,7 @@ import type {
 import { env } from "~/env";
 import { qstash, generateJobId, createJob } from "~/lib/qstash"
 import { getToken } from "next-auth/jwt";
+import { BASE_URL } from "~/lib/common";
 
 
 
@@ -77,11 +78,9 @@ export default async function handler(
       status: "pending",
       message: "Job queued for processing",
     })
-    // Get the base URL for the webhook
-    const baseUrl = "https://bandcoin.io/"
-    // Queue the job via QStash - this returns immediately
+
     await qstash.publishJSON({
-      url: `${baseUrl}/api/generate/process`,
+      url: `${BASE_URL}/api/generate/process`,
       body: {
         jobId,
         prompt,
