@@ -115,8 +115,7 @@ const BountySchema = z
 
 type FormStep = "details" | "media" | "settings" | "review"
 const FORM_STEPS: FormStep[] = ["details", "media", "settings", "review"]
-const USDCIssuer = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
-const USDCCode = "USDC";
+
 
 enum assetType {
   PAGEASSET = "PAGEASSET",

@@ -83,7 +83,7 @@ ${includeInternalLinks ? "- Placeholder suggestions for internal links [INTERNAL
 ${includeStats ? "- Relevant statistics and data points with sources" : ""}
 ${includeQuotes ? "- Expert quotes and citations" : ""}
 
-Write the content in markdown format with proper headings (H2, H3), bullet points, and formatting. Make it comprehensive, well-structured, and optimized for search engines while maintaining readability.`
+Write the content  with proper headings (H2, H3), bullet points, and formatting. Make it comprehensive, well-structured, and optimized for search engines while maintaining readability.`
 
 
     if (model === "openai") {

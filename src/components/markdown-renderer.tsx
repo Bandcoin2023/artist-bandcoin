@@ -79,6 +79,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
                     td: ({ children }) => <td className="px-4 py-2 text-foreground/90 border-b border-border">{children}</td>,
                     strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
                     em: ({ children }) => <em className="italic">{children}</em>,
+
                 }}
             >
                 {content}
