@@ -367,6 +367,7 @@ model User {
     SpotifyTrack       SpotifyTrack[]
     ClaimSpotifyReward ClaimSpotifyReward[]
     bountyRedeems      BountyRedeem[]
+    creditBalance      CreditBalance?
 }
 
 model SpotifyAccount {
@@ -959,4 +960,66 @@ model AiGeneratedContent {
     contentUrl  String
     contentType MediaType
     createdAt   DateTime  @default(now())
+    creditsUsed Int       @default(0) // Credits consumed for this generation
+    tokensUsed  Int? // Token count for this generation
+    model       String? // AI model used
+}
+
+model CreditBalance {
+    id        String   @id @default(cuid())
+    userId    String   @unique
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    balance   Int      @default(0) // Current credit balance
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    transactions CreditTransaction[]
+}
+
+enum TransactionType {
+    PURCHASE
+    USAGE
+    REFUND
+    BONUS
+}
+
+model CreditTransaction {
+    id              String          @id @default(cuid())
+    userId          String
+    creditBalance   CreditBalance   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+    amount          Int // Positive for credits added, negative for credits used
+    type            TransactionType
+    description     String
+    paymentMethod   String? // e.g., "BANDCOIN", "USDC"
+    paymentAmount   Float? // Amount paid in BANDCOIN or USDC
+    transactionHash String? // Blockchain transaction hash
+    metadata        Json? // Store additional info like prompt, model, tokens, etc.
+    createdAt       DateTime        @default(now())
+
+    @@index([userId, createdAt])
+}
+
+model CreditPackage {
+    id          String   @id @default(cuid())
+    name        String
+    credits     Int // Number of credits in package
+    priceBand   Float // Price in BANDCOIN
+    priceUSDC   Float // Price in USDC
+    isPopular   Boolean  @default(false)
+    bonus       Int      @default(0) // Bonus credits
+    description String?
+    isActive    Boolean  @default(true)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+}
+
+model AIGenerationCost {
+    id          String   @id @default(cuid())
+    model       String   @unique // e.g., "gpt-4", "dalle-3", "stable-diffusion"
+    taskType    String // e.g., "text", "image", "video"
+    creditCost  Int // Base credit cost
+    description String?
+    isActive    Boolean  @default(true)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
 }

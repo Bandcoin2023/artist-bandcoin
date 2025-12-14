@@ -1,7 +1,7 @@
 import { create } from "zustand"
-import type { ImageModelConfig, VideoModelConfig } from "./models-config"
-import { IMAGE_MODELS, VIDEO_MODELS } from "./models-config"
-import type { VideoSeconds } from "openai/resources/videos"
+import type { ImageModelConfig, VideoModelConfig } from "~/lib/models-config"
+import { IMAGE_MODELS, VIDEO_MODELS } from "~/lib/models-config"
+
 
 export type MediaType = "image" | "video"
 
@@ -36,6 +36,9 @@ interface GenerationState {
   setMediaType: (type: MediaType) => void
   activeItemId: string | null
   setActiveItemId: (id: string | null) => void
+  // Provider selection
+  selectedProvider: "openai" | "google"
+  setSelectedProvider: (provider: "openai" | "google") => void
   // Image settings
   selectedImageModel: ImageModelConfig
   setSelectedImageModel: (model: ImageModelConfig) => void
@@ -62,8 +65,8 @@ interface GenerationState {
   // Video settings
   selectedVideoModel: VideoModelConfig
   setSelectedVideoModel: (model: VideoModelConfig) => void
-  selectedDuration: VideoSeconds
-  setSelectedDuration: (duration: VideoSeconds) => void
+  selectedDuration: string
+  setSelectedDuration: (duration: string) => void
   selectedQuality: string
   setSelectedQuality: (quality: string) => void
   selectedVideoAspectRatio: string
@@ -99,11 +102,40 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
   activeItemId: null,
   setActiveItemId: (id: string | null) => set({ activeItemId: id }),
 
+  // Provider selection
+  selectedProvider: "openai",
+  setSelectedProvider: (provider) => {
+    const type = get().mediaType
+    if (type === "image") {
+      const providerModels = IMAGE_MODELS.filter((m) => m.provider === provider)
+      const model = providerModels[0]!
+      set({
+        selectedProvider: provider,
+        selectedImageModel: model,
+        selectedStyle: model.capabilities.styles?.[0] ?? "Dynamic",
+        selectedAspectRatio: model.capabilities.aspectRatios[0]!,
+        selectedSize: model.capabilities.sizes[0]!.value,
+        numberOfImages: 1,
+      })
+    } else {
+      const providerModels = VIDEO_MODELS.filter((m) => m.provider === provider)
+      const model = providerModels[0]!
+      set({
+        selectedProvider: provider,
+        selectedVideoModel: model,
+        selectedDuration: model.capabilities.durations[0]!,
+        selectedQuality: model.capabilities.qualities?.[0]?.label ?? "hd",
+        selectedVideoAspectRatio: model.capabilities.aspectRatios[0]!,
+      })
+    }
+  },
+
   // Image settings
   selectedImageModel: IMAGE_MODELS[0]!,
   setSelectedImageModel: (model) =>
     set({
       selectedImageModel: model,
+      selectedProvider: model.provider,
       selectedStyle: model.capabilities.styles?.[0] ?? "Dynamic",
       selectedAspectRatio: model.capabilities.aspectRatios[0]!,
       selectedSize: model.capabilities.sizes[0]!.value,
@@ -134,6 +166,7 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
   setSelectedVideoModel: (model) =>
     set({
       selectedVideoModel: model,
+      selectedProvider: model.provider,
       selectedDuration: model.capabilities.durations[0]!,
       selectedQuality: model.capabilities.qualities?.[0]?.label ?? "hd",
       selectedVideoAspectRatio: model.capabilities.aspectRatios[0]!,
@@ -174,6 +207,7 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
     if (type === "image") {
       set({
         selectedImageModel: IMAGE_MODELS[0]!,
+        selectedProvider: IMAGE_MODELS[0]!.provider,
         promptEnhance: "Auto",
         selectedStyle: IMAGE_MODELS[0]!.capabilities.styles?.[0] ?? "Dynamic",
         selectedAspectRatio: IMAGE_MODELS[0]!.capabilities.aspectRatios[0]!,
@@ -187,6 +221,7 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
     } else {
       set({
         selectedVideoModel: VIDEO_MODELS[0]!,
+        selectedProvider: VIDEO_MODELS[0]!.provider,
         selectedDuration: VIDEO_MODELS[0]!.capabilities.durations[0]!,
         selectedQuality: VIDEO_MODELS[0]!.capabilities.qualities?.[0]?.label ?? "",
         selectedVideoAspectRatio: VIDEO_MODELS[0]!.capabilities.aspectRatios[0]!,

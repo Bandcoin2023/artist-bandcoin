@@ -25,13 +25,15 @@ function Header() {
     return (
         <header className="sticky w-full top-0 z-50 h-22  bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="relative h-22 px-2 py-4 ">
-                <Image
-                    src="/images/header.png"
-                    alt="Header background"
-                    fill
-                    className="object-cover object-top"
-                    priority
-                />
+                <div
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{
+                        backgroundImage: "url('/images/header.png')",
+                    }}
+                >
+                    <div className="absolute inset-0 bg-gradient-to-b from-accent/30 via-accent/15  to-accent/10" />
+                </div>
+
                 <div className="relative z-10 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>

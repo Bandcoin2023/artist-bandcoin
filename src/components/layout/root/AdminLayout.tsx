@@ -62,6 +62,7 @@ export default function AdminLayout({
         { href: "/admin/bounty", icon: "bounty", label: "BOUNTY", color: "bg-purple-500" },
         { href: "/admin/map", icon: "map", label: "MAP", color: "bg-pink-500" },
         { href: "/admin/market-assets", icon: "store", label: "ASSETS", color: "bg-emerald-500" },
+        { href: "/admin/ai", icon: "bot", label: "AI", color: "bg-purple-500" },
     ]
 
 

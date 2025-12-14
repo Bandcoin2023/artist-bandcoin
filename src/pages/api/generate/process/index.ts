@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next"
 import { verifySignature } from "@upstash/qstash/nextjs"
 import { updateJob } from "~/lib/qstash"
 import OpenAI from "openai"
-import { GoogleGenAI } from "@google/genai"
+import { createPartFromUri, createUserContent, GoogleGenAI } from "@google/genai"
 import type { VideoModel, VideoSeconds, VideoSize } from "openai/resources/videos"
 import { env } from "~/env"
 import { S3UploadService } from "~/lib/s3-upload.service"
@@ -377,10 +377,14 @@ async function generateGoogleImage(params: ProcessJobRequest, enhancedPrompt: st
                 model: imagenModel,
                 prompt: enhancedPrompt,
                 config,
+
             })
+
 
             // Process the generated image
             if (response.generatedImages?.[0]?.image) {
+
+
                 const imageData = response.generatedImages[0].image
 
                 // Check if we have base64 encoded image data
@@ -390,7 +394,15 @@ async function generateGoogleImage(params: ProcessJobRequest, enhancedPrompt: st
                         imageData.imageBytes,
                         imageData.mimeType ?? "image/png",
                     )
-                    console.log("Uploaded image to S3:", awsURL)
+
+                    const countTokensResponse = await googleAI.models.countTokens({
+                        model: imagenModel,
+                        contents: createUserContent([
+                            enhancedPrompt,
+                            createPartFromUri(awsURL, imageData.mimeType ?? "image/png"),
+                        ]),
+                    });
+                    console.log("count total tokens used:", countTokensResponse.totalTokens);
                     items.push({ url: awsURL, type: "image" })
                 }
             }
