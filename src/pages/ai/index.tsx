@@ -79,10 +79,17 @@ export default function AIGenerationPage() {
             {/* Main Content */}
             <main className="flex flex-col overflow-hidden h-full w-full">
                 {/* Hero Section */}
-                <div className="relative h-full w-full flex items-center justify-center overflow-hidden">
+                <div className="relative h-full w-full flex flex-col items-center justify-center overflow-hidden">
                     {/* Background Image */}
-
-
+                    <div
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{
+                            backgroundImage: "url('/images/header.jpg')",
+                        }}
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/20 to-background" />
+                    </div>
+                    {/* 
                     <div
                         className="absolute inset-0 bg-cover bg-center"
 
@@ -94,7 +101,7 @@ export default function AIGenerationPage() {
                             amplitude={1.0}
                             speed={0.5}
                         />
-                    </div>
+                    </div> */}
 
                     {/* Hero Content */}
                     <div className="relative z-10 w-full max-w-4xl px-8 flex flex-col items-center gap-8">
@@ -356,30 +363,31 @@ export default function AIGenerationPage() {
                         </div>
                     </div>
 
+                    <div className="flex items-center justify-center gap-8 py-8">
+                        {creationModes.map((mode, index) => (
+                            <button
+                                key={index}
+                                onClick={() => {
+                                    if (mode.href) {
+                                        router.push(mode.href)
+                                    }
+                                }}
+                                className="relative flex flex-col items-center gap-2 transition-colors group"
+                            >
+                                <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center ">
+                                    <mode.icon className="w-6 h-6" />
+                                </div>
+                                <span className="text-sm font-medium">{mode.label}</span>
+                                {mode.badge && (
+                                    <Badge className="absolute -top-1 -right-1 text-[9px] px-1.5 py-0 h-4 bg-accent text-white">
+                                        {mode.badge}
+                                    </Badge>
+                                )}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-                <div className="flex items-center justify-center gap-8 py-8">
-                    {creationModes.map((mode, index) => (
-                        <button
-                            key={index}
-                            onClick={() => {
-                                if (mode.href) {
-                                    router.push(mode.href)
-                                }
-                            }}
-                            className="relative flex flex-col items-center gap-2 transition-colors group"
-                        >
-                            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center ">
-                                <mode.icon className="w-6 h-6" />
-                            </div>
-                            <span className="text-sm font-medium">{mode.label}</span>
-                            {mode.badge && (
-                                <Badge className="absolute -top-1 -right-1 text-[9px] px-1.5 py-0 h-4 bg-accent text-white">
-                                    {mode.badge}
-                                </Badge>
-                            )}
-                        </button>
-                    ))}
-                </div>
+
             </main>
         </div>
     )
