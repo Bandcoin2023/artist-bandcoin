@@ -73,7 +73,7 @@ export default function AIGenerationPage() {
     const aspectRatio = mediaType === "image" ? selectedAspectRatio : selectedVideoAspectRatio
 
     return (
-        <div className="flex h-screen overflow-hidden relative">
+        <div className="flex h-[calc(100vh-11vh)]  overflow-hidden relative">
             <AISidebar />
 
             {/* Main Content */}

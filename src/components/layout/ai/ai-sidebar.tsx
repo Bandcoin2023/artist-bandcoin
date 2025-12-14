@@ -14,7 +14,7 @@ export default function AISidebar() {
 
     const router = useRouter()
     const navItems = [
-        { icon: Home, label: "Home", active: true },
+        { icon: Home, label: "Home", active: true, href: "/ai" },
         { icon: ImageIcon, label: "Image", active: false, href: "/ai-generation" },
         { icon: Video, label: "Video", active: false, href: "/ai-generation" },
         { icon: Music, label: "Music", active: false, href: "/artist/studio" },
