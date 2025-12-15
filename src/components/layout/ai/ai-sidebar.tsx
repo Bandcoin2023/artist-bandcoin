@@ -5,7 +5,7 @@ import { Button } from "~/components/shadcn/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/shadcn/ui/popover"
 
 import { Home, Grid3x3, ImageIcon, Video, Sparkles, ChevronDown, Music, Text, Layers, Upload, Infinity, Coins, ShoppingBag } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useCredits } from "~/hooks/use-credits"
 
 export default function AISidebar() {
@@ -13,8 +13,9 @@ export default function AISidebar() {
     const { balance, packages, usageStats, isLoading, refetch } = useCredits()
 
     const router = useRouter()
+    const path = usePathname()
     const navItems = [
-        { icon: Home, label: "Home", active: true, href: "/ai" },
+        { icon: Home, label: "Home", active: false, href: "/ai" },
         { icon: ImageIcon, label: "Image", active: false, href: "/ai-generation" },
         { icon: Video, label: "Video", active: false, href: "/ai-generation" },
         { icon: Music, label: "Music", active: false, href: "/artist/studio" },
@@ -22,13 +23,13 @@ export default function AISidebar() {
     ]
 
     return (
-        <aside className="hidden md:absolute left-2 top-2 bottom-2  w-20 border-2  md:flex flex-col items-center  gap-6 rounded-lg z-10 bg-background/80 backdrop-blur-sm">
+        <aside className="hidden md:absolute left-3 top-2 bottom-2  w-[72px] border-2  md:flex flex-col items-center  gap-2 rounded-lg z-10  bg-sidebar p-1 ">
             {/* Navigation Items */}
             <nav className="flex-1 flex flex-col items-center gap-1 w-full rounded-lg ">
                 {navItems.map((item, index) => (
                     <button
                         key={index}
-                        className={`relative w-full  flex flex-col items-center gap-1 py-3 transition-colors ${item.active ? "text-sidebar-foreground bg-accent rounded-lg shadow-sm shadow-foreground"
+                        className={`relative w-full  flex flex-col items-center gap-1 py-3 transition-colors ${item.href === path ? "text-sidebar-foreground bg-accent rounded-lg shadow-sm shadow-foreground"
                             : "text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/10"
                             }`}
                         onClick={() => {
@@ -51,16 +52,11 @@ export default function AISidebar() {
                     <Button
                         variant="sidebarAccent"
                         className="h-16 w-full text-xs shadow-sm shadow-foreground">
-                        <div className="flex items-center justify-center gap-2">
-                            {
-                                balance > 0 ?
-                                    <>
-                                        <Coins />
-                                        <span className="text-xs font-bold">{balance}</span>
-                                    </>
-                                    : <> <ShoppingBag />
-                                        <span className="text-xs font-bold">BUY</span></>
-                            }
+                        <div className="flex items-center justify-center gap-1">
+
+                            <> <ShoppingBag />
+                                <span className="text-xs font-bold">BUY</span></>
+
                         </div>
                     </Button>
                 </PopoverTrigger>
@@ -91,7 +87,17 @@ export default function AISidebar() {
                     </div>
                 </PopoverContent>
             </Popover>
+            <Button
+                size="sm"
+                variant="destructive"
+                onClick={(e) => e.preventDefault()}
+                className=" w-full text-xs shadow-sm shadow-foreground pointer-events-none">
+                <div className="flex items-center justify-center gap-1">
 
+                    <Coins /> {balance.toLocaleString(2)}
+
+                </div>
+            </Button>
 
         </aside>
     )

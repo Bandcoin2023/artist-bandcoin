@@ -16,10 +16,10 @@ export function HistoryPanel() {
 
         {/* Tabs */}
         <Tabs defaultValue="generations" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-grid">
             <TabsTrigger value="generations">Generations</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            {/* <TabsTrigger value="analytics">Analytics</TabsTrigger> */}
           </TabsList>
 
           <TabsContent value="generations" className="mt-6">
@@ -30,9 +30,9 @@ export function HistoryPanel() {
             <CreditHistoryView />
           </TabsContent>
 
-          <TabsContent value="analytics" className="mt-6">
+          {/* <TabsContent value="analytics" className="mt-6">
             <UsageAnalytics />
-          </TabsContent>
+          </TabsContent> */}
         </Tabs>
       </div>
     </div>

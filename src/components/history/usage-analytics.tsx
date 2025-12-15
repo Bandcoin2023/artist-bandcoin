@@ -7,12 +7,17 @@ import { Tabs, TabsList, TabsTrigger } from "~/components/shadcn/ui/tabs"
 import { Skeleton } from "~/components/shadcn/ui/skeleton"
 import { useState } from "react"
 import { api } from "~/utils/api"
+import { useSession } from "next-auth/react"
 
 export function UsageAnalytics() {
   const [period] = useState<"7d" | "30d" | "90d">("30d")
-
-  const { data: statsData, isLoading: statsLoading } = api.credit.getUsageStats.useQuery()
-  const { data: contentData, isLoading: contentLoading } = api.ai.getAllAiContent.useQuery({})
+  const session = useSession()
+  const { data: statsData, isLoading: statsLoading } = api.credit.getUsageStats.useQuery(undefined, {
+    enabled: session.status === "authenticated",
+  })
+  const { data: contentData, isLoading: contentLoading } = api.ai.getAllAiContent.useQuery(undefined, {
+    enabled: session.status === "authenticated",
+  })
 
   if (statsLoading || contentLoading) {
     return (
@@ -28,7 +33,7 @@ export function UsageAnalytics() {
     )
   }
 
-  const generations = contentData?.content ?? []
+  const generations = contentData?.aiContents ?? []
   const imageGenerations = generations.filter((g) => g.contentType === "IMAGE").length
   const videoGenerations = generations.filter((g) => g.contentType === "VIDEO").length
   const totalGenerations = generations.length

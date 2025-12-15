@@ -9,11 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 import { Skeleton } from "~/components/shadcn/ui/skeleton"
 import { cn } from "~/lib/utils"
 import { api } from "~/utils/api"
+import { useSession } from "next-auth/react"
 
 export function CreditHistoryView() {
   const [typeFilter, setTypeFilter] = useState<"all" | "purchase" | "usage" | "bonus" | "refund">("all")
-
-  const { data, isLoading } = api.credit.getTransactions.useQuery({ limit: 50 })
+  const session = useSession()
+  const { data, isLoading } = api.credit.getTransactions.useQuery({ limit: 50 },
+    {
+      enabled: session.status === "authenticated",
+    }
+  )
 
   if (isLoading) {
     return (
@@ -54,10 +59,10 @@ export function CreditHistoryView() {
           </SelectContent>
         </Select>
 
-        <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+        {/* <Button variant="outline" size="sm" className="gap-2 bg-transparent">
           <Download className="h-4 w-4" />
           Export CSV
-        </Button>
+        </Button> */}
       </div>
 
       {/* Transaction List */}
@@ -98,10 +103,10 @@ export function CreditHistoryView() {
                       variant="secondary"
                       className={cn(
                         "font-semibold flex-shrink-0",
-                        tx.amount > 0 ? "text-green-600 dark:text-green-500" : "text-blue-600 dark:text-blue-500",
+                        tx.type === "USAGE" && tx.amount > 0 ? "text-red-600 dark:text-red-500" : "text-green-600 dark:text-green-500",
                       )}
                     >
-                      {tx.amount > 0 ? "+" : ""}
+                      {tx.type === "USAGE" && tx.amount > 0 ? "-" : "+"}
                       {tx.amount}
                     </Badge>
                   </div>

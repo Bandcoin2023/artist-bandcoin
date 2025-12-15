@@ -6,6 +6,8 @@ import { createPartFromUri, createUserContent, GoogleGenAI } from "@google/genai
 import type { VideoModel, VideoSeconds, VideoSize } from "openai/resources/videos"
 import { env } from "~/env"
 import { S3UploadService } from "~/lib/s3-upload.service"
+import { db } from "~/server/db"
+import { getToken } from "next-auth/jwt"
 
 export const config = {
     api: {
@@ -38,6 +40,7 @@ interface ProcessJobRequest {
     duration?: VideoSeconds
     quality?: "hd" | "standard"
     videoAspectRatio?: string
+    userId: string
 }
 
 interface ProcessJobResult {
@@ -80,6 +83,56 @@ const DALLE_SIZES: Record<string, string> = {
     "3:2": "1792x1024",
     "16:9": "1792x1024",
     "9:16": "1024x1792",
+}
+
+// Pricing tables - Updated December 2024
+const DALL_E2_PRICES: Record<string, number> = {
+    "256x256": 0.016,
+    "512x512": 0.018,
+    "1024x1024": 0.02,
+}
+
+const DALL_E3_PRICES: Record<string, Record<string, number>> = {
+    standard: {
+        "1024x1024": 0.04,
+        "1024x1792": 0.08,
+        "1792x1024": 0.08,
+    },
+    hd: {
+        "1024x1024": 0.08,
+        "1024x1792": 0.12,
+        "1792x1024": 0.12,
+    },
+}
+
+// Google Imagen 4 pricing (per image)
+const IMAGEN_PRICES: Record<string, number> = {
+    "imagen-4": 0.04,           // Standard Imagen 4
+    "imagen-4-ultra": 0.06,     // Ultra quality
+    "imagen-3": 0.039,          // Legacy Imagen 3
+}
+
+// OpenAI Sora pricing (per second of video)
+const SORA_PRICES: Record<string, number> = {
+    "sora-2": 0.10,         // $0.10 per second
+    "sora-2-pro": 0.10,     // Same pricing for Pro model
+}
+
+// Google Veo pricing (per second of video)
+// Based on Vertex AI official pricing and recent updates
+const VEO_PRICES: Record<string, { videoOnly: number; withAudio: number }> = {
+    "veo-2": {
+        videoOnly: 0.35,    // Gemini API pricing (30% cheaper than Vertex)
+        withAudio: 0.50,    // Vertex AI pricing
+    },
+    "veo-3": {
+        videoOnly: 0.50,    // Video only
+        withAudio: 0.75,    // Video with native audio
+    },
+    "veo-3-fast": {
+        videoOnly: 0.10,    // Fast variant - optimized for speed and cost
+        withAudio: 0.15,    // Fast variant with audio
+    },
 }
 
 // ============================================================================
@@ -142,6 +195,31 @@ function getPixelSizeFromAspectRatio(aspectRatio: string, baseSize: string): Pix
     return {
         ...(aspectDimensions[aspectRatio] ?? { width: 1024, height: 1024 }),
         dalleSize: DALLE_SIZES[aspectRatio] ?? "1024x1024",
+    }
+}
+
+// Helper function to record credit transactions
+async function recordCreditTransaction(
+    userId: string,
+    amount: number,
+    description: string
+): Promise<void> {
+    try {
+        await db.creditBalance.update({
+            where: { userId },
+            data: { balance: { decrement: amount } },
+        })
+        await db.creditTransaction.create({
+            data: {
+                userId,
+                amount,
+                type: "USAGE",
+                description,
+            },
+        })
+    } catch (error) {
+        console.error("Error recording credit transaction:", error)
+        throw new Error("Failed to record credit transaction")
     }
 }
 
@@ -246,10 +324,11 @@ async function generateOpenAIImage(
     pixelSize: PixelSizeResult,
 ): Promise<GeneratedItemResult[]> {
     const items: GeneratedItemResult[] = []
-    const { model, numberOfImages, quality, referenceImage, style } = params
+    const { model, numberOfImages, quality, referenceImage, style, userId, size } = params
 
     if (model === "dall-e-3") {
-        const dalleSize = pixelSize.dalleSize as DallESize
+        const dalleSize = pixelSize.dalleSize as keyof typeof DALL_E3_PRICES.standard
+        const selectedQuality = quality === "hd" ? "hd" : "standard"
 
         for (let i = 0; i < numberOfImages; i++) {
             const response = await openai!.images.generate({
@@ -257,53 +336,76 @@ async function generateOpenAIImage(
                 prompt: enhancedPrompt,
                 n: 1,
                 size: dalleSize,
-                quality: quality === "hd" ? "hd" : "standard",
+                quality: selectedQuality,
                 style: style === "vivid" ? "vivid" : "natural",
             })
 
             if (response.data?.[0]?.url) {
                 items.push({ url: response.data[0].url, type: "image" })
+
+                // Calculate and charge cost
+                const qualityPrices = DALL_E3_PRICES[selectedQuality]
+                const cost = qualityPrices?.[dalleSize] ?? 0.04
+                await recordCreditTransaction(
+                    userId,
+                    cost,
+                    `Generated image using DALL-E 3 (${selectedQuality}, ${dalleSize})`
+                )
             }
         }
     } else {
         // DALL-E 2
         const dalle2Size: Dalle2Size =
-            params.size === "256x256" ? "256x256" : params.size === "512x512" ? "512x512" : "1024x1024"
+            size === "256x256" ? "256x256" : size === "512x512" ? "512x512" : "1024x1024"
 
         if (referenceImage) {
             const imageData = extractBase64FromDataUrl(referenceImage)
-
             if (imageData) {
                 const imageBuffer = Buffer.from(imageData.base64, "base64")
 
                 for (let i = 0; i < Math.min(numberOfImages, 10); i++) {
                     try {
                         const response = await openai!.images.createVariation({
-                            image: new File([imageBuffer], "reference.png", {
-                                type: imageData.mimeType,
-                            }),
+                            image: new File([imageBuffer], "reference.png", { type: imageData.mimeType }),
                             n: 1,
                             size: dalle2Size,
                         })
 
                         if (response.data?.[0]?.url) {
                             items.push({ url: response.data[0].url, type: "image" })
+
+                            const cost = DALL_E2_PRICES[dalle2Size] ?? 0.02
+                            await recordCreditTransaction(
+                                userId,
+                                cost,
+                                `Generated image variation using DALL-E 2 (${dalle2Size})`
+                            )
                         }
                     } catch (varError) {
                         console.error("Variation error, falling back:", varError)
-                        const response = await openai!.images.generate({
+
+                        // Fallback generation
+                        const fallbackResponse = await openai!.images.generate({
                             model: "dall-e-2",
                             prompt: enhancedPrompt,
                             n: 1,
                             size: dalle2Size,
                         })
-                        if (response.data?.[0]?.url) {
-                            items.push({ url: response.data[0].url, type: "image" })
+
+                        if (fallbackResponse.data?.[0]?.url) {
+                            items.push({ url: fallbackResponse.data[0].url, type: "image" })
+
+                            const cost = DALL_E2_PRICES[dalle2Size] ?? 0.02
+                            await recordCreditTransaction(
+                                userId,
+                                cost,
+                                `Generated fallback image using DALL-E 2 (${dalle2Size})`
+                            )
                         }
                     }
                 }
             } else {
-                // Fallback to normal generation
+                // Reference image not readable
                 const response = await openai!.images.generate({
                     model: "dall-e-2",
                     prompt: enhancedPrompt,
@@ -314,10 +416,18 @@ async function generateOpenAIImage(
                 for (const img of response.data) {
                     if (img.url) {
                         items.push({ url: img.url, type: "image" })
+
+                        const cost = DALL_E2_PRICES[dalle2Size] ?? 0.02
+                        await recordCreditTransaction(
+                            userId,
+                            cost,
+                            `Generated image using DALL-E 2 (${dalle2Size})`
+                        )
                     }
                 }
             }
         } else {
+            // Normal DALL-E 2 generation
             const response = await openai!.images.generate({
                 model: "dall-e-2",
                 prompt: enhancedPrompt,
@@ -328,6 +438,13 @@ async function generateOpenAIImage(
             for (const img of response.data) {
                 if (img.url) {
                     items.push({ url: img.url, type: "image" })
+
+                    const cost = DALL_E2_PRICES[dalle2Size] ?? 0.02
+                    await recordCreditTransaction(
+                        userId,
+                        cost,
+                        `Generated image using DALL-E 2 (${dalle2Size})`
+                    )
                 }
             }
         }
@@ -338,7 +455,8 @@ async function generateOpenAIImage(
 
 async function generateGoogleImage(params: ProcessJobRequest, enhancedPrompt: string): Promise<GeneratedItemResult[]> {
     const items: GeneratedItemResult[] = []
-    const { model, numberOfImages, aspectRatio, referenceImage } = params
+    const { model, numberOfImages, aspectRatio, referenceImage, userId } = params
+    console.log("generateGoogleImage called with userId:", userId)
 
     if (!googleAI) {
         throw new Error("Google AI client not initialized - GEMINI_API_KEY missing")
@@ -361,9 +479,10 @@ async function generateGoogleImage(params: ProcessJobRequest, enhancedPrompt: st
 
     const googleAspectRatio = aspectRatioMap[aspectRatio ?? "1:1"] ?? "1:1"
 
+    // Determine pricing based on model
+    const cost = IMAGEN_PRICES[model] ?? IMAGEN_PRICES["imagen-4"]
 
-
-    // Generate images sequentially (Google Imagen typically generates one at a time)
+    // Generate images sequentially
     for (let i = 0; i < numberOfImages; i++) {
         try {
             const config = {
@@ -371,39 +490,46 @@ async function generateGoogleImage(params: ProcessJobRequest, enhancedPrompt: st
                 aspectRatio: googleAspectRatio,
             }
 
-
-
             const response = await googleAI.models.generateImages({
                 model: imagenModel,
                 prompt: enhancedPrompt,
                 config,
-
             })
-
 
             // Process the generated image
             if (response.generatedImages?.[0]?.image) {
-
-
                 const imageData = response.generatedImages[0].image
 
                 // Check if we have base64 encoded image data
                 if (imageData.imageBytes) {
-                    // Convert bytes to base64 data URL
+                    // Convert bytes to base64 data URL and upload to S3
                     const awsURL = await S3UploadService.uploadBase64Image(
                         imageData.imageBytes,
                         imageData.mimeType ?? "image/png",
                     )
 
-                    const countTokensResponse = await googleAI.models.countTokens({
-                        model: imagenModel,
-                        contents: createUserContent([
-                            enhancedPrompt,
-                            createPartFromUri(awsURL, imageData.mimeType ?? "image/png"),
-                        ]),
-                    });
-                    console.log("count total tokens used:", countTokensResponse.totalTokens);
                     items.push({ url: awsURL, type: "image" })
+
+                    // Record credit transaction
+                    await recordCreditTransaction(
+                        userId,
+                        cost,
+                        `Generated image using ${model} (${googleAspectRatio})`
+                    )
+
+                    // Optional: Count tokens for logging
+                    try {
+                        const countTokensResponse = await googleAI.models.countTokens({
+                            model: imagenModel,
+                            contents: createUserContent([
+                                enhancedPrompt,
+                                createPartFromUri(awsURL, imageData.mimeType ?? "image/png"),
+                            ]),
+                        })
+                        console.log("Total tokens used:", countTokensResponse.totalTokens)
+                    } catch (tokenError) {
+                        console.warn("Token counting failed:", tokenError)
+                    }
                 }
             }
 
@@ -413,8 +539,7 @@ async function generateGoogleImage(params: ProcessJobRequest, enhancedPrompt: st
             }
         } catch (error) {
             console.error(`Google Imagen generation error for image ${i + 1}:`, error)
-
-
+            throw error
         }
     }
 
@@ -425,7 +550,7 @@ async function generateGoogleImage(params: ProcessJobRequest, enhancedPrompt: st
 // VIDEO GENERATION HANDLERS
 // ============================================================================
 
-async function generateOpenAIVideo(params: ProcessJobRequest, enhancedPrompt: string): Promise<GeneratedItemResult[]> {
+async function generateOpenAIVideo(params: ProcessJobRequest, enhancedPrompt: string, userId: string): Promise<GeneratedItemResult[]> {
     const items: GeneratedItemResult[] = []
     const { model, aspectRatio, duration } = params
 
@@ -462,6 +587,17 @@ async function generateOpenAIVideo(params: ProcessJobRequest, enhancedPrompt: st
                     url: awsURL,
                     type: "video",
                 })
+
+                // Calculate cost based on duration
+                const videoDuration = Number.parseInt(duration ?? "5", 10)
+                const costPerSecond = SORA_PRICES[model] ?? SORA_PRICES["sora-2"] ?? 0.1
+                const totalCost = costPerSecond * videoDuration
+
+                await recordCreditTransaction(
+                    userId,
+                    totalCost,
+                    `Generated ${videoDuration}s video using ${model} (${sizeForAspect})`
+                )
             }
         } else if (response.status === "failed") {
             throw new Error("Video generation failed")
@@ -480,12 +616,29 @@ async function generateOpenAIVideo(params: ProcessJobRequest, enhancedPrompt: st
     return items
 }
 
-async function generateGoogleVideo(params: ProcessJobRequest, enhancedPrompt: string): Promise<GeneratedItemResult[]> {
+async function generateGoogleVideo(params: ProcessJobRequest, enhancedPrompt: string, userId: string): Promise<GeneratedItemResult[]> {
     const items: GeneratedItemResult[] = []
-    const { aspectRatio } = params
+    const { aspectRatio, model } = params
+
+    if (!googleAI) {
+        throw new Error("Google AI client not initialized - GEMINI_API_KEY missing")
+    }
+
+    // Determine which Veo model to use based on model name
+    let veoModelName = "veo-3.0-generate-001"
+    let modelKey = "veo-3"
+    const hasAudio = true
+
+    if (model === "veo-3-fast") {
+        veoModelName = "veo-3.0-fast-generate-001"
+        modelKey = "veo-3-fast"
+    } else if (model === "veo-2") {
+        veoModelName = "veo-2.0-generate-001"
+        modelKey = "veo-2"
+    }
 
     const veoOptions = {
-        model: "veo-2.0-generate-001",
+        model: veoModelName,
         prompt: enhancedPrompt,
         config: {
             aspectRatio: aspectRatio === "9:16" ? "9:16" : "16:9",
@@ -493,7 +646,7 @@ async function generateGoogleVideo(params: ProcessJobRequest, enhancedPrompt: st
         },
     }
 
-    let operation = await googleAI!.models.generateVideos(veoOptions)
+    let operation = await googleAI.models.generateVideos(veoOptions)
 
     // Poll for completion
     let attempts = 0
@@ -501,7 +654,7 @@ async function generateGoogleVideo(params: ProcessJobRequest, enhancedPrompt: st
 
     while (!operation.done && attempts < maxAttempts) {
         await new Promise((resolve) => setTimeout(resolve, 10000))
-        operation = await googleAI!.operations.getVideosOperation({
+        operation = await googleAI.operations.getVideosOperation({
             operation,
         })
         attempts++
@@ -511,12 +664,25 @@ async function generateGoogleVideo(params: ProcessJobRequest, enhancedPrompt: st
         const videoFile = operation.response.generatedVideos[0].video
 
         if (videoFile.uri) {
-
-            console.log("Uploaded video to S3:", videoFile.uri)
+            console.log("Generated video URI:", videoFile.uri)
             items.push({
                 url: videoFile.uri,
                 type: "video",
             })
+
+            // Veo typically generates 8-second videos by default
+            const estimatedDuration = 8
+
+            // Get pricing based on model and audio
+            const pricing = VEO_PRICES[modelKey] ?? VEO_PRICES["veo-3"]
+            const costPerSecond = hasAudio ? (pricing?.withAudio ?? 0.75) : (pricing?.videoOnly ?? 0.50)
+            const totalCost = costPerSecond * estimatedDuration
+
+            await recordCreditTransaction(
+                userId,
+                totalCost,
+                `Generated ~${estimatedDuration}s video using ${model} (${aspectRatio}, ${hasAudio ? 'with audio' : 'video only'})`
+            )
         }
     }
 
@@ -528,7 +694,7 @@ async function generateGoogleVideo(params: ProcessJobRequest, enhancedPrompt: st
 // ============================================================================
 
 async function processJob(body: ProcessJobRequest): Promise<ProcessJobResult> {
-    const { jobId, prompt, mediaType, provider, style, size, aspectRatio, cameraGear, remixVariety, duration } = body
+    const { jobId, prompt, mediaType, provider, style, size, aspectRatio, cameraGear, remixVariety, duration, userId } = body
 
     await updateJob(jobId, {
         status: "processing",
@@ -575,9 +741,9 @@ async function processJob(body: ProcessJobRequest): Promise<ProcessJobResult> {
             })
 
             if (provider === "openai" && openai) {
-                items = await generateOpenAIVideo(body, enhancedPrompt)
+                items = await generateOpenAIVideo(body, enhancedPrompt, userId)
             } else if (provider === "google" && googleAI) {
-                items = await generateGoogleVideo(body, enhancedPrompt)
+                items = await generateGoogleVideo(body, enhancedPrompt, userId)
             }
         }
 
@@ -596,7 +762,6 @@ async function processJob(body: ProcessJobRequest): Promise<ProcessJobResult> {
         return { success: true, items }
     } catch (error) {
         console.error(`${mediaType} generation error:`, error)
-
 
         await updateJob(jobId, {
             status: "failed",
@@ -629,7 +794,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
             body = JSON.parse(rawBody)
         }
 
-        console.log(" Processing job:", body.jobId)
+        console.log("Processing job:", body.jobId)
 
         if (!body.jobId) {
             res.status(400).json({ error: "Missing jobId in request body" })

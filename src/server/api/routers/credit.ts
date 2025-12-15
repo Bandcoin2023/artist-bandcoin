@@ -1,6 +1,9 @@
 import { z } from "zod"
 import { createTRPCRouter, protectedProcedure, adminProcedure } from "~/server/api/trpc"
 import { TRPCError } from "@trpc/server"
+import { SignUser } from "~/lib/stellar/utils"
+import { XDR4BuyCreditsWithAsset, XDR4BuyCreditsWithUSDC } from "~/lib/stellar/music/trx/ai-credits-xdr"
+import { getAssetToUSDCRate } from "~/lib/stellar/fan/get_token_price"
 
 export const creditRouter = createTRPCRouter({
     // Get user's credit balance
@@ -65,9 +68,10 @@ export const creditRouter = createTRPCRouter({
         .input(
             z.object({
                 packageId: z.string(),
-                paymentMethod: z.enum(["BANDCOIN", "USDC"]),
-                transactionHash: z.string(), // Blockchain transaction hash
+                method: z.enum(["xlm", "asset", "usdc", "card"]),
                 paymentAmount: z.number(),
+                signWith: SignUser,
+
             }),
         )
         .mutation(async ({ ctx, input }) => {
@@ -84,7 +88,7 @@ export const creditRouter = createTRPCRouter({
             }
 
             // Verify payment amount matches package price
-            const expectedPrice = input.paymentMethod === "BANDCOIN" ? package_.priceBand : package_.priceUSDC
+            const expectedPrice = input.method === "asset" ? package_.priceBand : package_.priceUSDC
 
             if (Math.abs(input.paymentAmount - expectedPrice) > 0.01) {
                 throw new TRPCError({
@@ -116,9 +120,8 @@ export const creditRouter = createTRPCRouter({
                     amount: totalCredits,
                     type: "PURCHASE",
                     description: `Purchased ${package_.name} - ${package_.credits} credits${package_.bonus > 0 ? ` + ${package_.bonus} bonus` : ""}`,
-                    paymentMethod: input.paymentMethod,
+                    paymentMethod: input.method,
                     paymentAmount: input.paymentAmount,
-                    transactionHash: input.transactionHash,
                     metadata: {
                         packageId: input.packageId,
                         packageName: package_.name,
@@ -182,13 +185,6 @@ export const creditRouter = createTRPCRouter({
             }
         }),
 
-    // Get AI generation costs
-    getGenerationCosts: protectedProcedure.query(async ({ ctx }) => {
-        const costs = await ctx.db.aIGenerationCost.findMany({
-            where: { isActive: true },
-        })
-        return { costs }
-    }),
 
     // Get usage statistics
     getUsageStats: protectedProcedure.query(async ({ ctx }) => {
@@ -217,7 +213,7 @@ export const creditRouter = createTRPCRouter({
                 },
             }),
         ])
-
+        console.log("totalSpent:", totalSpent);
         return {
             totalCreditsSpent: Math.abs(totalSpent._sum.amount || 0),
             totalCreditsPurchased: totalPurchased._sum.amount || 0,
@@ -349,14 +345,14 @@ export const creditRouter = createTRPCRouter({
                 ctx.db.creditTransaction.aggregate({
                     where: {
                         type: "PURCHASE",
-                        paymentMethod: "BANDCOIN",
+                        paymentMethod: "asset",
                     },
                     _sum: { paymentAmount: true },
                 }),
                 ctx.db.creditTransaction.aggregate({
                     where: {
                         type: "PURCHASE",
-                        paymentMethod: "USDC",
+                        paymentMethod: "usdc",
                     },
                     _sum: { paymentAmount: true },
                 }),
@@ -370,4 +366,46 @@ export const creditRouter = createTRPCRouter({
             totalRevenueUSDC: totalRevenueUSDC._sum.paymentAmount || 0,
         }
     }),
+    generatePaymentXDR: protectedProcedure
+        .input(
+            z.object({
+                packageId: z.string(),
+                method: z.enum(["xlm", "asset", "usdc", "card"]),
+                paymentAmount: z.number().positive(),
+                signWith: SignUser,
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            const pkg = await ctx.db.creditPackage.findUnique({
+                where: { id: input.packageId },
+            })
+
+            if (!pkg) {
+                throw new Error("Package not found")
+            }
+            const buyer = ctx.session.user.id; // customer pubkey
+            console.log("payment..............", input.method);
+            switch (input.method) {
+
+                case "asset": {
+                    return await XDR4BuyCreditsWithAsset({
+                        buyer,
+                        totalPrice: input.paymentAmount.toString(7),
+                        signWith: input.signWith,
+                    });
+
+                }
+                case "usdc": {
+                    const usdcRate = await getAssetToUSDCRate();
+
+                    return await XDR4BuyCreditsWithUSDC({
+                        buyer,
+                        totalPrice: input.paymentAmount.toString(7),
+                        signWith: input.signWith,
+                        usdcRate: usdcRate,
+                    });
+
+                }
+            }
+        }),
 })

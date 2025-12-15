@@ -960,7 +960,7 @@ model AiGeneratedContent {
     contentUrl  String
     contentType MediaType
     createdAt   DateTime  @default(now())
-    creditsUsed Int       @default(0) // Credits consumed for this generation
+    creditsUsed Float     @default(0) // Credits consumed for this generation
     tokensUsed  Int? // Token count for this generation
     model       String? // AI model used
 }
@@ -969,7 +969,7 @@ model CreditBalance {
     id        String   @id @default(cuid())
     userId    String   @unique
     user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    balance   Int      @default(0) // Current credit balance
+    balance   Float    @default(0) // Current credit balance
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
@@ -987,7 +987,7 @@ model CreditTransaction {
     id              String          @id @default(cuid())
     userId          String
     creditBalance   CreditBalance   @relation(fields: [userId], references: [userId], onDelete: Cascade)
-    amount          Int // Positive for credits added, negative for credits used
+    amount          Float // Positive for credits added, negative for credits used
     type            TransactionType
     description     String
     paymentMethod   String? // e.g., "BANDCOIN", "USDC"
@@ -1002,22 +1002,11 @@ model CreditTransaction {
 model CreditPackage {
     id          String   @id @default(cuid())
     name        String
-    credits     Int // Number of credits in package
+    credits     Float // Number of credits in package
     priceBand   Float // Price in BANDCOIN
     priceUSDC   Float // Price in USDC
     isPopular   Boolean  @default(false)
-    bonus       Int      @default(0) // Bonus credits
-    description String?
-    isActive    Boolean  @default(true)
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
-}
-
-model AIGenerationCost {
-    id          String   @id @default(cuid())
-    model       String   @unique // e.g., "gpt-4", "dalle-3", "stable-diffusion"
-    taskType    String // e.g., "text", "image", "video"
-    creditCost  Int // Base credit cost
+    bonus       Float    @default(0) // Bonus credits
     description String?
     isActive    Boolean  @default(true)
     createdAt   DateTime @default(now())

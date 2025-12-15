@@ -53,7 +53,7 @@ export function GenerationHistoryView() {
     )
   }
 
-  const generations = data?.content ?? []
+  const generations = data?.aiContents ?? []
 
   const filteredGenerations = generations.filter((gen) => {
     const matchesFilter = filter === "all" || gen.contentType.toLowerCase() === filter
@@ -66,7 +66,9 @@ export function GenerationHistoryView() {
   }
 
   const handleDelete = (id: string) => {
-    deleteMutation.mutate({ id })
+    deleteMutation.mutate({
+      ids: [Number(id)],
+    })
   }
 
   return (
@@ -128,7 +130,7 @@ export function GenerationHistoryView() {
         {filteredGenerations.map((gen) => (
           <Card key={gen.id} className="overflow-hidden hover:shadow-md transition-shadow">
             <div className="relative aspect-video bg-muted">
-              <img src={gen.url || "/placeholder.svg"} alt={gen.prompt} className="w-full h-full object-cover" />
+              <img src={gen.contentUrl || "/placeholder.svg"} alt={gen.prompt} className="w-full h-full object-cover" />
 
               {/* Selection Checkbox */}
               <div className="absolute top-2 left-2">

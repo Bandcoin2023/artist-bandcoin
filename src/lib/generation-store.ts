@@ -2,7 +2,6 @@ import { create } from "zustand"
 import type { ImageModelConfig, VideoModelConfig } from "~/lib/models-config"
 import { IMAGE_MODELS, VIDEO_MODELS } from "~/lib/models-config"
 
-
 export type MediaType = "image" | "video"
 
 export interface GeneratedItem {
@@ -82,6 +81,9 @@ interface GenerationState {
   toggleItemSelection: (id: string) => void
   selectedItem: GeneratedItem | null
   setSelectedItem: (item: GeneratedItem | null) => void
+
+  shouldGenerate: boolean
+  setShouldGenerate: (value: boolean) => void
 
   // Reset
   resetToDefaults: () => void
@@ -200,6 +202,9 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
     })),
   selectedItem: null,
   setSelectedItem: (item) => set({ selectedItem: item }),
+
+  shouldGenerate: false,
+  setShouldGenerate: (value) => set({ shouldGenerate: value }),
 
   // Reset
   resetToDefaults: () => {

@@ -2,11 +2,12 @@
 import { Sparkles, Loader2, ImageIcon, Video } from "lucide-react"
 import { Button } from "~/components/shadcn/ui/button"
 import { Textarea } from "~/components/shadcn/ui/textarea"
-import { CAMERA_GEAR_OPTIONS, getRemixVarietyLabel, useGenerationStore } from "~/lib/generation-store"
+import { CAMERA_GEAR_OPTIONS, useGenerationStore } from "~/lib/generation-store"
 import type { GeneratedItem } from "~/lib/generation-store"
 import { cn } from "~/lib/utils"
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { api } from "~/utils/api"
+import { useCredits } from "~/hooks/use-credits"
 
 interface JobStatusResponse {
   jobId: string
@@ -57,12 +58,14 @@ export function PromptInput() {
     referenceImage,
     selectedCameraGear,
     remixVariety,
+    shouldGenerate,
+    setShouldGenerate,
   } = useGenerationStore()
 
   const [statusMessage, setStatusMessage] = useState<string>("")
   const [activeJobs, setActiveJobs] = useState<ActiveJob[]>([])
   const activeJobsRef = useRef<ActiveJob[]>([])
-
+  const { balance } = useCredits()
   const currentModel = mediaType === "image" ? selectedImageModel : selectedVideoModel
   const cameraGearLabel = CAMERA_GEAR_OPTIONS.find((g) => g.value === selectedCameraGear)?.label ?? "Default"
 
@@ -80,7 +83,7 @@ export function PromptInput() {
           })
 
           const data = (await response.json()) as JobStatusResponse
-          console.log(" Poll response:", data)
+          console.log("Poll response:", data)
 
           if (data.status === "completed") {
             setStatusMessage("Generation complete!")
@@ -88,7 +91,7 @@ export function PromptInput() {
           }
 
           if (data.status === "failed") {
-            throw new Error(data.error || "Generation failed")
+            throw new Error(data.error ?? "Generation failed")
           }
 
           const progressText = data.progress ? ` (${data.progress}%)` : ""
@@ -117,6 +120,8 @@ export function PromptInput() {
     const currentPrompt = prompt
     setIsGenerating(true)
     setStatusMessage("Starting generation...")
+
+    setShouldGenerate(false)
 
     const abortController = new AbortController()
     const jobId = `temp-${Date.now()}`
@@ -149,7 +154,7 @@ export function PromptInput() {
       })
 
       const jobData = (await response.json()) as JobCreateResponse
-      console.log(" Job created:", jobData)
+      console.log("[v0] Job created:", jobData)
 
       if (!jobData.jobId) {
         throw new Error("Failed to create generation job")
@@ -162,7 +167,7 @@ export function PromptInput() {
       setStatusMessage("Job created, waiting for processing...")
 
       const result = await pollJobStatus(realJobId, abortController)
-      console.log(" Final result:", result)
+      console.log("[v0] Final result:", result)
 
       const urls: string[] = []
       if (result.result?.items && Array.isArray(result.result.items)) {
@@ -173,7 +178,7 @@ export function PromptInput() {
         }
       }
 
-      console.log(" Extracted URLs:", urls)
+      console.log("[v0] Extracted URLs:", urls)
 
       if (urls.length > 0) {
         const newItems: GeneratedItem[] = urls.map((url: string, index: number) => ({
@@ -196,11 +201,11 @@ export function PromptInput() {
 
         addGeneratedItems(newItems)
       } else {
-        console.log(" No URLs found in result")
+        console.log("[v0] No URLs found in result")
         setStatusMessage("No images returned from generation")
       }
     } catch (error) {
-      console.error(" Generation failed:", error)
+      console.error("[v0] Generation failed:", error)
       setStatusMessage(error instanceof Error ? error.message : "Generation failed")
     } finally {
       activeJobsRef.current = activeJobsRef.current.filter((j) => j.prompt !== currentPrompt)
@@ -213,6 +218,14 @@ export function PromptInput() {
       setTimeout(() => setStatusMessage(""), 3000)
     }
   }
+
+  useEffect(() => {
+    if (shouldGenerate && prompt.trim() && !isGenerating && balance > 0) {
+      console.log("[v0] Auto-triggering generation from homepage")
+      handleGenerate()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldGenerate])
 
   const handleCancel = () => {
     for (const job of activeJobsRef.current) {
@@ -238,7 +251,6 @@ export function PromptInput() {
             {currentModel.provider === "openai" ? "OpenAI" : "Google"}
           </span>
         </div>
-
       </div>
 
       {referenceImage && (
@@ -263,12 +275,12 @@ export function PromptInput() {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             className="flex-1 min-h-[100px] bg-secondary/50 border-0 resize-none text-base"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault()
-                handleGenerate()
-              }
-            }}
+          // onKeyDown={(e) => {
+          //   if (e.key === "Enter" && !e.shiftKey) {
+          //     e.preventDefault()
+          //     handleGenerate()
+          //   }
+          // }}
           />
         </div>
 
@@ -286,7 +298,6 @@ export function PromptInput() {
         )}
 
         <div className="flex items-center justify-between mt-3 ">
-
           <div className="flex items-center gap-2 w-full">
             {isGenerating && (
               <Button onClick={handleCancel} variant="outline" className="px-4 bg-transparent">
@@ -295,7 +306,7 @@ export function PromptInput() {
             )}
             <Button
               onClick={handleGenerate}
-              disabled={!prompt.trim()}
+              disabled={!prompt.trim() || balance <= 0 || isGenerating}
               className={cn(
                 "px-6 gap-2 w-full",
                 mediaType === "image"

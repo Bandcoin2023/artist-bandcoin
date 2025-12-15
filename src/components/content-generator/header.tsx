@@ -5,16 +5,17 @@ import { Sparkles, FileText, Share2, ArrowLeft } from "lucide-react"
 import { useContentGenerator } from "~/hooks/use-content-generator"
 import type { ContentMode } from "~/types/content-genreation-types"
 import { Button } from "../shadcn/ui/button"
+import { useRouter } from "next/navigation"
 
 export function Header() {
   const { contentMode, setContentMode } = useContentGenerator()
-
+  const router = useRouter()
   return (
     <div className="p-5 border-b border-border">
       <div className="flex items-center gap-3 mb-5">
 
         <div>
-          <Button>
+          <Button onClick={() => router.back()}>
             <ArrowLeft className="h-5 w-5 mr-2" />
             Back
           </Button>

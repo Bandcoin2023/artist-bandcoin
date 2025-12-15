@@ -1,10 +1,21 @@
 "use client"
+import { useSession } from "next-auth/react"
 import { api } from "~/utils/api"
 
 export function useCredits() {
-    const { data: balanceData, isLoading: balanceLoading } = api.credit.getBalance.useQuery()
-    const { data: packagesData, isLoading: packagesLoading } = api.credit.getPackages.useQuery()
-    const { data: statsData, isLoading: statsLoading } = api.credit.getUsageStats.useQuery()
+    const session = useSession()
+    const { data: balanceData, isLoading: balanceLoading } = api.credit.getBalance.useQuery(undefined, {
+        enabled: session.status === "authenticated",
+    }
+    )
+    const { data: packagesData, isLoading: packagesLoading } = api.credit.getPackages.useQuery(undefined, {
+        enabled: session.status === "authenticated",
+    }
+    )
+    const { data: statsData, isLoading: statsLoading } = api.credit.getUsageStats.useQuery(undefined, {
+        enabled: session.status === "authenticated",
+    }
+    )
 
     const balance = balanceData?.balance ?? 0
     const packages = packagesData?.packages ?? []

@@ -22,9 +22,9 @@ export default function AIGenerationPage() {
             const target = event.target as Element
             // Don't close if clicking on popover content or select content
             if (
-                target.closest('[data-radix-popper-content-wrapper]') ||
-                target.closest('[data-radix-select-content]') ||
-                target.closest('[data-radix-popover-content]')
+                target.closest("[data-radix-popper-content-wrapper]") ||
+                target.closest("[data-radix-select-content]") ||
+                target.closest("[data-radix-popover-content]")
             ) {
                 return
             }
@@ -32,8 +32,8 @@ export default function AIGenerationPage() {
                 setIsExpanded(false)
             }
         }
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [])
 
     const {
@@ -58,6 +58,7 @@ export default function AIGenerationPage() {
         selectedDuration,
         setSelectedDuration,
         selectedQuality,
+        setShouldGenerate,
         setSelectedQuality,
     } = useGenerationStore()
     const router = useRouter()
@@ -71,6 +72,12 @@ export default function AIGenerationPage() {
 
     const currentModel = mediaType === "image" ? selectedImageModel : selectedVideoModel
     const aspectRatio = mediaType === "image" ? selectedAspectRatio : selectedVideoAspectRatio
+
+    const handleGenerate = () => {
+        if (!prompt.trim()) return
+        setShouldGenerate(true)
+        router.push("/ai-generation")
+    }
 
     return (
         <div className="flex h-[calc(100vh-11vh)]  overflow-hidden relative">
@@ -87,7 +94,7 @@ export default function AIGenerationPage() {
                             backgroundImage: "url('/images/header.jpg')",
                         }}
                     >
-                        <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/20 to-background backdrop-blur-sm" />
+                        <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-accent/20 to-accent/10 backdrop-blur-sm" />
                     </div>
                     {/* 
                     <div
@@ -105,9 +112,7 @@ export default function AIGenerationPage() {
 
                     {/* Hero Content */}
                     <div className="relative z-10 w-full max-w-4xl px-8 flex flex-col items-center gap-8">
-                        <h1 className="text-7xl font-bold text-accent text-balance text-center tracking-tight">
-                            {"Let's Create"}
-                        </h1>
+                        <h1 className="text-7xl font-bold text-accent text-balance text-center tracking-tight">{"Let's Create"}</h1>
 
                         {/* Prompt Input with Neon Effect */}
                         <div className="w-full" ref={inputRef}>
@@ -350,7 +355,11 @@ export default function AIGenerationPage() {
                                         </div>
 
                                         {/* Generate Button */}
-                                        <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-foreground mt-4">
+                                        <Button
+                                            onClick={handleGenerate}
+                                            disabled={!prompt.trim()}
+                                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-foreground mt-4"
+                                        >
                                             <Sparkles className="w-4 h-4 mr-2" />
                                             Generate{" "}
                                             {mediaType === "image"
@@ -387,7 +396,6 @@ export default function AIGenerationPage() {
                         ))}
                     </div>
                 </div>
-
             </main>
         </div>
     )

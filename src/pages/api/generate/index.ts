@@ -55,6 +55,7 @@ export default async function handler(
       cameraGear,
       remixVariety,
       videoAspectRatio,
+
     } = req.body as {
       prompt: string;
       mediaType: "image" | "video";
@@ -70,6 +71,7 @@ export default async function handler(
       cameraGear?: string;
       remixVariety?: number;
       videoAspectRatio: string,
+
     };
     // Generate a unique job ID
     const jobId = generateJobId()
@@ -97,10 +99,10 @@ export default async function handler(
         duration,
         quality,
         videoAspectRatio,
+        userId: token.sub,
       },
       retries: 1,
     })
-    console.log("JobId", jobId)
     return res.json({
       jobId,
       status: "pending",

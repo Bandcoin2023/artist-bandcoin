@@ -3,6 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { NextApiRequest, NextApiResponse } from "next";
 import { env } from "~/env";
 import { getToken } from "next-auth/jwt";
+import { db } from "~/server/db";
 
 const openai = env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: env.OPENAI_API_KEY })
@@ -94,11 +95,36 @@ Format each variation clearly with "---" separators. Make content engaging, auth
       if (!openai) {
         return res.status(500).json({ error: "OpenAI API key not configured" })
       }
+      const INPUT_COST_PER_1K_OPENAI = 0.01;
+      const OUTPUT_COST_PER_1K_OPENAI = 0.03;
+
+
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4-turbo-preview",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
+      })
+      //costing,
+      const promptTokens = completion.usage?.prompt_tokens || 0;
+      const completionTokens = completion.usage?.completion_tokens || 0;
+      const cost =
+        (promptTokens / 1000) * INPUT_COST_PER_1K_OPENAI +
+        (completionTokens / 1000) * OUTPUT_COST_PER_1K_OPENAI;
+
+
+      await db.creditBalance.update({
+        where: { userId: token.sub },
+        data: { balance: { decrement: cost, } },
+      })
+
+      await db.creditTransaction.create({
+        data: {
+          userId: token.sub,
+          amount: cost,
+          type: "USAGE",
+          description: "SEO Content Generation"
+        },
       })
 
       return res.status(200).json(completion.choices[0]?.message?.content)
@@ -106,6 +132,9 @@ Format each variation clearly with "---" separators. Make content engaging, auth
       if (!googleAI) {
         return res.status(500).json({ error: "Google Gemini API key not configured" })
       }
+      const INPUT_COST_PER_1K_GOOGLE = 0.0003;
+      const OUTPUT_COST_PER_1K_GOOGLE = 0.0025;
+
 
       const result = await googleAI.models.generateContent({
         model: "gemini-2.5-flash",
@@ -122,7 +151,33 @@ Format each variation clearly with "---" separators. Make content engaging, auth
         return res.status(500).json({ error: "Failed to generate content from Google Gemini" })
       }
 
+      //costing,
+      const promptTokens = result.usageMetadata?.promptTokenCount || 0;
+      const completionTokens = result.usageMetadata?.candidatesTokenCount || 0;
+      const cost = (promptTokens / 1000) * INPUT_COST_PER_1K_GOOGLE +
+        (completionTokens / 1000) * OUTPUT_COST_PER_1K_GOOGLE;
+
+      if (!result.text) {
+        return res.status(500).json({ error: "Failed to generate content from Google Gemini" })
+      }
+
+
+      await db.creditBalance.update({
+        where: { userId: token.sub },
+        data: { balance: { decrement: cost, } },
+      })
+
+      await db.creditTransaction.create({
+        data: {
+          userId: token.sub,
+          amount: cost,
+          type: "USAGE",
+          description: "SEO Content Generation (Google Gemini)",
+          metadata: { prompt, model: "gemini-2.5-flash", completionTokens }
+        }
+      });
       res.status(200).json(result.text)
+
 
     }
 

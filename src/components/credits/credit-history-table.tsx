@@ -5,9 +5,14 @@ import { Card } from "~/components/shadcn/ui/card"
 import { Badge } from "~/components/shadcn/ui/badge"
 import { Skeleton } from "~/components/shadcn/ui/skeleton"
 import { api } from "~/utils/api"
+import { useSession } from "next-auth/react"
 
 export function CreditHistoryTable() {
-  const { data, isLoading } = api.credit.getTransactions.useQuery({ limit: 10 })
+  const session = useSession()
+
+  const { data, isLoading } = api.credit.getTransactions.useQuery({ limit: 10 }, {
+    enabled: session.status === "authenticated",
+  })
 
   if (isLoading) {
     return (
@@ -91,9 +96,9 @@ export function CreditHistoryTable() {
                 </td>
                 <td className="p-4 text-right">
                   <span
-                    className={`font-semibold ${tx.amount > 0 ? "text-green-600 dark:text-green-500" : "text-blue-600 dark:text-blue-500"}`}
+                    className={`font-semibold ${tx.type === "USAGE" ? "text-red-600 dark:text-red-500" : "text-green-600 dark:text-green-500"}`}
                   >
-                    {tx.amount > 0 ? "+" : ""}
+                    {tx.type === "USAGE" && tx.amount > 0 ? "-" : "+"}
                     {tx.amount.toLocaleString()}
                   </span>
                 </td>

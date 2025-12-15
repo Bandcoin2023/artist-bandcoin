@@ -39,11 +39,7 @@ export function CreditsPanel() {
           />
         </div>
 
-        {/* Credit Packages */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Available Packages</h2>
-          <CreditPackagesGrid packages={packages} onSelect={() => setShowPurchaseModal(true)} />
-        </div>
+
 
         {/* Transaction History */}
         <div>

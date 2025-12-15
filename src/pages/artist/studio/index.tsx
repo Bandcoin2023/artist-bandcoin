@@ -27,6 +27,7 @@ import {
     Settings,
 } from "lucide-react"
 import JSZip from "jszip"
+import { useRouter } from "next/navigation"
 
 // Add ZIP handling function
 const handleZipFile = async (
@@ -99,7 +100,7 @@ function App() {
         exportToBandcoin,
         exportTrackAsBlob,
     } = useAudio()
-
+    const router = useRouter()
     const [showExportOptionsModal, setShowExportOptionsModal] = useState(false)
     const { isOpen, setIsOpen, data, setData } = useExportCreateSongModalStore()
     const [pixelsPerSecond, setPixelsPerSecond] = useState(21)
@@ -434,7 +435,7 @@ function App() {
             {/* Modern Header */}
             <div className={`h-16 px-6 flex items-center justify-between border-b backdrop-blur-xl bg-background shadow-sm`}>
                 <div className="flex items-center space-x-4">
-                    <Button variant="outline" onClick={() => (window.location.href = "/")}>
+                    <Button variant="outline" onClick={() => router.back()}>
                         <ArrowLeft /> Back
                     </Button>
                     <div>

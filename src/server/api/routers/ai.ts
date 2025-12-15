@@ -41,6 +41,9 @@ export const aiRouter = createTRPCRouter({
                     where: {
                         creatorId: input.userId || ctx.session.user.id,
                     },
+                    orderBy: {
+                        createdAt: "desc",
+                    }
 
                 })
                 return { success: true, aiContents }
