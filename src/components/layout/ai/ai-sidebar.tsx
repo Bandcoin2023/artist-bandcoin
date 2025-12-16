@@ -19,7 +19,7 @@ export default function AISidebar() {
         { icon: ImageIcon, label: "Image", active: false, href: "/ai-generation" },
         { icon: Video, label: "Video", active: false, href: "/ai-generation" },
         { icon: Music, label: "Music", active: false, href: "/artist/studio" },
-        { icon: Text, label: "Text", active: false, href: "/text-generation" },
+        { icon: Text, label: "SEO", active: false, href: "/text-generation" },
     ]
 
     return (
@@ -87,17 +87,7 @@ export default function AISidebar() {
                     </div>
                 </PopoverContent>
             </Popover>
-            <Button
-                size="sm"
-                variant="destructive"
-                onClick={(e) => e.preventDefault()}
-                className=" w-full text-xs shadow-sm shadow-foreground pointer-events-none">
-                <div className="flex items-center justify-center gap-1">
 
-                    <Coins /> {balance.toLocaleString(2)}
-
-                </div>
-            </Button>
 
         </aside>
     )

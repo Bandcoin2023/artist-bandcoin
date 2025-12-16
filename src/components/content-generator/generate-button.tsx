@@ -4,10 +4,15 @@ import { Button } from "~/components/shadcn/ui/button"
 import { Loader2, Sparkles, RotateCcw } from "lucide-react"
 import { useContentGenerator } from "~/hooks/use-content-generator"
 import { useCredits } from "~/hooks/use-credits"
+import { useState } from "react"
+import { PurchaseCreditsModal } from "../credits/purchase-credits-modal"
 
 export function GenerateButton() {
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
+
   const { isGenerating, topic, handleGenerate, resetForm } = useContentGenerator()
-  const { balance } = useCredits()
+  const { balance, refetch, packages } = useCredits()
+
   return (
     <div className="p-5 border-t border-border">
       <div className="flex gap-2">
@@ -15,7 +20,14 @@ export function GenerateButton() {
           <RotateCcw className="h-4 w-4" />
         </Button>
         <Button
-          onClick={handleGenerate}
+          onClick={() => {
+            if (balance < 1) {
+              setShowPurchaseModal(true)
+              return
+            }
+            handleGenerate()
+
+          }}
           disabled={isGenerating || !topic.trim() || balance <= 0}
           className="flex-1 h-11 gap-2 text-sm font-medium"
         >
@@ -32,6 +44,14 @@ export function GenerateButton() {
           )}
         </Button>
       </div>
+      <PurchaseCreditsModal
+        open={showPurchaseModal}
+        onOpenChange={setShowPurchaseModal}
+        packages={packages}
+        onPurchaseSuccess={() => {
+          refetch()
+        }}
+      />
     </div>
   )
 }

@@ -8,6 +8,7 @@ import { cn } from "~/lib/utils"
 import { useState, useRef, useCallback, useEffect } from "react"
 import { api } from "~/utils/api"
 import { useCredits } from "~/hooks/use-credits"
+import { PurchaseCreditsModal } from "~/components/credits/purchase-credits-modal"
 
 interface JobStatusResponse {
   jobId: string
@@ -63,9 +64,10 @@ export function PromptInput() {
   } = useGenerationStore()
 
   const [statusMessage, setStatusMessage] = useState<string>("")
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const [activeJobs, setActiveJobs] = useState<ActiveJob[]>([])
   const activeJobsRef = useRef<ActiveJob[]>([])
-  const { balance } = useCredits()
+  const { balance, packages, refetch } = useCredits()
   const currentModel = mediaType === "image" ? selectedImageModel : selectedVideoModel
   const cameraGearLabel = CAMERA_GEAR_OPTIONS.find((g) => g.value === selectedCameraGear)?.label ?? "Default"
 
@@ -116,6 +118,10 @@ export function PromptInput() {
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return
+    if (balance < 1) {
+      setShowPurchaseModal(true)
+      return
+    }
 
     const currentPrompt = prompt
     setIsGenerating(true)
@@ -154,7 +160,6 @@ export function PromptInput() {
       })
 
       const jobData = (await response.json()) as JobCreateResponse
-      console.log("[v0] Job created:", jobData)
 
       if (!jobData.jobId) {
         throw new Error("Failed to create generation job")
@@ -167,7 +172,6 @@ export function PromptInput() {
       setStatusMessage("Job created, waiting for processing...")
 
       const result = await pollJobStatus(realJobId, abortController)
-      console.log("[v0] Final result:", result)
 
       const urls: string[] = []
       if (result.result?.items && Array.isArray(result.result.items)) {
@@ -178,7 +182,7 @@ export function PromptInput() {
         }
       }
 
-      console.log("[v0] Extracted URLs:", urls)
+
 
       if (urls.length > 0) {
         const newItems: GeneratedItem[] = urls.map((url: string, index: number) => ({
@@ -201,7 +205,7 @@ export function PromptInput() {
 
         addGeneratedItems(newItems)
       } else {
-        console.log("[v0] No URLs found in result")
+
         setStatusMessage("No images returned from generation")
       }
     } catch (error) {
@@ -221,7 +225,7 @@ export function PromptInput() {
 
   useEffect(() => {
     if (shouldGenerate && prompt.trim() && !isGenerating && balance > 0) {
-      console.log("[v0] Auto-triggering generation from homepage")
+
       handleGenerate()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -306,7 +310,7 @@ export function PromptInput() {
             )}
             <Button
               onClick={handleGenerate}
-              disabled={!prompt.trim() || balance <= 0 || isGenerating}
+              disabled={!prompt.trim() || isGenerating}
               className={cn(
                 "px-6 gap-2 w-full",
                 mediaType === "image"
@@ -330,6 +334,14 @@ export function PromptInput() {
           </div>
         </div>
       </div>
+      <PurchaseCreditsModal
+        open={showPurchaseModal}
+        onOpenChange={setShowPurchaseModal}
+        packages={packages}
+        onPurchaseSuccess={() => {
+          refetch()
+        }}
+      />
     </div>
   )
 }

@@ -17,6 +17,7 @@ import { useSession } from "next-auth/react"
 import { clientSelect } from "~/lib/stellar/fan/utils"
 import { PLATFORM_ASSET } from "~/lib/stellar/constant"
 import toast from "react-hot-toast"
+import useNeedSign from "~/lib/hook"
 
 interface CreditPackage {
   id: string
@@ -47,6 +48,7 @@ export function PurchaseCreditsModal({ open, onOpenChange, packages, onPurchaseS
   const [transactionHash, setTransactionHash] = useState("")
   const [xdr, setXdr] = useState<string>()
   const session = useSession()
+  const { needSign } = useNeedSign()
   const purchaseMutation = api.credit.purchaseCredits.useMutation({
     onSuccess: (data) => {
       const selectedPkg = packages.find((p) => p.id === selectedPackage)
@@ -88,6 +90,7 @@ export function PurchaseCreditsModal({ open, onOpenChange, packages, onPurchaseS
   }
 
   const handlePurchase = async () => {
+    console.log("handlePurchase called");
     if (!xdrMutation.data) {
       toast.error("Payment is not ready yet. Please try again.")
       return;
@@ -123,6 +126,7 @@ export function PurchaseCreditsModal({ open, onOpenChange, packages, onPurchaseS
         packageId: selectedPackage,
         method: method,
         paymentAmount: price,
+        signWith: needSign()
       }, {
         onSuccess: (data) => {
           toast.dismiss(toastId)

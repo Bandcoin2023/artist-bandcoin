@@ -46,7 +46,8 @@ export function ContentGeneratorProvider({ children }: { children: ReactNode }) 
     const [selectedModel, setSelectedModel] = useState<AIModel>("openai")
     const [isGenerating, setIsGenerating] = useState(false)
     const [copied, setCopied] = useState(false)
-    const [generatedContent, setGeneratedContent] = useState("")
+    const [seoGeneratedContent, setSeoGeneratedContent] = useState("")
+    const [socialGeneratedContent, setSocialGeneratedContent] = useState("")
 
     // Params state
     const [seoParams, setSeoParams] = useState<SEOParams>(defaultSEOParams)
@@ -63,7 +64,11 @@ export function ContentGeneratorProvider({ children }: { children: ReactNode }) 
     const handleGenerate = useCallback(async () => {
         if (!topic.trim()) return
         setIsGenerating(true)
-        setGeneratedContent("")
+        if (contentMode === "seo") {
+            setSeoGeneratedContent("")
+        } else {
+            setSocialGeneratedContent("")
+        }
 
         console.log("Starting generation:", { contentMode, topic, selectedModel })
 
@@ -109,27 +114,42 @@ export function ContentGeneratorProvider({ children }: { children: ReactNode }) 
 
             console.log("No reader, falling back to JSON")
             const data = await response.json() as string
-            setGeneratedContent(data)
+            if (contentMode === "seo") {
+                setSeoGeneratedContent(data)
+            } else {
+                setSocialGeneratedContent(data)
+            }
 
         } catch (error) {
             console.error("Error generating content:", error)
-            setGeneratedContent("Error generating content. Please try again. " + (error as Error).message)
+            const errorMessage = "Error generating content. Please try again. " + (error as Error).message
+            if (contentMode === "seo") {
+                setSeoGeneratedContent(errorMessage)
+            } else {
+                setSocialGeneratedContent(errorMessage)
+            }
         } finally {
             setIsGenerating(false)
         }
     }, [topic, contentMode, seoParams, socialParams, selectedModel])
 
     const copyToClipboard = useCallback(async () => {
-        await navigator.clipboard.writeText(generatedContent)
+        const content = contentMode === "seo" ? seoGeneratedContent : socialGeneratedContent
+        await navigator.clipboard.writeText(content)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
-    }, [generatedContent])
+    }, [contentMode, seoGeneratedContent, socialGeneratedContent])
 
     const resetForm = useCallback(() => {
         setTopic("")
-        setGeneratedContent("")
+        setSeoGeneratedContent("")
+        setSocialGeneratedContent("")
         setSeoParams(defaultSEOParams)
         setSocialParams(defaultSocialParams)
+    }, [])
+
+    const setContentModeWithReset = useCallback((mode: ContentMode) => {
+        setContentMode(mode)
     }, [])
 
     const value: ContentGeneratorContextType = {
@@ -139,11 +159,11 @@ export function ContentGeneratorProvider({ children }: { children: ReactNode }) 
         selectedModel,
         isGenerating,
         copied,
-        generatedContent,
+        generatedContent: contentMode === "seo" ? seoGeneratedContent : socialGeneratedContent,
         seoParams,
         socialParams,
         // Actions
-        setContentMode,
+        setContentMode: setContentModeWithReset,
         setTopic,
         setSelectedModel,
         updateSeoParams,

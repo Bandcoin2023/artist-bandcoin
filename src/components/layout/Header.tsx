@@ -2,7 +2,7 @@ import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { twMerge } from "tailwind-merge";
 
-import { ArrowRight, Bell, Menu, Plus, Settings, ShoppingBag, ShoppingCart, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, Bell, Coins, Menu, Plus, Settings, ShoppingBag, ShoppingCart, Sparkles, Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import Link from "next/link";
@@ -18,6 +18,7 @@ import { useSidebar } from "~/hooks/use-sidebar";
 import { DashboardNav } from "./Left-sidebar/dashboard-nav";
 import { LeftBottom, LeftNavigation } from "./Left-sidebar/sidebar";
 import { isRechargeAbleClient } from "~/utils/recharge/is-rechargeable-client";
+import { useCredits } from "~/hooks/use-credits";
 
 function Header() {
     const { isSheetOpen, setIsSheetOpen } = useSidebar();
@@ -142,8 +143,12 @@ export default Header;
 
 const HeaderButtons = () => {
     const { setBalance, setActive } = useUserStellarAcc();
+    const { balance } = useCredits()
     const session = useSession();
     const router = useRouter();
+
+    const isAIRoute = router.pathname.startsWith("/artist/studio") || router.pathname.startsWith("/ai-generation") || router.pathname.startsWith("/text-generation") || router.pathname.startsWith("/ai");
+
     const bal = api.wallate.acc.getAccountBalance.useQuery(undefined, {
         onSuccess: (data) => {
             const { balances } = data;
@@ -182,24 +187,47 @@ const HeaderButtons = () => {
 
     return (
         <div className=" flex items-center justify-center gap-1 ">
-            <Link href="/wallet-balance" className="">
-                <Button className="flex gap-0" variant='default'>
-                    <span className="hidden md:block">
-                        {PLATFORM_ASSET.code.toUpperCase()}
-                    </span>
-                    <span className="flex gap-1">
-                        <span className="hidden md:flex">{":"}</span>
-                        {bal.data?.platformAssetBal.toFixed(0)}
-                    </span>
-                </Button>
-            </Link>
-            {isFBorGoogle && (
-                <Link className=" " href={"/recharge"}>
-                    <Button className="">
-                        <ShoppingCart />
-                    </Button>
-                </Link>
-            )}
+
+            {
+                isAIRoute ? <>
+                    <Link href="/ai/credits" className="">
+                        <Button
+                            variant="destructive"
+                            onClick={(e) => e.preventDefault()}
+                            className=" w-full shadow-sm shadow-foreground ">
+                            <div className="flex items-center justify-center gap-1">
+
+                                {balance.toFixed(2)} CREDITS
+
+                            </div>
+                        </Button>
+                    </Link>
+                </>
+                    : <>
+                        <Link href="/wallet-balance" className="">
+                            <Button className="flex gap-0" variant='default'>
+                                <span className="hidden md:block">
+                                    {PLATFORM_ASSET.code.toUpperCase()}
+                                </span>
+                                <span className="flex gap-1">
+                                    <span className="hidden md:flex">{":"}</span>
+                                    {bal.data?.platformAssetBal.toFixed(0)}
+                                </span>
+                            </Button>
+                        </Link>
+                        {isFBorGoogle && (
+                            <Link className=" " href={"/recharge"}>
+                                <Button className="">
+                                    <ShoppingCart />
+                                </Button>
+                            </Link>
+                        )}
+
+                        {/* Main Neon Try Studio Button */}
+
+
+                    </>
+            }
             <Button
                 className=" relative "
                 onClick={async () => {
@@ -221,9 +249,6 @@ const HeaderButtons = () => {
 
                 <Settings />
             </Button>
-            {/* Main Neon Try Studio Button */}
-
-
         </div>
 
     );

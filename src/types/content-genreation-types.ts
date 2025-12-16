@@ -44,7 +44,7 @@ export const defaultSEOParams: SEOParams = {
     secondaryKeywords: "",
     contentType: "blog-post",
     tone: "professional",
-    wordCount: [1500],
+    wordCount: [500],
     targetAudience: "general",
     readingLevel: "intermediate",
     contentStructure: "standard",

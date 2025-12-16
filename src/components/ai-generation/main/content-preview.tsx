@@ -335,10 +335,7 @@ export function ContentPreview() {
                     <Download className="w-4 h-4" />
                     Download
                   </Button>
-                  <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-                    <Maximize2 className="w-4 h-4" />
-                    Full Size
-                  </Button>
+
                 </div>
               </div>
             </div>

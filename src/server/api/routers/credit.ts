@@ -384,7 +384,6 @@ export const creditRouter = createTRPCRouter({
                 throw new Error("Package not found")
             }
             const buyer = ctx.session.user.id; // customer pubkey
-            console.log("payment..............", input.method);
             switch (input.method) {
 
                 case "asset": {

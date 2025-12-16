@@ -43,25 +43,25 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
                         const isInline = !className
                         if (isInline) {
                             return (
-                                <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground" {...props}>
+                                <code className="px-1.5 py-0.5 rounded text-sm font-mono text-foreground" {...props}>
                                     {children}
                                 </code>
                             )
                         }
                         return (
                             <code
-                                className={cn("block bg-muted p-4 rounded-lg overflow-x-auto font-mono text-sm", className)}
+                                className={cn("block p-4 rounded-lg overflow-x-auto font-mono text-sm", className)}
                                 {...props}
                             >
                                 {children}
                             </code>
                         )
                     },
-                    pre: ({ children }) => <pre className="bg-muted rounded-lg overflow-x-auto my-4">{children}</pre>,
+                    pre: ({ children }) => <pre className="rounded-lg overflow-x-auto my-4">{children}</pre>,
                     a: ({ href, children }) => (
                         <a
                             href={href}
-                            className="text-primary underline underline-offset-4 hover:text-primary/80 transition-colors"
+                            className=" underline underline-offset-4 "
                         >
                             {children}
                         </a>

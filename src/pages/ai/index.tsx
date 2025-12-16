@@ -1,26 +1,30 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useRef, useEffect } from "react"
 import { Button } from "~/components/shadcn/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/shadcn/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/shadcn/ui/popover"
 import { NeonInput } from "../../components/neon-input"
 import { useGenerationStore } from "~/lib/generation-store"
-import { Home, Grid3x3, ImageIcon, Video, Sparkles, ChevronDown, Music, Text, Layers, Upload, Infinity, Coins } from "lucide-react"
+import { Grid3x3, ImageIcon, Video, Sparkles, ChevronDown, Music, Text } from "lucide-react"
 import { useRouter } from "next/navigation"
-
-import Aurora from "~/components/shadcn/Aurora"
 import { Badge } from "~/components/shadcn/ui/badge"
 import AISidebar from "~/components/layout/ai/ai-sidebar"
+import { useCredits } from "~/hooks/use-credits"
+import { api } from "~/utils/api"
+import { PurchaseCreditsModal } from "~/components/credits/purchase-credits-modal"
 
 export default function AIGenerationPage() {
     const [isExpanded, setIsExpanded] = useState(false)
     const inputRef = useRef<HTMLDivElement>(null)
+    const { balance, refetch, packages } = useCredits()
+    const [showPurchaseModal, setShowPurchaseModal] = useState(false)
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as Element
-            // Don't close if clicking on popover content or select content
             if (
                 target.closest("[data-radix-popper-content-wrapper]") ||
                 target.closest("[data-radix-select-content]") ||
@@ -67,7 +71,7 @@ export default function AIGenerationPage() {
         { icon: ImageIcon, label: "Image", active: false, href: "/ai-generation", badge: "NEW" },
         { icon: Video, label: "Video", active: false, href: "/ai-generation", badge: "NEW" },
         { icon: Music, label: "Music", active: false, href: "/artist/studio" },
-        { icon: Text, label: "Text", active: false, href: "/text-generation", badge: "NEW" },
+        { icon: Text, label: "SEO", active: false, href: "/text-generation", badge: "NEW" },
     ]
 
     const currentModel = mediaType === "image" ? selectedImageModel : selectedVideoModel
@@ -75,6 +79,12 @@ export default function AIGenerationPage() {
 
     const handleGenerate = () => {
         if (!prompt.trim()) return
+
+        if (balance < 1) {
+            setShowPurchaseModal(true)
+            return
+        }
+
         setShouldGenerate(true)
         router.push("/ai-generation")
     }
@@ -90,25 +100,12 @@ export default function AIGenerationPage() {
                     {/* Background Image */}
                     <div
                         className="absolute inset-0 bg-cover bg-center"
-                        style={{
-                            backgroundImage: "url('/images/header.jpg')",
-                        }}
+                    // style={{
+                    //     backgroundImage: "url('/images/header.jpg')",
+                    // }}
                     >
-                        <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-accent/20 to-accent/10 backdrop-blur-sm" />
+                        <div className="absolute inset-0 bg-gradient-to-b from-accent/40 via-accent/20 to-accent/10 backdrop-blur-sm" />
                     </div>
-                    {/* 
-                    <div
-                        className="absolute inset-0 bg-cover bg-center"
-
-                    >
-                        <Aurora
-
-                            colorStops={["#DCDC2C", "#EDEECD", "#DCDC2C"]}
-                            blend={0.5}
-                            amplitude={1.0}
-                            speed={0.5}
-                        />
-                    </div> */}
 
                     {/* Hero Content */}
                     <div className="relative z-10 w-full max-w-4xl px-8 flex flex-col items-center gap-8">
@@ -397,6 +394,16 @@ export default function AIGenerationPage() {
                     </div>
                 </div>
             </main>
+
+            {/* Purchase Credits Modal */}
+            <PurchaseCreditsModal
+                open={showPurchaseModal}
+                onOpenChange={setShowPurchaseModal}
+                packages={packages}
+                onPurchaseSuccess={() => {
+                    refetch()
+                }}
+            />
         </div>
     )
 }

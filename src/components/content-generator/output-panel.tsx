@@ -1,11 +1,11 @@
 "use client"
 
 import { useRef, useEffect } from "react"
-import { FileText, Sparkles, Loader2, Twitter, Linkedin, Instagram, Facebook } from "lucide-react"
+import { FileText, Sparkles, Loader2, Twitter, Linkedin, Instagram, Facebook, Settings2 } from "lucide-react"
+import { Button } from "~/components/shadcn/ui/button"
 import { useContentGenerator } from "~/hooks/use-content-generator"
 import { SEOOutput } from "./seo-output"
 import { SocialMediaOutput } from "./social-media-output"
-import { api } from "~/utils/api"
 
 const platformIcons = {
   twitter: Twitter,
@@ -14,7 +14,12 @@ const platformIcons = {
   facebook: Facebook,
 }
 
-export function OutputPanel() {
+interface OutputPanelProps {
+  settingsOpen: boolean
+  setSettingsOpen: (open: boolean) => void
+}
+
+export function OutputPanel({ settingsOpen, setSettingsOpen }: OutputPanelProps) {
   const { contentMode, socialParams, generatedContent, isGenerating, copied, copyToClipboard } = useContentGenerator()
   const outputRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -44,16 +49,45 @@ export function OutputPanel() {
             </p>
           </div>
         </div>
+        <Button
+          variant="outline"
+          size="icon"
+          className="ml-2 bg-transparent md:hidden"
+          onClick={() => setSettingsOpen(true)}
+        >
+          <Settings2 className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Output Content */}
       <div ref={outputRef} className="flex-1 overflow-auto p-6">
-        {generatedContent ? (
+        {isGenerating && !generatedContent ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center space-y-4">
+              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-medium">Generating your content...</h3>
+                <p className="text-sm text-muted-foreground">
+                  AI is crafting{" "}
+                  {contentMode === "seo" ? "an SEO-optimized article" : `your ${socialParams.selectedPlatform} post`}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : generatedContent ? (
           <div>
             {contentMode === "seo" ? (
               <SEOOutput content={generatedContent} />
             ) : (
               <SocialMediaOutput content={generatedContent} platform={socialParams.selectedPlatform} />
+            )}
+            {isGenerating && (
+              <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>AI is regenerating your content...</span>
+              </div>
             )}
           </div>
         ) : (
@@ -69,13 +103,6 @@ export function OutputPanel() {
                 </p>
               </div>
             </div>
-          </div>
-        )}
-
-        {isGenerating && (
-          <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>AI is generating your content...</span>
           </div>
         )}
       </div>

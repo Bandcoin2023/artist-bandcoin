@@ -73,7 +73,7 @@ export async function XDR4BuyCreditsWithUSDC({
     buildTrx.sign(motherAcc);
 
     const xdr = buildTrx.toXDR();
-    const singedXdr = WithSing({ xdr, signWith });
+    const singedXdr = await WithSing({ xdr, signWith });
     return singedXdr;
 }
 
@@ -101,6 +101,7 @@ export async function XDR4BuyCreditsWithAsset({
         PLATFORM_ASSET.code,
         PLATFORM_ASSET.issuer,
     );
+    console.log("balance", balance, "totalPrice", totalPrice);
     if (Number(balance) < Number(totalPrice)) {
         throw new Error("Insufficient platform asset balance");
     }
@@ -128,7 +129,7 @@ export async function XDR4BuyCreditsWithAsset({
     buildTrx.sign(motherAcc);
 
     const xdr = buildTrx.toXDR();
-    const singedXdr = WithSing({ xdr, signWith });
+    const singedXdr = await WithSing({ xdr, signWith });
     return singedXdr;
 }
 
