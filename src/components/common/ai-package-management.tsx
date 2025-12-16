@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { api } from "~/utils/api"
 import { Button } from "../shadcn/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../shadcn/ui/card"
@@ -10,8 +10,10 @@ import { Input } from "../shadcn/ui/input"
 import { Label } from "../shadcn/ui/label"
 import { Checkbox } from "../shadcn/ui/checkbox"
 import { Badge } from "../shadcn/ui/badge"
-import { Pencil, Trash2, Plus, Check, X } from "lucide-react"
+import { Pencil, Trash2, Plus, Check, X, TrendingUp, TrendingDown, Minus } from "lucide-react"
 import { Textarea } from "../shadcn/ui/textarea"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "../shadcn/ui/dialog"
+import PricingAssistant from "./pricing-assistant"
 
 type Package = {
     id: string
@@ -25,25 +27,34 @@ type Package = {
     isActive: boolean
 }
 
+
+
 export function PackageManagement() {
-    const [isCreating, setIsCreating] = useState(false)
-    const [editingId, setEditingId] = useState<string | null>(null)
+    const [createDialogOpen, setCreateDialogOpen] = useState(false)
+    const [editDialogOpen, setEditDialogOpen] = useState(false)
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [selectedPackage, setSelectedPackage] = useState<Package | null>(null)
 
     const { data, refetch } = api.credit.adminGetAllPackages.useQuery()
     const createPackage = api.credit.adminCreatePackage.useMutation({
         onSuccess: () => {
-            setIsCreating(false)
+            setCreateDialogOpen(false)
             refetch()
         },
     })
     const updatePackage = api.credit.adminUpdatePackage.useMutation({
         onSuccess: () => {
-            setEditingId(null)
+            setEditDialogOpen(false)
+            setSelectedPackage(null)
             refetch()
         },
     })
     const deletePackage = api.credit.adminDeletePackage.useMutation({
-        onSuccess: () => refetch(),
+        onSuccess: () => {
+            setDeleteDialogOpen(false)
+            setSelectedPackage(null)
+            refetch()
+        },
     })
 
     return (
@@ -53,44 +64,96 @@ export function PackageManagement() {
                     <h2 className="text-2xl font-bold">Credit Packages</h2>
                     <p className="text-muted-foreground">Manage credit packages for users to purchase</p>
                 </div>
-                <Button onClick={() => setIsCreating(true)} disabled={isCreating}>
+                <Button onClick={() => setCreateDialogOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" />
                     Create Package
                 </Button>
             </div>
 
-            {isCreating && (
-                <PackageForm
-                    onSave={(data) => createPackage.mutate(data)}
-                    onCancel={() => setIsCreating(false)}
-                    isLoading={createPackage.isLoading}
-                />
-            )}
-
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {data?.packages.map((pkg) => (
-                    <div key={pkg.id}>
-                        {editingId === pkg.id ? (
-                            <PackageForm
-                                initialData={pkg}
-                                onSave={(data) => updatePackage.mutate({ id: pkg.id, ...data })}
-                                onCancel={() => setEditingId(null)}
-                                isLoading={updatePackage.isLoading}
-                            />
-                        ) : (
-                            <PackageCard
-                                package={pkg}
-                                onEdit={() => setEditingId(pkg.id)}
-                                onDelete={() => {
-                                    if (confirm(`Delete "${pkg.name}"?`)) {
-                                        deletePackage.mutate({ id: pkg.id })
-                                    }
-                                }}
-                            />
-                        )}
-                    </div>
+                    <PackageCard
+                        key={pkg.id}
+                        package={pkg}
+                        onEdit={() => {
+                            setSelectedPackage(pkg)
+                            setEditDialogOpen(true)
+                        }}
+                        onDelete={() => {
+                            setSelectedPackage(pkg)
+                            setDeleteDialogOpen(true)
+                        }}
+                    />
                 ))}
             </div>
+
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>Create Package</DialogTitle>
+                        <DialogDescription>Add a new credit package for users to purchase.</DialogDescription>
+                    </DialogHeader>
+                    <PackageForm
+                        onSave={(data) => createPackage.mutate(data)}
+                        onCancel={() => setCreateDialogOpen(false)}
+                        isLoading={createPackage.isLoading}
+                    />
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>Edit Package</DialogTitle>
+                        <DialogDescription>Update the details of this credit package.</DialogDescription>
+                    </DialogHeader>
+                    {selectedPackage && (
+                        <PackageForm
+                            initialData={selectedPackage}
+                            onSave={(data) => updatePackage.mutate({ id: selectedPackage.id, ...data })}
+                            onCancel={() => {
+                                setEditDialogOpen(false)
+                                setSelectedPackage(null)
+                            }}
+                            isLoading={updatePackage.isLoading}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Package</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete {selectedPackage?.name}? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setDeleteDialogOpen(false)
+                                setSelectedPackage(null)
+                            }}
+                            disabled={deletePackage.isLoading}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => {
+                                if (selectedPackage) {
+                                    deletePackage.mutate({ id: selectedPackage.id })
+                                }
+                            }}
+                            disabled={deletePackage.isLoading}
+                        >
+                            {deletePackage.isLoading ? "Deleting..." : "Delete"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
@@ -171,18 +234,18 @@ function PackageForm({
     isLoading,
 }: {
     initialData?: Partial<Package>
-    onSave: (data: any) => void
+    onSave: (data) => void
     onCancel: () => void
     isLoading: boolean
 }) {
     const [formData, setFormData] = useState({
-        name: initialData?.name || "",
-        description: initialData?.description || "",
-        credits: initialData?.credits || 0,
-        bonus: initialData?.bonus || 0,
-        priceBand: initialData?.priceBand || 0,
-        priceUSDC: initialData?.priceUSDC || 0,
-        isPopular: initialData?.isPopular || false,
+        name: initialData?.name ?? "",
+        description: initialData?.description ?? "",
+        credits: initialData?.credits ?? 0,
+        bonus: initialData?.bonus ?? 0,
+        priceBand: initialData?.priceBand ?? 0,
+        priceUSDC: initialData?.priceUSDC ?? 0,
+        isPopular: initialData?.isPopular ?? false,
         isActive: initialData?.isActive !== undefined ? initialData.isActive : true,
     })
 
@@ -192,124 +255,130 @@ function PackageForm({
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{initialData ? "Edit Package" : "Create Package"}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="name">Package Name</Label>
-                        <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            placeholder="Starter Pack"
-                            required
-                        />
-                    </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+                <Label htmlFor="name">Package Name</Label>
+                <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Starter Pack"
+                    required
+                />
+            </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                            id="description"
-                            value={formData.description}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            placeholder="Perfect for getting started"
-                            required
-                            rows={2}
-                        />
-                    </div>
+            <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Perfect for getting started"
+                    required
+                    rows={2}
+                />
+            </div>
 
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="credits">Credits</Label>
-                            <Input
-                                id="credits"
-                                type="number"
-                                value={formData.credits}
-                                onChange={(e) => setFormData({ ...formData, credits: Number(e.target.value) })}
-                                min="1"
-                                required
-                            />
-                        </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                    <Label htmlFor="credits">Credits</Label>
+                    <Input
+                        id="credits"
+                        type="number"
+                        value={formData.credits}
+                        onChange={(e) => setFormData({ ...formData, credits: Number(e.target.value) })}
+                        min="1"
+                        required
+                    />
+                </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="bonus">Bonus Credits</Label>
-                            <Input
-                                id="bonus"
-                                type="number"
-                                value={formData.bonus}
-                                onChange={(e) => setFormData({ ...formData, bonus: Number(e.target.value) })}
-                                min="0"
-                            />
-                        </div>
-                    </div>
+                <div className="space-y-2">
+                    <Label htmlFor="bonus">Bonus Credits</Label>
+                    <Input
+                        id="bonus"
+                        type="number"
+                        value={formData.bonus}
+                        onChange={(e) => setFormData({ ...formData, bonus: Number(e.target.value) })}
+                        min="0"
+                    />
+                </div>
+            </div>
 
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="priceBand">Price (BANDCOIN)</Label>
-                            <Input
-                                id="priceBand"
-                                type="number"
-                                step="0.01"
-                                value={formData.priceBand}
-                                onChange={(e) => setFormData({ ...formData, priceBand: Number(e.target.value) })}
-                                min="0"
-                                required
-                            />
-                        </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                    <Label htmlFor="priceBand">Price (BANDCOIN)</Label>
+                    <Input
+                        id="priceBand"
+                        type="number"
+                        step="0.01"
+                        value={formData.priceBand}
+                        onChange={(e) => setFormData({ ...formData, priceBand: Number(e.target.value) })}
+                        min="0"
+                        required
+                    />
+                </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="priceUSDC">Price (USDC)</Label>
-                            <Input
-                                id="priceUSDC"
-                                type="number"
-                                step="0.01"
-                                value={formData.priceUSDC}
-                                onChange={(e) => setFormData({ ...formData, priceUSDC: Number(e.target.value) })}
-                                min="0"
-                                required
-                            />
-                        </div>
-                    </div>
+                <div className="space-y-2">
+                    <Label htmlFor="priceUSDC">Price (USDC)</Label>
+                    <Input
+                        id="priceUSDC"
+                        type="number"
+                        step="0.01"
+                        value={formData.priceUSDC}
+                        onChange={(e) => setFormData({ ...formData, priceUSDC: Number(e.target.value) })}
+                        min="0"
+                        required
+                    />
+                </div>
+            </div>
 
-                    <div className="space-y-3">
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="isPopular"
-                                checked={formData.isPopular}
-                                onCheckedChange={(checked) => setFormData({ ...formData, isPopular: checked as boolean })}
-                            />
-                            <Label htmlFor="isPopular" className="cursor-pointer font-normal">
-                                Mark as Popular
-                            </Label>
-                        </div>
+            <PricingAssistant
+                priceBand={formData.priceBand}
+                priceUSDC={formData.priceUSDC}
+                onPriceBandChange={(value) => setFormData({ ...formData, priceBand: value })}
+                onPriceUSDCChange={(value) => setFormData({ ...formData, priceUSDC: value })}
+            />
 
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="isActive"
-                                checked={formData.isActive}
-                                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked as boolean })}
-                            />
-                            <Label htmlFor="isActive" className="cursor-pointer font-normal">
-                                Active (visible to users)
-                            </Label>
-                        </div>
-                    </div>
+            <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                    <Checkbox
+                        id="isPopular"
+                        checked={formData.isPopular}
+                        onCheckedChange={(checked) => setFormData({ ...formData, isPopular: checked as boolean })}
+                    />
+                    <Label htmlFor="isPopular" className="cursor-pointer font-normal">
+                        Mark as Popular
+                    </Label>
+                </div>
 
-                    <div className="flex gap-2 pt-2">
-                        <Button type="submit" disabled={isLoading} className="flex-1">
-                            <Check className="mr-2 h-4 w-4" />
-                            {initialData ? "Update" : "Create"}
-                        </Button>
-                        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-                            <X className="mr-2 h-4 w-4" />
-                            Cancel
-                        </Button>
-                    </div>
-                </form>
-            </CardContent>
-        </Card>
+                <div className="flex items-center space-x-2">
+                    <Checkbox
+                        id="isActive"
+                        checked={formData.isActive}
+                        onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked as boolean })}
+                    />
+                    <Label htmlFor="isActive" className="cursor-pointer font-normal">
+                        Active (visible to users)
+                    </Label>
+                </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onCancel}
+                    disabled={isLoading}
+                    className="flex-1 bg-transparent"
+                >
+                    <X className="mr-2 h-4 w-4" />
+                    Cancel
+                </Button>
+                <Button type="submit" disabled={isLoading} className="flex-1">
+                    <Check className="mr-2 h-4 w-4" />
+                    {isLoading ? "Saving..." : initialData ? "Update" : "Create"}
+                </Button>
+            </div>
+        </form>
     )
 }
