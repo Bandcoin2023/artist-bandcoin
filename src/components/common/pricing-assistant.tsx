@@ -80,7 +80,7 @@ export default function PricingAssistant({
                 <h4 className="text-sm font-medium">Pricing Assistant</h4>
                 {bandToUsdc && (
                     <Badge variant="outline" className="text-xs">
-                        1 BAND ≈ ${bandToUsdc.toFixed(4)} USDC
+                        1 BAND ≈ ${bandToUsdc.toFixed(7)} USDC
                     </Badge>
                 )}
             </div>
