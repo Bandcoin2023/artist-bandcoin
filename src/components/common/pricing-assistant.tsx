@@ -20,12 +20,11 @@ export default function PricingAssistant({
 }) {
     const [bandRate, setBandRate] = useState<number | null>(null)
     const [usdcRate, setUsdcRate] = useState<number | null>(null)
-    const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
     const bandResponse = api.bounty.Bounty.getPlatformAsset.useQuery()
     const usdcResponse = api.bounty.Bounty.getAssetToUSDCRate.useQuery()
-
+    const loading = bandResponse.isLoading || usdcResponse.isLoading
     useEffect(() => {
         if (bandResponse.data) {
             setBandRate(bandResponse.data)
