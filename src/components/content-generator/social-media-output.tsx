@@ -40,7 +40,7 @@ export function SocialMediaOutput({ content, platform }: SocialMediaOutputProps)
     const [selectedPost, setSelectedPost] = useState<{ id: number; title: string; content: string } | null>(null)
 
     const posts = content
-        .split(/(?:---+|\n\s*Variation\s+\d+:?\s*\n)/gi)
+        .split(/(?:--------+|\n\s*Variation\s+\d+:?\s*\n)/gi)
         .map((post) => post.trim())
         .filter((post) => post.length > 0)
 

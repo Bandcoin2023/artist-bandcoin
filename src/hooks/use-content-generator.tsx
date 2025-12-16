@@ -70,7 +70,7 @@ export function ContentGeneratorProvider({ children }: { children: ReactNode }) 
             setSocialGeneratedContent("")
         }
 
-        console.log("Starting generation:", { contentMode, topic, selectedModel })
+        console.log(" Starting generation:", { contentMode, topic, selectedModel })
 
         try {
             const endpoint = contentMode === "seo" ? "/api/generate-seo" : "/api/generate-social"
@@ -96,32 +96,76 @@ export function ContentGeneratorProvider({ children }: { children: ReactNode }) 
                         model: selectedModel,
                     }
 
-            console.log("Fetching:", endpoint, body)
+            console.log(" Creating job:", endpoint, body)
 
+            // Step 1: Create the job
             const response = await fetch(endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),
             })
 
-            console.log("Response status:", response.status, response.ok)
+            console.log(" Job creation response status:", response.status)
 
             if (!response.ok) {
                 const errorText = await response.text()
-                console.log("Error response:", errorText)
+                console.log(" Error response:", errorText)
                 throw new Error(errorText || "Generation failed")
             }
 
-            console.log("No reader, falling back to JSON")
-            const data = await response.json() as string
-            if (contentMode === "seo") {
-                setSeoGeneratedContent(data)
-            } else {
-                setSocialGeneratedContent(data)
+            const { jobId } = (await response.json()) as { jobId: string }
+            console.log(" Job created with ID:", jobId)
+
+            // Step 2: Poll for status
+            const statusEndpoint = `${endpoint}/status/${jobId}`
+            const pollInterval = 2000 // Poll every 2 seconds
+            const maxAttempts = 150 // 5 minutes max (150 * 2s = 300s)
+            let attempts = 0
+
+            const pollStatus = async (): Promise<void> => {
+                while (attempts < maxAttempts) {
+                    attempts++
+                    console.log(" Polling status, attempt:", attempts)
+
+                    const statusResponse = await fetch(statusEndpoint)
+
+                    if (!statusResponse.ok) {
+                        throw new Error("Failed to check job status")
+                    }
+
+                    const statusData = (await statusResponse.json()) as {
+                        status: "processing" | "completed" | "failed"
+                        result?: string
+                        error?: string
+                    }
+
+                    console.log(" Job status:", statusData.status)
+
+                    if (statusData.status === "completed" && statusData.result) {
+                        console.log(" Job completed successfully")
+                        if (contentMode === "seo") {
+                            setSeoGeneratedContent(statusData.result)
+                        } else {
+                            setSocialGeneratedContent(statusData.result)
+                        }
+                        return
+                    }
+
+                    if (statusData.status === "failed") {
+                        console.log(" Job failed:", statusData.error)
+                        throw new Error(statusData.error ?? "Generation failed")
+                    }
+
+                    // Still processing, wait before next poll
+                    await new Promise((resolve) => setTimeout(resolve, pollInterval))
+                }
+
+                throw new Error("Generation timed out. Please try again.")
             }
 
+            await pollStatus()
         } catch (error) {
-            console.error("Error generating content:", error)
+            console.error(" Error generating content:", error)
             const errorMessage = "Error generating content. Please try again. " + (error as Error).message
             if (contentMode === "seo") {
                 setSeoGeneratedContent(errorMessage)

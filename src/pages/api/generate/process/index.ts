@@ -794,7 +794,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>
             body = JSON.parse(rawBody)
         }
 
-        console.log("Processing job:", body.jobId)
 
         if (!body.jobId) {
             res.status(400).json({ error: "Missing jobId in request body" })
