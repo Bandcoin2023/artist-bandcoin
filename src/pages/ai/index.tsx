@@ -13,7 +13,6 @@ import { useRouter } from "next/navigation"
 import { Badge } from "~/components/shadcn/ui/badge"
 import AISidebar from "~/components/layout/ai/ai-sidebar"
 import { useCredits } from "~/hooks/use-credits"
-import { api } from "~/utils/api"
 import { PurchaseCreditsModal } from "~/components/credits/purchase-credits-modal"
 
 export default function AIGenerationPage() {
@@ -68,8 +67,15 @@ export default function AIGenerationPage() {
     const router = useRouter()
 
     const creationModes = [
-        { icon: ImageIcon, label: "Image", active: false, href: "/ai-generation", badge: "NEW" },
-        { icon: Video, label: "Video", active: false, href: "/ai-generation", badge: "NEW" },
+        {
+            icon: ImageIcon,
+            label: "Image",
+            active: false,
+            href: "/ai-generation",
+            badge: "NEW",
+            mediaType: "image" as const,
+        },
+        { icon: Video, label: "Video", active: false, href: "/ai-generation", badge: "NEW", mediaType: "video" as const },
         { icon: Music, label: "Music", active: false, href: "/artist/studio" },
         { icon: Text, label: "SEO", active: false, href: "/text-generation", badge: "NEW" },
     ]
@@ -84,7 +90,7 @@ export default function AIGenerationPage() {
             setShowPurchaseModal(true)
             return
         }
-
+        setMediaType(mediaType)
         setShouldGenerate(true)
         router.push("/ai-generation")
     }
@@ -369,11 +375,15 @@ export default function AIGenerationPage() {
                         </div>
                     </div>
 
+                    {/* Creation Modes */}
                     <div className="flex items-center justify-center gap-8 py-8">
                         {creationModes.map((mode, index) => (
                             <button
                                 key={index}
                                 onClick={() => {
+                                    if (mode.mediaType) {
+                                        setMediaType(mode.mediaType)
+                                    }
                                     if (mode.href) {
                                         router.push(mode.href)
                                     }

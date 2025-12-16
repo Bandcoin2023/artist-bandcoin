@@ -13,7 +13,6 @@ import { AppHeader } from "./app-header"
 export function GenerationPanel() {
   const { mediaType, setMediaType } = useGenerationStore()
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [currentView, setCurrentView] = useState<"generate" | "history" | "credits">("generate")
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-background">
