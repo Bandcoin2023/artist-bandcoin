@@ -14,6 +14,7 @@ import { Pencil, Trash2, Plus, Check, X, TrendingUp, TrendingDown, Minus } from 
 import { Textarea } from "../shadcn/ui/textarea"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "../shadcn/ui/dialog"
 import PricingAssistant from "./pricing-assistant"
+import { PLATFORM_ASSET } from "~/lib/stellar/constant"
 
 type Package = {
     id: string
@@ -204,7 +205,7 @@ function PackageCard({
 
                 <div className="space-y-1 border-t pt-3">
                     <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">BANDCOIN Price:</span>
+                        <span className="text-muted-foreground">{PLATFORM_ASSET.code} Price:</span>
                         <span className="font-medium">{pkg.priceBand.toFixed(2)} BAND</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
@@ -238,20 +239,36 @@ function PackageForm({
     onCancel: () => void
     isLoading: boolean
 }) {
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        name: string
+        description: string
+        credits: string
+        bonus: string
+        priceBand: string
+        priceUSDC: string
+        isPopular: boolean
+        isActive: boolean
+    }>({
         name: initialData?.name ?? "",
         description: initialData?.description ?? "",
-        credits: initialData?.credits ?? 0,
-        bonus: initialData?.bonus ?? 0,
-        priceBand: initialData?.priceBand ?? 0,
-        priceUSDC: initialData?.priceUSDC ?? 0,
+        credits: initialData?.credits?.toString() ?? "0",
+        bonus: initialData?.bonus?.toString() ?? "0",
+        priceBand: initialData?.priceBand?.toString() ?? "0",
+        priceUSDC: initialData?.priceUSDC?.toString() ?? "0",
         isPopular: initialData?.isPopular ?? false,
         isActive: initialData?.isActive !== undefined ? initialData.isActive : true,
     })
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        onSave(formData)
+        const data = {
+            ...formData,
+            credits: formData.credits === "0" ? 0 : Number(formData.credits),
+            bonus: formData.bonus === "0" ? 0 : Number(formData.bonus),
+            priceBand: formData.priceBand === "0" ? 0 : Number(formData.priceBand),
+            priceUSDC: formData.priceUSDC === "0" ? 0 : Number(formData.priceUSDC),
+        }
+        onSave(data)
     }
 
     return (
@@ -286,8 +303,8 @@ function PackageForm({
                         id="credits"
                         type="number"
                         value={formData.credits}
-                        onChange={(e) => setFormData({ ...formData, credits: Number(e.target.value) })}
-                        min="1"
+                        onChange={(e) => setFormData({ ...formData, credits: e.target.value })}
+                        placeholder="1000"
                         required
                     />
                 </div>
@@ -298,22 +315,23 @@ function PackageForm({
                         id="bonus"
                         type="number"
                         value={formData.bonus}
-                        onChange={(e) => setFormData({ ...formData, bonus: Number(e.target.value) })}
-                        min="0"
+
+                        onChange={(e) => setFormData({ ...formData, bonus: e.target.value })}
+                        placeholder="100"
                     />
                 </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                    <Label htmlFor="priceBand">Price (BANDCOIN)</Label>
+                    <Label htmlFor="priceBand">Price ({PLATFORM_ASSET.code})</Label>
                     <Input
                         id="priceBand"
                         type="number"
                         step="0.01"
                         value={formData.priceBand}
-                        onChange={(e) => setFormData({ ...formData, priceBand: Number(e.target.value) })}
-                        min="0"
+                        onChange={(e) => setFormData({ ...formData, priceBand: e.target.value })}
+                        placeholder="9.99"
                         required
                     />
                 </div>
@@ -325,18 +343,18 @@ function PackageForm({
                         type="number"
                         step="0.01"
                         value={formData.priceUSDC}
-                        onChange={(e) => setFormData({ ...formData, priceUSDC: Number(e.target.value) })}
-                        min="0"
+                        onChange={(e) => setFormData({ ...formData, priceUSDC: e.target.value })}
+                        placeholder="9.99"
                         required
                     />
                 </div>
             </div>
 
             <PricingAssistant
-                priceBand={formData.priceBand}
-                priceUSDC={formData.priceUSDC}
-                onPriceBandChange={(value) => setFormData({ ...formData, priceBand: value })}
-                onPriceUSDCChange={(value) => setFormData({ ...formData, priceUSDC: value })}
+                priceBand={formData.priceBand === "" ? 0 : Number(formData.priceBand)}
+                priceUSDC={formData.priceUSDC === "" ? 0 : Number(formData.priceUSDC)}
+                onPriceBandChange={(value) => setFormData({ ...formData, priceBand: value.toString() })}
+                onPriceUSDCChange={(value) => setFormData({ ...formData, priceUSDC: value.toString() })}
             />
 
             <div className="space-y-3">
