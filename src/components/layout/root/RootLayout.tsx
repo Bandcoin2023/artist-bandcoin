@@ -30,6 +30,7 @@ import {
 } from "~/components/shadcn/ui/card";
 import ARModalProvider from "~/components/providers/augmented-reality/augmented-modal-provider";
 import ARLayout from "./ARLayout";
+import FallingSnowflakes from "~/components/christmas/FallingSnowflakes";
 export default function Layout({
     children,
     className,
@@ -156,6 +157,7 @@ export default function Layout({
                         )}
                     </div>
                     <StemPlayer />
+                    <FallingSnowflakes />
                 </BottomPlayerProvider>
             </MiniPlayerProvider>
         </ThemeProvider>

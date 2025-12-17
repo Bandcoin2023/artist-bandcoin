@@ -4,6 +4,7 @@ import { twMerge } from "tailwind-merge";
 
 import { ArrowRight, Bell, Coins, Menu, Plus, Settings, ShoppingBag, ShoppingCart, Sparkles, Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
+import Lottie from "lottie-react"
 
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -19,6 +20,8 @@ import { DashboardNav } from "./Left-sidebar/dashboard-nav";
 import { LeftBottom, LeftNavigation } from "./Left-sidebar/sidebar";
 import { isRechargeAbleClient } from "~/utils/recharge/is-rechargeable-client";
 import { useCredits } from "~/hooks/use-credits";
+import ChristmasSleigh from "../../../public/ChristmasSleigh.json"
+import ChristmasWindChimes from "../../../public/ChristmasWindChimes.json"
 
 function Header() {
     const { isSheetOpen, setIsSheetOpen } = useSidebar();
@@ -34,7 +37,14 @@ function Header() {
                 >
                     <div className="absolute inset-0 bg-gradient-to-b from-accent/30 via-accent/15  to-accent/10" />
                 </div>
-
+                <div className="absolute top-0 right-0 transform  max-w-md z-10 pointer-events-none">
+                    <Lottie
+                        animationData={ChristmasWindChimes}
+                        loop={true}
+                        autoplay={true}
+                        className='h-52'
+                    />
+                </div>
                 <div className="relative z-10 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
@@ -127,6 +137,9 @@ function Header() {
                             </div>
                             <h1 className="hidden md:block relative text-xl font-bold capitalize text-white md:text-4xl">
                                 {PLATFORM_ASSET.code.toLocaleUpperCase()}
+                                <div className={`absolute -top-4  left-0 right-0 z-50 h-32 w-full transition-all overflow-hidden duration-500 ease-out pointer-events-none`}>
+                                    <Lottie animationData={ChristmasSleigh} loop={true} style={{ width: "100%", height: "100%" }} />
+                                </div>
                                 <p className="absolute right-0 top-0 -mr-4 -mt-1 text-xs">TM</p>
                             </h1>
                         </Link>
@@ -134,6 +147,23 @@ function Header() {
                     <HeaderButtons />
                 </div>
             </div>
+            <div className="absolute top-[4rem] left-0 right-0 w-full z-50 flex overflow-hidden  pointer-events-none">
+                <div className="flex  h-12 pointer-events-none">
+                    {Array.from({ length: 20 }, (_, index) => (
+                        <Image
+                            key={index}
+                            src="/tn-christmas-lights.webp"
+                            alt=""
+                            width={1000}
+                            height={1000}
+                            className="object-cover w-full h-full"
+                            priority={index === 0}
+                        />
+                    ))}
+                </div>
+
+            </div>
+
         </header>
     );
 }

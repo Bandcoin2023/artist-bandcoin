@@ -361,6 +361,7 @@ const HomePage = () => {
 
                 <div className="flex">
                   <Button
+                    disabled={RecentlyAddedMarketAssets.length < 1}
                     onClick={() => {
                       setCurrentIndex(
                         (prevIndex) =>
