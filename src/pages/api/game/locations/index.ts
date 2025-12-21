@@ -8,6 +8,7 @@ import { db } from "~/server/db";
 import { Location } from "~/types/game/location";
 import { avaterIconUrl as abaterIconUrl } from "../brands";
 import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
+import { m } from "framer-motion";
 
 export default async function handler(
   req: NextApiRequest,
@@ -41,15 +42,57 @@ export default async function handler(
 
   const userAcc = await StellarAccount.create(userId);
 
+  // Step 1: Get all scavenger bounties user is participating in
+  const getUserActionBounties = await db.bounty.findMany({
+    where: {
+      bountyType: "SCAVENGER_HUNT",
+
+    },
+    select: {
+      ActionLocation: true,
+      participants: {
+        select: {
+          userId: true,
+          currentStep: true,
+        },
+      }
+    }
+  })
+
+  // Collect all scavenger group IDs and currentStep+1 group IDs
+  const allScavengerGroupIdsSet = new Set<string>();
+  const currentStepGroupIdsSet = new Set<string>();
+  for (const bounty of getUserActionBounties) {
+    const currentStep = bounty.participants.find((p) => p.userId === userId)?.currentStep ?? -1;
+    for (const action of bounty.ActionLocation) {
+      allScavengerGroupIdsSet.add(action.locationGroupId);
+      if (action.serial === currentStep + 1) {
+        currentStepGroupIdsSet.add(action.locationGroupId);
+      }
+    }
+  }
+
   let creatorsId: string[] | undefined = undefined;
   if (data.data.filterId === "1") {
+
     const getAllFollowedBrand = await db.creator.findMany({
       where: {
-        followers: {
-          some: {
-            userId: userId,
+        OR: [
+          {
+            followers: {
+              some: {
+                userId: userId,
+              },
+            },
           },
-        },
+          {
+            temporalFollows: {
+              some: {
+                userId: userId,
+              },
+            },
+          },
+        ],
       },
       include: {
         pageAsset: true,
@@ -83,36 +126,54 @@ export default async function handler(
     //   .filter((creator): creator is Creator => creator !== null);
 
     creatorsId = getAllFollowedBrand.map((brand) => brand.id);
+    console.log("creatorsId", creatorsId);
   }
 
   // now i am extracting this brands pins
 
   async function pinsForCreators(creatorsId?: string[]) {
-    const extraFilter = {
-      privacy: { in: [ItemPrivacy.PUBLIC] },
-    } as {
-      creatorId?: { in: string[] };
-      privacy: { in: ItemPrivacy[] };
-    };
-
-    if (creatorsId) {
-      extraFilter.creatorId = { in: creatorsId };
-      extraFilter.privacy = {
-        in: [ItemPrivacy.PRIVATE, ItemPrivacy.TIER, ItemPrivacy.PUBLIC],
-      };
-    }
 
     const locationGroup = await db.locationGroup.findMany({
       where: {
-        ...extraFilter,
-        approved: { equals: true },
-        // hide groups that end in the past
-        endDate: { gte: new Date() },
-        // hide groups that start in the future (only show groups whose startDate is <= now)
-        startDate: { lte: new Date() },
-        subscriptionId: { equals: null },
-        remaining: { gt: 0 },
-        hidden: false,
+        AND: [
+          {
+            approved: true,
+            startDate: { lte: new Date() },
+            endDate: { gte: new Date() },
+            subscriptionId: null,
+            remaining: { gt: 0 },
+            hidden: false,
+          },
+          {
+            // Include only:
+            // - groups NOT in any scavenger (to avoid duplicates)
+            // OR
+            // - current step+1 scavenger pins
+            OR: [
+              {
+                NOT: {
+                  id: {
+                    in: Array.from(allScavengerGroupIdsSet),
+                  },
+                },
+              },
+              {
+                id: {
+                  in: Array.from(currentStepGroupIdsSet),
+                },
+              },
+            ],
+          },
+        ],
+        // Filter by creator if given (filterId = 1)
+        ...(creatorsId && {
+          creatorId: { in: creatorsId },
+          privacy: { in: [ItemPrivacy.PUBLIC, ItemPrivacy.PRIVATE, ItemPrivacy.TIER, ItemPrivacy.FOLLOWER] },
+        }),
+        // Else only show public pins
+        ...(!creatorsId && {
+          privacy: { in: [ItemPrivacy.PUBLIC] },
+        }),
       },
       include: {
         locations: {
@@ -137,6 +198,8 @@ export default async function handler(
         },
       },
     });
+
+
     const pins = locationGroup
       .flatMap((group) => {
         const multiPin = group.multiPin;
@@ -200,7 +263,7 @@ export default async function handler(
         title: location.title,
         description: location.description ?? "No description provided",
         brand_name: location.creator.name,
-        url: location.link ?? "https://bandcoin.io/",
+        url: location.link ?? "https://app.action-tokens.com/",
         image_url:
           location.image ?? location.creator.profileUrl ?? WadzzoIconURL,
         collected: location.collected,
@@ -216,7 +279,8 @@ export default async function handler(
   }
 
   const locations = await pinsForCreators(creatorsId);
-
+  console.log("locations.length", locations.length);
   res.status(200).json({ locations });
 }
-export const WadzzoIconURL = "https://bandcoin.io/images/logo.png";
+
+export const WadzzoIconURL = "https://app.action-tokens.com/images/action/logo.png";
