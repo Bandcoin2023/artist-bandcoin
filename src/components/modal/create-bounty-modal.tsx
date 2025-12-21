@@ -130,7 +130,7 @@ type selectedAssetType = {
   assetType: assetType
 }
 
-const CreateBountyModal = () => {
+const CreateBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => {
   // State management
   const [media, setMedia] = useState<MediaInfoType[]>([])
   const [loading, setLoading] = useState(false)
@@ -143,7 +143,6 @@ const CreateBountyModal = () => {
   const session = useSession()
   const { platformAssetBalance } = useUserStellarAcc()
   const { isOpen, setIsOpen, paymentMethod, setPaymentMethod } = usePaymentMethodStore()
-  const { isOpen: isDialogOpen, setIsOpen: setIsDialogOpen } = useCreateBountyStore()
   const utils = api.useUtils()
 
   const totalFees = 0
@@ -352,7 +351,7 @@ const CreateBountyModal = () => {
   }
 
   const handleClose = () => {
-    setIsDialogOpen(false)
+    onOpenChange(false)
     reset()
     setMedia([])
     setActiveStep("details")
@@ -383,9 +382,9 @@ const CreateBountyModal = () => {
 
 
   return (
-    <Dialog open={isDialogOpen} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
-        onInteractOutside={(e) => e.preventDefault()}
+
         className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-xl p-2"
       >
         {/* {showConfetti && (

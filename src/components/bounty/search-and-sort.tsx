@@ -1,126 +1,122 @@
 import { Plus, Search, ChevronDown, MapPin, Target, Trophy } from "lucide-react"
 import { Input } from "~/components/shadcn/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/shadcn/ui/select"
-import { sortOptionEnum } from "~/types/bounty/bounty-type"
-import { Button } from "../shadcn/ui/button"
-import { filterEnum } from "~/pages/bounty"
-import { useCreateBountyStore } from "../store/create-bounty-store"
+import type { sortOptionEnum } from "~/types/bounty/bounty-type"
+import { Button } from "~/components/shadcn/ui/button"
+import type { filterEnum } from "~/pages/bounty"
+import { Tabs, TabsList, TabsTrigger } from "~/components/shadcn/ui/tabs"
+import { useRouter } from "next/router"
+import { useState } from "react"
+import CreateBountyModal from "~/components/modal/create-bounty-modal"
+import ScavengerHuntDialog from "~/components/modal/scavenger-hunt-modal"
+import CreateLocationBasedBountyModal from "~/components/modal/create-locationbased-bounty"
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuTrigger,
     DropdownMenuSeparator,
-} from "~/components/shadcn/ui/dropdown-menu"
-import { useCreateLocationBasedBountyStore } from "../store/create-locationbased-bounty-store"
-export default function SearchAndSort({ searchTerm, setSearchTerm, sortOption, setSortOption, filter, setFilter }: {
-    searchTerm: string,
-    setSearchTerm: (value: string) => void,
-    sortOption: string,
+    DropdownMenuTrigger
+} from "../shadcn/ui/dropdown-menu"
+export enum BountyTypeFilter {
+    ALL = "ALL",
+    GENERAL = "GENERAL",
+    LOCATION_BASED = "LOCATION_BASED",
+    SCAVENGER_HUNT = "SCAVENGER_HUNT",
+}
+export default function SearchAndSort({
+    searchTerm,
+    setSearchTerm,
+    sortOption,
+    setSortOption,
+    filter,
+    setFilter,
+    typeFilter,
+    setTypeFilter,
+}: {
+    searchTerm: string
+    setSearchTerm: (value: string) => void
+    sortOption: string
     setSortOption: (value: sortOptionEnum) => void
     filter: string,
     setFilter?: (value: filterEnum) => void
 
 }) {
-    const { setIsOpen } = useCreateBountyStore()
-    const { setIsOpen: setIsOpenLocationModal } = useCreateLocationBasedBountyStore()
-
+    const router = useRouter()
+    const [dropdownOpen, setDropdownOpen] = useState(false)
+    const [createBountyOpen, setCreateBountyOpen] = useState(false)
+    const [scavengerHuntOpen, setScavengerHuntOpen] = useState(false)
+    const [locationBasedOpen, setLocationBasedOpen] = useState(false)
     return (
-        <div className=" flex flex-col   gap-4 items-center justify-between  bg-secondary p-6 rounded-lg shadow-md">
-            <h1 className="mb-8 text-4xl hidden md:block font-extrabold text-center ">
-                {setFilter ? " Discover Exciting Bounties" : "Your Bounties"}
-            </h1>
-            <div className="flex flex-col md:flex-row  gap-4 items-center w-full justify-between">
+        <div className="bg-card rounded-lg shadow-sm p-5 m-4">
+            <div className="flex flex-col gap-5">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-2xl font-bold hidden md:block">{
+                        router.pathname === "/organization/bounty"
+                            ? "Your Bounties"
+                            : "Discover Bounties"
+                    }</h1>
 
-                <div className="flex items-center flex-col md:flex-row justify-center  w-full gap-4">
+                    {router.pathname === "/organization/bounty" && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button className="ml-auto">
+                                    <Plus className="h-4 w-4 mr-2" /> Create <ChevronDown className="h-4 w-4 ml-2" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => { setCreateBountyOpen(true); setDropdownOpen(false) }} className="cursor-pointer">
+                                    <Trophy className="h-4 w-4 mr-2" />
+                                    <span>Create Bounty</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => { setScavengerHuntOpen(true); setDropdownOpen(false) }} className="cursor-pointer">
+                                    <Target className="h-4 w-4 mr-2" />
+                                    <span>Create Scavenger Hunt</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => { setLocationBasedOpen(true); setDropdownOpen(false) }} className="cursor-pointer">
+                                    <MapPin className="h-4 w-4 mr-2" />
+                                    <span>Create Location Based</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
+                </div>
 
-                    <div className="relative w-full md:w-1/2">
-
+                <div className="flex flex-col md:flex-row gap-4">
+                    <div className="relative flex-grow">
                         <Input
                             type="search"
                             placeholder="Search bounties..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2 w-full  border-[1px]"
+                            className="pl-10 w-full"
                         />
-                        <Search className="absolute left-3 top-5 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
-
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     </div>
 
-                    {
-                        setFilter ?
-                            <div className="flex justify-center items-center space-x-4">
-                                <Button
-                                    className={`shadow-sm shadow-black ${filter === "ALL" ? "w-full border-2  font-bold text-[#dbdd2c] border-[#dbdd2c] bg-background" : "transparent shadow-black"}`}
-                                    onClick={() => setFilter(filterEnum.ALL)}>
-                                    ALL
-                                </Button>
-                                <Button
-                                    className={`shadow-sm shadow-black ${filter === "NOT_JOINED" ? "w-full border-2  font-bold text-[#dbdd2c] border-[#dbdd2c] bg-background" : "transparent shadow-black"}`}
-                                    onClick={() => setFilter(filterEnum.NOT_JOINED)}>
-                                    NOT JOINED
-                                </Button>
-                                <Button
-                                    className={`shadow-sm shadow-black ${filter === "JOINED" ? "w-full border-2  font-bold text-[#dbdd2c] border-[#dbdd2c] bg-background" : "transparent shadow-black"}`}
-                                    onClick={() => setFilter(filterEnum.JOINED)}>
-                                    JOINED
-                                </Button>
-                            </div> :
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button className="ml-auto" variant="accent">
-                                        <Plus className="h-4 w-4 mr-2" /> Create <ChevronDown className="h-4 w-4 ml-2" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => setIsOpen(true)} className="cursor-pointer">
-                                        <Trophy className="h-4 w-4 mr-2" />
-                                        <span>Create Bounty</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-
-                                    <DropdownMenuItem onClick={() => setIsOpenLocationModal(true)} className="cursor-pointer">
-                                        <MapPin className="h-4 w-4 mr-2" />
-                                        <span>Create Location Based</span>
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                    }
-                    <div className="flex items-center justify-center space-x-4 ">
-                        <Select value={sortOption}
-
-                            onValueChange={(value: sortOptionEnum) => setSortOption(value)}>
-                            <SelectTrigger
-                                className="w-full md:w-auto shadow-sm shadow-black  ">
-                                <SelectValue
-
-                                    placeholder="Sort bounties" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="DATE_DESC">Newest First</SelectItem>
-                                <SelectItem value="DATE_ASC">Oldest First</SelectItem>
-                                <SelectItem value="PRICE_DESC">Highest Prize</SelectItem>
-                                <SelectItem value="PRICE_ASC">Lowest Prize</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        {
-                            !setFilter &&
-                            <Button className="shadow-sm  shadow-foreground md:hidden flex items-center justify-center"
-                                variant='destructive'
-                                onClick={() => setIsOpen(true)}
-
-                            >
-                                <Plus className="h-4 w-4 mr-2" />
-                                <span> Create Bounty</span>
-                            </Button>
-                        }
-                    </div>
+                    <Select value={sortOption} onValueChange={(value: sortOptionEnum) => setSortOption(value)}>
+                        <SelectTrigger className="w-full md:w-[180px]">
+                            <SelectValue placeholder="Sort by" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="DATE_DESC">Newest First</SelectItem>
+                            <SelectItem value="DATE_ASC">Oldest First</SelectItem>
+                            <SelectItem value="PRICE_DESC">Highest Prize</SelectItem>
+                            <SelectItem value="PRICE_ASC">Lowest Prize</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
 
                 </div>
 
 
             </div>
-        </div>
+
+            <CreateBountyModal open={createBountyOpen} onOpenChange={setCreateBountyOpen} />
+            <ScavengerHuntDialog open={scavengerHuntOpen} onOpenChange={setScavengerHuntOpen} />
+            <CreateLocationBasedBountyModal open={locationBasedOpen} onOpenChange={setLocationBasedOpen} />
+        </div >
     )
 }
 

@@ -8,7 +8,6 @@ import MusicBuyModal from "../modal/music-buy-modal";
 import EditBountyModal from "../modal/edit-bounty-modal";
 import BountyFileUploadModal from "../modal/bounty-submission-modal";
 import ViewBountyAttachmentModal from "../modal/view-bounty-attachment-modal";
-import CreateBountyModal from "../modal/create-bounty-modal";
 import CreatorCreatePinModal from "../modal/creator-create-pin-modal";
 import MapOptionModal from "../modal/map-options-modal";
 import CreateAlbumModal from "../modal/create-album-modal";
@@ -22,45 +21,43 @@ import ExportCreateSongModal from "../modal/export-create-song-modal";
 import CreateRoyalityModal from "../modal/create-royality-modal";
 import { AddSpotifyRewardDialog } from "../modal/add-spotify-reward-dialog";
 import SellPageAssetModal from "../modal/sell-page-asset-modal";
-import CreateLocationBasedBountyModal from "../modal/create-locationbased-bounty";
 
 const ModalProvider = () => {
-  const [isMounted, setIsMounted] = useState(false);
+      const [isMounted, setIsMounted] = useState(false);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+      useEffect(() => {
+            setIsMounted(true);
+      }, []);
 
-  if (!isMounted) return null;
+      if (!isMounted) return null;
 
-  return (
-    <>
-      <BuyModal />
-      <ViewAdminAsset />
-      <AssetInfoModal />
-      <CollectedPinInfoModal />
-      <MusicBuyModal />
-      <EditBountyModal />
-      <BountyFileUploadModal />
-      <ViewBountyAttachmentModal />
-      <CreateBountyModal />
-      <MapOptionModal />
-      <CreatorCreatePinModal />
-      <CreateAlbumModal />
-      <NftCreateModal />
-      <CreatorStoredAssetModal />
-      <CreateSongModal />
-      <ShareModal />
-      <CreateLocationBasedBountyModal />
+      return (
+            <>
+                  <BuyModal />
+                  <ViewAdminAsset />
+                  <AssetInfoModal />
+                  <CollectedPinInfoModal />
+                  <MusicBuyModal />
+                  <EditBountyModal />
+                  <BountyFileUploadModal />
+                  <ViewBountyAttachmentModal />
 
-      <CreatePostModal />
-      <AddSubscriptionModal />
-      <ExportCreateSongModal />
-      <CreateRoyalityModal />
-      <AddSpotifyRewardDialog />
-      <SellPageAssetModal />
-    </>
-  );
+                  <MapOptionModal />
+                  <CreatorCreatePinModal />
+                  <CreateAlbumModal />
+                  <NftCreateModal />
+                  <CreatorStoredAssetModal />
+                  <CreateSongModal />
+                  <ShareModal />
+
+                  <CreatePostModal />
+                  <AddSubscriptionModal />
+                  <ExportCreateSongModal />
+                  <CreateRoyalityModal />
+                  <AddSpotifyRewardDialog />
+                  <SellPageAssetModal />
+            </>
+      );
 };
 
 export default ModalProvider;
