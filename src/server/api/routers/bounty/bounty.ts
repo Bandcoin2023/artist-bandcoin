@@ -736,7 +736,6 @@ export const BountyRoute = createTRPCRouter({
         nextCursor: nextCursor,
       };
     }),
-
   getBountyByID: publicProcedure
     .input(
       z.object({
@@ -752,8 +751,10 @@ export const BountyRoute = createTRPCRouter({
           participants: {
             select: {
               user: true,
+              currentStep: true,
             },
           },
+          ActionLocation: true,
           creator: {
             select: {
               id: true,
@@ -766,7 +767,6 @@ export const BountyRoute = createTRPCRouter({
               user: {
                 select: {
                   id: true,
-
                 },
               },
               isClaimed: true,
@@ -786,6 +786,7 @@ export const BountyRoute = createTRPCRouter({
               medias: true,
             },
           },
+
           comments: {
             select: {
               user: {
@@ -804,11 +805,20 @@ export const BountyRoute = createTRPCRouter({
               submissions: true,
               comments: true,
               BountyWinner: true,
+              ActionLocation: true,
             },
           },
         },
       });
-      return bounty;
+      return {
+        ...bounty,
+        isOwner: bounty?.creatorId === ctx.session?.user.id,
+        isJoined: bounty?.participants.some((participant) => participant.userId === ctx.session?.user.id),
+        currentStep: bounty?.participants.find((participant) => participant.userId === ctx.session?.user.id)
+          ?.currentStep,
+      };
+
+
     }),
   createBountyAttachment: protectedProcedure
     .input(
