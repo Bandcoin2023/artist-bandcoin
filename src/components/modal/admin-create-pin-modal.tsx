@@ -1,19 +1,10 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import {
-    Loader,
-    MapPin,
-    Calendar,
-    LinkIcon,
-    ImageIcon,
-    Coins,
-    Target,
-    Hash,
-    Layers,
-    ChevronLeft,
-    ChevronRight,
-} from "lucide-react"
+import { Controller, FormProvider, type SubmitHandler, useForm, useFormContext } from "react-hook-form"
+import { z } from "zod"
+import toast from "react-hot-toast"
+import { Loader, MapPin, ImageIcon, Settings, CheckCircle, Coins, Calendar } from "lucide-react"
 import Image from "next/image"
 import { type ChangeEvent, useEffect, useRef, useState } from "react"
 import { Controller, type SubmitHandler, useForm, FormProvider, useFormContext } from "react-hook-form"
@@ -537,16 +528,18 @@ export default function CreateAdminPinModal() {
                                                     >
                                                         <ManualLatLanInputField />
 
-                                                        <div className="space-y-2">
-                                                            <div className="flex items-center gap-2">
-                                                                <Hash className="h-4 w-4 " />
-                                                                <Label htmlFor="title" className="text-sm font-medium">
-                                                                    Title
-                                                                </Label>
-                                                            </div>
-                                                            <Input id="title" {...register("title")} placeholder="Enter pin title" />
-                                                            {errors.title && <p className="text-sm text-destructive">{errors.title.message}</p>}
-                                                        </div>
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="title" className="text-sm font-medium">
+                                                            Pin Title <span className="text-destructive">*</span>
+                                                        </Label>
+                                                        <Input
+                                                            id="title"
+                                                            {...register("title")}
+                                                            className="bg-input border-border focus:ring-ring"
+                                                            placeholder="Enter a catchy title for your pin"
+                                                        />
+                                                        {errors.title && <p className="text-destructive text-sm">{errors.title.message}</p>}
+                                                    </div>
 
                                                         <div className="space-y-2">
                                                             <div className="flex items-center gap-2">
@@ -592,348 +585,487 @@ export default function CreateAdminPinModal() {
                                                         </div>
 
                                                         <div className="space-y-2">
-                                                            <div className="flex items-center gap-2">
-                                                                <LinkIcon className="h-4 w-4 " />
-                                                                <Label htmlFor="url" className="text-sm font-medium">
-                                                                    URL / LINK
-                                                                </Label>
-                                                            </div>
-                                                            <Input id="url" {...register("url")} placeholder="https://example.com" />
-                                                            {errors.url && <p className="text-sm text-destructive">{errors.url.message}</p>}
+                                                            <Label htmlFor="url" className="text-sm font-medium">
+                                                                URL / Link <span className="text-destructive">*</span>
+                                                            </Label>
+                                                            <Input
+                                                                id="url"
+                                                                {...register("url")}
+                                                                className="bg-input border-border focus:ring-ring"
+                                                                placeholder="https://example.com"
+                                                            />
+                                                            {errors.url && <p className="text-destructive text-sm">{errors.url.message}</p>}
                                                         </div>
+                                                    </div>
 
+                                                    <ImageUploadField coverUrl={coverUrl} setCover={setCover} setValue={setValue} />
+
+
+                                                </CardContent>
+                                        </Card>
+
+                                        <div className="flex flex-col gap-8">
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center gap-2 text-lg">
+                                                        <Settings className="w-5 h-5 text-primary" />
+                                                        Collection & Tier Settings
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="flex flex-col gap-2">
+                                                    <TiersOptions creatorId={selectedCreator?.id ?? ""} />
+                                                    <CollectionInputs
+
+                                                        creatorId={selectedCreator?.id ?? ""}
+                                                        setSelectedToken={setSelectedToken}
+                                                        setRemainingBalance={setRemainingBalance}
+                                                        assetsQuery={assetsQuery}
+
+                                                        selectedToken={selectedToken}
+                                                        remainingBalance={remainingBalance}
+                                                    />
+                                                </CardContent>
+                                            </Card>
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center gap-2 text-lg">
+                                                        <Calendar className="w-5 h-5 text-primary" />
+                                                        Schedule
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <div className="flex flex-col gap-2">
                                                         <div className="space-y-2">
-                                                            <div className="flex items-center gap-2">
-                                                                <Calendar className="h-4 w-4 " />
-                                                                <Label htmlFor="startDate" className="text-sm font-medium">
-                                                                    Start Date
-                                                                </Label>
-                                                            </div>
+                                                            <Label htmlFor="startDate" className="text-sm font-medium">
+                                                                Start Date <span className="text-destructive">*</span>
+                                                            </Label>
                                                             <Controller
                                                                 name="startDate"
                                                                 control={control}
                                                                 render={({ field }) => (
                                                                     <Input
-                                                                        type="date"
+                                                                        type="datetime-local"
                                                                         id="startDate"
-                                                                        value={field.value instanceof Date ? formatDateForInput(field.value) : ""}
-                                                                        onChange={(e) => {
-                                                                            field.onChange(e.target.value ? new Date(e.target.value) : null)
+                                                                        value={field.value ? formatDateForInput(new Date(field.value)) : formatDateForInput(today)}
+                                                                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                                                                            const v = e.target.value
+                                                                            field.onChange(v ? new Date(v) : undefined)
                                                                         }}
+                                                                        className="bg-input border-border focus:ring-ring"
                                                                     />
                                                                 )}
                                                             />
-                                                            {errors.startDate && (
-                                                                <p className="text-sm text-destructive">{errors.startDate.message}</p>
-                                                            )}
                                                         </div>
 
                                                         <div className="space-y-2">
-                                                            <div className="flex items-center gap-2">
-                                                                <Calendar className="h-4 w-4 " />
-                                                                <Label htmlFor="endDate" className="text-sm font-medium">
-                                                                    End Date
-                                                                </Label>
-                                                            </div>
+                                                            <Label htmlFor="endDate" className="text-sm font-medium">
+                                                                End Date <span className="text-destructive">*</span>
+                                                            </Label>
                                                             <Controller
                                                                 name="endDate"
                                                                 control={control}
                                                                 render={({ field }) => (
                                                                     <Input
-                                                                        type="date"
+                                                                        type="datetime-local"
                                                                         id="endDate"
-                                                                        value={field.value instanceof Date ? formatDateForInput(field.value) : ""}
-                                                                        onChange={(e) => {
-                                                                            field.onChange(e.target.value ? new Date(e.target.value) : null)
+                                                                        value={field.value ? formatDateForInput(new Date(field.value)) : formatDateForInput(tomorrow)}
+                                                                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                                                                            const v = e.target.value
+                                                                            field.onChange(v ? new Date(v) : undefined)
                                                                         }}
+                                                                        className="bg-input border-border focus:ring-ring "
                                                                     />
                                                                 )}
                                                             />
-                                                            {errors.endDate && <p className="text-sm text-destructive">{errors.endDate.message}</p>}
+                                                            {errors.endDate && <p className="text-destructive text-sm">{errors.endDate.message}</p>}
+
                                                         </div>
-                                                    </motion.div>
-                                                )}
-
-                                                {activeStep === "tokens" && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0 }}
-                                                        animate={{ opacity: 1 }}
-                                                        transition={{ duration: 0.3 }}
-                                                        className="space-y-4"
-                                                    >
-                                                        <div className="space-y-2">
-                                                            <div className="flex items-center gap-2">
-                                                                <Layers className="h-4 w-4 " />
-                                                                <Label htmlFor="description" className="text-sm font-medium">
-                                                                    Description
-                                                                </Label>
-                                                            </div>
-                                                            <Textarea
-                                                                id="description"
-                                                                {...register("description")}
-                                                                className="min-h-24"
-                                                                placeholder="Describe what this pin is about..."
-                                                            />
-                                                            {errors.description && (
-                                                                <p className="text-sm text-destructive">{errors.description.message}</p>
-                                                            )}
-                                                        </div>
-
-                                                        <TiersOptions />
-
-                                                        <div className="grid gap-4 md:grid-cols-2">
-                                                            {assetsDropdown}
-
-                                                            <AnimatePresence>
-                                                                {selectedToken && (
-                                                                    <motion.div
-                                                                        initial={{ opacity: 0, y: 10 }}
-                                                                        animate={{ opacity: 1, y: 0 }}
-                                                                        exit={{ opacity: 0, y: 10 }}
-                                                                        className="space-y-2"
-                                                                    >
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Coins className="h-4 w-4 " />
-                                                                            <Label htmlFor="perUserTokenAmount" className="text-sm font-medium">
-                                                                                Collection limit
-                                                                            </Label>
-                                                                        </div>
-                                                                        <Input
-                                                                            type="number"
-                                                                            defaultValue={1}
-                                                                            id="perUserTokenAmount"
-                                                                            {...register("pinCollectionLimit", {
-                                                                                valueAsNumber: true,
-                                                                                min: 1,
-                                                                                max: 2147483647,
-                                                                            })}
-                                                                            max={2147483647}
-                                                                        />
-
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Badge
-                                                                                variant={remainingBalance < 0 ? "destructive" : "outline"}
-                                                                                className="px-2 py-0 h-5"
-                                                                            >
-                                                                                {remainingBalance < 0
-                                                                                    ? "Insufficient token balance"
-                                                                                    : `Limit Remaining: ${remainingBalance}`}
-                                                                            </Badge>
-                                                                        </div>
-
-                                                                        {errors.pinCollectionLimit && (
-                                                                            <p className="text-sm text-destructive">{errors.pinCollectionLimit.message}</p>
-                                                                        )}
-                                                                    </motion.div>
-                                                                )}
-                                                            </AnimatePresence>
-                                                        </div>
-                                                    </motion.div>
-                                                )}
-
-
-                                                {activeStep === "advanced" && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0 }}
-                                                        animate={{ opacity: 1 }}
-                                                        transition={{ duration: 0.3 }}
-                                                        className="space-y-4"
-                                                    >
-                                                        <div className="space-y-2">
-                                                            <div className="flex items-center gap-2">
-                                                                <Target className="h-4 w-4 " />
-                                                                <Label htmlFor="radius" className="text-sm font-medium">
-                                                                    Radius (meters)
-                                                                </Label>
-                                                                <TooltipProvider>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger>
-                                                                            <div className="rounded-full bg-muted px-1 text-xs">?</div>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            <p className="max-w-xs text-xs">
-                                                                                Set the radius around the pin location where users can collect it
-                                                                            </p>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </TooltipProvider>
-                                                            </div>
-                                                            <Input
-                                                                min={0}
-                                                                type="number"
-                                                                id="radius"
-                                                                {...register("radius", { valueAsNumber: true })}
-                                                            />
-                                                            {errors.radius && <p className="text-sm text-destructive">{errors.radius.message}</p>}
-                                                        </div>
-
-                                                        <div className="space-y-2">
-                                                            <div className="flex items-center gap-2">
-                                                                <Layers className="h-4 w-4 " />
-                                                                <Label htmlFor="pinNumber" className="text-sm font-medium">
-                                                                    Number of pins
-                                                                </Label>
-                                                                <TooltipProvider>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger>
-                                                                            <div className="rounded-full bg-muted px-1 text-xs">?</div>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            <p className="max-w-xs text-xs">
-                                                                                How many identical pins to create at this location
-                                                                            </p>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </TooltipProvider>
-                                                            </div>
-                                                            <Input
-                                                                type="number"
-                                                                min={1}
-                                                                id="pinNumber"
-                                                                {...register("pinNumber", { valueAsNumber: true })}
-                                                            />
-                                                            {errors.pinNumber && (
-                                                                <p className="text-sm text-destructive">{errors.pinNumber.message}</p>
-                                                            )}
-                                                        </div>
-
-                                                        <div className="grid gap-4 md:grid-cols-2">
-                                                            <div className="flex items-start space-x-2">
-                                                                <Checkbox id="autoCollect" {...register("autoCollect")} />
-                                                                <div className="grid gap-1.5 leading-none">
-                                                                    <Label
-                                                                        htmlFor="autoCollect"
-                                                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                                                    >
-                                                                        Auto Collect
-                                                                    </Label>
-                                                                    <p className="text-xs text-muted-foreground">Automatically collect when in range</p>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="flex items-start space-x-2">
-                                                                <Checkbox id="multiPin" {...register("multiPin")} />
-                                                                <div className="grid gap-1.5 leading-none">
-                                                                    <Label
-                                                                        htmlFor="multiPin"
-                                                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                                                    >
-                                                                        Multi Pin
-                                                                    </Label>
-                                                                    <p className="text-xs text-muted-foreground">Allow multiple collections</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </motion.div>
-                                                )}
-
-
-
-                                                {addPinM.isError && (
-                                                    <div className="mt-4 rounded-lg bg-destructive/10 p-3 text-destructive">
-                                                        <p>{addPinM.failureReason?.message}</p>
                                                     </div>
-                                                )}
-                                            </form>
-                                        </FormProvider>
-                                    </div>
-                                    <DialogFooter className="px-4 py-2 border-t-2 ">
-                                        <div className="flex items-center justify-between w-full">
-                                            <Button type="button" variant="outline" onClick={closePopup}>
-                                                Cancel
-                                            </Button>
-
-                                            <div className="flex items-center gap-2">
-                                                {activeStep !== "basic" && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        onClick={goToPreviousTab}
-                                                        className="flex items-center gap-1"
-                                                    >
-                                                        <ChevronLeft className="h-4 w-4" />
-                                                        Previous
-                                                    </Button>
-                                                )}
-
-                                                {activeStep !== "advanced" ? (
-                                                    <Button type="button" onClick={goToNextTab}
-                                                        variant='sidebar'
-                                                        className="flex items-center gap-1">
-                                                        Next
-                                                        <ChevronRight className="h-4 w-4" />
-                                                    </Button>
-                                                ) : (
-                                                    <Button
-                                                        onClick={handleSubmit(onSubmit)}
-                                                        variant='sidebar'
-                                                        disabled={addPinM.isLoading || remainingBalance < 0 || !isValid}
-                                                        className="flex items-center gap-1 shadow-sm shadow-foreground"
-                                                    >
-                                                        {addPinM.isLoading ? (
-                                                            <>
-                                                                <Loader className="mr-2 h-4 w-4 animate-spin" />
-                                                                Creating...
-                                                            </>
-                                                        ) : (
-                                                            "Create Pin"
-                                                        )}
-                                                    </Button>
-                                                )}
-                                            </div>
+                                                </CardContent>
+                                            </Card>
                                         </div>
-                                    </DialogFooter>
+
+                                    </div>
+
+                                    {errors.pinCollectionLimit && (
+                                        <p className="text-sm text-destructive">{errors.pinCollectionLimit.message}</p>
+                                    )}
+                                </motion.div>
+                                                                )}
+                        </AnimatePresence>
+                    </div>
+                </motion.div>
+                                                )}
+
+
+                {activeStep === "advanced" && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
+                        className="space-y-4"
+                    >
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                                <Target className="h-4 w-4 " />
+                                <Label htmlFor="radius" className="text-sm font-medium">
+                                    Radius (meters)
+                                </Label>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <div className="rounded-full bg-muted px-1 text-xs">?</div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p className="max-w-xs text-xs">
+                                                Set the radius around the pin location where users can collect it
+                                            </p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                            <Input
+                                min={0}
+                                type="number"
+                                id="radius"
+                                {...register("radius", { valueAsNumber: true })}
+                            />
+                            {errors.radius && <p className="text-sm text-destructive">{errors.radius.message}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                                <Layers className="h-4 w-4 " />
+                                <Label htmlFor="pinNumber" className="text-sm font-medium">
+                                    Number of pins
+                                </Label>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <div className="rounded-full bg-muted px-1 text-xs">?</div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p className="max-w-xs text-xs">
+                                                How many identical pins to create at this location
+                                            </p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                            <Input
+                                type="number"
+                                min={1}
+                                id="pinNumber"
+                                {...register("pinNumber", { valueAsNumber: true })}
+                            />
+                            {errors.pinNumber && (
+                                <p className="text-sm text-destructive">{errors.pinNumber.message}</p>
+                            )}
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="flex items-start space-x-2">
+                                <Checkbox id="autoCollect" {...register("autoCollect")} />
+                                <div className="grid gap-1.5 leading-none">
+                                    <Label
+                                        htmlFor="autoCollect"
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
+                                        Auto Collect
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground">Automatically collect when in range</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-start space-x-2">
+                                <Checkbox id="multiPin" {...register("multiPin")} />
+                                <div className="grid gap-1.5 leading-none">
+                                    <Label
+                                        htmlFor="multiPin"
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
+                                        Multi Pin
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground">Allow multiple collections</p>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
+
+
+                {addPinM.isError && (
+                    <div className="mt-4 rounded-lg bg-destructive/10 p-3 text-destructive">
+                        <p>{addPinM.failureReason?.message}</p>
+                    </div>
+                )}
+            </form>
+        </FormProvider >
+                                    </div >
+        <DialogFooter className="px-4 py-2 border-t-2 ">
+            <div className="flex items-center justify-between w-full">
+                <Button type="button" variant="outline" onClick={closePopup}>
+                    Cancel
+                </Button>
+
+                <div className="flex items-center gap-2">
+                    {activeStep !== "basic" && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={goToPreviousTab}
+                            className="flex items-center gap-1"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                            Previous
+                        </Button>
+                    )}
+
+                    {activeStep !== "advanced" ? (
+                        <Button type="button" onClick={goToNextTab}
+                            variant='sidebar'
+                            className="flex items-center gap-1">
+                            Next
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    ) : (
+                        <Button
+                            onClick={handleSubmit(onSubmit)}
+                            variant='sidebar'
+                            disabled={addPinM.isLoading || remainingBalance < 0 || !isValid}
+                            className="flex items-center gap-1 shadow-sm shadow-foreground"
+                        >
+                            {addPinM.isLoading ? (
+                                <>
+                                    <Loader className="mr-2 h-4 w-4 animate-spin" />
+                                    Creating...
                                 </>
                             ) : (
-                                <div className="p-6 flex flex-col items-center justify-center space-y-4">
-                                    <div className="text-center">
-                                        <h3 className="text-lg font-medium">No Creator Selected</h3>
-                                        <p className="text-sm text-muted-foreground mt-1">Please select a creator before creating a pin</p>
-                                    </div>
-                                    <Button variant="outline" onClick={closePopup}>
-                                        Close
-                                    </Button>
-                                </div>
+                                "Create Pin"
                             )}
-                        </motion.div>
-                    </DialogContent>
-                </Dialog>
+                        </Button>
+                    )}
+                </div>
+            </div>
+        </DialogFooter>
+                                </>
+                            ) : (
+        <div className="p-6 flex flex-col items-center justify-center space-y-4">
+            <div className="text-center">
+                <h3 className="text-lg font-medium">No Creator Selected</h3>
+                <p className="text-sm text-muted-foreground mt-1">Please select a creator before creating a pin</p>
+            </div>
+            <Button variant="outline" onClick={closePopup}>
+                Close
+            </Button>
+        </div>
+    )
+}
+                        </motion.div >
+                    </DialogContent >
+                </Dialog >
             </AnimatePresence >
         </>
     )
 }
 
-// components
-function ManualLatLanInputField() {
-    const { manual, position } = useAdminMapModalStore()
-    // Use the parent form context instead of creating a new one
-    const {
-        register,
-        formState: { errors },
-    } = useFormContext<z.infer<typeof createAdminPinFormSchema>>()
+function CollectionInputs({
+    creatorId,
+    setSelectedToken,
+    setRemainingBalance,
+    assetsQuery,
 
-    if (manual)
-        return (
-            <div className="grid gap-4 md:grid-cols-2">
+    selectedToken,
+    remainingBalance,
+}: {
+    creatorId: string
+    setSelectedToken: (asset: (AssetType & { bal: number } | undefined)) => void
+    setRemainingBalance: (balance: number) => void
+    assetsQuery: {
+        data: {
+            pageAsset?: {
+                code: string;
+                creatorId: string;
+                issuer: string;
+                thumbnail: string | null;
+            }
+            shopAsset: AssetType[]
+        } | null | undefined
+    }
+
+    selectedToken: (AssetType & { bal: number } | undefined)
+    remainingBalance: number
+}) {
+    const { control, setValue, register, formState: { errors } } = useFormContext<z.infer<typeof createAdminPinFormSchema>>()
+    const GetAssetBalance = api.fan.asset.getAssetBalance.useMutation()
+
+    return (
+        <div className="space-y-4">
+            <div className="space-y-2">
+                <Label className="text-sm font-medium">Choose Token</Label>
+                <Controller
+                    name="token"
+                    control={control}
+                    render={({ field }) => (
+                        <Select
+                            onValueChange={(value) => {
+                                const selectedAssetId = Number(value)
+                                field.onChange(selectedAssetId === NO_ASSET ? undefined : selectedAssetId)
+
+                                if (selectedAssetId === NO_ASSET) {
+                                    setSelectedToken(undefined)
+                                    setRemainingBalance(0)
+                                    return
+                                }
+
+                                if (selectedAssetId === PAGE_ASSET_NUM) {
+                                    const pageAsset = assetsQuery.data?.pageAsset
+                                    if (pageAsset) {
+                                        GetAssetBalance.mutate(
+                                            {
+                                                code: pageAsset.code,
+                                                issuer: pageAsset.issuer,
+                                                creatorId: creatorId,
+                                            },
+                                            {
+                                                onSuccess: (data) => {
+                                                    setSelectedToken({
+                                                        bal: data ?? 0,
+                                                        code: pageAsset.code,
+                                                        issuer: pageAsset.issuer,
+                                                        id: PAGE_ASSET_NUM,
+                                                        thumbnail: pageAsset.thumbnail ?? "",
+                                                    })
+                                                    setRemainingBalance(data)
+                                                    setValue("token", PAGE_ASSET_NUM)
+                                                },
+                                            },
+                                        )
+                                    } else {
+                                        toast.error("No page asset found")
+                                    }
+                                    return
+                                }
+
+                                const selectedAsset = assetsQuery.data?.shopAsset.find(
+                                    (asset: AssetType) => asset.id === selectedAssetId,
+                                )
+                                if (selectedAsset) {
+                                    GetAssetBalance.mutate(
+                                        {
+                                            code: selectedAsset.code,
+                                            issuer: selectedAsset.issuer,
+                                            creatorId: creatorId,
+                                        },
+                                        {
+                                            onSuccess: (data) => {
+                                                const bal = data ?? 0
+                                                setSelectedToken({ ...selectedAsset, bal: bal })
+                                                setRemainingBalance(bal)
+                                                setValue("token", selectedAsset.id)
+                                            },
+                                        },
+                                    )
+                                }
+                            }}
+                            defaultValue={NO_ASSET.toString()}
+                        >
+                            <SelectTrigger className="bg-input border-border">
+                                <SelectValue placeholder="Choose Token" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={NO_ASSET.toString()}>Pin (No asset)</SelectItem>
+                                {assetsQuery.data?.pageAsset && (
+                                    <SelectItem value={PAGE_ASSET_NUM.toString()}>
+                                        {assetsQuery.data.pageAsset.code} - Page Asset
+                                    </SelectItem>
+                                )}
+                                {assetsQuery.data?.shopAsset?.map((asset: AssetType) => (
+                                    <SelectItem key={asset.id} value={asset.id.toString()}>
+                                        {asset.code}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 " />
-                        <Label className="text-sm font-medium">Latitude</Label>
-                    </div>
-                    <Input type="number" step={0.0000000000000000001} {...register("lat", { valueAsNumber: true })} />
-                    {errors.lat && <p className="text-sm text-destructive">{errors.lat?.message}</p>}
+                    <Label htmlFor="radius" className="text-sm font-medium">
+                        Radius (meters) <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                        type="number"
+                        id="radius"
+                        min={0}
+                        {...register("radius", { valueAsNumber: true })}
+                        className="bg-input border-border focus:ring-ring"
+                        placeholder="50"
+                    />
+                    {errors.radius && <p className="text-destructive text-sm">{errors.radius.message}</p>}
                 </div>
                 <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 " />
-                        <Label className="text-sm font-medium">Longitude</Label>
-                    </div>
-                    <Input step={0.0000000000000000001} type="number" {...register("lng", { valueAsNumber: true })} />
-                    {errors.lng && <p className="text-sm text-destructive">{errors.lng?.message}</p>}
+                    <Label htmlFor="pinNumber" className="text-sm font-medium">
+                        Number of Pins <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                        type="number"
+                        id="pinNumber"
+                        min={1}
+                        {...register("pinNumber", { valueAsNumber: true })}
+                        className="bg-input border-border focus:ring-ring"
+                        placeholder="1"
+                    />
+                    {errors.pinNumber && <p className="text-destructive text-sm">{errors.pinNumber.message}</p>}
                 </div>
             </div>
-        )
-    else
+
+            <div className="space-y-2">
+                <Label htmlFor="pinCollectionLimit" className="text-sm font-medium">
+                    Pin Collection Limit <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                    type="number"
+                    id="pinCollectionLimit"
+                    min={0}
+                    {...register("pinCollectionLimit", { valueAsNumber: true })}
+                    className="bg-input border-border focus:ring-ring"
+                    placeholder="Enter collection limit"
+                />
+                {selectedToken && (
+                    <div className="text-xs space-y-1 p-2 bg-muted rounded">
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Available Balance:</span>
+                            <span className="font-medium">{selectedToken.bal}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Remaining Balance:</span>
+                            <span className={`font-medium ${remainingBalance < 0 ? "text-destructive" : "text-accent"}`}>
+                                {remainingBalance}
+                            </span>
+                        </div>
+                    </div>
+                )}
+                {selectedToken && remainingBalance < 0 && (
+                    <p className="text-destructive text-sm">Insufficient token balance</p>
+                )}
+                {errors.pinCollectionLimit && <p className="text-destructive text-sm">{errors.pinCollectionLimit.message}</p>}
+            </div>
+        </div>
+    )
+}
+interface ManualCoordinatesInputProps {
+    manual: boolean
+    position: { lat: number; lng: number } | undefined
+
+}
+
+function ManualCoordinatesInput({ manual, position }: ManualCoordinatesInputProps) {
+    const { register, formState: { errors } } = useFormContext<z.infer<typeof createAdminPinFormSchema>>()
+    if (manual) {
         return (
             <Card>
                 <CardContent className="p-4">
@@ -960,5 +1092,180 @@ function ManualLatLanInputField() {
                 </CardContent>
             </Card>
         )
+    }
+
+    return (
+        <Card className="border-l-4 border-l-green-500 bg-gradient-to-r from-green-50/50 to-blue-50/50">
+            <CardContent className="p-4">
+                <div className="flex items-center space-x-2 mb-3">
+                    <MapPin className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-semibold text-green-700">Selected Location</span>
+                </div>
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Latitude:</span>
+                        <Badge variant="secondary" className="font-mono text-xs">
+                            {position?.lat?.toFixed(6)}
+                        </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Longitude:</span>
+                        <Badge variant="secondary" className="font-mono text-xs">
+                            {position?.lng?.toFixed(6)}
+                        </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+
+                        <LocationAddressDisplay latitude={position?.lat ?? 0} longitude={position?.lng ?? 0} />
+
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    )
 }
 
+interface ImageUploadFieldProps {
+    coverUrl: string | undefined
+    setCover: (url: string | undefined) => void
+    setValue: (name: "image", value: string | undefined) => void
+}
+
+function ImageUploadField({ coverUrl, setCover, setValue }: ImageUploadFieldProps) {
+    return (
+        <div className="space-y-3">
+            <Label className="text-sm font-semibold text-gray-700">Pin Cover Image <span className="text-destructive">*</span></Label>
+            <Card className="border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors duration-200">
+                <CardContent className="p-6 text-center">
+                    <UploadS3Button
+                        endpoint="imageUploader"
+                        className="w-full"
+                        onClientUploadComplete={(res) => {
+                            const data = res
+                            if (data?.url) {
+                                setCover(data.url)
+                                setValue("image", data.url)
+                            }
+                        }}
+                        onUploadError={(error: Error) => {
+                            console.error(`ERROR! ${error.message}`)
+                        }}
+                    />
+                    {coverUrl && (
+                        <div className="mt-6 flex justify-center">
+                            <div className="relative group">
+                                <Image
+                                    className="rounded-xl shadow-lg transition-transform duration-200 group-hover:scale-105 border border-gray-200"
+                                    width={200}
+                                    height={200}
+                                    alt="preview image"
+                                    src={coverUrl ?? "/placeholder.svg"}
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-xl transition-all duration-200 flex items-center justify-center">
+                                    <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium bg-black/50 px-3 py-1 rounded-full">
+                                        Preview
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
+
+function PinTypeToggles() {
+    const { control } = useFormContext<CreateAdminPinType>()
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center space-x-2 mb-4">
+                <Settings className="w-4 h-4 text-gray-600" />
+                <h4 className="text-sm font-semibold text-gray-700">Advanced Settings</h4>
+            </div>
+
+            <div className="space-y-3">
+
+
+                <Card className="border border-gray-200 hover:border-blue-300 transition-colors duration-200">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                                <Label htmlFor="multiPin" className="text-sm font-medium cursor-pointer text-gray-900">
+                                    Multi Pin
+                                </Label>
+                                <p className="text-xs text-gray-500 mt-1">Allow multiple pins to be collected from this location</p>
+                            </div>
+                            <Controller
+                                name="multiPin"
+                                control={control} // Fixed to use control instead of register
+                                render={({ field }) => <Switch id="multiPin" checked={field.value} onCheckedChange={field.onChange} />}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    )
+}
+function TiersOptions({ creatorId }: { creatorId: string }) {
+    const tiersQuery = api.fan.member.getAllMembership.useQuery({
+        creatorId: creatorId
+    })
+    const { control } = useFormContext<CreateAdminPinType>()
+    if (tiersQuery.isLoading) return <div className="skeleton h-10 w-20"></div>;
+    if (tiersQuery.data) {
+        return (
+            <div className="space-y-2">
+                <Label className="text-sm font-medium">Choose Tier <span className="text-destructive">*</span></Label>
+                <Controller
+                    name="tier"
+                    control={control}
+                    render={({ field }) => (
+                        <Select
+                            onValueChange={(value) => {
+                                field.onChange(value)
+                            }}
+                        >
+                            <SelectTrigger className="bg-input border-border">
+                                <SelectValue placeholder="Choose Tier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="public">Public</SelectItem>
+                                <SelectItem value="follower">Only Follower</SelectItem>
+                                <SelectItem value="private">Only Members</SelectItem>
+                                {tiersQuery.data.map((model) => (
+
+                                    <SelectItem key={model.id} value={model.id.toString()}>
+                                        {`${model.name} : ${model.price} ${model.creator.pageAsset?.code}`}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                />
+            </div>
+            // <div>
+            //     <h4 className="text-sm font-semibold text-gray-700">Tier Settings</h4>
+            //     <Controller
+            //         name="tier"
+            //         control={control}
+            //         render={({ field }) => (
+            //             <select {...field} className="select select-bordered ">
+            //                 <option disabled>Choose Tier</option>
+            //                 <option value="public">Public</option>
+            //                 <option value="private">Only Followers</option>
+            //                 {tiersQuery.data.map((model) => (
+            //                     <option
+            //                         key={model.id}
+            //                         value={model.id}
+            //                     >{`${model.name} : ${model.price} ${model.creator.pageAsset?.code}`}</option>
+            //                 ))}
+            //             </select>
+            //         )}
+            //     />
+            // </div>
+        );
+    }
+}
