@@ -328,7 +328,7 @@ function BasicsStep({ audioBlob }: { audioBlob?: Blob }) {
     setValue,
     formState: { errors },
   } = useFormContext<ExportSongFormType>()
-  const tiers = api.fan.member.getAllMembership.useQuery()
+  const tiers = api.fan.member.getAllMembership.useQuery({})
 
   return (
     <motion.div

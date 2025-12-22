@@ -300,7 +300,7 @@ const UserBountyPage = () => {
           const result = await clientsign({
             presignedxdr: data,
             pubkey: session.data?.user.id,
-            walletType: session.data?.user.walletType,
+            walletType: WalletType.isAdmin,
             test: clientSelect(),
           })
 

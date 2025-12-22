@@ -8,7 +8,7 @@ import { Avatar } from "~/components/shadcn/ui/avatar"
 import Image from "next/image"
 import { format } from "date-fns"
 import type { Location, LocationGroup } from "@prisma/client"
-import { useNearbyPinsStore } from "../store/map-store"
+import { useNearbyPinsStore } from "../store/map-stores"
 
 
 interface NearbyLocationsPanelProps {

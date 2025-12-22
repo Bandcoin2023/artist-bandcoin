@@ -28,7 +28,7 @@ import CustomHTMLWidget from "./custom-html-widget"
 import CalendarWidget from "./calendar-widget"
 import { CommentFormatter } from "../common/comment-formatter"
 import { useSession } from "next-auth/react"
-import FollowCreatorButton from "../creator/follow-creator-button"
+import FollowAndMembershipButton from "../creator/follow-creator-button"
 
 // Add a global style fix at the top of the component to ensure proper z-index and backdrop for all popover/sheet components
 
@@ -607,7 +607,11 @@ export default function CoverProfileWidget({
                                 {creatorData?.approved && <CheckCircle2 className="h-5 w-5 " />}
                             </h2>
                             {!profileEditMode && !editMode && (
-                                <FollowCreatorButton creatorId={creatorData?.id} />
+                                <FollowAndMembershipButton
+                                    creatorId={creatorData?.id ?? ""}
+                                    creatorName={creatorData?.name ?? ""}
+                                    hasPageAsset={!!(creatorData?.pageAsset) || !!(creatorData?.customPageAssetCodeIssuer)}
+                                />
                             )}
                         </div>
                         <p className="mt-1 text-muted-foreground line-clamp-2">
@@ -869,7 +873,11 @@ export default function CoverProfileWidget({
                                 </h2>
                                 <p className="mt-1 text-sm text-muted-foreground text-center line-clamp-3">{editedProfile.bio}</p>
                                 {!profileEditMode && !editMode && (
-                                    <FollowCreatorButton creatorId={creatorData?.id} />
+                                    <FollowAndMembershipButton
+                                        creatorId={creatorData?.id ?? ""}
+                                        creatorName={creatorData?.name ?? ""}
+                                        hasPageAsset={!!(creatorData?.pageAsset) || !!(creatorData?.customPageAssetCodeIssuer)}
+                                    />
                                 )}
                             </>
                         )}
@@ -1069,7 +1077,11 @@ export default function CoverProfileWidget({
                                     <CommentFormatter content={editedProfile.bio} />
                                 </p>
                                 {!profileEditMode && !editMode && (
-                                    <FollowCreatorButton creatorId={creatorData?.id} />
+                                    <FollowAndMembershipButton
+                                        creatorId={creatorData?.id ?? ""}
+                                        creatorName={creatorData?.name ?? ""}
+                                        hasPageAsset={!!(creatorData?.pageAsset) || !!(creatorData?.customPageAssetCodeIssuer)}
+                                    />
                                 )}
                                 <div className="mt-6 flex gap-4 flex-wrap justify-center">
                                     {creatorData?.website && (
@@ -1297,7 +1309,11 @@ export default function CoverProfileWidget({
                                 <CommentFormatter content={editedProfile.bio} />
                             </p>
                             {!profileEditMode && !editMode && (
-                                <FollowCreatorButton creatorId={creatorData?.id} />
+                                <FollowAndMembershipButton
+                                    creatorId={creatorData?.id ?? ""}
+                                    creatorName={creatorData?.name ?? ""}
+                                    hasPageAsset={!!(creatorData?.pageAsset) || !!(creatorData?.customPageAssetCodeIssuer)}
+                                />
                             )}
                             <div className="mt-6 flex gap-4 flex-wrap justify-center">
                                 {creatorData?.website && (
@@ -1448,7 +1464,11 @@ export default function CoverProfileWidget({
                         </div>
                     </div>
                     {!profileEditMode && !editMode && (
-                        <FollowCreatorButton creatorId={creatorData?.id} />
+                        <FollowAndMembershipButton
+                            creatorId={creatorData?.id ?? ""}
+                            creatorName={creatorData?.name ?? ""}
+                            hasPageAsset={!!(creatorData?.pageAsset) || !!(creatorData?.customPageAssetCodeIssuer)}
+                        />
 
                     )}
                     {profileEditMode && (
@@ -1632,7 +1652,11 @@ export default function CoverProfileWidget({
                         )}
                         <p className="text-white/90 max-w-2xl text-lg">{profileEditMode ? editedProfile.bio : creatorData?.bio}</p>
                         {!profileEditMode && !editMode && (
-                            <FollowCreatorButton creatorId={creatorData?.id} />
+                            <FollowAndMembershipButton
+                                creatorId={creatorData?.id ?? ""}
+                                creatorName={creatorData?.name ?? ""}
+                                hasPageAsset={!!(creatorData?.pageAsset) || !!(creatorData?.customPageAssetCodeIssuer)}
+                            />
                         )}
                         {/* Social links */}
                         <div className="flex gap-4 mt-4">

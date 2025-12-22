@@ -23,7 +23,6 @@ interface CreditPackage {
   id: string
   name: string
   credits: number
-  priceUSD: number
   priceBand: number
   priceUSDC: number
   bonus: number

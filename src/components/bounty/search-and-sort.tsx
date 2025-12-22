@@ -9,14 +9,14 @@ import { Tabs, TabsList, TabsTrigger } from "~/components/shadcn/ui/tabs"
 import { useRouter } from "next/router"
 import { useState } from "react"
 import CreateBountyModal from "~/components/modal/create-bounty-modal"
-import ScavengerHuntDialog from "~/components/modal/scavenger-hunt-modal"
+
 import CreateLocationBasedBountyModal from "~/components/modal/create-locationbased-bounty"
 
 export enum BountyTypeFilter {
     ALL = "ALL",
     GENERAL = "GENERAL",
     LOCATION_BASED = "LOCATION_BASED",
-    SCAVENGER_HUNT = "SCAVENGER_HUNT",
+
 }
 export default function SearchAndSort({
     searchTerm,
@@ -25,8 +25,7 @@ export default function SearchAndSort({
     setSortOption,
     filter,
     setFilter,
-    typeFilter,
-    setTypeFilter,
+
 }: {
     searchTerm: string
     setSearchTerm: (value: string) => void
@@ -60,10 +59,10 @@ export default function SearchAndSort({
             <div className="flex flex-col gap-5">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold hidden md:block">
-                        {router.pathname === "/organization/bounty" ? "Your Bounties" : "Discover Bounties"}
+                        {router.pathname === "/artist/bounty" ? "Your Bounties" : "Discover Bounties"}
                     </h1>
 
-                    {router.pathname === "/organization/bounty" && (
+                    {router.pathname === "/artist/bounty" && (
                         <Select onValueChange={handleCreateBountySelect}>
                             <SelectTrigger className="w-auto gap-2 bg-primary text-primary-foreground hover:bg-primary/90 border-0 shadow-sm transition-colors">
                                 <SelectValue className="" placeholder="Create Bounty" />
@@ -128,33 +127,13 @@ export default function SearchAndSort({
                         </Tabs>
                     )}
 
-                    {setTypeFilter && typeFilter && (
-                        <Tabs
-                            value={typeFilter}
-                            onValueChange={(value) => setTypeFilter(value as BountyTypeFilter)}
-                            className="w-full md:w-auto"
-                        >
-                            <TabsList className="grid w-full grid-cols-4">
-                                <TabsTrigger value="ALL">All Types</TabsTrigger>
-                                <TabsTrigger value="GENERAL">
-                                    General <p className="hidden md:block">&nbsp;Bounty</p>
-                                </TabsTrigger>
-                                <TabsTrigger value="LOCATION_BASED">
-                                    Location <p className="hidden md:block">&nbsp;Bounty</p>
-                                </TabsTrigger>
-                                <TabsTrigger value="SCAVENGER_HUNT">
-                                    Scavenger <p className="hidden md:block">&nbsp;Bounty</p>
-                                </TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-                    )}
+
                 </div>
 
 
             </div>
 
             <CreateBountyModal open={createBountyOpen} onOpenChange={setCreateBountyOpen} />
-            <ScavengerHuntDialog open={scavengerHuntOpen} onOpenChange={setScavengerHuntOpen} />
             <CreateLocationBasedBountyModal open={locationBasedOpen} onOpenChange={setLocationBasedOpen} />
         </div >
     )

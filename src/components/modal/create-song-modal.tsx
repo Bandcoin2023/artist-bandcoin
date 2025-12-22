@@ -316,7 +316,7 @@ function BasicsStep() {
     formState: { errors },
     control,
   } = useFormContext<SongFormType>();
-  const tiers = api.fan.member.getAllMembership.useQuery();
+  const tiers = api.fan.member.getAllMembership.useQuery({});
 
   return (
     <motion.div

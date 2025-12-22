@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react"
 import { api } from "~/utils/api"
 import { MessageCircle, X, Send, Loader2, MapPin, Calendar, ExternalLink, Eye, ChevronDown, Minimize2, Trash2, Minus } from "lucide-react"
 import type { EventData } from "~/lib/agent/types"
-import { useMapInteractionStore } from "../store/map-store"
+import { useMapInteractionStore } from "../store/map-stores"
 
 interface Message {
     role: "user" | "assistant" | "system"

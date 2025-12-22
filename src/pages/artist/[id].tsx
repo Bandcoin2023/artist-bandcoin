@@ -70,7 +70,7 @@ import NewsletterWidget from "~/components/widget/newsletter-widget";
 import LyricsWidget from "~/components/widget/lyrics-widget";
 import FanCommunityWidget from "~/components/widget/fan-community-widget";
 import CoverProfileWidget from "~/components/widget/cover-profile-widget";
-import FollowCreatorButton from "~/components/creator/follow-creator-button";
+import FollowAndMembershipButton from "~/components/creator/follow-creator-button";
 
 // Import the new utility functions and components
 import {
@@ -277,14 +277,11 @@ const HEIGHT_MAP: Record<WidgetHeight, number> = {
   "4XL": 1200,
 };
 
-export default function SingleCreatorViewPage({
-  creatorId,
-}: {
-  creatorId?: string;
-}) {
+export default function SingleCreatorViewPage() {
   // State variables
   const router = useRouter();
-  const id = creatorId ? creatorId : (router.query.id as string);
+  const { id } = router.query as { id: string };
+
   const [widgets, setWidgets] = useState<WidgetItem[]>(DEFAULT_LAYOUT);
   const [editMode, setEditMode] = useState(false);
   const [layoutName, setLayoutName] = useState("My Dashboard");
@@ -337,6 +334,7 @@ export default function SingleCreatorViewPage({
       enabled: !!id,
     },
   );
+
   const dashboardsQuery = api.fan.dashboard.getAllFromPubkey.useQuery(
     {
       id: id,
@@ -1212,198 +1210,199 @@ export default function SingleCreatorViewPage({
 
   if (creator.isLoading) return <Loading />;
   if (!creator.data) return <NotFound />;
+  if (creator.data)
+    return (
+      <div ref={dashboardContainerRef} className="relative flex h-full flex-col">
 
-  return (
-    <div ref={dashboardContainerRef} className="relative flex h-full flex-col">
 
+        <div className="dashboard-content flex-1 overflow-auto p-4">
+          <div className="flex flex-col gap-4">
+            {widgetRows.map((row, rowIndex) => (
+              <div
+                key={rowIndex}
+                className="xs:grid-cols-4 grid grid-cols-12 gap-4 sm:grid-cols-6 md:grid-cols-12"
+              >
+                {row.map((item, itemIndex) => {
+                  // Handle grouped widgets
+                  if (Array.isArray(item)) {
+                    const groupId = item[0]?.groupId;
+                    return (
+                      <div
+                        key={`group-${groupId}`}
+                        className="relative col-span-12 rounded-lg bg-muted/20 p-2"
+                        ref={(el) => setGroupRef(el, groupId ?? "")}
+                        data-group-id={groupId}
+                      >
+                        <div
+                          className={`${shouldUseColumnLayout(windowWidth) ? "flex flex-col" : "flex flex-row"} w-full gap-2 pt-6`}
+                        >
+                          {item.map((widget, widgetIndex) => {
+                            const widgetInfo = AVAILABLE_WIDGETS.find(
+                              (w) => w.id === widget.id,
+                            );
+                            if (!widgetInfo) return null;
 
-      <div className="dashboard-content flex-1 overflow-auto p-4">
-        <div className="flex flex-col gap-4">
-          {widgetRows.map((row, rowIndex) => (
-            <div
-              key={rowIndex}
-              className="xs:grid-cols-4 grid grid-cols-12 gap-4 sm:grid-cols-6 md:grid-cols-12"
-            >
-              {row.map((item, itemIndex) => {
-                // Handle grouped widgets
-                if (Array.isArray(item)) {
-                  const groupId = item[0]?.groupId;
+                            const widthPercentage = shouldUseColumnLayout(
+                              windowWidth,
+                            )
+                              ? 100
+                              : (widget.customWidth ?? 100 / item.length);
+
+                            const heightKey =
+                              (widget.settings?.height as WidgetHeight) ?? "M";
+                            const height = getResponsiveHeight(
+                              heightKey,
+                              windowWidth,
+                            );
+
+                            return (
+                              <div
+                                key={widget.id}
+                                className={cn(
+                                  "relative",
+                                  dragOverWidget === widget.id
+                                    ? "ring-2 ring-primary"
+                                    : "",
+                                  selectedWidgets.includes(widget.id)
+                                    ? "ring-2 ring-destructive"
+                                    : "",
+                                  "transition-all duration-200",
+                                  shouldUseColumnLayout(windowWidth)
+                                    ? "mb-4"
+                                    : "",
+                                )}
+                                style={{
+                                  width: `${widthPercentage}%`,
+                                }}
+                                data-widget-id={widget.id}
+                                data-custom-width={widget.customWidth ?? ""}
+                              >
+                                <Card
+                                  className={cn(
+                                    "relative flex flex-col",
+                                    widget.id === "cover-profile"
+                                      ? "h-auto overflow-hidden"
+                                      : "overflow-y-auto",
+                                  )}
+                                  style={
+                                    widget.id === "cover-profile"
+                                      ? { height: "auto", minHeight: "100%" }
+                                      : { height: `${height}px` }
+                                  }
+                                  ref={(el) => setWidgetRef(el, widget.id)}
+                                >
+                                  <CardContent
+                                    className={`p-0 ${editMode && !widget.pinned ? "pt-8" : ""}`}
+                                  >
+                                    {renderWidgetContent(widget.id)}
+                                  </CardContent>
+                                </Card>
+                              </div>
+                            );
+                          })}
+
+                          <FollowAndMembershipButton
+                            creatorId={creator.data?.id ?? ""}
+                            creatorName={creator.data?.name ?? ""}
+                            hasPageAsset={!!(creator.data?.pageAsset) || !!(creator.data?.customPageAssetCodeIssuer)}
+                          />
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Handle individual widgets
+                  const widget = item;
+                  const widgetInfo = AVAILABLE_WIDGETS.find(
+                    (w) => w.id === widget.id,
+                  );
+                  if (!widgetInfo) return null;
+
+                  // Get widget dimensions from settings
+                  const dimensions = getWidgetDimensions(widget);
+                  // Apply responsive height adjustment - but keep original height for cover-profile
+                  dimensions.height =
+                    widget.id === "cover-profile"
+                      ? HEIGHT_MAP[
+                      (widget.settings?.height as WidgetHeight) || "2XL"
+                      ]
+                      : getResponsiveHeight(
+                        (widget.settings?.height as WidgetHeight) || "M",
+                        windowWidth,
+                      );
+                  const isPinned = widget.pinned;
+
+                  // Always use full width on small/medium devices, and always full width for cover-profile
+                  const useFullWidth =
+                    widget.id === "cover-profile"
+                      ? true
+                      : shouldUseColumnLayout(windowWidth);
+
                   return (
                     <div
-                      key={`group-${groupId}`}
-                      className="relative col-span-12 rounded-lg bg-muted/20 p-2"
-                      ref={(el) => setGroupRef(el, groupId ?? "")}
-                      data-group-id={groupId}
+                      key={widget.id}
+                      className={cn(
+                        (isPinned ?? useFullWidth)
+                          ? "col-span-12"
+                          : `col-span-${dimensions.gridSpan}`,
+                        dragOverWidget === widget.id ? "ring-2 ring-primary" : "",
+                        selectedWidgets.includes(widget.id)
+                          ? "ring-2 ring-destructive"
+                          : "",
+                        "relative transition-all duration-200",
+                      )}
+                      style={{
+                        gridColumn:
+                          (isPinned ?? useFullWidth)
+                            ? "span 12"
+                            : `span ${dimensions.gridSpan}`,
+                      }}
                     >
-                      <div
-                        className={`${shouldUseColumnLayout(windowWidth) ? "flex flex-col" : "flex flex-row"} w-full gap-2 pt-6`}
+                      <Card
+                        className={cn(
+                          "relative flex flex-col",
+                          widget.id === "cover-profile"
+                            ? "h-auto overflow-hidden"
+                            : "overflow-y-auto",
+                        )}
+                        style={
+                          widget.id === "cover-profile"
+                            ? { height: "auto", minHeight: "100%" }
+                            : { height: `${dimensions.height}px` }
+                        }
+                        ref={(el) => setWidgetRef(el, widget.id)}
                       >
-                        {item.map((widget, widgetIndex) => {
-                          const widgetInfo = AVAILABLE_WIDGETS.find(
-                            (w) => w.id === widget.id,
-                          );
-                          if (!widgetInfo) return null;
-
-                          // Use custom width if available, otherwise calculate based on size
-                          // For column layout, always use 100% width
-                          const widthPercentage = shouldUseColumnLayout(
-                            windowWidth,
-                          )
-                            ? 100
-                            : (widget.customWidth ?? 100 / item.length);
-
-                          // Get height from settings
-                          const heightKey =
-                            (widget.settings?.height as WidgetHeight) ?? "M";
-                          const height = getResponsiveHeight(
-                            heightKey,
-                            windowWidth,
-                          );
-
-                          return (
-                            <div
-                              key={widget.id}
-                              className={cn(
-                                "relative",
-                                dragOverWidget === widget.id
-                                  ? "ring-2 ring-primary"
-                                  : "",
-                                selectedWidgets.includes(widget.id)
-                                  ? "ring-2 ring-destructive"
-                                  : "",
-                                "transition-all duration-200",
-                                shouldUseColumnLayout(windowWidth)
-                                  ? "mb-4"
-                                  : "",
-                              )}
-                              style={{
-                                width: `${widthPercentage}%`,
-                              }}
-                              data-widget-id={widget.id}
-                              data-custom-width={widget.customWidth ?? ""}
-                            >
-                              <Card
-                                className={cn(
-                                  "relative flex flex-col",
-                                  widget.id === "cover-profile"
-                                    ? "h-auto overflow-hidden"
-                                    : "overflow-y-auto",
-                                )}
-                                style={
-                                  widget.id === "cover-profile"
-                                    ? { height: "auto", minHeight: "100%" }
-                                    : { height: `${height}px` }
-                                }
-                                ref={(el) => setWidgetRef(el, widget.id)}
-                              >
-                                <CardContent
-                                  className={`p-0 ${editMode && !widget.pinned ? "pt-8" : ""}`}
-                                >
-                                  {renderWidgetContent(widget.id)}
-                                </CardContent>
-                              </Card>
-                            </div>
-                          );
-                        })}
-
-                        <FollowCreatorButton creatorId={id} />
-                      </div>
+                        <CardContent
+                          className={`p-0 ${editMode && !isPinned ? "pt-8" : ""}`}
+                        >
+                          {renderWidgetContent(widget.id)}
+                        </CardContent>
+                      </Card>
                     </div>
                   );
-                }
-
-                // Handle individual widgets
-                const widget = item;
-                const widgetInfo = AVAILABLE_WIDGETS.find(
-                  (w) => w.id === widget.id,
-                );
-                if (!widgetInfo) return null;
-
-                // Get widget dimensions from settings
-                const dimensions = getWidgetDimensions(widget);
-                // Apply responsive height adjustment - but keep original height for cover-profile
-                dimensions.height =
-                  widget.id === "cover-profile"
-                    ? HEIGHT_MAP[
-                    (widget.settings?.height as WidgetHeight) || "2XL"
-                    ]
-                    : getResponsiveHeight(
-                      (widget.settings?.height as WidgetHeight) || "M",
-                      windowWidth,
-                    );
-                const isPinned = widget.pinned;
-
-                // Always use full width on small/medium devices, and always full width for cover-profile
-                const useFullWidth =
-                  widget.id === "cover-profile"
-                    ? true
-                    : shouldUseColumnLayout(windowWidth);
-
-                return (
-                  <div
-                    key={widget.id}
-                    className={cn(
-                      (isPinned ?? useFullWidth)
-                        ? "col-span-12"
-                        : `col-span-${dimensions.gridSpan}`,
-                      dragOverWidget === widget.id ? "ring-2 ring-primary" : "",
-                      selectedWidgets.includes(widget.id)
-                        ? "ring-2 ring-destructive"
-                        : "",
-                      "relative transition-all duration-200",
-                    )}
-                    style={{
-                      gridColumn:
-                        (isPinned ?? useFullWidth)
-                          ? "span 12"
-                          : `span ${dimensions.gridSpan}`,
-                    }}
-                  >
-                    <Card
-                      className={cn(
-                        "relative flex flex-col",
-                        widget.id === "cover-profile"
-                          ? "h-auto overflow-hidden"
-                          : "overflow-y-auto",
-                      )}
-                      style={
-                        widget.id === "cover-profile"
-                          ? { height: "auto", minHeight: "100%" }
-                          : { height: `${dimensions.height}px` }
-                      }
-                      ref={(el) => setWidgetRef(el, widget.id)}
-                    >
-                      <CardContent
-                        className={`p-0 ${editMode && !isPinned ? "pt-8" : ""}`}
-                      >
-                        {renderWidgetContent(widget.id)}
-                      </CardContent>
-                    </Card>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+                })}
+              </div>
+            ))}
+          </div>
         </div>
+
+        {editMode && (
+          <div className="bg-muted/80 p-4 text-center">
+            {selectionMode ? (
+              <p className="text-sm">
+                <strong>Selection Mode:</strong> Click on widgets to select them,
+                then click <strong>Group Selected</strong> to group them together.
+                Selected widgets: {selectedWidgets.length}
+              </p>
+            ) : (
+              <p className="text-sm">
+                Edit mode active. Drag to rearrange, use the size selector to
+                resize, or remove widgets with the X button. Click{" "}
+                <strong>Select Widgets</strong> to select and group widgets.
+              </p>
+            )}
+          </div>
+        )}
       </div>
-
-      {editMode && (
-        <div className="bg-muted/80 p-4 text-center">
-          {selectionMode ? (
-            <p className="text-sm">
-              <strong>Selection Mode:</strong> Click on widgets to select them,
-              then click <strong>Group Selected</strong> to group them together.
-              Selected widgets: {selectedWidgets.length}
-            </p>
-          ) : (
-            <p className="text-sm">
-              Edit mode active. Drag to rearrange, use the size selector to
-              resize, or remove widgets with the X button. Click{" "}
-              <strong>Select Widgets</strong> to select and group widgets.
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  );
+    );
 }

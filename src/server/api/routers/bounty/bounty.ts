@@ -813,6 +813,91 @@ export const BountyRoute = createTRPCRouter({
       return {
         ...bounty,
         isOwner: bounty?.creatorId === ctx.session?.user.id,
+        isJoined: bounty?.participants.some((participant) => participant.user.id === ctx.session?.user.id),
+        currentStep: bounty?.participants.find((participant) => participant.user.id === ctx.session?.user.id)
+          ?.currentStep,
+      };
+
+
+    }),
+  getBountyByIDForApp: publicProcedure
+    .input(
+      z.object({
+        BountyId: z.number(),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      const bounty = await ctx.db.bounty.findUnique({
+        where: {
+          id: input.BountyId,
+        },
+        include: {
+          participants: {
+            where: { userId: ctx.session?.user.id },
+            select: {
+              userId: true,
+              currentStep: true,
+            },
+          },
+          ActionLocation: true,
+          creator: {
+            select: {
+              id: true,
+              name: true,
+              profileUrl: true,
+            },
+          },
+          BountyWinner: {
+            select: {
+              user: {
+                select: {
+                  id: true,
+                },
+              },
+              isClaimed: true,
+              id: true,
+            },
+          },
+
+          submissions: {
+            select: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  image: true,
+                },
+              },
+              medias: true,
+            },
+          },
+
+          comments: {
+            select: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  image: true,
+                },
+              },
+              content: true,
+            },
+          },
+          _count: {
+            select: {
+              participants: true,
+              submissions: true,
+              comments: true,
+              BountyWinner: true,
+              ActionLocation: true,
+            },
+          },
+        },
+      });
+      return {
+        ...bounty,
+        isOwner: bounty?.creatorId === ctx.session?.user.id,
         isJoined: bounty?.participants.some((participant) => participant.userId === ctx.session?.user.id),
         currentStep: bounty?.participants.find((participant) => participant.userId === ctx.session?.user.id)
           ?.currentStep,

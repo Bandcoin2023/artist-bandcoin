@@ -46,7 +46,7 @@ import { Separator } from "~/components/shadcn/ui/separator"
 import type { Location, LocationGroup } from "@prisma/client"
 import { PinType as PinTypeEnum } from "@prisma/client" // Declare PinType
 import { UploadS3Button } from "../common/upload-button"
-import { useMapInteractionStore } from "../store/map-store"
+import { useMapInteractionStore } from "../store/map-stores"
 
 type Pin = {
     locationGroup:
@@ -756,7 +756,7 @@ function PinInfoUpdate({
     })
 
 
-    const tiers = api.fan.member.getAllMembership.useQuery()
+    const tiers = api.fan.member.getAllMembership.useQuery({})
     const assets = api.fan.asset.myAssets.useQuery(undefined, {
         enabled: !!selectedPinForDetail, // Enable query only when modal is open
     })

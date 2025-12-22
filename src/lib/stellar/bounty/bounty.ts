@@ -18,8 +18,8 @@ import {
 import { MOTHER_SECRET } from "../marketplace/SECRET";
 import { SignUserType, WithSing } from "../utils";
 import { getAssetToUSDCRate, getPlatformAssetPrice } from "../fan/get_token_price";
-import { USDC_ASSET_CODE, USDC_ISSUER } from "~/lib/usdc"
 
+import { USDC_ASSET_CODE, USDC_ISSUER } from "~/lib/usdc"
 
 
 export async function SendBountyBalanceToMotherAccountViaAsset({
@@ -86,7 +86,6 @@ export async function SendBountyBalanceToMotherAccountViaUSDC({
   const motherAcc = Keypair.fromSecret(MOTHER_SECRET);
   const account = await server.loadAccount(motherAcc.publicKey());
   const USDC = new Asset(USDC_ASSET_CODE, USDC_ISSUER);
-
   const transaction = new TransactionBuilder(account, {
     fee: TrxBaseFee,
     networkPassphrase,
@@ -162,62 +161,6 @@ export async function SendBountyBalanceToMotherAccountViaXLM({
   }
   return { xdr: buildTrx.toXDR(), pubKey: userPubKey };
 }
-export async function SendBountyBalanceToUserAccountUSDC({
-  prize,
-  userPubKey,
-}: {
-  prize: number;
-  userPubKey: string;
-}) {
-  const server = new Horizon.Server(STELLAR_URL);
-  const motherAcc = Keypair.fromSecret(MOTHER_SECRET);
-  const account = await server.loadAccount(motherAcc.publicKey());
-
-  const platformAssetBalance = account.balances.find((balance) => {
-    if (
-      balance.asset_type === "credit_alphanum4" ||
-      balance.asset_type === "credit_alphanum12"
-    ) {
-      return balance.asset_code === USDC_ASSET_CODE && balance.asset_issuer === USDC_ISSUER;
-    }
-    return false;
-  });
-  //console.log("platformAssetBalance.............", platformAssetBalance);
-
-  if (
-    !platformAssetBalance ||
-    parseFloat(platformAssetBalance.balance) < prize
-  ) {
-    throw new Error("Balance is not enough to send the asset.");
-  }
-
-  const XLMBalance = await NativeBalance({ userPub: motherAcc.publicKey() });
-
-  if (!XLMBalance?.balance || parseFloat(XLMBalance.balance) < 1.0) {
-    throw new Error(
-      "Please make sure you have at least 1 XLM in your account.",
-    );
-  }
-
-  const transaction = new TransactionBuilder(account, {
-    fee: BASE_FEE.toString(),
-    networkPassphrase,
-  });
-
-  transaction.addOperation(
-    Operation.payment({
-      destination: userPubKey,
-      source: motherAcc.publicKey(),
-      asset: new Asset(USDC_ASSET_CODE, USDC_ISSUER),
-      amount: prize.toFixed(7).toString(),
-    }),
-  );
-  transaction.setTimeout(0);
-
-  const buildTrx = transaction.build();
-  buildTrx.sign(motherAcc);
-  return buildTrx.toXDR();
-}
 
 export async function SendBountyBalanceToUserAccount({
   prize,
@@ -266,6 +209,62 @@ export async function SendBountyBalanceToUserAccount({
       destination: userPubKey,
       source: motherAcc.publicKey(),
       asset: PLATFORM_ASSET,
+      amount: prize.toFixed(7).toString(),
+    }),
+  );
+  transaction.setTimeout(0);
+
+  const buildTrx = transaction.build();
+  buildTrx.sign(motherAcc);
+  return buildTrx.toXDR();
+}
+export async function SendBountyBalanceToUserAccountUSDC({
+  prize,
+  userPubKey,
+}: {
+  prize: number;
+  userPubKey: string;
+}) {
+  const server = new Horizon.Server(STELLAR_URL);
+  const motherAcc = Keypair.fromSecret(MOTHER_SECRET);
+  const account = await server.loadAccount(motherAcc.publicKey());
+
+  const platformAssetBalance = account.balances.find((balance) => {
+    if (
+      balance.asset_type === "credit_alphanum4" ||
+      balance.asset_type === "credit_alphanum12"
+    ) {
+      return balance.asset_code === USDC_ASSET_CODE && balance.asset_issuer === USDC_ISSUER;
+    }
+    return false;
+  });
+  //console.log("platformAssetBalance.............", platformAssetBalance);
+
+  if (
+    !platformAssetBalance ||
+    parseFloat(platformAssetBalance.balance) < prize
+  ) {
+    throw new Error("Balance is not enough to send the asset.");
+  }
+
+  const XLMBalance = await NativeBalance({ userPub: motherAcc.publicKey() });
+
+  if (!XLMBalance?.balance || parseFloat(XLMBalance.balance) < 1.0) {
+    throw new Error(
+      "Please make sure you have at least 1 XLM in your account.",
+    );
+  }
+
+  const transaction = new TransactionBuilder(account, {
+    fee: BASE_FEE.toString(),
+    networkPassphrase,
+  });
+
+  transaction.addOperation(
+    Operation.payment({
+      destination: userPubKey,
+      source: motherAcc.publicKey(),
+      asset: new Asset(USDC_ASSET_CODE, USDC_ISSUER),
       amount: prize.toFixed(7).toString(),
     }),
   );
@@ -394,6 +393,7 @@ export async function claimUSDCReward({
     fee: BASE_FEE.toString(),
     networkPassphrase,
   });
+
   if (!userHasTrustOnUSDC) {
     transaction.addOperation(
       Operation.changeTrust({
@@ -402,6 +402,7 @@ export async function claimUSDCReward({
       }),
     );
   }
+
   transaction.addOperation(
     Operation.payment({
       destination: pubKey,
@@ -414,7 +415,6 @@ export async function claimUSDCReward({
 
   const buildTrx = transaction.build();
   buildTrx.sign(motherAcc);
-  const xdr = buildTrx.toXDR()
   return {
     xdr: buildTrx.toXDR(),
     needSign: !userHasTrustOnUSDC,

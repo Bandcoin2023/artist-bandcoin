@@ -132,14 +132,6 @@ export default function ARLayout({ children }: { children: React.ReactNode }) {
                 }
             });
 
-            // Clear any remaining AR-related intervals or timeouts
-            // This is a bit aggressive but ensures cleanup
-            const highestTimeoutId = setTimeout(() => {
-                // Empty function for getting the highest timeout ID
-            }, 0);
-            for (let i = 0; i < Number(highestTimeoutId); i++) {
-                clearTimeout(i);
-            }
 
             // Force garbage collection if available (development only)
             if (typeof window !== "undefined" && "gc" in window) {
@@ -397,7 +389,7 @@ export default function ARLayout({ children }: { children: React.ReactNode }) {
                                     id: 5,
                                     icon: Target,
                                     label: "Artists",
-                                    href: "/action/bounties",
+                                    href: "/action/actions",
                                 })
                             }
                             className="absolute -top-10 right-[42%] -translate-x-1/2 transform"

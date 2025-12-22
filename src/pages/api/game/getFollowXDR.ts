@@ -36,7 +36,12 @@ export default async function handler(
   const creator = await db.creator.findUniqueOrThrow({
     where: { id: data.brand_id },
     select: {
-      pageAsset: true,
+      pageAsset: {
+        select: {
+          code: true,
+          issuer: true,
+        }
+      },
       customPageAssetCodeIssuer: true,
     },
   });

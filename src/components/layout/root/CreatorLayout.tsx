@@ -151,8 +151,8 @@ export default function CreatorLayout({
     console.log(selectedMode);
   }, [path, selectedMode, router]);
   return (
-    <div className="relative h-[calc(100vh-13vh)] overflow-hidden">
-      <div className="flex h-[calc(100vh-13vh)] gap-4 overflow-hidden">
+    <div className="relative h-[calc(100vh-11vh)] overflow-hidden">
+      <div className="flex h-[calc(100vh-10vh)] gap-4 overflow-hidden">
         {selectedMode === Mode.USER ? (
           <>
             <motion.div

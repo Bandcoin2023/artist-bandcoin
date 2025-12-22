@@ -25,7 +25,7 @@ export function CreditBalanceDisplay({
         {isLoading ? (
           <Skeleton className="h-4 w-12" />
         ) : (
-          <span className="font-semibold">{balance?.toLocaleString() || 0}</span>
+          <span className="font-semibold">{balance?.toLocaleString() ?? 0}</span>
         )}
       </Button>
     )
@@ -43,7 +43,7 @@ export function CreditBalanceDisplay({
             {isLoading ? (
               <Skeleton className="h-7 w-20 mt-1" />
             ) : (
-              <p className="text-2xl font-bold text-foreground">{balance?.toLocaleString() || 0}</p>
+              <p className="text-2xl font-bold text-foreground">{balance?.toLocaleString() ?? 0}</p>
             )}
           </div>
         </div>

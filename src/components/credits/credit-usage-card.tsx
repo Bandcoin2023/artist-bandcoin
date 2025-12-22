@@ -20,21 +20,21 @@ export function CreditUsageCard({
   const stats = [
     {
       label: "Total Purchased",
-      value: totalPurchased?.toLocaleString() || "0",
+      value: totalPurchased?.toLocaleString() ?? "0",
       icon: TrendingUp,
       color: "text-green-600 dark:text-green-500",
       bgColor: "bg-green-100 dark:bg-green-950/30",
     },
     {
       label: "Total Used",
-      value: totalSpent?.toLocaleString() || "0",
+      value: totalSpent?.toLocaleString() ?? "0",
       icon: Zap,
       color: "text-blue-600 dark:text-blue-500",
       bgColor: "bg-blue-100 dark:bg-blue-950/30",
     },
     {
       label: "Generations (30d)",
-      value: generationsLast30Days?.toString() || "0",
+      value: generationsLast30Days?.toString() ?? "0",
       icon: History,
       color: "text-purple-600 dark:text-purple-500",
       bgColor: "bg-purple-100 dark:bg-purple-950/30",

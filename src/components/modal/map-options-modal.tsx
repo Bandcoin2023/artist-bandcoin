@@ -771,7 +771,7 @@ function PinInfoUpdate({
         },
     })
 
-    const tiers = api.fan.member.getAllMembership.useQuery()
+    const tiers = api.fan.member.getAllMembership.useQuery({})
     const assets = api.fan.asset.myAssets.useQuery(undefined, {
         enabled: isOpen
     })

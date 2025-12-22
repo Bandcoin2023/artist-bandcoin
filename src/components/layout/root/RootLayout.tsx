@@ -132,7 +132,7 @@ export default function Layout({
                                 </div>
 
                                 {session.status === "authenticated" ? (
-                                    <div className="w-full overflow-y-auto scrollbar-hide lg:pl-6">
+                                    <div className="w-full overflow-y-auto scrollbar-hide lg:pl-4 p-0">
                                         {isArtistRoutes ? (
                                             <>
                                                 <CreatorLayout>{children}</CreatorLayout>
@@ -144,7 +144,7 @@ export default function Layout({
                                         <Toaster />
                                     </div>
                                 ) : isPublicRoute ? (
-                                    <div className="w-full overflow-y-auto scrollbar-hide lg:pl-6">
+                                    <div className="w-full overflow-y-auto scrollbar-hide lg:pl-4">
                                         <>{children}</>
                                         <LoginRequiredModal />
                                     </div>

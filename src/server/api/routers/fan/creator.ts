@@ -151,7 +151,12 @@ export const creatorRouter = createTRPCRouter({
       const creator = await ctx.db.creator.findFirst({
         where: { id: id },
         include: {
-          pageAsset: true,
+          pageAsset: {
+            select: {
+              issuer: true,
+              code: true,
+            }
+          },
           _count: {
             select: {
               followers: true,
@@ -687,11 +692,10 @@ export const creatorRouter = createTRPCRouter({
       z.object({
         limit: z.number().default(5),
         cursor: z.string().nullish(), // cursor for pagination
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       const { limit, cursor } = input;
-
       // Parse the cursor (which is the last creator's ID)
       const cursorObj = cursor ? { id: cursor } : undefined;
 
@@ -699,99 +703,15 @@ export const creatorRouter = createTRPCRouter({
       const creators = await ctx.db.creator.findMany({
         where: {
           approved: true,
-          followers: {
+          temporalFollows: {
             none: {
               userId: ctx.session.user.id
             }
           }
         },
         orderBy: {
-          followers: {
-            _count: "desc",
-          },
-        },
-        take: limit + 1, // take one extra to determine if there are more
-        // If cursor is provided, start after that album
-        ...(cursorObj
-          ? {
-            cursor: {
-              id: cursorObj.id,
-            },
-            skip: 1, // Skip the cursor item
-          }
-          : {}),
-        select: {
-          id: true,
-          name: true,
-          profileUrl: true,
-          _count: {
-            select: {
-              followers: true,
-            },
-          },
-        },
-      });
-
-      // Check if we have more items
-      let nextCursor: typeof cursor | undefined = undefined;
-      if (creators.length > limit) {
-        const nextItem = creators.pop(); // Remove the extra item
-        nextCursor = nextItem?.id;
-      }
-
-      // Check if current user follows the creators
-      const followedCreators = await ctx.db.follow.findMany({
-        where: {
-          creatorId: {
-            in: creators.map((creator) => creator.id),
-          },
-          userId: ctx.session.user.id,
-        },
-      });
-
-      const creatorsWithFollow = creators.map((creator) => {
-        const isFollowed = followedCreators.some(
-          (follow) => follow.creatorId === creator.id,
-        );
-        return {
-          ...creator,
-          isFollowed,
-          isCurrentUser: creator.id === ctx.session.user.id,
-        };
-      });
-
-      return {
-        creators: creatorsWithFollow,
-        nextCursor,
-      };
-    }),
-
-  getFollowedCreators: protectedProcedure
-    .input(
-      z.object({
-        limit: z.number().default(3),
-        cursor: z.string().nullish(), // cursor for pagination
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      const { limit, cursor } = input;
-
-      // Parse the cursor (which is the last creator's ID)
-      const cursorObj = cursor ? { id: cursor } : undefined;
-
-      // Fetch creators with cursor-based pagination
-      const creators = await ctx.db.creator.findMany({
-        where: {
-          approved: true,
-          followers: {
-            some: {
-              userId: ctx.session.user.id,
-            },
-          },
-        },
-        orderBy: {
-          followers: {
-            _count: "desc",
+          temporalFollows: {
+            _count: 'desc',
           },
         },
         take: limit + 1, // take one extra to determine if there are more
@@ -807,12 +727,7 @@ export const creatorRouter = createTRPCRouter({
           profileUrl: true,
           _count: {
             select: {
-              followers: true,
-            },
-          },
-          subscriptions: {
-            select: {
-              name: true,
+              temporalFollows: true,
             },
           },
         },
@@ -826,20 +741,274 @@ export const creatorRouter = createTRPCRouter({
       }
 
       // Check if current user follows the creators
+      const followedCreators = await ctx.db.temporalFollow.findMany({
+        where: {
+          creatorId: {
+            in: creators.map((creator) => creator.id),
+          },
+          userId: ctx.session.user.id,
+        },
+      });
+
+      const creatorsWithFollow = creators.map((creator) => {
+        const isFollowed = followedCreators.some((follow) => follow.creatorId === creator.id);
+        return {
+          ...creator,
+          isFollowed,
+          isCurrentUser: creator.id === ctx.session.user.id,
+        };
+      });
+
+      return {
+        creators: creatorsWithFollow,
+        nextCursor,
+      };
+    }),
+
+  getAllCreators: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number().default(5),
+        cursor: z.string().nullish(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { limit, cursor } = input;
+      const cursorObj = cursor ? { id: cursor } : undefined;
+
+      const creators = await ctx.db.creator.findMany({
+        where: {
+          approved: true,
+        },
+        orderBy: {
+          temporalFollows: {
+            _count: 'desc',
+          },
+        },
+        take: limit + 1,
+        ...(cursorObj && {
+          cursor: {
+            id: cursorObj.id,
+          },
+          skip: 1,
+        }),
+        select: {
+          id: true,
+          name: true,
+          profileUrl: true,
+          pageAsset: {
+            select: {
+              code: true,
+              issuer: true,
+            }
+          },
+          customPageAssetCodeIssuer: true,
+          _count: {
+            select: {
+              temporalFollows: true,
+            },
+          },
+        },
+      });
+
+      let nextCursor: typeof cursor = undefined;
+      if (creators.length > limit) {
+        const nextItem = creators.pop();
+        nextCursor = nextItem?.id;
+      }
+
+      const followedCreators = await ctx.db.temporalFollow.findMany({
+        where: {
+          creatorId: {
+            in: creators.map((creator) => creator.id),
+          },
+          userId: ctx.session.user.id,
+        },
+      });
+      const memberofCreator = await ctx.db.follow.findMany({
+        where: {
+          creatorId: {
+            in: creators.map((creator) => creator.id),
+          },
+          userId: ctx.session.user.id,
+        }
+      })
+
+
+      const userAcc = await StellarAccount.create(ctx.session.user.id);
+
+      const creatorsWithFollow = creators.map((creator) => {
+        const isFollowed = followedCreators.some((follow) => follow.creatorId === creator.id);
+        const isMember = memberofCreator.some((follow) => follow.creatorId === creator.id);
+        let wasMember = false;
+
+        if (creator.pageAsset) {
+          const { code, issuer } = creator.pageAsset;
+          if (userAcc.hasTrustline(code, issuer)) {
+            wasMember = true;
+          }
+        } else if (creator.customPageAssetCodeIssuer) {
+          const [code, issuer] = creator.customPageAssetCodeIssuer.split("-");
+          const issuerVal = z.string().length(56).safeParse(issuer);
+          if (issuerVal.success && code) {
+            if (userAcc.hasTrustline(code, issuerVal.data)) {
+              wasMember = true;
+            }
+          }
+        }
+
+        return {
+          ...creator,
+          isMember,
+          wasMember,
+          isFollowed,
+          isCurrentUser: creator.id === ctx.session.user.id,
+        };
+      });
+      // console.log("creatorsWithFollow", creatorsWithFollow);
+      return {
+        creators: creatorsWithFollow,
+        nextCursor,
+      };
+    }),
+
+  checkCurrentUserFollowsCreator: protectedProcedure
+    .input(z.object({ creatorId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const isFollowing = await ctx.db.temporalFollow.findUnique({
+        where: {
+          userId_creatorId: {
+            userId: ctx.session.user.id,
+            creatorId: input.creatorId,
+          },
+        },
+      });
+
+      return { isFollowing: !!isFollowing };
+    }),
+  checkCurrentUserMemberCreator: protectedProcedure
+    .input(z.object({ creatorId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+
+      const creator = await ctx.db.creator.findUniqueOrThrow({
+        where: { id: input.creatorId },
+        include: { pageAsset: true },
+      });
+      if (!creator) {
+        throw new Error("Creator not found");
+      }
+      const isMemeber = await ctx.db.follow.findUnique({
+        where: {
+          userId_creatorId: {
+            userId: ctx.session.user.id,
+            creatorId: input.creatorId,
+          },
+        },
+      });
+      const userAcc = await StellarAccount.create(userId);
+      let wasMember = false;
+      if (creator.pageAsset) {
+        const { code, issuer } = creator.pageAsset;
+
+        const hasTrust = userAcc.hasTrustline(code, issuer);
+        if (hasTrust) {
+          wasMember = true;
+        }
+      }
+      else {
+        if (creator.customPageAssetCodeIssuer) {
+          const [code, issuer] = creator.customPageAssetCodeIssuer.split("-");
+          const issuerVal = z.string().length(56).safeParse(issuer);
+          if (issuerVal.success && code) {
+            const hasTrust = userAcc.hasTrustline(code, issuerVal.data);
+            if (hasTrust) {
+              wasMember = true;
+            }
+          }
+        }
+      }
+
+
+
+
+      return { isMemeber: !!isMemeber, wasMember };
+    }),
+
+  getFollowedCreators: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number().default(3),
+        cursor: z.string().nullish(), // cursor for pagination
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { limit, cursor } = input;
+
+      // Parse the cursor (which is the last creator's ID)
+      const cursorObj = cursor ? { id: cursor } : undefined;
+
+      // Fetch creators with cursor-based pagination
+      const creators = await ctx.db.creator.findMany({
+        where: {
+          approved: true,
+          temporalFollows: {
+            some: {
+              userId: ctx.session.user.id
+            }
+          }
+        },
+        orderBy: {
+          temporalFollows: {
+            _count: 'desc',
+          },
+        },
+        take: limit + 1, // take one extra to determine if there are more
+        ...(cursorObj && {
+          cursor: {
+            id: cursorObj.id,
+          },
+          skip: 1, // Skip the cursor
+        }),
+        select: {
+          id: true,
+          name: true,
+          profileUrl: true,
+          _count: {
+            select: {
+              temporalFollows: true,
+            },
+          },
+          subscriptions: {
+            select: {
+              name: true,
+            }
+          }
+        },
+
+      });
+
+      // Check if we have more items
+      let nextCursor: typeof cursor = undefined;
+      if (creators.length > limit) {
+        const nextItem = creators.pop(); // Remove the extra item
+        nextCursor = nextItem?.id;
+      }
+
+      // Check if current user follows the creators
+
 
       return {
         creators: creators,
         nextCursor,
       };
-    }),
+    }
+    ),
   checkCustomAssetValidity: protectedProcedure
     .input(z.object({ assetCode: z.string(), issuer: z.string() }))
     .mutation(async ({ ctx, input }) => {
       console.log("input", input);
-      console.log(
-        "process.env.NEXT_PUBLIC_STELLAR_PUBNET",
-        process.env.NEXT_PUBLIC_STELLAR_PUBNET,
-      );
+      console.log("process.env.NEXT_PUBLIC_STELLAR_PUBNET", process.env.NEXT_PUBLIC_STELLAR_PUBNET);
 
       const isPubnet = process.env.NEXT_PUBLIC_STELLAR_PUBNET === "true"; // Explicit comparison
 
@@ -848,114 +1017,196 @@ export const creatorRouter = createTRPCRouter({
       console.log("Generated URL:", url);
 
       console.log("url", url);
-      const response = await axios.get(url);
+      const response = await axios.get(
+        url
+      );
       console.log("response", response.data);
       return response.status === 200;
     }),
+  createCreatorPageAsset: protectedProcedure.input(z.object({
+    assetType: z.enum(["new", "custom"]),
+    assetName: z.string().default(""),
+    assetImage: z.string().url().optional(),
+    assetImagePreview: z.string().optional(),
+    assetCode: z.string().default(""),
+    issuer: z.string().default(""),
+    escrow: AccountSchema.optional(),
 
-  addCreatorSubscription: protectedProcedure
-    .input(
-      z.object({
-        name: z.string(),
-        price: z.number(),
-        description: z.string(),
-        features: z.array(z.string()),
-        color: z.string(),
-        popular: z.boolean(),
-        isActive: z.boolean(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      console.log("input", input);
-      const creator = await ctx.db.creator.findUnique({
-        where: { id: ctx.session.user.id },
-      });
-      if (!creator) {
-        throw new Error("Creator not found");
-      }
-      const feature = await ctx.db.subscription.create({
-        data: {
-          name: input.name,
-          creatorId: creator.id,
-          price: input.price,
-          description: input.description,
-          features: input.features,
-          color: input.color,
-          popular: input.popular,
-          isActive: input.isActive,
-        },
-      });
-      return feature;
-    }),
-  updateCreatorSubscription: protectedProcedure
-    .input(
-      z.object({
-        id: z.number(),
-        name: z.string(),
-        price: z.number(),
-        description: z.string(),
-        features: z.array(z.string()),
-        color: z.string(),
-        popular: z.boolean(),
-        isActive: z.boolean(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const creator = await ctx.db.creator.findUnique({
-        where: { id: ctx.session.user.id },
-      });
-      if (!creator) {
-        throw new Error("Creator not found");
-      }
-      const feature = await ctx.db.subscription.update({
-        where: { id: input.id },
-        data: {
-          name: input.name,
-          price: input.price,
-          description: input.description,
-          features: input.features,
-          color: input.color,
-          popular: input.popular,
-          isActive: input.isActive,
-        },
-      });
-      return feature;
-    }),
-  deleteCreatorSubscription: protectedProcedure
-    .input(
-      z.object({
-        id: z.number(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const creator = await ctx.db.creator.findUnique({
-        where: { id: ctx.session.user.id },
-      });
-      if (!creator) {
-        throw new Error("Creator not found");
-      }
-      const feature = await ctx.db.subscription.delete({
-        where: { id: input.id },
-      });
-      return feature;
-    }),
 
-  getCreatorPackages: protectedProcedure
-    .input(z.object({ id: z.string() }).optional())
+  })).mutation(async ({ ctx, input }) => {
+    const customAsset = `${input.assetCode}-${input.issuer}`
+    console.log("Type........", input.assetType)
+    const userId = ctx.session.user.id
+    if (input.assetType === "custom") {
+      await ctx.db.creator.update({
+        data: {
+
+          customPageAssetCodeIssuer: customAsset,
+        },
+        where: {
+          id: userId
+        }
+      })
+    } else if (input.assetType === "new" && input.escrow) {
+      console.log("Asset..............................")
+      await ctx.db.creator.update({
+        data: {
+          pageAsset: {
+            create: {
+              code: input.assetName,
+              issuer: input.escrow.publicKey,
+              issuerPrivate: input.escrow.secretKey,
+              limit: 0,
+            },
+          },
+        },
+        where: {
+          id: userId,
+        }
+      })
+    }
+  }),
+
+  addCreatorSubscription: protectedProcedure.input(z.object({
+    name: z.string(),
+    price: z.number(),
+    description: z.string(),
+    features: z.array(z.string()),
+    color: z.string(),
+    popular: z.boolean(),
+    isActive: z.boolean(),
+  })).mutation(async ({ ctx, input }) => {
+    console.log("input", input);
+    const creator = await ctx.db.creator.findUnique({
+      where: { id: ctx.session.user.id },
+    });
+    if (!creator) {
+      throw new Error("Creator not found");
+    }
+    const feature = await ctx.db.subscription.create({
+      data: {
+        name: input.name,
+        creatorId: creator.id,
+        price: input.price,
+        description: input.description,
+        features: input.features,
+        color: input.color,
+        popular: input.popular,
+        isActive: input.isActive,
+      },
+    });
+    return feature;
+  }
+  ),
+  updateCreatorSubscription: protectedProcedure.input(z.object({
+    id: z.number(),
+    name: z.string(),
+    price: z.number(),
+    description: z.string(),
+    features: z.array(z.string()),
+    color: z.string(),
+    popular: z.boolean(),
+    isActive: z.boolean(),
+  })).mutation(async ({ ctx, input }) => {
+    const creator = await ctx.db.creator.findUnique({
+      where: { id: ctx.session.user.id },
+    });
+    if (!creator) {
+      throw new Error("Creator not found");
+    }
+    const feature = await ctx.db.subscription.update({
+      where: { id: input.id },
+      data: {
+        name: input.name,
+        price: input.price,
+        description: input.description,
+        features: input.features,
+        color: input.color,
+        popular: input.popular,
+        isActive: input.isActive,
+      },
+    });
+    return feature;
+  }
+  ),
+  deleteCreatorSubscription: protectedProcedure.input(z.object({
+    id: z.number(),
+  })).mutation(async ({ ctx, input }) => {
+    const creator = await ctx.db.creator.findUnique({
+      where: { id: ctx.session.user.id },
+    });
+    if (!creator) {
+      throw new Error("Creator not found");
+    }
+    const feature = await ctx.db.subscription.delete({
+      where: { id: input.id },
+    });
+    return feature;
+  }
+  ),
+
+  getCreatorPackages: protectedProcedure.input(z.object({ id: z.string() }).optional()).query(async ({ ctx, input }) => {
+    let id = ctx.session.user.id;
+    if (input) {
+      id = input.id;
+    }
+    const creator = await ctx.db.creator.findUnique({
+      where: { id: id },
+    });
+    if (!creator) {
+      throw new Error("Creator not found");
+    }
+    const packages = await ctx.db.subscription.findMany({
+      where: { creatorId: creator.id },
+    });
+    return packages;
+  }),
+  getPaginatedCreator: publicProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(100).default(7),
+        cursor: z.string().nullish(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
-      let id = ctx.session.user.id;
-      if (input) {
-        id = input.id;
+      const { limit, cursor } = input
+
+      const items = await ctx.db.creator.findMany({
+        take: limit + 1, // take an extra item to determine if there are more items
+        cursor: cursor ? { id: cursor } : undefined,
+        orderBy: { createdAt: "desc" },
+        select: {
+          _count: {
+            select: {
+              Bounty: true,
+              followers: true,
+            }
+          },
+          id: true,
+          name: true,
+          bio: true,
+          profileUrl: true,
+          coverUrl: true,
+          website: true,
+          twitter: true,
+          instagram: true,
+
+        },
+        where: {
+          approved: true,
+        },
+      })
+
+
+      let nextCursor: typeof cursor = undefined
+      if (items.length > limit) {
+        const nextItem = items.pop()
+        nextCursor = nextItem?.id
       }
-      const creator = await ctx.db.creator.findUnique({
-        where: { id: id },
-      });
-      if (!creator) {
-        throw new Error("Creator not found");
+
+      return {
+        items,
+        nextCursor,
       }
-      const packages = await ctx.db.subscription.findMany({
-        where: { creatorId: creator.id },
-      });
-      return packages;
     }),
 });

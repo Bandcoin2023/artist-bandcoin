@@ -151,7 +151,7 @@ export const creditRouter = createTRPCRouter({
                 where: { userId: ctx.session.user.id },
             })
 
-            if (!balance || balance.balance < input.credits) {
+            if (!balance ?? balance.balance < input.credits) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "Insufficient credits",
@@ -215,8 +215,8 @@ export const creditRouter = createTRPCRouter({
         ])
         console.log("totalSpent:", totalSpent);
         return {
-            totalCreditsSpent: Math.abs(totalSpent._sum.amount || 0),
-            totalCreditsPurchased: totalPurchased._sum.amount || 0,
+            totalCreditsSpent: Math.abs(totalSpent._sum.amount ?? 0),
+            totalCreditsPurchased: totalPurchased._sum.amount ?? 0,
             generationsLast30Days: recentGenerations,
         }
     }),
@@ -360,10 +360,10 @@ export const creditRouter = createTRPCRouter({
 
         return {
             totalUsers,
-            totalCreditsInCirculation: totalCreditsInCirculation._sum.balance || 0,
+            totalCreditsInCirculation: totalCreditsInCirculation._sum.balance ?? 0,
             totalTransactions,
-            totalRevenueBand: totalRevenueBand._sum.paymentAmount || 0,
-            totalRevenueUSDC: totalRevenueUSDC._sum.paymentAmount || 0,
+            totalRevenueBand: totalRevenueBand._sum.paymentAmount ?? 0,
+            totalRevenueUSDC: totalRevenueUSDC._sum.paymentAmount ?? 0,
         }
     }),
     generatePaymentXDR: protectedProcedure

@@ -5,26 +5,20 @@ import { Button } from "~/components/shadcn/ui/button"
 import { Badge } from "~/components/shadcn/ui/badge"
 import { api } from "~/utils/api"
 import CustomAvatar from "../common/custom-avatar"
-import { useToast } from "~/hooks/use-toast"
 import { Loader2, UserX } from "lucide-react"
 import { useState } from "react"
 import Link from "next/link"
+import toast from "react-hot-toast"
 
 export default function CreatorSidebar() {
-    const toast = useToast()
+
     const [unFollowLoadingId, setUnFollowLoadingId] = useState("")
     const unFollow = api.fan.member.unFollowCreator.useMutation({
         onSuccess: async () => {
-            toast.toast({
-                title: "Creator Unfollowed",
-                variant: "default",
-            })
+            toast.success("Creator Unfollowed")
         },
         onError: (e) =>
-            toast.toast({
-                title: "Failed to unfollow creator",
-                variant: "destructive",
-            }),
+            toast.error("Failed to unfollow creator"),
     })
 
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
@@ -52,13 +46,13 @@ export default function CreatorSidebar() {
                 >
                     <div className="p-0">
                         <div className="flex items-center  gap-2">
-                            <Link href={`/artist/${creator.id}`}>
+                            <Link href={`/organization/${creator.id}`}>
                                 <CustomAvatar url={creator.profileUrl} />
                             </Link>
 
 
                             <div className="flex items-center justify-between gap-2 w-full">
-                                <Link href={`/artist/${creator.id}`}>
+                                <Link href={`/organization/${creator.id}`}>
                                     <p className="text-sm font-medium truncate">{creator.name}</p>
                                 </Link>
                                 <Button

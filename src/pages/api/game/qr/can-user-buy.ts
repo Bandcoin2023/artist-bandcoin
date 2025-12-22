@@ -48,7 +48,20 @@ export default async function handler(
         include: {
             asset: {
                 include: {
-                    tier: { include: { creator: { include: { pageAsset: true } } } },
+                    tier: {
+                        include: {
+                            creator: {
+                                include: {
+                                    pageAsset: {
+                                        select: {
+                                            code: true,
+                                            issuer: true,
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                 },
             },
         },
@@ -69,7 +82,12 @@ export default async function handler(
         const creatorPageAsset = await db.creator.findUniqueOrThrow({
             where: { id: marketAsset.placerId },
             select: {
-                pageAsset: true,
+                pageAsset: {
+                    select: {
+                        code: true,
+                        issuer: true,
+                    }
+                },
             },
         });
         if (!creatorPageAsset.pageAsset) return false;

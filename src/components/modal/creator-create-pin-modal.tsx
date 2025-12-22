@@ -22,7 +22,7 @@ import { Badge } from "../shadcn/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../shadcn/ui/tabs"
 import { UploadS3Button } from "../common/upload-button"
 import { Switch } from "../shadcn/ui/switch"
-import { useMapInteractionStore } from "../store/map-store"
+import { useMapInteractionStore } from "../store/map-stores"
 import CopyCutPinModal from "./copy-cut-pin-modal"
 
 // Define types for assets and pins
@@ -1002,7 +1002,7 @@ function PinTypeToggles() {
     )
 }
 function TiersOptions() {
-    const tiersQuery = api.fan.member.getAllMembership.useQuery()
+    const tiersQuery = api.fan.member.getAllMembership.useQuery({})
     const { control } = useFormContext<CreatePinType>()
     if (tiersQuery.isLoading) return <div className="skeleton h-10 w-20"></div>;
     if (tiersQuery.data) {

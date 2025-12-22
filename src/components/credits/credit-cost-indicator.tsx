@@ -31,7 +31,7 @@ export function CreditCostIndicator({ cost, balance, mediaType }: CreditCostIndi
       <Alert className="mb-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
         <Coins className="h-4 w-4 text-amber-600" />
         <AlertDescription className="text-amber-900 dark:text-amber-200">
-          This generation will use {cost} credits. You'll have {balance - cost} credits remaining.
+          This generation will use {cost} credits. You{"'"}ll have {balance - cost} credits remaining.
         </AlertDescription>
       </Alert>
     )

@@ -120,7 +120,6 @@ export default function BountyScreen() {
 
   const handleBountyAction = (bounty: BountyTypes) => {
     if (bounty.isJoined || bounty.isOwner) {
-      setData({ item: bounty })
       router.push(`/action/actions/${bounty.id}`)
     } else {
       onOpen("JoinBounty", { bounty: bounty })
@@ -329,7 +328,7 @@ export default function BountyScreen() {
                     <Trophy className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-lg font-bold">Actions</h1>
+                    <h1 className="text-lg font-bold">Bounties</h1>
                     <p className="text-xs text-muted-foreground">{bountyList.length} active</p>
                   </div>
                 </div>
@@ -495,7 +494,6 @@ interface BountyCardProps {
 }
 
 function BountyCard({ bounty, onAction, location, getAssetBalance, buttonRef }: BountyCardProps) {
-  const totalSteps = bounty.ActionLocation?.length ?? 0
   const isFinished = bounty.currentWinnerCount >= bounty.totalWinner
 
   const balance = getAssetBalance({
@@ -610,22 +608,7 @@ function BountyCard({ bounty, onAction, location, getAssetBalance, buttonRef }: 
             )}
           </Button>
 
-          {bounty.bountyType === "SCAVENGER_HUNT" && bounty.isJoined && (
-            <div className="w-full space-y-2">
-              <div className="flex justify-between text-xs font-medium">
-                <span className="text-muted-foreground">
-                  Step {bounty.currentStep ?? 0} of {totalSteps}
-                </span>
-                <span className="text-primary font-bold">
-                  {Math.round(((bounty.currentStep ?? 0) / Math.max(totalSteps, 1)) * 100)}%
-                </span>
-              </div>
-              <Progress
-                className="h-2 bg-muted"
-                value={Math.round(((bounty.currentStep ?? 0) / Math.max(totalSteps, 1)) * 100)}
-              />
-            </div>
-          )}
+
         </div>
       </CardFooter>
     </Card>

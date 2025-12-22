@@ -126,7 +126,7 @@ const SingleBountyItem = () => {
   const handleSubmitSolution = () => {
     createBountyAttachmentMutation.mutate({
       content: solution,
-      bountyId: bounty.id ?? "0",
+      bountyId: bounty.id?.toString() ?? "0",
       media: media,
     })
   }
@@ -337,22 +337,7 @@ const SingleBountyItem = () => {
             </Card>
           )}
 
-          {bounty.bountyType === "SCAVENGER_HUNT" && (
-            <Card className="border-purple-200 dark:border-purple-900/50 bg-purple-50/50 dark:bg-purple-950/20">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Target className="h-4 w-4 text-purple-500" />
-                  <span>Hunt Progress</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ScavengerProgress
-                  currentStep={bounty.currentStep ?? 0}
-                  totalSteps={bounty.ActionLocation?.length ?? 0}
-                />
-              </CardContent>
-            </Card>
-          )}
+
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList className="grid w-full grid-cols-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg h-10">

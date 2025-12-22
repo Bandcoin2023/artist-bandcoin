@@ -158,6 +158,21 @@ model Follow {
     @@unique([userId, creatorId])
 }
 
+// General Follow
+model TemporalFollow {
+    id     Int    @id @default(autoincrement())
+    userId String
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    creatorId String
+    creator   Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+    followAt DateTime @default(now())
+
+    // Unique constraint on userId and subscriptionId
+    @@unique([userId, creatorId])
+}
+
 model Media {
     id        Int       @id @default(autoincrement())
     url       String
@@ -232,6 +247,7 @@ model Creator {
     SellPageAsset       SellPageAsset[]
     ActionLocation      ActionLocation[]
     aiGeneratedContents AiGeneratedContent[]
+    temporalFollows     TemporalFollow[]
 
     @@index([bio, name])
 }
@@ -368,6 +384,7 @@ model User {
     ClaimSpotifyReward ClaimSpotifyReward[]
     bountyRedeems      BountyRedeem[]
     creditBalance      CreditBalance?
+    temporalFollows    TemporalFollow[]
 }
 
 model SpotifyAccount {
@@ -441,7 +458,8 @@ enum ItemPrivacy {
     FOR_SALE
     NOT_FOR_SALE
     PUBLIC
-    PRIVATE // only for followers
+    FOLLOWER // only for followers
+    PRIVATE // only for members
     TIER // tier based
 }
 
