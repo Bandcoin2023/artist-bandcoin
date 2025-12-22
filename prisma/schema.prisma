@@ -45,6 +45,7 @@ enum NotificationType {
     POST
     SHOP_ASSET
     FOLLOW
+    MEMBER
     REPLY
     BOUNTY
     BOUNTY_PARTICIPANT
