@@ -74,12 +74,7 @@ export default function SearchAndSort({
                                         <span className="font-medium">Create Bounty</span>
                                     </div>
                                 </SelectItem>
-                                <SelectItem value="scavenger" className="cursor-pointer">
-                                    <div className="flex items-center gap-3 py-1">
-                                        <Target className="h-4 w-4 text-red-500" />
-                                        <span className="font-medium">Create Scavenger Hunt</span>
-                                    </div>
-                                </SelectItem>
+
                                 <SelectItem value="location" className="cursor-pointer">
                                     <div className="flex items-center gap-3 py-1">
                                         <MapPin className="h-4 w-4 text-blue-500" />
