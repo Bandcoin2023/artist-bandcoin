@@ -1023,7 +1023,7 @@ function TiersOptions() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="public">Public</SelectItem>
-                                <SelectItem value="private">Only Followers</SelectItem>
+                                <SelectItem value="private">Only Members</SelectItem>
                                 {tiersQuery.data.map((model) => (
 
                                     <SelectItem key={model.id} value={model.id.toString()}>

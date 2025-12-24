@@ -1077,20 +1077,21 @@ export default function StoredItemsView() {
                                 qrItem={selectedQRItem}
                             />
                         )}
-                        {
-                            isQRModalOpen && (
-                                <CreateQrCodeModal
-                                    open={isQRModalOpen}
-                                    onClose={() => setIsQRModalOpen(false)}
-                                />
-                            )
-                        }
                     </TabsContent>
                     {/* PAGE ASSETS TAB */}
                     <TabsContent value="PageAsset" className="pt-4">
                         <SellPageAssetList />
                     </TabsContent>
                 </Tabs>
+
+                {
+                    isQRModalOpen && (
+                        <CreateQrCodeModal
+                            open={isQRModalOpen}
+                            onClose={() => setIsQRModalOpen(false)}
+                        />
+                    )
+                }
 
             </CardContent>
         </Card>
