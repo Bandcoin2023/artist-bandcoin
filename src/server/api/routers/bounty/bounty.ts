@@ -810,6 +810,9 @@ export const BountyRoute = createTRPCRouter({
           },
         },
       });
+      if (!bounty) {
+        throw new Error("Bounty not found");
+      }
       return {
         ...bounty,
         isOwner: bounty?.creatorId === ctx.session?.user.id,
