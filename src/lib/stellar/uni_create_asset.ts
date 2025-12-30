@@ -9,19 +9,17 @@ import { env } from "~/env";
 import {
   PLATFORM_ASSET,
   PLATFORM_FEE,
-  STELLAR_URL,
+
   TrxBaseFee,
   TrxBaseFeeInPlatformAsset,
-  networkPassphrase,
+
 } from "./constant";
 import { getplatformAssetNumberForXLM } from "./fan/get_token_price";
 import { AccountType } from "./fan/utils";
 import { SignUserType, WithSing } from "./utils";
+import { addPaymentOp, createTransactionBuilder, finalizeTransaction, getServerAndMotherAcc } from "./helper";
 
-const log = console;
-
-// transection variables
-
+//bandcoin,actionverse
 export async function createUniAsset({
   pubkey,
   code,
@@ -30,124 +28,119 @@ export async function createUniAsset({
   homeDomain,
   storageSecret,
   ipfsHash,
-  actionAmount,
 }: {
   pubkey: string;
   code: string;
   limit: string;
-  actionAmount: string;
   storageSecret: string;
   signWith: SignUserType;
   homeDomain: string;
   ipfsHash: string;
 }) {
-  const server = new Horizon.Server(STELLAR_URL);
-  console.log(pubkey, code, limit, signWith, homeDomain, storageSecret, ipfsHash);
+  // Step 1: Extract the IPFS hash from the provided URL
   const extractHash = ipfsHash.split("/").pop();
 
   if (!extractHash) {
     throw new Error("Invalid ipfsHash");
   }
 
-  // accounts
+  // Step 2: Generate a new random keypair for the asset issuer
   const issuerAcc = Keypair.random();
+  // Get the storage account keypair from the provided secret
   const assetStorage = Keypair.fromSecret(storageSecret);
-  const PLATFORM_MOTHER_ACC = Keypair.fromSecret(env.MOTHER_SECRET);
+  // Get the platform's mother account
+  const { motherAcc } = getServerAndMotherAcc();
 
+  // Step 3: Create the asset object with the code and issuer's public key
   const asset = new Asset(code, issuerAcc.publicKey());
 
+  // Step 4: Calculate the platform asset needed for 2 XLM refund
   const requiredAsset2refundXlm = await getplatformAssetNumberForXLM(2);
+  // Calculate total platform fee including base fees
   const total =
     requiredAsset2refundXlm +
     Number(PLATFORM_FEE) +
     Number(TrxBaseFeeInPlatformAsset);
 
-  const transactionInitializer = await server.loadAccount(
-    PLATFORM_MOTHER_ACC.publicKey(),
+  // Step 5: Create transaction builder starting from mother account
+  const Tx1 = await createTransactionBuilder(
+    motherAcc.publicKey(),
+    TrxBaseFee
   );
-  const Tx1 = new TransactionBuilder(transactionInitializer, {
-    fee: TrxBaseFee,
-    networkPassphrase,
-  });
 
-  // is admin is not creating the trx
-  // console.log(signWith, "signWith");
-  if (signWith === undefined || (signWith && !("isAdmin" in signWith))) {
-    // first get action for required xlm. and platformFee
-    Tx1.addOperation(
-      Operation.payment({
-        destination: PLATFORM_MOTHER_ACC.publicKey(),
-        asset: PLATFORM_ASSET,
-        amount: total.toString(),
-        source: pubkey,
-      }),
-    );
-  }
+  // Step 6: Add payment for platform fee in platform asset from user to mother
+  addPaymentOp(
+    Tx1,
+    motherAcc.publicKey(),
+    total.toString(),
+    PLATFORM_ASSET,
+    pubkey
+  );
 
-  // send this required xlm to storage so that it can lock new  trusting asset (0.5xlm)
+  // Step 7: Send 2 XLM to storage account for trustline setup
+  addPaymentOp(
+    Tx1,
+    assetStorage.publicKey(),
+    "2",
+    Asset.native(),
+    motherAcc.publicKey()
+  );
+
+  // Step 8: Create the issuer account with starting balance
   Tx1.addOperation(
-    Operation.payment({
-      destination: assetStorage.publicKey(),
-      asset: Asset.native(),
-      amount: "2",
-      source: PLATFORM_MOTHER_ACC.publicKey(),
-    }),
-  )
+    Operation.createAccount({
+      destination: issuerAcc.publicKey(),
+      startingBalance: "1.5",
+      source: assetStorage.publicKey(),
+    })
+  );
 
-    // create issuer account
-    .addOperation(
-      Operation.createAccount({
-        destination: issuerAcc.publicKey(),
-        startingBalance: "1.5",
-        source: assetStorage.publicKey(),
-      }),
-    )
-    // 2
-    .addOperation(
-      Operation.changeTrust({
-        asset,
-        limit: limit,
-        source: assetStorage.publicKey(),
-      }),
-    )
+  // Step 9: Add trustline for the asset on storage account
+  Tx1.addOperation(
+    Operation.changeTrust({
+      asset,
+      limit: limit,
+      source: assetStorage.publicKey(),
+    })
+  );
 
-    // 3
-    .addOperation(
-      Operation.payment({
-        asset,
-        amount: limit,
-        source: issuerAcc.publicKey(),
-        destination: assetStorage.publicKey(),
-      }),
-    )
-    // 4
-    .addOperation(
-      Operation.setOptions({
-        homeDomain,
-        source: issuerAcc.publicKey(),
-      }),
-    )
-    .addOperation(
-      Operation.manageData({
-        name: "ipfshash",
-        value: extractHash,
-        source: issuerAcc.publicKey(),
-      }),
-    )
+  // Step 10: Send the full token supply to storage account
+  addPaymentOp(
+    Tx1,
+    assetStorage.publicKey(),
+    limit,
+    asset,
+    issuerAcc.publicKey()
+  );
 
-    .setTimeout(0);
+  // Step 11: Set the home domain for the issuer account
+  Tx1.addOperation(
+    Operation.setOptions({
+      homeDomain,
+      source: issuerAcc.publicKey(),
+    })
+  );
 
-  const buildTrx = Tx1.build();
+  // Step 12: Store the IPFS hash as data on the issuer account
+  Tx1.addOperation(
+    Operation.manageData({
+      name: "ipfshash",
+      value: extractHash,
+      source: issuerAcc.publicKey(),
+    })
+  );
 
-  // sign
-  buildTrx.sign(PLATFORM_MOTHER_ACC, issuerAcc, assetStorage);
-  const xdr = buildTrx.toXDR();
+  // Step 13: Finalize the transaction with signatures from mother, issuer, and storage
+  const xdr = finalizeTransaction(Tx1, [
+    motherAcc,
+    issuerAcc,
+    assetStorage,
+  ]);
 
-  const signedXDr = await WithSing({
-    xdr: xdr,
-    signWith: signWith && "isAdmin" in signWith ? undefined : signWith,
-  });
+  // Step 14: Add user signature
+  const signedXDr = await WithSing({ xdr, signWith });
 
+  // Step 15: Return the signed XDR and issuer account details
   const issuer: AccountType = {
     publicKey: issuerAcc.publicKey(),
     secretKey: issuerAcc.secret(),
@@ -174,98 +167,86 @@ export async function createUniAssetWithXLM({
   homeDomain: string;
   ipfsHash: string;
 }) {
-  const server = new Horizon.Server(STELLAR_URL);
-
-  // accounts
+  // Step 1: Generate a new random keypair for the asset issuer
   const issuerAcc = Keypair.random();
-  const asesetStorage = Keypair.fromSecret(storageSecret);
-  const PLATFORM_MOTHER_ACC = Keypair.fromSecret(env.MOTHER_SECRET);
+  // Get the storage account keypair from the provided secret
+  const assetStorage = Keypair.fromSecret(storageSecret);
+  // Get the platform's mother account
+  const { motherAcc: PLATFORM_MOTHER_ACC } = getServerAndMotherAcc();
 
+  // Step 2: Create the asset object with the code and issuer's public key
   const asset = new Asset(code, issuerAcc.publicKey());
 
-  // here pubkey should be change for admin
-  const transactionInitializer = await server.loadAccount(pubkey);
+  // Step 3: Create transaction builder starting from the user's account
+  const Tx1 = await createTransactionBuilder(pubkey, TrxBaseFee);
 
-  const Tx1 = new TransactionBuilder(transactionInitializer, {
-    fee: TrxBaseFee,
-    networkPassphrase,
-  });
+  // Step 4: Pay platform fee of 2 XLM to mother account
+  addPaymentOp(
+    Tx1,
+    PLATFORM_MOTHER_ACC.publicKey(),
+    "2",
+    Asset.native()
+  );
 
-  // is admin is not creating the trx
-  if (signWith === undefined || (signWith && !("isAdmin" in signWith))) {
-    // first get action for required xlm. and platformFee
-    Tx1.addOperation(
-      Operation.payment({
-        destination: PLATFORM_MOTHER_ACC.publicKey(),
-        asset: Asset.native(),
-        amount: "2",
-      }),
-    );
-  }
+  // Step 5: Send 2 XLM to storage account for trustline setup
+  addPaymentOp(
+    Tx1,
+    assetStorage.publicKey(),
+    "2",
+    Asset.native()
+  );
 
-  // send this required xlm to storage so that it can lock new  trusting asset (0.5xlm)
+  // Step 6: Create the issuer account with starting balance
   Tx1.addOperation(
-    Operation.payment({
-      destination: asesetStorage.publicKey(),
-      asset: Asset.native(),
-      amount: "2",
-    }),
-  )
-    // create issuer account
-    .addOperation(
-      Operation.createAccount({
-        destination: issuerAcc.publicKey(),
-        startingBalance: "1.5",
-        source: asesetStorage.publicKey(),
-      }),
-    )
+    Operation.createAccount({
+      destination: issuerAcc.publicKey(),
+      startingBalance: "1.5",
+      source: assetStorage.publicKey(),
+    })
+  );
 
-    // 2
-    .addOperation(
-      Operation.changeTrust({
-        asset,
-        limit: limit,
-        source: asesetStorage.publicKey(),
-      }),
-    )
+  // Step 7: Add trustline for the asset on storage account
+  Tx1.addOperation(
+    Operation.changeTrust({
+      asset,
+      limit: limit,
+      source: assetStorage.publicKey(),
+    })
+  );
 
-    // 3
-    .addOperation(
-      Operation.payment({
-        asset,
-        amount: limit,
-        source: issuerAcc.publicKey(),
-        destination: asesetStorage.publicKey(),
-      }),
-    )
-    // 4
-    .addOperation(
-      Operation.setOptions({
-        homeDomain,
-        source: issuerAcc.publicKey(),
-      }),
-    )
-    .addOperation(
-      Operation.manageData({
-        name: "ipfshash",
-        value: ipfsHash,
-        source: issuerAcc.publicKey(),
-      }),
-    )
+  // Step 8: Send the full token supply to storage account
+  addPaymentOp(
+    Tx1,
+    assetStorage.publicKey(),
+    limit,
+    asset,
+    issuerAcc.publicKey()
+  );
 
-    .setTimeout(0);
+  // Step 9: Set the home domain for the issuer account
+  Tx1.addOperation(
+    Operation.setOptions({
+      homeDomain,
+      source: issuerAcc.publicKey(),
+    })
+  );
 
-  const buildTrx = Tx1.build();
+  // Step 10: Store the IPFS hash as data on the issuer account
+  Tx1.addOperation(
+    Operation.manageData({
+      name: "ipfshash",
+      value: ipfsHash,
+      source: issuerAcc.publicKey(),
+    })
+  );
 
-  // sign
-  buildTrx.sign(issuerAcc, asesetStorage);
-  const xdr = buildTrx.toXDR();
+  // Step 11: Finalize the transaction with signatures from issuer and storage
+  const xdr = finalizeTransaction(Tx1, [issuerAcc, assetStorage]);
 
-  const signedXDr = await WithSing({
-    xdr: xdr,
-    signWith: signWith && "isAdmin" in signWith ? undefined : signWith,
-  });
+  // Step 12: Add user signature
+  const signedXDr = await WithSing({ xdr, signWith });
 
+  // Step 13: Return the signed XDR and issuer account details
   const issuer: AccountType = {
     publicKey: issuerAcc.publicKey(),
     secretKey: issuerAcc.secret(),

@@ -1,9 +1,9 @@
 import { db } from "~/server/db"
 import { addMonths } from 'date-fns'
-import { SignUserType, WithSing } from "../utils";
-import { Horizon, Keypair, Operation, TransactionBuilder, } from "@stellar/stellar-sdk";
-import { PLATFORM_ASSET, STELLAR_URL, TrxBaseFee, networkPassphrase } from "../constant";
-import { MOTHER_SECRET } from "../marketplace/SECRET";
+import type { SignUserType } from "../utils";
+import { WithSing } from "../utils";
+import { PLATFORM_ASSET, TrxBaseFee } from "../constant";
+import { getServerAndMotherAcc, createTransactionBuilder, addPaymentOp, finalizeTransaction } from "../helper";
 
 
 export async function getVanitySubscriptionXDR({
@@ -15,33 +15,23 @@ export async function getVanitySubscriptionXDR({
     signWith: SignUserType;
     userPubKey: string;
 }) {
-    const server = new Horizon.Server(STELLAR_URL);
-    const motherAcc = Keypair.fromSecret(MOTHER_SECRET);
-    const account = await server.loadAccount(motherAcc.publicKey());
+    const { motherAcc } = getServerAndMotherAcc();
 
-    const transaction = new TransactionBuilder(account, {
-        fee: TrxBaseFee,
-        networkPassphrase,
-    });
+    const transaction = await createTransactionBuilder(motherAcc.publicKey(), TrxBaseFee);
 
-    transaction.addOperation(
-        Operation.payment({
-            destination: motherAcc.publicKey(),
-            asset: PLATFORM_ASSET,
-            amount: amount.toFixed(7).toString(),
-            source: userPubKey,
-        }),
+    addPaymentOp(
+        transaction,
+        motherAcc.publicKey(),
+        amount.toFixed(7).toString(),
+        PLATFORM_ASSET,
+        userPubKey
     );
-    transaction.setTimeout(0);
 
-    const buildTrx = transaction.build();
-    buildTrx.sign(motherAcc);
-    const xdr = buildTrx.toXDR();
+    const xdr = finalizeTransaction(transaction, [motherAcc]);
 
+    const signedXdr = WithSing({ xdr, signWith });
 
-    const singedXdr = WithSing({ xdr, signWith });
-
-    return singedXdr;
+    return signedXdr;
 }
 
 

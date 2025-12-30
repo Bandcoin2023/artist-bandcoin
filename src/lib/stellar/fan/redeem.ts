@@ -17,6 +17,7 @@ import {
 import { SignUserType, WithSing } from "../utils";
 import { P } from "pino";
 import { getplatformAssetNumberForXLM } from "./get_token_price";
+import { getServerAndMotherAcc, createTransactionBuilder, addPaymentOp, finalizeTransaction, addTrustlineSetup } from "../helper";
 
 export async function createRedeemXDRAsset({
   creatorId,
@@ -27,41 +28,28 @@ export async function createRedeemXDRAsset({
   maxRedeems: number;
   signWith: SignUserType;
 }) {
-  const server = new Horizon.Server(STELLAR_URL);
+  const { motherAcc } = getServerAndMotherAcc();
 
-  const motherAccount = Keypair.fromSecret(env.MOTHER_SECRET);
-
-  const transactionInializer = await server.loadAccount(
-    motherAccount.publicKey(),
-  );
-
-  const Tx1 = new TransactionBuilder(transactionInializer, {
-    fee: TrxBaseFee,
-    networkPassphrase,
-  });
+  const transaction = await createTransactionBuilder(motherAcc.publicKey(), TrxBaseFee);
 
   // (0.5 xlm + trxBaseFee + platformFee ) * maxRedeems
   const trustPrice = await getplatformAssetNumberForXLM(0.5);
   const totalAmount =
     Number(trustPrice + Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE)) * maxRedeems;
 
-  Tx1.addOperation(
-    Operation.payment({
-      destination: motherAccount.publicKey(),
-      asset: PLATFORM_ASSET,
-      amount: totalAmount.toFixed(7),
-      source: creatorId,
-    }),
+  addPaymentOp(
+    transaction,
+    motherAcc.publicKey(),
+    totalAmount.toFixed(7),
+    PLATFORM_ASSET,
+    creatorId
   );
-  Tx1.setTimeout(0);
 
-  const buildTrx = Tx1.build();
-  buildTrx.sign(motherAccount);
-  const xdr = buildTrx.toXDR();
+  const xdr = finalizeTransaction(transaction, [motherAcc]);
 
-  const singedXdr = WithSing({ xdr, signWith });
+  const signedXdr = WithSing({ xdr, signWith });
 
-  return singedXdr;
+  return signedXdr;
 }
 
 export async function createRedeemXDRNative({
@@ -73,40 +61,27 @@ export async function createRedeemXDRNative({
   maxRedeems: number;
   signWith: SignUserType;
 }) {
-  const server = new Horizon.Server(STELLAR_URL);
-
-  const motherAccount = Keypair.fromSecret(env.MOTHER_SECRET);
+  const { motherAcc } = getServerAndMotherAcc();
 
   const trustPrice = 0.5;
   const xlmPlatformFee = 2;
   const amount = Number(trustPrice + TrxBaseFee) * maxRedeems + xlmPlatformFee;
 
-  const transactionInializer = await server.loadAccount(
-    motherAccount.publicKey(),
-  );
-  const Tx1 = new TransactionBuilder(transactionInializer, {
-    fee: TrxBaseFee,
-    networkPassphrase,
-  });
+  const transaction = await createTransactionBuilder(motherAcc.publicKey(), TrxBaseFee);
 
-  Tx1.addOperation(
-    Operation.payment({
-      destination: motherAccount.publicKey(),
-      asset: Asset.native(),
-      amount: amount.toFixed(7),
-      source: creatorId,
-    }),
+  addPaymentOp(
+    transaction,
+    motherAcc.publicKey(),
+    amount.toFixed(7),
+    Asset.native(),
+    creatorId
   );
 
-  Tx1.setTimeout(0);
-  const buildTrx = Tx1.build();
+  const xdr = finalizeTransaction(transaction, [motherAcc]);
 
-  buildTrx.sign(motherAccount);
-  const xdr = buildTrx.toXDR();
+  const signedXdr = WithSing({ xdr, signWith });
 
-  const singedXdr = WithSing({ xdr, signWith });
-
-  return singedXdr;
+  return signedXdr;
 }
 
 export async function claimRedeemXDR({
@@ -124,54 +99,28 @@ export async function claimRedeemXDR({
   userPub: string;
   storageSecret: string;
 }) {
-  const server = new Horizon.Server(STELLAR_URL);
+  const { motherAcc } = getServerAndMotherAcc();
 
   const asset = new Asset(assetCode, assetIssuer);
 
-  const motherAccount = Keypair.fromSecret(env.MOTHER_SECRET);
-
   const assetStorage = Keypair.fromSecret(storageSecret);
 
-  const transactionInializer = await server.loadAccount(
-    motherAccount.publicKey(),
-  );
-
-  const Tx1 = new TransactionBuilder(transactionInializer, {
-    fee: TrxBaseFee,
-    networkPassphrase,
-  });
+  const transaction = await createTransactionBuilder(motherAcc.publicKey(), TrxBaseFee);
 
   // here total cost = 0.5 xlm + trxBaseFee
+  addTrustlineSetup(transaction, userPub, asset, motherAcc.publicKey());
 
-  Tx1.addOperation(
-    Operation.payment({
-      destination: userPub,
-      asset: Asset.native(),
-      amount: "0.5",
-    }),
-  )
-    .addOperation(
-      Operation.changeTrust({
-        asset: asset,
-        source: userPub,
-      }),
-    )
-    .addOperation(
-      Operation.payment({
-        destination: userPub,
-        asset: asset,
-        amount: "1",
-        source: assetStorage.publicKey(),
-      }),
-    );
+  addPaymentOp(
+    transaction,
+    userPub,
+    "1",
+    asset,
+    assetStorage.publicKey()
+  );
 
-  Tx1.setTimeout(0);
-  const buildTrx = Tx1.build();
+  const xdr = finalizeTransaction(transaction, [motherAcc, assetStorage]);
 
-  buildTrx.sign(motherAccount, assetStorage);
+  const signedXdr = WithSing({ xdr, signWith });
 
-  const xdr = buildTrx.toXDR();
-  const singedXdr = WithSing({ xdr, signWith });
-
-  return singedXdr;
+  return signedXdr;
 }

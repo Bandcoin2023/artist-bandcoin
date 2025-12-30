@@ -1,7 +1,15 @@
-import { networkPassphrase, PLATFORM_ASSET, STELLAR_URL, TrxBaseFee } from "../../constant";
-import { Asset, Horizon, Keypair, Operation, TransactionBuilder } from "@stellar/stellar-sdk";
-import { MOTHER_SECRET, STORAGE_SECRET } from "../SECRET";
-import { SignUserType, WithSing } from "../../utils";
+import { Asset } from "@stellar/stellar-sdk";
+import { PLATFORM_ASSET, TrxBaseFee } from "../../constant";
+import type { SignUserType } from "../../utils";
+import { WithSing } from "../../utils";
+import {
+    getServerAndMotherAcc,
+    createTransactionBuilder,
+    addPaymentOp,
+    finalizeTransaction,
+    getNativeBalance,
+    getAssetBalance,
+} from "../../helper";
 
 export const XDR4SendPlotToInvestorInXLM = async ({
     pubkey,
@@ -14,105 +22,72 @@ export const XDR4SendPlotToInvestorInXLM = async ({
     holders: string[];
     signWith: SignUserType;
 }) => {
-    const server = new Horizon.Server(STELLAR_URL);
-    const motherAcc = Keypair.fromSecret(MOTHER_SECRET);
+    const { motherAcc } = getServerAndMotherAcc();
 
-    const loadMotherAcc = await server.loadAccount(motherAcc.publicKey());
-
-    const loadUserAcc = await server.loadAccount(pubkey);
-
-    const balance = loadUserAcc.balances.find((b) => b.asset_type === "native");
-    if (!balance) {
-        throw new Error("User account does not have XLM balance");
-    }
-    if (Number(balance.balance) < TotalAmount) {
+    // Check user's XLM balance
+    const userBalance = await getNativeBalance(pubkey);
+    if (userBalance < TotalAmount) {
         throw new Error("User account does not have enough XLM balance");
     }
 
-
-    const Tx2 = new TransactionBuilder(loadMotherAcc, {
-        fee: TrxBaseFee,
-        networkPassphrase,
-    });
-
+    const transaction = await createTransactionBuilder(motherAcc.publicKey(), TrxBaseFee);
 
     const paymentForPerPerson = TotalAmount / holders.length;
 
-    Tx2.addOperation(
-        Operation.payment({
-            destination: motherAcc.publicKey(),
-            amount: TotalAmount.toPrecision(7),
-            asset: Asset.native(),
-            source: pubkey,
-        }),
+    // User pays to mother
+    addPaymentOp(
+        transaction,
+        motherAcc.publicKey(),
+        TotalAmount.toPrecision(7),
+        Asset.native(),
+        pubkey
     );
 
+    // Mother pays to each holder
     holders.forEach((holder) => {
-        Tx2.addOperation(
-            Operation.payment({
-                destination: holder,
-                amount: paymentForPerPerson.toPrecision(7),
-                asset: Asset.native(),
-            }),
+        addPaymentOp(
+            transaction,
+            holder,
+            paymentForPerPerson.toPrecision(7),
+            Asset.native()
         );
     });
 
-    Tx2.setTimeout(0);
+    const xdr = finalizeTransaction(transaction, [motherAcc]);
 
-    const buildTrx = Tx2.build();
-
-    buildTrx.sign(motherAcc);
-
-    const xdr = await WithSing({ xdr: buildTrx.toXDR(), signWith });
-    return xdr;
-
+    const signedXdr = await WithSing({ xdr, signWith });
+    return signedXdr;
 }
 export const XDR4SendPlotToInvestorInUSDC = async ({
-    pubkey,
     TotalAmount,
     holders,
     signWith
 }: {
-    pubkey: string;
+    pubkey?: string;
     TotalAmount: number;
     holders: string[];
     signWith: SignUserType;
 }) => {
-    const server = new Horizon.Server(STELLAR_URL);
-    const motherAcc = Keypair.fromSecret(MOTHER_SECRET);
+    const { motherAcc } = getServerAndMotherAcc();
 
-    const loadMotherAcc = await server.loadAccount(motherAcc.publicKey());
-
-
-    const Tx2 = new TransactionBuilder(loadMotherAcc, {
-        fee: TrxBaseFee,
-        networkPassphrase,
-    });
-
+    const transaction = await createTransactionBuilder(motherAcc.publicKey(), TrxBaseFee);
 
     const paymentForPerPerson = TotalAmount / holders.length;
 
-
+    // Pay to each holder
     holders.forEach((holder) => {
-        Tx2.addOperation(
-            Operation.payment({
-                destination: holder,
-                amount: paymentForPerPerson.toPrecision(7),
-                asset: new Asset(PLATFORM_ASSET.code, PLATFORM_ASSET.issuer),
-
-            }),
+        addPaymentOp(
+            transaction,
+            holder,
+            paymentForPerPerson.toPrecision(7),
+            PLATFORM_ASSET
         );
     });
 
-    Tx2.setTimeout(0);
+    const xdr = finalizeTransaction(transaction, [motherAcc]);
 
-    const buildTrx = Tx2.build();
-
-    buildTrx.sign(motherAcc);
-
-    const xdr = buildTrx.toXDR();
-    return xdr;
-
+    const signedXdr = await WithSing({ xdr, signWith });
+    return signedXdr;
 }
 
 export const XDR4SendPlotToInvestorInPlatformAsset = async ({
@@ -126,63 +101,39 @@ export const XDR4SendPlotToInvestorInPlatformAsset = async ({
     holders: string[];
     signWith: SignUserType;
 }) => {
-    const server = new Horizon.Server(STELLAR_URL);
-    const motherAcc = Keypair.fromSecret(MOTHER_SECRET);
+    const { motherAcc } = getServerAndMotherAcc();
 
-    const loadMotherAcc = await server.loadAccount(motherAcc.publicKey());
-
-    const loadUserAcc = await server.loadAccount(pubkey);
-
-    const balance = loadUserAcc.balances.map((b) => {
-        if (b.asset_type === 'credit_alphanum4' || b.asset_type === 'credit_alphanum12') {
-            if (b.asset_code === PLATFORM_ASSET.code && b.asset_issuer === PLATFORM_ASSET.issuer) {
-                return b.balance;
-            }
-        }
-    });
-    if (!balance) {
-        throw new Error("User account does not have XLM balance");
-    }
-    if (balance && Number(balance) < TotalAmount) {
-        throw new Error("User account does not have enough XLM balance");
+    // Check user's platform asset balance
+    const userBalance = await getAssetBalance(pubkey, PLATFORM_ASSET.code, PLATFORM_ASSET.issuer);
+    if (userBalance < TotalAmount) {
+        throw new Error("User account does not have enough platform asset balance");
     }
 
-
-
-    const Tx2 = new TransactionBuilder(loadMotherAcc, {
-        fee: TrxBaseFee,
-        networkPassphrase,
-    });
-
+    const transaction = await createTransactionBuilder(motherAcc.publicKey(), TrxBaseFee);
 
     const paymentForPerPerson = TotalAmount / holders.length;
 
-    Tx2.addOperation(
-        Operation.payment({
-            destination: motherAcc.publicKey(),
-            amount: TotalAmount.toPrecision(7),
-            asset: new Asset(PLATFORM_ASSET.code, PLATFORM_ASSET.issuer),
-            source: pubkey,
-        }),
+    // User pays to mother
+    addPaymentOp(
+        transaction,
+        motherAcc.publicKey(),
+        TotalAmount.toPrecision(7),
+        PLATFORM_ASSET,
+        pubkey
     );
 
+    // Mother pays to each holder
     holders.forEach((holder) => {
-        Tx2.addOperation(
-            Operation.payment({
-                destination: holder,
-                amount: paymentForPerPerson.toPrecision(7),
-                asset: new Asset(PLATFORM_ASSET.code, PLATFORM_ASSET.issuer),
-            }),
+        addPaymentOp(
+            transaction,
+            holder,
+            paymentForPerPerson.toPrecision(7),
+            PLATFORM_ASSET
         );
     });
 
-    Tx2.setTimeout(0);
+    const xdr = finalizeTransaction(transaction, [motherAcc]);
 
-    const buildTrx = Tx2.build();
-
-    buildTrx.sign(motherAcc);
-
-    const xdr = await WithSing({ xdr: buildTrx.toXDR(), signWith });
-    return xdr;
-
+    const signedXdr = await WithSing({ xdr, signWith });
+    return signedXdr;
 }

@@ -3,7 +3,7 @@ import { getAccSecretFromRubyApi } from "package/connect_wallet/src/lib/stellar/
 import { z } from "zod";
 import { STELLAR_URL } from "~/lib/stellar/constant";
 import { claimRedeemXDR } from "~/lib/stellar/fan/redeem";
-import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
+import { StellarAccount } from "~/lib/stellar/stellar";
 import { SignUser } from "~/lib/stellar/utils";
 
 import {

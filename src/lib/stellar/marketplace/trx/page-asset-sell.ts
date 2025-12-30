@@ -1,25 +1,23 @@
-import {
-  Asset,
-  Horizon,
-  Keypair,
-  Operation,
-  TransactionBuilder,
-  Transaction,
-} from "@stellar/stellar-sdk";
-import { env } from "~/env";
-import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
+import { Asset, Keypair } from "@stellar/stellar-sdk";
 import {
   PLATFORM_ASSET,
-  PLATFORM_FEE,
   SIMPLIFIED_FEE,
   SIMPLIFIED_FEE_IN_XLM,
-  STELLAR_URL,
   TrxBaseFee,
-  TrxBaseFeeInPlatformAsset,
-  networkPassphrase,
 } from "../../constant";
-import { SignUserType, WithSing } from "../../utils";
+import type { SignUserType } from "../../utils";
+import { WithSing } from "../../utils";
 import { getplatformAssetNumberForXLM } from "../../fan/get_token_price";
+import {
+  getServerAndMotherAcc,
+  createTransactionBuilder,
+  checkTrustline,
+  addTrustlineSetup,
+  addPaymentOp,
+  finalizeTransaction,
+  getAssetBalance,
+  getNativeBalance,
+} from "../../helper";
 
 // Shared helper for building and signing transaction
 async function buildAssetBuyTransaction({
@@ -45,53 +43,29 @@ async function buildAssetBuyTransaction({
 }) {
   try {
     const assetToBuy = new Asset(code, issuer);
-    const server = new Horizon.Server(STELLAR_URL);
-    // for starting trx
-    const motherKeypair = Keypair.fromSecret(env.MOTHER_SECRET);
-    const motherAccount = await server.loadAccount(motherKeypair.publicKey());
-
+    const { motherAcc } = getServerAndMotherAcc();
     const storageKeypair = Keypair.fromSecret(storageSecret);
-    const storageAccount = await StellarAccount.create(
-      storageKeypair.publicKey(),
-    );
 
-    const userAccount = await StellarAccount.create(userId);
-    console.log("Storage account:", storageAccount);
     // Validate trustline
-    const hasTrust = userAccount.hasTrustline(
-      assetToBuy.code,
-      assetToBuy.issuer,
-    );
+    const hasTrust = await checkTrustline(userId, assetToBuy.code, assetToBuy.issuer);
 
     // Validate balances
     let storageBalance;
     if (assetToBuy.isNative()) {
-      storageBalance = Number(storageAccount.getNativeBalance());
+      storageBalance = await getNativeBalance(storageKeypair.publicKey());
     } else {
-      storageBalance = storageAccount.getTokenBalance(
-        assetToBuy.code,
-        assetToBuy.issuer,
-      );
+      storageBalance = await getAssetBalance(storageKeypair.publicKey(), assetToBuy.code, assetToBuy.issuer);
     }
-    console.log(
-      "Storage balance:",
-      storageBalance,
-      storageSecret,
-      assetToBuy.code,
-      assetToBuy.issuer,
-    );
+
     if (storageBalance < amountToSell) {
       throw new Error("Insufficient asset balance in storage account.");
     }
 
     let userBalance;
     if (paymentAsset.isNative()) {
-      userBalance = Number(userAccount.getNativeBalance());
+      userBalance = await getNativeBalance(userId);
     } else {
-      userBalance = userAccount.getTokenBalance(
-        paymentAsset.code,
-        paymentAsset.issuer,
-      );
+      userBalance = await getAssetBalance(userId, paymentAsset.code, paymentAsset.issuer);
     }
 
     if (userBalance < price) {
@@ -110,62 +84,40 @@ async function buildAssetBuyTransaction({
       totalFee = requiredAsset2refundXlm + SIMPLIFIED_FEE;
     }
 
-    const txBuilder = new TransactionBuilder(motherAccount, {
-      fee: TrxBaseFee,
-      networkPassphrase,
-    });
+    const transaction = await createTransactionBuilder(motherAcc.publicKey(), TrxBaseFee);
 
     // Add trustline if missing
     if (!hasTrust) {
-      console.log("don't have trustline, adding it");
-
-      txBuilder
-        .addOperation(
-          Operation.payment({
-            destination: userId,
-            amount: "0.5",
-            asset: Asset.native(),
-            source: motherKeypair.publicKey(),
-          }),
-        )
-        .addOperation(
-          Operation.changeTrust({
-            asset: assetToBuy,
-            source: userId,
-          }),
-        );
+      addTrustlineSetup(transaction, userId, assetToBuy, motherAcc.publicKey());
     }
 
     // Transfer asset to user
-    txBuilder
-      .addOperation(
-        Operation.payment({
-          destination: userId,
-          asset: assetToBuy,
-          source: storageKeypair.publicKey(),
-          amount: amountToSell.toFixed(7),
-        }),
-      )
-      .addOperation(
-        Operation.payment({
-          destination: storageKeypair.publicKey(),
-          asset: paymentAsset,
-          source: userId,
-          amount: (price + totalFee).toFixed(7),
-        }),
-      )
-      .setTimeout(0);
-    const buildTrx = txBuilder.build();
-    buildTrx.sign(motherKeypair, storageKeypair);
-    const xdr = buildTrx.toXDR();
+    addPaymentOp(
+      transaction,
+      userId,
+      amountToSell.toFixed(7),
+      assetToBuy,
+      storageKeypair.publicKey()
+    );
 
-    const singedXdr = await WithSing({
+    // Transfer payment from user to storage
+    addPaymentOp(
+      transaction,
+      storageKeypair.publicKey(),
+      (price + totalFee).toFixed(7),
+      paymentAsset,
+      userId
+    );
+
+    const xdr = finalizeTransaction(transaction, [motherAcc, storageKeypair]);
+
+    const signedXdr = await WithSing({
       xdr,
       signWith,
     });
 
     return {
-      xdr: singedXdr,
+      xdr: signedXdr,
     };
   } catch (error) {
     console.error("Error building asset buy transaction:", error);

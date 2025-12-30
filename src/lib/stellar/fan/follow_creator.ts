@@ -1,14 +1,9 @@
-import {
-  Asset,
-  Horizon,
-  Keypair,
-  Operation,
-  TransactionBuilder,
-} from "@stellar/stellar-sdk";
-import { env } from "~/env";
-import { STELLAR_URL, TrxBaseFee, networkPassphrase } from "../constant";
-import { SignUserType, WithSing } from "../utils";
-import { MyAssetType } from "./utils";
+import { Asset } from "@stellar/stellar-sdk";
+import type { SignUserType } from "../utils";
+import { WithSing } from "../utils";
+import type { MyAssetType } from "./utils";
+import { getServerAndMotherAcc, createTransactionBuilder, addTrustlineSetup, finalizeTransaction } from "../helper";
+import { TrxBaseFee } from "../constant";
 
 /**
  * Following a creator don't need fee from user.
@@ -24,42 +19,17 @@ export async function follow_creator({
   creatorPageAsset: MyAssetType;
   signWith: SignUserType;
 }) {
-  const server = new Horizon.Server(STELLAR_URL);
+  const { motherAcc } = getServerAndMotherAcc();
 
   const asset = new Asset(creatorPageAsset.code, creatorPageAsset.issuer);
 
-  const motherAccount = Keypair.fromSecret(env.MOTHER_SECRET);
+  const transaction = await createTransactionBuilder(motherAcc.publicKey(), TrxBaseFee);
 
-  const transactionInializer = await server.loadAccount(
-    motherAccount.publicKey(),
-  );
+  addTrustlineSetup(transaction, userPubkey, asset, motherAcc.publicKey());
 
-  const Tx1 = new TransactionBuilder(transactionInializer, {
-    fee: "200", // mother paying fee but no return
-    networkPassphrase,
-  });
+  const xdr = finalizeTransaction(transaction, [motherAcc]);
 
-  Tx1.addOperation(
-    Operation.payment({
-      destination: userPubkey,
-      asset: Asset.native(),
-      amount: "0.5",
-    }),
-  )
-    .addOperation(
-      Operation.changeTrust({
-        asset,
-        source: userPubkey,
-      }),
-    )
-    .setTimeout(0);
+  const signedXdr = WithSing({ xdr, signWith });
 
-  const buildTrx = Tx1.build();
-
-  buildTrx.sign(motherAccount);
-
-  const xdr = buildTrx.toXDR();
-  const singedXdr = WithSing({ xdr, signWith: signWith });
-
-  return singedXdr;
+  return signedXdr;
 }

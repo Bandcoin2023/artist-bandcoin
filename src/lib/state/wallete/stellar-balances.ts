@@ -1,7 +1,7 @@
 import { Horizon } from "@stellar/stellar-sdk";
-import { accountBalances } from "~/lib/stellar/marketplace/test/acc";
 import { PLATFORM_ASSET } from "~/lib/stellar/constant";
 import { create } from "zustand";
+import { USDC_ASSET_CODE, USDC_ISSUER } from "~/lib/usdc";
 
 export type AccBalanceType =
   | Horizon.HorizonApi.BalanceLineNative
@@ -22,10 +22,13 @@ interface Balance {
   setActive: (active: boolean) => void;
   getXLMBalance: () => string | undefined;
   hasTrust: (code: string, issuer: string) => boolean | undefined;
+  getUSDCBalance: () => void;
+  usdcBalance: number;
 }
 
 export const useUserStellarAcc = create<Balance>((set, get) => ({
   active: false,
+  usdcBalance: 0,
   setActive: (active) => {
     set({ active });
   },
@@ -78,6 +81,23 @@ export const useUserStellarAcc = create<Balance>((set, get) => ({
         if (bal.asset_type == "native") {
           return bal.balance;
         }
+      }
+    }
+  },
+  getUSDCBalance: () => {
+    const balances = get().balances;
+    if (balances) {
+      for (const balance of balances) {
+        if (
+          balance.asset_type == "credit_alphanum12" ||
+          balance.asset_type == "credit_alphanum4"
+        )
+          if (
+            balance.asset_code == USDC_ASSET_CODE &&
+            balance.asset_issuer == USDC_ISSUER
+          ) {
+            set({ usdcBalance: Number(balance.balance) ?? 0 });
+          }
       }
     }
   },

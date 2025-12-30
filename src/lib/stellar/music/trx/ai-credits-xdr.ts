@@ -1,14 +1,17 @@
+/**
+ * Functions for generating XDR transactions for buying AI credits on the Stellar network.
+ * Supports payments in USDC and platform asset.
+ */
 import {
     Asset,
     BASE_FEE,
     Horizon,
     Keypair,
-    Operation,
     TransactionBuilder,
 } from "@stellar/stellar-sdk";
-import { networkPassphrase } from "./create_song_token";
 import { SignUserType, WithSing } from "../../utils";
 import {
+    networkPassphrase,
     PLATFORM_ASSET,
     PLATFORM_FEE,
     STELLAR_URL,
@@ -16,9 +19,10 @@ import {
     TrxBaseFeeInPlatformAsset,
 } from "../../constant";
 import { env } from "~/env";
-import { StellarAccount } from "../../marketplace/test/Account";
+import { StellarAccount } from "../../stellar";
 import { getplatformAssetNumberForXLM, getPlatformAssetPrice } from "../../fan/get_token_price";
 import { USDC_ASSET_CODE, USDC_ISSUER } from "~/lib/usdc"
+import { addPaymentOp, createTransactionBuilder, finalizeTransaction, getServerAndMotherAcc } from "../../helper";
 
 export async function XDR4BuyCreditsWithUSDC({
     signWith,
@@ -33,46 +37,44 @@ export async function XDR4BuyCreditsWithUSDC({
 
     usdcRate: number;
 }) {
-
-    const server = new Horizon.Server(STELLAR_URL);
-    const motherAcc = Keypair.fromSecret(env.MOTHER_SECRET);
+    // Step 1: Get the platform's mother account keypair
+    const { motherAcc } = getServerAndMotherAcc();
+    // Step 2: Create the USDC asset object
     const USDC = new Asset(USDC_ASSET_CODE, USDC_ISSUER);
-    const transactionInializer = await server.loadAccount(motherAcc.publicKey());
 
+    // Step 3: Create a StellarAccount instance for the buyer to check balance
     const buyerAcc = await StellarAccount.create(buyer);
 
-    //checking buyer has enough balance of usdc
+    // Step 4: Check if buyer has sufficient USDC balance
     const balance = buyerAcc.getTokenBalance(USDC_ASSET_CODE, USDC_ISSUER);
     if (Number(balance) < Number(totalPrice)) {
         throw new Error("Insufficient USDC balance");
     }
 
+    // Step 5: Get the current price of the platform asset in USD for fee conversion
     const assetPriceInUsd = await getPlatformAssetPrice();
 
+    // Step 6: Calculate the total platform fee in platform asset units
     const totalPlatformFee = Number(PLATFORM_FEE) + Number(TrxBaseFeeInPlatformAsset);
 
+    // Step 7: Convert the platform fee to USDC equivalent using the exchange rate
     const totalPlatformFeeInUSD = ((totalPlatformFee * assetPriceInUsd) / usdcRate);
 
+    // Step 8: Create a transaction builder starting from the mother account
+    const Tx2 = await createTransactionBuilder(motherAcc.publicKey(), TrxBaseFee);
 
-    const Tx2 = new TransactionBuilder(transactionInializer, {
-        fee: TrxBaseFee,
-        networkPassphrase,
-    });
+    // Step 9: Add payment operation to pay the platform fee in USDC from buyer to mother
+    addPaymentOp(
+        Tx2,
+        motherAcc.publicKey(),
+        totalPlatformFeeInUSD.toFixed(7),
+        USDC,
+        buyer
+    );
 
-    Tx2.addOperation(
-        Operation.payment({
-            destination: motherAcc.publicKey(),
-            amount: totalPlatformFeeInUSD.toFixed(7),
-            asset: USDC,
-            source: buyer,
-        }),
-    ).setTimeout(0);
-
-    const buildTrx = Tx2.build();
-
-    buildTrx.sign(motherAcc);
-
-    const xdr = buildTrx.toXDR();
+    // Step 10: Finalize the transaction by building, signing with mother account, and getting XDR
+    const xdr = finalizeTransaction(Tx2, [motherAcc]);
+    // Step 11: Add user signature to the XDR
     const singedXdr = await WithSing({ xdr, signWith });
     return singedXdr;
 }
@@ -88,15 +90,14 @@ export async function XDR4BuyCreditsWithAsset({
     signWith: SignUserType;
 
 }) {
-    // this asset limit only for buying more item.
-    const server = new Horizon.Server(STELLAR_URL);
+    // Note: This function is for buying more credits with platform asset
 
-    const motherAcc = Keypair.fromSecret(env.MOTHER_SECRET);
+    // Step 1: Get the platform's mother account keypair
+    const { motherAcc } = getServerAndMotherAcc();
 
-    const transactionInializer = await server.loadAccount(motherAcc.publicKey());
-
+    // Step 2: Create a StellarAccount instance for the buyer to check balance
     const buyerAcc = await StellarAccount.create(buyer);
-    // checking buyer has enough balance of platform asset
+    // Step 3: Check if buyer has sufficient platform asset balance
     const balance = buyerAcc.getTokenBalance(
         PLATFORM_ASSET.code,
         PLATFORM_ASSET.issuer,
@@ -106,29 +107,25 @@ export async function XDR4BuyCreditsWithAsset({
         throw new Error("Insufficient platform asset balance");
     }
 
+    // Step 4: Calculate the total platform fee including the credit price
     const totalPlatformFee = Number(PLATFORM_FEE) +
         Number(TrxBaseFeeInPlatformAsset) + Number(totalPrice);
 
-    const Tx2 = new TransactionBuilder(transactionInializer, {
-        fee: TrxBaseFee,
-        networkPassphrase,
-    });
+    // Step 5: Create a transaction builder starting from the mother account
+    const Tx2 = await createTransactionBuilder(motherAcc.publicKey(), TrxBaseFee);
 
-    Tx2.addOperation(
-        Operation.payment({
-            destination: motherAcc.publicKey(),
-            amount: totalPlatformFee.toString(),
-            asset: PLATFORM_ASSET,
-            source: buyer,
-        }),
-    )
-        .setTimeout(0);
+    // Step 6: Add payment operation to pay the total fee in platform asset from buyer to mother
+    addPaymentOp(
+        Tx2,
+        motherAcc.publicKey(),
+        totalPlatformFee.toString(),
+        PLATFORM_ASSET,
+        buyer
+    );
 
-    const buildTrx = Tx2.build();
-
-    buildTrx.sign(motherAcc);
-
-    const xdr = buildTrx.toXDR();
+    // Step 7: Finalize the transaction by building, signing with mother account, and getting XDR
+    const xdr = finalizeTransaction(Tx2, [motherAcc]);
+    // Step 8: Add user signature to the XDR
     const singedXdr = await WithSing({ xdr, signWith });
     return singedXdr;
 }

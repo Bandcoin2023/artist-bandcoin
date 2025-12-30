@@ -1,8 +1,9 @@
+import { Horizon } from "@stellar/stellar-sdk";
 import axios from "axios";
 import { getAccSecret } from "package/connect_wallet";
 import { env } from "process";
 import { z } from "zod";
-import { getCreatorShopAssetBalance } from "~/lib/stellar/fan/creator_pageasset_buy";
+import { STELLAR_URL } from "~/lib/stellar/constant";
 import {
   createRedeemXDRAsset,
   createRedeemXDRNative,
@@ -12,8 +13,7 @@ import {
   createOrRenewVanitySubscription,
   getVanitySubscriptionXDR,
 } from "~/lib/stellar/fan/vanity-url";
-import { getAssetBalance } from "~/lib/stellar/marketplace/test/acc";
-import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
+import { StellarAccount } from "~/lib/stellar/stellar";
 import { SignUser } from "~/lib/stellar/utils";
 import { BLANK_KEYWORD } from "~/lib/utils";
 import { RequestBrandCreateFormSchema } from "~/pages/artist/create";
@@ -465,10 +465,11 @@ export const creatorRouter = createTRPCRouter({
     }
 
     const creatorStoragePub = creator.storagePub;
+    const server = new Horizon.Server(STELLAR_URL);
+    const account = await server.loadAccount(creatorStoragePub);
+    const balaces = account.balances;
+    return balaces;
 
-    return await getCreatorShopAssetBalance({
-      creatorStoragePub,
-    });
   }),
   getFansList: protectedProcedure.query(async ({ ctx }) => {
     const creatorId = ctx.session.user.id;
@@ -1023,49 +1024,7 @@ export const creatorRouter = createTRPCRouter({
       console.log("response", response.data);
       return response.status === 200;
     }),
-  createCreatorPageAsset: protectedProcedure.input(z.object({
-    assetType: z.enum(["new", "custom"]),
-    assetName: z.string().default(""),
-    assetImage: z.string().url().optional(),
-    assetImagePreview: z.string().optional(),
-    assetCode: z.string().default(""),
-    issuer: z.string().default(""),
-    escrow: AccountSchema.optional(),
 
-
-  })).mutation(async ({ ctx, input }) => {
-    const customAsset = `${input.assetCode}-${input.issuer}`
-    console.log("Type........", input.assetType)
-    const userId = ctx.session.user.id
-    if (input.assetType === "custom") {
-      await ctx.db.creator.update({
-        data: {
-
-          customPageAssetCodeIssuer: customAsset,
-        },
-        where: {
-          id: userId
-        }
-      })
-    } else if (input.assetType === "new" && input.escrow) {
-      console.log("Asset..............................")
-      await ctx.db.creator.update({
-        data: {
-          pageAsset: {
-            create: {
-              code: input.assetName,
-              issuer: input.escrow.publicKey,
-              issuerPrivate: input.escrow.secretKey,
-              limit: 0,
-            },
-          },
-        },
-        where: {
-          id: userId,
-        }
-      })
-    }
-  }),
 
   addCreatorSubscription: protectedProcedure.input(z.object({
     name: z.string(),

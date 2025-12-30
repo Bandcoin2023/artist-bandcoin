@@ -44,6 +44,8 @@ const EditBountyModal = () => {
 
     const { data: CurrentBounty, isLoading: CurrentBountyIsLoading } = api.bounty.Bounty.getBountyByID.useQuery({
         BountyId: bountyId ?? 0,
+    }, {
+        enabled: !!bountyId,
     })
 
     const {

@@ -1,11 +1,11 @@
 import { Keypair } from "@stellar/stellar-sdk";
 import { z } from "zod";
 import { env } from "~/env";
-import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
+import { StellarAccount } from "~/lib/stellar/stellar";
 import {
   sendNft2StorageXDR,
   sendNftback,
-} from "~/lib/stellar/marketplace/trx/nft_2_storage";
+} from "~/lib/stellar/marketplace/trx/nft-to-storage";
 import { SignUser } from "~/lib/stellar/utils";
 
 import { ItemPrivacy, MarketAsset } from "@prisma/client";

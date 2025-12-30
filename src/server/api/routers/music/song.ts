@@ -8,7 +8,7 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { AssetSelectAllProperty } from "../marketplace/marketplace";
-import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
+import { StellarAccount } from "~/lib/stellar/stellar";
 import { ItemPrivacy } from "@prisma/client";
 import { AccountSchema } from "~/lib/stellar/fan/utils";
 import { SongItemType } from "~/types/song/song-item-types";

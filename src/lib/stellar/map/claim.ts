@@ -1,13 +1,9 @@
-import {
-  Asset,
-  Horizon,
-  Keypair,
-  Operation,
-  TransactionBuilder,
-} from "@stellar/stellar-sdk";
-import { MyAssetType } from "../fan/utils";
-import { SignUserType, WithSing } from "../utils";
-import { networkPassphrase, STELLAR_URL, TrxBaseFee } from "../constant";
+import { Asset, Operation, Keypair } from "@stellar/stellar-sdk";
+import type { MyAssetType } from "../fan/utils";
+import type { SignUserType } from "../utils";
+import { WithSing } from "../utils";
+import { TrxBaseFee } from "../constant";
+import { createTransactionBuilder, addPaymentOp, finalizeTransaction } from "../helper";
 
 export async function ClaimXDR({
   asset,
@@ -22,40 +18,27 @@ export async function ClaimXDR({
   receiver: string;
   signWith: SignUserType;
 }) {
-  const server = new Horizon.Server(STELLAR_URL);
-
   const storageAcc = Keypair.fromSecret(storageSecret);
   const claimAsset = new Asset(asset.code, asset.issuer);
 
-  // const motherAccount = Keypair.fromSecret(env.MOTHER_SECRET);
+  const transaction = await createTransactionBuilder(receiver, TrxBaseFee);
 
-  const transactionInializer = await server.loadAccount(receiver);
+  transaction.addOperation(
+    Operation.changeTrust({
+      asset: claimAsset,
+    }),
+  );
 
-  const Tx1 = new TransactionBuilder(transactionInializer, {
-    fee: TrxBaseFee,
-    networkPassphrase,
-  })
+  addPaymentOp(
+    transaction,
+    receiver,
+    amount,
+    claimAsset,
+    storageAcc.publicKey()
+  );
 
-    .addOperation(
-      Operation.changeTrust({
-        asset: claimAsset,
-      }),
-    )
-    .addOperation(
-      Operation.payment({
-        amount: amount,
-        asset: claimAsset,
-        source: storageAcc.publicKey(),
-        destination: receiver,
-      }),
-    )
+  const xdr = finalizeTransaction(transaction, [storageAcc]);
 
-    .setTimeout(0)
-    .build();
-
-  Tx1.sign(storageAcc);
-
-  const xdr = Tx1.toXDR();
   const signedXDr = await WithSing({
     xdr: xdr,
     signWith,

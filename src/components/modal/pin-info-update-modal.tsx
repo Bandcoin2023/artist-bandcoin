@@ -128,7 +128,9 @@ export function PinInfoUpdateModal({ isOpen, onClose, pinData }: PinInfoUpdateMo
         },
     })
     const tiers = api.fan.member.getAllMembership.useQuery({})
-    const assets = api.fan.asset.myAssets.useQuery(undefined, {})
+    const assets = api.fan.asset.myAssets.useQuery(undefined, {
+        enabled: isOpen,
+    })
 
     const update = api.maps.pin.updatePin.useMutation({
         onSuccess: async (updatedData) => {

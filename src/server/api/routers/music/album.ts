@@ -8,7 +8,7 @@ import {
 } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 import { AssetSelectAllProperty } from "../marketplace/marketplace";
-import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
+import { StellarAccount } from "~/lib/stellar/stellar";
 import { ItemPrivacy } from "@prisma/client";
 
 export const AlbumFormShema = z.object({

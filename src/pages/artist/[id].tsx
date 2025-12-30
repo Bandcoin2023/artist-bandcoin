@@ -277,10 +277,10 @@ const HEIGHT_MAP: Record<WidgetHeight, number> = {
   "4XL": 1200,
 };
 
-export default function SingleCreatorViewPage() {
+export default function SingleCreatorViewPage({ creatorId }: { creatorId: string }) {
   // State variables
   const router = useRouter();
-  const { id } = router.query as { id: string };
+  const { id } = creatorId ? { id: creatorId } : router.query as { id: string };
 
   const [widgets, setWidgets] = useState<WidgetItem[]>(DEFAULT_LAYOUT);
   const [editMode, setEditMode] = useState(false);

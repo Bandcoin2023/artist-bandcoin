@@ -9,6 +9,7 @@ import {
     Dialog,
     DialogClose,
     DialogContent,
+    DialogTitle,
 } from "~/components/shadcn/ui/dialog";
 
 import { Badge } from "~/components/shadcn/ui/badge";
@@ -94,266 +95,193 @@ export default function BuyModal() {
         );
 
     if (!data || !data.asset)
-
         return (
             <Dialog open={isOpen} onOpenChange={handleClose}>
-                <DialogContent className="max-w-2xl overflow-hidden p-1">
-                    <DialogClose className="absolute right-3 top-3">
-                        <X className="text-foreground" size={24} />
-                    </DialogClose>
-                    <div className="grid grid-cols-1">
-                        {/* Left Column - Product Image */}
-                        <Card className="bg-card">
-                            <CardContent className="flex max-h-[600px] min-h-[600px] items-center justify-center">
-                                <div role="status">
-                                    <svg
-                                        aria-hidden="true"
-                                        className="h-8 w-8 animate-spin fill-primary text-muted"
-                                        viewBox="0 0 100 101"
-                                        fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                        <path
-                                            d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
-                                            fill="currentColor"
-                                        />
-                                        <path
-                                            d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-                                            fill="currentFill"
-                                        />
-                                    </svg>
-                                    <span className="sr-only">Loading...</span>
-                                </div>
-                            </CardContent>
-                        </Card>
+                <DialogContent className="max-w-md bg-black border-border flex items-center justify-center p-12">
+                    <DialogTitle className="sr-only">Loading Asset</DialogTitle>
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        <p className="text-sm text-muted-foreground">Loading asset details...</p>
                     </div>
                 </DialogContent>
             </Dialog>
-        );
+        )
 
     return (
-        <>
-            <Dialog open={isOpen} onOpenChange={handleClose}>
-                <DialogContent className="max-w-4xl border-0 bg-gradient-to-br from-background to-muted p-0 max-h-[90vh] overflow-y-auto">
-                    <button
-                        onClick={handleClose}
-                        className="absolute right-4 top-4 z-50 rounded-full bg-primary shadow-sm shadow-foreground p-2"
-                    >
-                        <X className="h-4 w-4 text-foreground" />
-                    </button>
+        <Dialog open={isOpen} onOpenChange={handleClose}>
+            <DialogContent className="max-w-4xl p-0 overflow-hidden border-border bg-background shadow-2xl transition-all duration-300">
+                <DialogTitle className="sr-only">{data.asset.name}</DialogTitle>
 
-                    {step === 1 && (
-                        <div className="grid grid-cols-1 lg:grid-cols-2  overflow-y-auto">
-                            {/* Left Column - Media Display */}
-                            <div className="relative bg-background/20 backdrop-blur-sm">
-                                {/* Sparkle Effect */}
-                                <div className="absolute inset-0 z-10 pointer-events-none">
-                                    <div className="absolute top-4 left-4 w-2 h-2 bg-foreground rounded-full animate-pulse"></div>
-                                    <div className="absolute top-12 right-8 w-1 h-1 bg-primary rounded-full animate-ping"></div>
-                                    <div className="absolute bottom-16 left-8 w-1.5 h-1.5 bg-secondary rounded-full animate-pulse"></div>
+                {step === 1 && (
+                    <div className="flex flex-col md:flex-row h-full max-h-[90vh]">
+                        {/* Left: Media Preview */}
+                        <div className="w-full md:w-1/2 bg-muted/30 relative flex items-center justify-center min-h-[300px] md:min-h-[500px] group overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <Image
+                                src={data.asset.thumbnail || "/placeholder.svg?height=600&width=600&query=Asset+Thumbnail"}
+                                alt={data.asset.name}
+                                fill
+                                className="object-cover "
+                                priority
+                            />
+                            <div className="absolute bottom-6 left-6 z-20">
+                                <Badge
+                                    variant="secondary"
+                                    className="bg-primary/20 backdrop-blur-xl border-primary/20 text-[10px] uppercase tracking-[0.2em] px-3 py-1 font-mono text-muted-foreground"
+                                >
+                                    {data.asset.mediaType === "THREE_D" ? "3D Collectible" : data.asset.mediaType}
+                                </Badge>
+                            </div>
+                        </div>
+
+                        {/* Right: Info & Actions */}
+                        <div className="w-full md:w-1/2 p-8 md:p-10 flex flex-col bg-card text-foreground border-l border-border">
+                            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-8">
+                                <div className="space-y-2">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <h2 className="text-3xl font-black tracking-tighter uppercase font-sans leading-none italic italic">
+                                            {data.asset.name}
+                                        </h2>
+                                        <Badge variant="outline" className="font-mono text-[10px] border-border bg-muted/50 py-1">
+                                            {data.asset.code}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+                                        <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">
+                                            Issuer: {addrShort(data.asset.issuer, 8)}
+                                        </p>
+                                    </div>
                                 </div>
 
-                                {/* Desktop Image */}
-                                <div className="hidden lg:block h-full relative">
-                                    <Image
-                                        src={data?.asset.thumbnail || "/placeholder.svg"}
-                                        alt={data?.asset.name}
-                                        fill
-                                        className="object-cover"
-                                    />
+                                <div className="space-y-8">
+                                    <section>
+                                        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] mb-4">
+                                            Asset Description
+                                        </h3>
+                                        <p className="text-sm leading-relaxed text-foreground/80 font-sans font-medium">
+                                            {data.asset.description ?? "Secure this unique digital asset on the Stellar blockchain network."}
+                                        </p>
+                                    </section>
 
-                                </div>
+                                    <div className="grid grid-cols-2 gap-4 bg-muted/20 p-6 rounded-2xl border border-border/50">
+                                        <section className="space-y-1">
+                                            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
+                                                Acquisition
+                                            </h3>
+                                            <div className="flex flex-col">
+                                                <span className="text-2xl font-mono font-black text-muted-foreground italic ">
+                                                    {data.price} <span className="text-xs">{PLATFORM_ASSET.code}</span>
+                                                </span>
+                                                <span className="text-[10px] text-muted-foreground font-mono opacity-60">
+                                                    ≈ ${data.priceUSD} USD
+                                                </span>
+                                            </div>
+                                        </section>
+                                        <section className="space-y-1 text-right">
+                                            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
+                                                Scarcity
+                                            </h3>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Package className="h-3 w-3 text-muted-foreground" />
+                                                <span className="text-sm font-mono font-bold">
+                                                    {copy.data ?? 0} {copy.data === 1 ? "Unit" : "Units"}
+                                                </span>
+                                            </div>
+                                        </section>
+                                    </div>
 
-                                {/* Mobile Media Display */}
-                                <div className="lg:hidden h-64 relative overflow-hidden">
-                                    <Image
-                                        src={data?.asset.thumbnail || "/placeholder.svg"}
-                                        alt={data?.asset.name}
-                                        fill
-                                        className="object-cover"
-                                    />
+                                    <section className="space-y-2">
+                                        <div
+                                            className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/30 transition-colors group cursor-pointer"
+                                            onClick={() => copyToClipboard(data.asset.issuer)}
+                                        >
+                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                Verified Issuer
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-mono text-foreground/60 group-hover:text-muted-foreground transition-colors italic italic">
+                                                    {addrShort(data.asset.issuer, 6)}
+                                                </span>
+                                                <Copy className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+                                            </div>
+                                        </div>
+                                    </section>
                                 </div>
                             </div>
 
-                            {/* Right Column - Asset Details */}
-                            <div className="flex flex-col bg-card/5 backdrop-blur-sm">
-                                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                                    {/* Header */}
-                                    <div className="space-y-2">
-                                        <h1 className="text-2xl font-bold text-foreground truncate">{data?.asset.name}</h1>
-                                        <div className="flex items-center gap-2">
-                                            <Badge
-                                                variant='destructive'
-                                            >
-                                                {data?.asset.mediaType === "THREE_D" ? "3D Model" : data?.asset.mediaType}
-                                            </Badge>
-                                            <Badge>
-                                                {data?.asset.code}
-                                            </Badge>
-                                        </div>
-                                    </div>
-
-                                    <Separator className="bg-border" />
-
-                                    {/* Description */}
-                                    <div className="space-y-2">
-                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Description</h3>
-                                        <div className="h-40 overflow-y-auto bg-secondary rounded-lg p-3">
-                                            <p className="text-sm text-foreground/80 leading-relaxed">{data?.asset.description}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Price */}
-                                    <div className="space-y-2">
-                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                                            <DollarSign className="h-4 w-4" />
-                                            Price
-                                        </h3>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-2xl font-bold text-foreground">{data?.price} {PLATFORM_ASSET.code}</span>
-                                            <Badge className="bg-accent/20 text-accent-foreground border-accent/30">
-                                                ${data?.priceUSD} USD
-                                            </Badge>
-                                        </div>
-                                    </div>
-
-                                    {/* Asset Details */}
-                                    <div className="space-y-4">
-                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Asset Details</h3>
-
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm text-muted-foreground flex items-center gap-2">
-                                                    <Hash className="h-4 w-4" />
-                                                    Issuer ID
-                                                </span>
-                                                <div className="flex items-center gap-2">
-                                                    <code className="text-xs  bg-primary px-2 py-1 rounded-md">
-                                                        {addrShort(data?.asset.issuer, 5)}
-                                                    </code>
-                                                    <Button
-                                                        variant="ghost"
-                                                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/10"
-                                                        onClick={() => copyToClipboard(data?.asset.issuer)}
-                                                    >
-                                                        <Copy className="h-3 w-3" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm text-muted-foreground flex items-center gap-2">
-                                                    <User className="h-4 w-4" />
-                                                    Placer ID
-                                                </span>
-                                                <div className="flex items-center gap-2">
-                                                    <code className="text-xs  bg-primary px-2 py-1 rounded-md">
-                                                        {addrShort(data?.placerId, 5)}
-                                                    </code>
-                                                    <Button
-                                                        variant="ghost"
-                                                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/10"
-                                                        onClick={() => copyToClipboard(data?.placerId)}
-                                                    >
-                                                        <Copy className="h-3 w-3" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm text-muted-foreground flex items-center gap-2">
-                                                    <Package className="h-4 w-4" />
-                                                    Available
-                                                </span>
-                                                <Badge className="bg-accent text-accent-foreground border-accent/30">
-                                                    {copy.data} {copy.data === 1 ? "copy" : "copies"}
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Footer Actions */}
-                                <div className="p-2 space-y-2 flex flex-col gap-2">
-                                    <Link href={`/market-asset/${data.id}`}>
+                            <div className="mt-8 pt-8 border-t border-border space-y-4">
+                                {session.status === "authenticated" && data.placerId === session.data?.user.id ? (
+                                    <DisableFromMarketButton code={data.asset.code} issuer={data.asset.issuer} />
+                                ) : copy.data && copy.data > 0 ? (
+                                    <Button
+                                        onClick={handleNext}
+                                        className="w-full bg-primary text-muted-foreground shadow-foreground hover:bg-primary/90 h-14 font-black uppercase tracking-[0.2em] text-xs border-2 rounded-xl"
+                                    >
+                                        Initiate Purchase
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        disabled
+                                        className="w-full h-14 text-muted-foreground bg-muted border-border uppercase tracking-[0.2em] text-xs italic italic rounded-xl"
+                                    >
+                                        Out of Stock
+                                    </Button>
+                                )}
+                                <div className="flex gap-3">
+                                    <Link href={`/market-asset/${data.id}`} className="flex-1">
                                         <Button
                                             onClick={handleClose}
-                                            variant="outline" className="w-full shadow-sm shadow-background border-2">
-                                            <Eye className="mr-2 h-4 w-4" />
-                                            View Asset
+                                            variant="outline"
+                                            className="w-full h-12 border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 text-[10px] uppercase tracking-[0.2em] font-bold rounded-xl bg-transparent"
+                                        >
+                                            <Eye className="mr-2 h-3 w-3" /> DETAILS
                                         </Button>
                                     </Link>
-                                    {
-                                        data.type === 'ROYALTY' && (
-                                            <Link href={`/royalty/${data.asset.id}`}>
-                                                <Button
-                                                    onClick={handleClose}
-                                                    className="w-full shadow-sm shadow-background border-2">
-                                                    <Eye className="mr-2 h-4 w-4" />
-                                                    View Royalty Details
-                                                </Button>
-                                            </Link>
-                                        )
-                                    }
-                                    {session.status === "authenticated" &&
-                                        data.placerId === session.data.user.id ? (
-                                        <>
-                                            <DisableFromMarketButton
-                                                code={data.asset.code}
-                                                issuer={data.asset.issuer}
-                                            />
-                                        </>
-                                    ) : (
-                                        canBuyUser &&
-                                        copy.data &&
-                                        copy.data > 0 && (
+                                    {data.type === "ROYALTY" && (
+                                        <Link href={`/royalty/${data.asset.id}`} className="flex-1">
                                             <Button
-                                                variant="accent"
-                                                onClick={handleNext}
-                                                className="w-full shadow-sm shadow-background border-2"
+                                                variant="outline"
+                                                className="w-full h-12 border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 text-[10px] uppercase tracking-[0.2em] font-bold rounded-xl bg-transparent"
                                             >
-                                                Buy Item
+                                                Royalty Share
                                             </Button>
-                                        )
+                                        </Link>
                                     )}
-
-
-
-
-                                    <p className="text-xs text-muted-foreground text-center">
-                                        Once purchased, this item will be added to your collection.
-                                    </p>
                                 </div>
                             </div>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {step === 2 && (
-                        <div className="max-h-[90vh] overflow-y-auto">
-                            <Card>
-                                <CardContent className="p-0">
-                                    <PaymentProcessItem
-                                        marketItemId={data.id}
-                                        priceUSD={data.priceUSD}
-                                        item={data.asset}
-                                        price={data.price}
-                                        placerId={data.placerId}
-                                        setClose={handleClose}
-                                        type={data.type}
-                                    />
-                                </CardContent>
-                                <CardFooter className="p-2">
-                                    {step === 2 && (
-                                        <Button onClick={handleBack} variant="destructive" className="shadow-sm shadow-background">
-                                            Back
-                                        </Button>
-                                    )}
-                                </CardFooter>
-                            </Card>
+                {step === 2 && (
+                    <div className="p-10 max-h-[90vh] overflow-y-auto bg-background animate-in fade-in zoom-in-95 duration-300">
+                        <div className="mb-10 flex items-center justify-between">
+                            <Button
+                                variant="ghost"
+                                onClick={handleBack}
+                                className="p-0 h-auto hover:bg-transparent text-muted-foreground hover:text-muted-foreground font-mono text-[10px] uppercase tracking-widest flex items-center gap-2 group"
+                            >
+                                <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Back to Intelligence
+                            </Button>
+                            <h2 className="text-sm font-black uppercase tracking-[0.3em] font-sans text-foreground">
+                                Secure Checkout
+                            </h2>
+                            <div className="w-16" />
                         </div>
-                    )}
-                </DialogContent>
-            </Dialog >
-        </>
-    );
+
+                        <PaymentProcessItem
+                            marketItemId={data.id}
+                            priceUSD={data.priceUSD}
+                            item={data.asset}
+                            price={data.price}
+                            placerId={data.placerId}
+                            setClose={handleClose}
+                            type={data.type}
+                        />
+                    </div>
+                )}
+            </DialogContent>
+        </Dialog>
+    )
 }

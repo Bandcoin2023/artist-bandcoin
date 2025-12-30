@@ -12,7 +12,6 @@ import {
 import { Skeleton } from "~/components/shadcn/ui/skeleton";
 import Link from "next/link";
 import { Button } from "~/components/shadcn/ui/button";
-import { getAssetBalanceFromBalance } from "~/lib/stellar/marketplace/test/acc";
 import SingleCreatorViewPage from "../artist/[id]";
 import NotFound from "../404";
 

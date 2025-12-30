@@ -6,7 +6,6 @@ import {
   Operation,
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
-import { networkPassphrase } from "./create_song_token";
 import { SignUserType, WithSing } from "../../utils";
 import {
   PLATFORM_ASSET,
@@ -16,11 +15,11 @@ import {
   TrxBaseFeeInPlatformAsset,
 } from "../../constant";
 import { env } from "~/env";
-import { StellarAccount } from "../../marketplace/test/Account";
+import { StellarAccount } from "../../stellar";
 import { getplatformAssetNumberForXLM, getPlatformAssetPrice } from "../../fan/get_token_price";
 import { USDC_ASSET_CODE, USDC_ISSUER } from "~/lib/usdc"
+import { addPaymentOp, addTrustlineSetup, checkTrustline, createTransactionBuilder, finalizeTransaction, getServerAndMotherAcc } from "../../helper";
 
-const log = console;
 export async function XDR4BuyUSDC({
   signWith,
   code,
@@ -29,7 +28,7 @@ export async function XDR4BuyUSDC({
   price,
   storageSecret,
   seller,
-  usdcPrice,
+  usdcPriceRate,
 }: {
   buyer: string;
   code: string;
@@ -38,105 +37,68 @@ export async function XDR4BuyUSDC({
   signWith: SignUserType;
   storageSecret: string;
   seller: string;
-  usdcPrice: number;
+  usdcPriceRate: number;
 }) {
-  // this asset limit only for buying more item.
+  // Step 1: Create asset objects for the token being bought and USDC for payment
   const asset = new Asset(code, issuerPub);
-  const server = new Horizon.Server(STELLAR_URL);
-  const storageAcc = Keypair.fromSecret(storageSecret);
-
-  const motherAcc = Keypair.fromSecret(env.MOTHER_SECRET);
   const USDC = new Asset(USDC_ASSET_CODE, USDC_ISSUER);
 
+  // Step 2: Get keypairs for the storage account (holds the token) and mother account (platform account)
+  const storageAcc = Keypair.fromSecret(storageSecret);
+  const { motherAcc } = getServerAndMotherAcc();
 
-  const transactionInializer = await server.loadAccount(motherAcc.publicKey());
+  // Step 3: Create a transaction builder starting from the mother account with base fee
+  const Tx2 = await createTransactionBuilder(motherAcc.publicKey(), TrxBaseFee);
 
-  const buyerAcc = await StellarAccount.create(buyer);
-  const hasTrust = buyerAcc.hasTrustline(code, issuerPub);
+  // Step 4: Check if the buyer already has a trustline for this asset to avoid unnecessary operations
+  const hasTrust = await checkTrustline(buyer, code, issuerPub);
 
+  // Step 5: If no trustline, calculate how much platform asset is needed to cover 0.5 XLM for trustline setup
   const requiredAsset2refundXlm = hasTrust
     ? 0
     : await getplatformAssetNumberForXLM(0.5);
 
+  // Step 6: Get the current price of the platform asset in USD for fee conversion
   const assetPriceInUsd = await getPlatformAssetPrice();
 
+  // Step 7: Calculate total platform fee in platform asset units (includes XLM refund, platform fee, and transaction fee)
   const totalPlatformFee =
     requiredAsset2refundXlm +
     Number(PLATFORM_FEE) +
     Number(TrxBaseFeeInPlatformAsset);
 
-  const totalPlatformFeeInUSD = ((totalPlatformFee * assetPriceInUsd) / usdcPrice);
+  // Step 8: Convert the total platform fee from platform asset to USDC equivalent using the exchange rate
+  const totalPlatformFeeInUSD =
+    (totalPlatformFee * assetPriceInUsd) / usdcPriceRate;
 
-  const Tx2 = new TransactionBuilder(transactionInializer, {
-    fee: TrxBaseFee,
-    networkPassphrase,
-  });
-
-  Tx2.addOperation(
-    Operation.payment({
-      destination: motherAcc.publicKey(),
-      amount: totalPlatformFeeInUSD.toFixed(7),
-      asset: USDC,
-      source: buyer,
-    }),
+  // Step 9: Add payment operation to pay the platform fee in USDC from the buyer
+  addPaymentOp(
+    Tx2,
+    motherAcc.publicKey(),
+    totalPlatformFeeInUSD.toFixed(7),
+    USDC,
+    buyer
   );
 
-  // pay price to seller
+  // Step 10: If the asset has a price, add payment to the seller in USDC
   if (Number(price) > 0) {
-    Tx2.addOperation(
-      Operation.payment({
-        destination: seller,
-        amount: price,
-        asset: USDC,
-        source: buyer,
-      }),
-    );
+    addPaymentOp(Tx2, seller, price, USDC, buyer);
   }
 
+  // Step 11: If buyer doesn't have trustline, add operations to set it up (pay 0.5 XLM and create trustline)
   if (!hasTrust) {
-    Tx2.addOperation(
-      Operation.payment({
-        destination: buyer,
-        amount: "0.5",
-        asset: Asset.native(),
-        source: motherAcc.publicKey(),
-      }),
-    ).addOperation(
-      Operation.changeTrust({
-        asset: asset,
-        source: buyer,
-      }),
-    );
+    addTrustlineSetup(Tx2, buyer, asset, motherAcc.publicKey());
   }
 
-  // send token to buyer
-  Tx2.addOperation(
-    Operation.payment({
-      asset: asset,
-      amount: "1",
-      source: storageAcc.publicKey(),
-      destination: buyer,
-    }),
-  )
+  // Step 12: Add operation to transfer the token from storage account to buyer
+  addPaymentOp(Tx2, buyer, "1", asset, storageAcc.publicKey());
 
-    // pay fee for platform
-    // .addOperation(
-    //   Operation.payment({
-    //     asset: PLATFORM_ASSET,
-    //     amount: PLATFORM_FEE,
-    //     destination: Keypair.fromSecret(env.MOTHER_SECRET).publicKey(),
-    //   }),
-    // )
-    .setTimeout(0);
-
-  const buildTrx = Tx2.build();
-
-  buildTrx.sign(motherAcc, storageAcc);
-
-  const xdr = buildTrx.toXDR();
-  const singedXdr = WithSing({ xdr, signWith });
+  // Step 13: Finalize the transaction by building, signing with mother and storage accounts, and adding user signature
+  const xdr = finalizeTransaction(Tx2, [motherAcc, storageAcc]);
+  const singedXdr = await WithSing({ xdr, signWith });
   return singedXdr;
 }
+
 export async function XDR4BuyAsset({
   signWith,
   code,
@@ -154,94 +116,61 @@ export async function XDR4BuyAsset({
   storageSecret: string;
   seller: string;
 }) {
-  // this asset limit only for buying more item.
+  // Step 1: Create asset object for the token
   const asset = new Asset(code, issuerPub);
-  const server = new Horizon.Server(STELLAR_URL);
   const storageAcc = Keypair.fromSecret(storageSecret);
+  const { motherAcc } = getServerAndMotherAcc();
 
-  const motherAcc = Keypair.fromSecret(env.MOTHER_SECRET);
+  // Step 2: Create transaction builder from mother account
+  const Tx2 = await createTransactionBuilder(motherAcc.publicKey(), TrxBaseFee);
 
-  const transactionInializer = await server.loadAccount(motherAcc.publicKey());
+  // Step 3: Check if buyer has trustline for the asset
+  const hasTrust = await checkTrustline(buyer, code, issuerPub);
 
-  const buyerAcc = await StellarAccount.create(buyer);
-  const hasTrust = buyerAcc.hasTrustline(code, issuerPub);
-
+  // Step 4: Calculate platform asset needed for 0.5 XLM if trustline setup is required
   const requiredAsset2refundXlm = hasTrust
     ? 0
     : await getplatformAssetNumberForXLM(0.5);
+
+  // Step 5: Calculate total platform fee in platform asset units
   const totalPlatformFee =
     requiredAsset2refundXlm +
     Number(PLATFORM_FEE) +
     Number(TrxBaseFeeInPlatformAsset);
 
-  const Tx2 = new TransactionBuilder(transactionInializer, {
-    fee: TrxBaseFee,
-    networkPassphrase,
-  });
-
-  Tx2.addOperation(
-    Operation.payment({
-      destination: motherAcc.publicKey(),
-      amount: totalPlatformFee.toString(),
-      asset: PLATFORM_ASSET,
-      source: buyer,
-    }),
+  // Step 6: Pay the platform fee in platform asset from buyer to mother account
+  addPaymentOp(
+    Tx2,
+    motherAcc.publicKey(),
+    totalPlatformFee.toString(),
+    PLATFORM_ASSET,
+    buyer
   );
 
-  // pay price to seller
+  // Step 7: Pay the asset price to the seller in platform asset
   if (Number(price) > 0) {
-    Tx2.addOperation(
-      Operation.payment({
-        destination: seller,
-        amount: price,
-        asset: PLATFORM_ASSET,
-        source: buyer,
-      }),
-    );
+    addPaymentOp(Tx2, seller, price, PLATFORM_ASSET, buyer);
   }
 
+  // Step 8: Set up trustline if buyer doesn't have one
   if (!hasTrust) {
-    Tx2.addOperation(
-      Operation.payment({
-        destination: buyer,
-        amount: "0.5",
-        asset: Asset.native(),
-        source: motherAcc.publicKey(),
-      }),
-    ).addOperation(
-      Operation.changeTrust({
-        asset: asset,
-        source: buyer,
-      }),
-    );
+    addTrustlineSetup(Tx2, buyer, asset, motherAcc.publicKey());
   }
 
-  // send token to buyer
-  Tx2.addOperation(
-    Operation.payment({
-      asset: asset,
-      amount: "1",
-      source: storageAcc.publicKey(),
-      destination: buyer,
-    }),
-  )
+  // Step 9: Transfer the token to the buyer
+  addPaymentOp(Tx2, buyer, "1", asset, storageAcc.publicKey());
 
-    // pay fee for platform
-    .addOperation(
-      Operation.payment({
-        asset: PLATFORM_ASSET,
-        amount: PLATFORM_FEE,
-        destination: Keypair.fromSecret(env.MOTHER_SECRET).publicKey(),
-      }),
-    )
-    .setTimeout(0);
+  // Step 10: Pay an additional platform fee
+  addPaymentOp(
+    Tx2,
+    motherAcc.publicKey(),
+    PLATFORM_FEE,
+    PLATFORM_ASSET
+  );
 
-  const buildTrx = Tx2.build();
-
-  buildTrx.sign(motherAcc, storageAcc);
-
-  const xdr = buildTrx.toXDR();
-  const singedXdr = WithSing({ xdr, signWith });
+  // Step 11: Finalize and sign the transaction
+  const xdr = finalizeTransaction(Tx2, [motherAcc, storageAcc]);
+  const singedXdr = await WithSing({ xdr, signWith });
   return singedXdr;
 }
 
@@ -262,81 +191,41 @@ export async function XDR4BuyAssetWithXLM({
   storageSecret: string;
   seller: string;
 }) {
-  // this asset limit only for buying more item.
+  // Step 1: Create asset object for the token
   const asset = new Asset(code, issuerPub);
-  const server = new Horizon.Server(STELLAR_URL);
   const storageAcc = Keypair.fromSecret(storageSecret);
+  const { motherAcc } = getServerAndMotherAcc();
 
-  const transactionInializer = await server.loadAccount(buyer);
+  // Step 2: Create transaction builder from buyer account (since paying with XLM from buyer)
+  const Tx2 = await createTransactionBuilder(buyer, TrxBaseFee);
 
-  const balances = transactionInializer.balances;
-  const trust = balances.find((balance) => {
-    if (
-      balance.asset_type === "credit_alphanum12" ||
-      balance.asset_type === "credit_alphanum4"
-    ) {
-      if (balance.asset_code === code && balance.asset_issuer === issuerPub) {
-        return true;
-      }
-    }
-  });
-
-  const Tx2 = new TransactionBuilder(transactionInializer, {
-    fee: TrxBaseFee,
-    networkPassphrase,
-  });
-
+  // Step 3: Pay the price in XLM to the seller from buyer
   if (Number(priceInNative) > 0) {
-    // pay price to seller
-    Tx2.addOperation(
-      Operation.payment({
-        destination: seller,
-        amount: priceInNative,
-        asset: Asset.native(),
-        source: buyer,
-      }),
-    );
+    addPaymentOp(Tx2, seller, priceInNative, Asset.native(), buyer);
   }
 
-  if (trust === undefined) {
+  // Step 4: Check and set up trustline if buyer doesn't have one for the asset
+  const hasTrust = await checkTrustline(buyer, code, issuerPub);
+  if (!hasTrust) {
     Tx2.addOperation(
       Operation.changeTrust({
         asset: asset,
         source: buyer,
-      }),
+      })
     );
   }
 
-  // send token to buyyer
-  Tx2.addOperation(
-    Operation.payment({
-      asset: asset,
-      amount: "1",
-      source: storageAcc.publicKey(),
-      destination: buyer,
-    }),
-  )
+  // Step 5: Transfer the token to the buyer
+  addPaymentOp(Tx2, buyer, "1", asset, storageAcc.publicKey());
 
-    // pay fee for platform
-    .addOperation(
-      Operation.payment({
-        asset: Asset.native(),
-        amount: "2",
-        destination: Keypair.fromSecret(env.MOTHER_SECRET).publicKey(),
-      }),
-    )
-    .setTimeout(0);
+  // Step 6: Pay platform fee of 2 XLM to mother account
+  addPaymentOp(Tx2, motherAcc.publicKey(), "2", Asset.native());
 
-  const buildTrx = Tx2.build();
-
-  buildTrx.sign(storageAcc);
-
-  const xdr = buildTrx.toXDR();
-  const singedXdr = WithSing({ xdr, signWith });
-  // console.log(singedXdr, "singedXdr");
+  // Step 7: Finalize and sign the transaction (only storage account signs here, user signs later)
+  const xdr = finalizeTransaction(Tx2, [storageAcc]);
+  const singedXdr = await WithSing({ xdr, signWith });
   return singedXdr;
 }
-
 export async function XDR4BuyAssetWithSquire({
   signWith,
   code,
@@ -354,69 +243,44 @@ export async function XDR4BuyAssetWithSquire({
   storageSecret: string;
   seller: string;
 }) {
-  // this asset limit only for buying more item.
+  // Step 1: Create asset object for the token
   const asset = new Asset(code, issuerPub);
-  const server = new Horizon.Server(STELLAR_URL);
   const storageAcc = Keypair.fromSecret(storageSecret);
-
   const mother = Keypair.fromSecret(env.MOTHER_SECRET);
 
-  const transactionInializer = await server.loadAccount(mother.publicKey());
+  // Step 2: Create transaction builder from mother account with base fee
+  const Tx2 = await createTransactionBuilder(mother.publicKey(), BASE_FEE);
 
-  const buyerAcc = await StellarAccount.create(buyer);
-  const hasTrust = buyerAcc.hasTrustline(code, issuerPub);
+  // Step 3: Check if buyer has trustline for the asset
+  const hasTrust = await checkTrustline(buyer, code, issuerPub);
 
-  const Tx2 = new TransactionBuilder(transactionInializer, {
-    fee: BASE_FEE,
-    networkPassphrase,
-  });
-
+  // Step 4: Pay the price in Squire (platform asset) to the seller
   if (Number(price) > 0) {
-    Tx2
-      // pay price to seller
-      .addOperation(
-        Operation.payment({
-          destination: seller,
-          amount: price,
-          asset: PLATFORM_ASSET,
-        }),
-      );
+    addPaymentOp(Tx2, seller, price, PLATFORM_ASSET);
   }
 
+  // Step 5: If no trustline, pay 0.5 XLM to buyer and create trustline
   if (!hasTrust) {
     Tx2.addOperation(
       Operation.payment({
         destination: buyer,
         amount: "0.5",
         asset: Asset.native(),
-      }),
+      })
     );
     Tx2.addOperation(
       Operation.changeTrust({
         asset: asset,
         source: buyer,
-      }),
+      })
     );
   }
 
-  // send token to buyyer
-  Tx2.addOperation(
-    Operation.payment({
-      asset: asset,
-      amount: "1",
-      source: storageAcc.publicKey(),
-      destination: buyer,
-    }),
-  )
+  // Step 6: Transfer the token to the buyer
+  addPaymentOp(Tx2, buyer, "1", asset, storageAcc.publicKey());
 
-    .setTimeout(0);
-
-  const buildTrx = Tx2.build();
-
-  buildTrx.sign(storageAcc, mother);
-
-  const xdr = buildTrx.toXDR();
-  const singedXdr = WithSing({ xdr, signWith });
-  // console.log(singedXdr, "singedXdr");
+  // Step 7: Finalize and sign the transaction with storage and mother accounts, then user signs
+  const xdr = finalizeTransaction(Tx2, [storageAcc, mother]);
+  const singedXdr = await WithSing({ xdr, signWith });
   return singedXdr;
-}
+} 

@@ -127,7 +127,9 @@ export default function CreatePinModal() {
 
     const tokenAmount = watch("pinCollectionLimit")
 
-    const assetsQuery = api.fan.asset.myAssets.useQuery(undefined, {})
+    const assetsQuery = api.fan.asset.myAssets.useQuery(undefined, {
+        enabled: isOpenCreatePin,
+    })
 
     const addPinM = api.maps.pin.createPin.useMutation({
         onSuccess: () => {

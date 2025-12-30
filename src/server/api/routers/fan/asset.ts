@@ -5,7 +5,7 @@ import { z } from "zod";
 import { SellPageAssetSchema } from "~/components/modal/sell-page-asset-modal";
 import { STELLAR_URL } from "~/lib/stellar/constant";
 import { AccountSchema } from "~/lib/stellar/fan/utils";
-import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
+import { StellarAccount } from "~/lib/stellar/stellar";
 import {
   GetPageAssetBuyXDRInPlatform,
   GetPageAssetBuyXDRInXLM,

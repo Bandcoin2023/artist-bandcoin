@@ -4,7 +4,7 @@ import {
   getPlatformAssetNumberForUSD,
   getPlatformTokenNumberForUSD,
 } from "~/lib/stellar/fan/get_token_price";
-import { sendSiteAsset2pub } from "~/lib/stellar/marketplace/trx/site_asset_recharge";
+import { sendSiteAsset2pub } from "~/lib/stellar/marketplace/trx/site-asset-recharge";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 

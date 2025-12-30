@@ -2,7 +2,7 @@ import { ItemPrivacy } from "@prisma/client";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getToken } from "next-auth/jwt";
 import { z } from "zod";
-import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
+import { StellarAccount } from "~/lib/stellar/stellar";
 import { EnableCors } from "~/server/api-cors";
 import { AssetSelectAllProperty } from "~/server/api/routers/marketplace/marketplace";
 import { db } from "~/server/db";

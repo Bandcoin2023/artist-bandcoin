@@ -12,7 +12,7 @@ import {
 } from "@stellar/stellar-sdk";
 
 import { Horizon } from "@stellar/stellar-sdk";
-import { StellarAccount } from "../marketplace/test/Account";
+import { StellarAccount } from "../stellar";
 import { SignUserType, WithSing } from "../utils";
 import { getAccSecretFromRubyApi } from "package/connect_wallet/src/lib/stellar/get-acc-secret";
 import {

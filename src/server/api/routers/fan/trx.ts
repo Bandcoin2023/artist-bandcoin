@@ -1,16 +1,11 @@
 import { z } from "zod";
-import { buyAssetTrx } from "~/lib/stellar/fan/buy_asset";
-import {
-  creatorPageAccCreate,
-  creatorPageAccCreateWithXLM,
-} from "~/lib/stellar/fan/clawback";
+
 import { createAsset } from "~/lib/stellar/fan/create_asset";
 import {
   getPlatformAssetPrice,
   getplatformAssetNumberForXLM,
 } from "~/lib/stellar/fan/get_token_price";
-import { getClawbackAsPayment } from "~/lib/stellar/fan/subscribe";
-import { AssetSchema } from "~/lib/stellar/fan/utils";
+
 import { SignUser, WithSing } from "~/lib/stellar/utils";
 
 import { Keypair } from "@stellar/stellar-sdk";
@@ -27,8 +22,7 @@ import {
 } from "~/lib/stellar/fan/create_storage";
 import { follow_creator } from "~/lib/stellar/fan/follow_creator";
 import { sendGift, sendGitfAsPlatformAsset } from "~/lib/stellar/fan/send_gift";
-import { trustCustomPageAsset } from "~/lib/stellar/fan/trust_custom_page_asset";
-import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
+import { StellarAccount } from "~/lib/stellar/stellar";
 import {
   createUniAsset,
   createUniAssetWithXLM,
@@ -59,77 +53,8 @@ export const FanGitFormSchema = z.object({
 });
 
 export const trxRouter = createTRPCRouter({
-  createCreatorPageAsset: protectedProcedure
-    .input(
-      z.object({
-        code: z.string(),
-        signWith: SignUser,
-        limit: z.number().nonnegative().min(1),
-        ipfs: z.string(),
-        method: PaymentMethodEnum.optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { code, signWith, limit } = input;
 
-      const creatorId = ctx.session.user.id;
 
-      const creator = await ctx.db.creator.findUniqueOrThrow({
-        where: { id: creatorId },
-      });
-
-      const creatorStorageSec = creator.storageSecret;
-
-      if (input.method && input.method === "xlm") {
-        return await creatorPageAccCreateWithXLM({
-          ipfs: input.ipfs,
-          limit: HIGHEST_LIMIT,
-          storageSecret: creatorStorageSec,
-          pubkey: creatorId,
-          assetCode: code,
-          signWith,
-        });
-      } else {
-        return await creatorPageAccCreate({
-          ipfs: input.ipfs,
-          limit: HIGHEST_LIMIT,
-          storageSecret: creatorStorageSec,
-          pubkey: creatorId,
-          assetCode: code,
-          signWith,
-        });
-      }
-    }),
-
-  clawbackAssetPaymentTrx: protectedProcedure
-    .input(
-      AssetSchema.extend({
-        creatorId: z.string(),
-        price: z.number(),
-        signWith: SignUser,
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
-      const { signWith } = input;
-      const price = input.price.toString();
-
-      const creator = await ctx.db.creator.findUniqueOrThrow({
-        where: { id: input.creatorId },
-        select: { storageSecret: true },
-      });
-      const creatorStorageSec = creator.storageSecret;
-
-      const xdr = await getClawbackAsPayment({
-        signWith,
-        creatorId: input.creatorId,
-        creatorStorageSec,
-        price: price,
-        assetInfo: input,
-        userPubkey: ctx.session.user.id,
-      });
-
-      return await WithSing({ xdr, signWith: input.signWith });
-    }),
 
   createAssetTrx: protectedProcedure
     .input(
@@ -194,7 +119,6 @@ export const trxRouter = createTRPCRouter({
         });
       } else {
         return await createUniAsset({
-          actionAmount: assetAmount.toString(),
           pubkey,
           storageSecret,
           code: i.code,
@@ -206,33 +130,6 @@ export const trxRouter = createTRPCRouter({
       }
     }),
 
-  buyAssetTrx: protectedProcedure
-    .input(
-      AssetSchema.extend({
-        signWith: SignUser,
-        price: z.number(),
-        creatorId: z.string(),
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
-      const price = input.price.toString();
-      const customerPubkey = ctx.session.user.id; // is the custeomr
-
-      const creator = await ctx.db.creator.findUniqueOrThrow({
-        where: { id: input.creatorId },
-        select: { storageSecret: true },
-      });
-
-      const xdr = await buyAssetTrx({
-        customerPubkey,
-        assetType: input,
-        creatorId: input.creatorId,
-        price: price,
-        storageSecret: creator.storageSecret,
-      });
-
-      return await WithSing({ xdr, signWith: input.signWith });
-    }),
 
   getSecretMessage: protectedProcedure.query(() => {
     return "you can now see this secret message!";
@@ -420,34 +317,5 @@ export const trxRouter = createTRPCRouter({
       return token + input.platformAsset;
     }),
 
-  trustCustomPageAssetXDR: protectedProcedure
-    .input(
-      z.object({
-        code: z.string(),
-        issuer: z.string(),
-        signWith: SignUser,
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { code, issuer, signWith } = input;
 
-      const creator = await ctx.db.creator.findUniqueOrThrow({
-        where: { id: ctx.session.user.id },
-        select: {
-          storageSecret: true,
-          storagePub: true,
-        },
-      });
-
-      const requiredPlatformAsset = await getplatformAssetNumberForXLM(0.5);
-
-      return await trustCustomPageAsset({
-        signWith,
-        code,
-        issuer,
-        creator: ctx.session.user.id,
-        storageSecret: creator.storageSecret,
-        requiredPlatformAsset: requiredPlatformAsset.toString(),
-      });
-    }),
 });

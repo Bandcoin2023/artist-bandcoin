@@ -1,7 +1,7 @@
 import { Asset, BASE_FEE, Horizon, Keypair, Operation, TransactionBuilder } from "@stellar/stellar-sdk";
 import { STELLAR_URL, TrxBaseFee, networkPassphrase } from "../constant";
 import { env } from "~/env";
-import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
+import { StellarAccount } from "~/lib/stellar/stellar";
 
 export const sendRewardAssetToStorage = async (
     {

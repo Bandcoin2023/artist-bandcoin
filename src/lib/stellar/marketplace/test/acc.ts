@@ -1,5 +1,6 @@
 import { Horizon } from "@stellar/stellar-sdk";
 import { PLATFORM_ASSET, STELLAR_URL, STROOP } from "../../constant";
+import { getAllBalances, getAssetBalance } from "../../helper";
 
 type Balances = (
   | Horizon.HorizonApi.BalanceLineNative
@@ -7,6 +8,7 @@ type Balances = (
   | Horizon.HorizonApi.BalanceLineAsset<"credit_alphanum12">
   | Horizon.HorizonApi.BalanceLineLiquidityPool
 )[];
+
 export async function getCreatorPageAssetBalance({
   pubkey,
   code,
@@ -16,59 +18,19 @@ export async function getCreatorPageAssetBalance({
   code: string;
   issuer: string;
 }) {
-  const server = new Horizon.Server(STELLAR_URL);
   console.log("Fetching asset balance for:", pubkey, code, issuer);
-  const transactionInializer = await server.loadAccount(pubkey);
-
-  const balances = transactionInializer.balances;
-  const asset = balances.find((balance) => {
-    if (
-      balance.asset_type === "credit_alphanum12" ||
-      balance.asset_type === "credit_alphanum4"
-    ) {
-      if (balance.asset_code === code && balance.asset_issuer === issuer)
-        return balance.balance;
-    }
-  });
-  console.log("Asset Balance:", asset);
+  const balance = await getAssetBalance(pubkey, code, issuer);
+  console.log("Asset Balance:", balance);
   return {
-    balance: asset ? asset.balance : "0",
+    balance: balance.toString(),
     code: code,
   };
 };
 export async function accountBalances({ userPub }: { userPub: string }) {
-  const server = new Horizon.Server(STELLAR_URL);
-
-  const transactionInializer = await server.loadAccount(userPub);
-  const balances = transactionInializer.balances;
-
+  const balances = await getAllBalances(userPub);
   return balances;
 }
 
-export async function getAssetBalance({
-  pubkey,
-  code,
-  issuer,
-}: {
-  pubkey: string;
-
-  code: string;
-  issuer: string;
-}) {
-  const balances = await accountBalances({ userPub: pubkey });
-
-  const asset = balances.find((balance) => {
-    if (
-      balance.asset_type === "credit_alphanum12" ||
-      balance.asset_type === "credit_alphanum4"
-    ) {
-      if (balance.asset_code === code && balance.asset_issuer === issuer)
-        return balance.balance;
-    }
-  });
-
-  return asset;
-}
 
 export function getAssetBalanceFromBalance({
   balances,

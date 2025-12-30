@@ -1,6 +1,6 @@
 import { NotificationType } from "@prisma/client";
 import { z } from "zod";
-import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
+import { StellarAccount } from "~/lib/stellar/stellar";
 
 import {
   createTRPCRouter,

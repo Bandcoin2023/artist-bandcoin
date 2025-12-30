@@ -6,7 +6,7 @@ import { env } from "~/env";
 import { XDR4SendPlotToInvestorInPlatformAsset, XDR4SendPlotToInvestorInUSDC, XDR4SendPlotToInvestorInXLM } from "~/lib/stellar/marketplace/trx/sendProfitToInvestors";
 
 // import { getUserSecret } from "~/components/recharge/utils";
-import { covertSiteAsset2XLM } from "~/lib/stellar/marketplace/trx/convert_site_asset";
+import { covertSiteAsset2XLM } from "~/lib/stellar/marketplace/trx/convert-site-asset";
 import { alreadyHaveTrustOnNft } from "~/lib/stellar/marketplace/trx/utils";
 import {
   XDR4BuyAsset,
@@ -120,7 +120,7 @@ export const stellarRouter = createTRPCRouter({
             buyer,
             price: ((1 / usdcPrice) * marketAsset.priceUSD).toString(),
             signWith,
-            usdcPrice: usdcPrice,
+            usdcPriceRate: usdcPrice,
           });
         }
         case "card": {

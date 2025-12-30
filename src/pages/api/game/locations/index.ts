@@ -7,7 +7,7 @@ import { EnableCors } from "~/server/api-cors";
 import { db } from "~/server/db";
 import { Location } from "~/types/game/location";
 import { avaterIconUrl as abaterIconUrl } from "../brands";
-import { StellarAccount } from "~/lib/stellar/marketplace/test/Account";
+import { StellarAccount } from "~/lib/stellar/stellar";
 
 export default async function handler(
   req: NextApiRequest,

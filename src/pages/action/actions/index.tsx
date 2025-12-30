@@ -107,7 +107,6 @@ export default function BountyScreen() {
     {
       limit: 10,
       search: debouncedSearchTerm,
-      sortBy: sortOption,
       filter: filter,
       bountyType: typeFilter !== BountyTypeFilter.ALL ? typeFilter : undefined,
     },
