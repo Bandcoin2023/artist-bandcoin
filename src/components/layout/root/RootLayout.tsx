@@ -157,7 +157,7 @@ export default function Layout({
                         )}
                     </div>
                     <StemPlayer />
-                    <FallingSnowflakes />
+                    {/* <FallingSnowflakes /> */}
                 </BottomPlayerProvider>
             </MiniPlayerProvider>
         </ThemeProvider>

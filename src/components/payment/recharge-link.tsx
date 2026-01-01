@@ -10,10 +10,21 @@ export default function RechargeLink() {
     const walletType = session.data?.user.walletType ?? WalletType.none;
 
     const isFBorGoogle = isRechargeAbleClient(walletType);
-    if (isFBorGoogle)
+    if (1)
         return (
-            <Link className="  w-full" href={isFBorGoogle ? "/recharge" : "/"}>
-                <Button className="shadow-sm shadow-black  w-full">Recharge</Button>
-            </Link>
+            <>
+                {
+                    isFBorGoogle ? (
+                        <Link className=" underline w-full text-end" href={isFBorGoogle ? "/recharge" : "/"}>
+                            Click Here to Recharge
+                        </Link>
+                    ) : walletType === WalletType.albedo && (
+                        <Link className=" underline w-full text-end" href={"https://albedo.link/wallet/swap"}>
+                            Click Here to Recharge
+                        </Link>
+                    )
+
+                }
+            </>
         );
 }

@@ -20,7 +20,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
-import { getAssetToUSDCRate, getXLMPriceByPlatformAsset } from "~/lib/stellar/fan/get_token_price";
+import { getAssetToUSDCRate, getplatformAssetNumberForXLM, getPlatformAssetPrice, getXLMPrice, getXLMPriceByPlatformAsset } from "~/lib/stellar/fan/get_token_price";
 
 export type authDocType = {
   pubkey: string;
@@ -257,6 +257,80 @@ export const stellarRouter = createTRPCRouter({
   test: publicProcedure.query(() => {
     return "test";
   }),
+  estimateXlmForPlatform: publicProcedure
+    .input(
+      z.object({
+        platformAmount: z.number()
+      })
+    )
+    .query(async ({ input }) => {
+      const { platformAmount } = input;
+
+      // Get current prices
+      const platformPrice = await getPlatformAssetPrice();
+      const xlmPrice = await getXLMPrice();
+
+      // Calculate XLM needed for the given platform amount
+      // Formula: (platformAmount * platformPrice) / xlmPrice
+      const xlmNeeded = (platformAmount * platformPrice) / xlmPrice;
+
+      return {
+        xlmNeeded: Number(xlmNeeded.toFixed(7)),
+        platformAmount,
+        platformPrice,
+        xlmPrice,
+        rate: platformPrice / xlmPrice
+      };
+    }),
+
+  estimatePlatformForXlm: publicProcedure
+    .input(
+      z.object({
+        xlm: z.number()
+      })
+    )
+    .query(async ({ input }) => {
+      const { xlm } = input;
+
+      if (xlm === 0) {
+        return {
+          platformNeeded: 0,
+          xlm: 0,
+          platformPrice: 0,
+          xlmPrice: 0,
+          rate: 0
+        };
+      }
+
+      // Get platform tokens needed for the given XLM amount
+      const platformNeeded = await getplatformAssetNumberForXLM(xlm);
+
+      // Get prices for additional context
+      const platformPrice = await getPlatformAssetPrice();
+      const xlmPrice = await getXLMPrice();
+
+      return {
+        platformNeeded,
+        xlm,
+        platformPrice,
+        xlmPrice,
+        rate: xlmPrice / platformPrice
+      };
+    }),
+
+  getRequiredPlatformAsset: publicProcedure
+    .input(
+      z.object({
+        xlm: z.number(),
+      })
+    )
+    .query(async ({ input }) => {
+      const { xlm } = input;
+
+      // Get the platform asset amount needed for trustline setup
+      const requiredAsset = await getplatformAssetNumberForXLM(xlm);
+      return requiredAsset;
+    }),
 
   getSecretMessage: protectedProcedure.query(() => {
     return "you can now see this secret message!";

@@ -45,7 +45,7 @@ export async function getXLMPrice(): Promise<number> {
 
     const xlmUsdPrice = parseFloat(response.data.price);
 
-    return xlmUsdPrice;
+    return xlmUsdPrice ?? 1;
   } catch (error) {
     console.error("Error fetching XLM USD price:", error);
     throw error;
@@ -69,7 +69,7 @@ export async function getAssetPrice(): Promise<number> {
 
 export async function getPlatformAssetPrice() {
   if (env.NEXT_PUBLIC_STELLAR_PUBNET) return await getAssetPrice();
-  else return 0.5;
+  else return 1;
 }
 
 export async function getplatformAssetNumberForXLM(xlm = 1.5) {
@@ -120,4 +120,16 @@ export async function getAssetToUSDCRate(): Promise<number> {
     );
     throw error;
   }
+}
+
+/**
+ * Convert platform asset amount to equivalent XLM amount
+ * Reverse of getplatformAssetNumberForXLM
+ */
+export async function getXLMNumberForPlatformAsset(platformAmount: number): Promise<number> {
+  if (platformAmount === 0) return 0;
+  const xlmPrice = await getXLMPrice();
+  const platformPrice = await getPlatformAssetPrice();
+  // Formula: (platformAmount * platformPrice) / xlmPrice
+  return (platformAmount * platformPrice) / xlmPrice;
 }

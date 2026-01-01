@@ -413,30 +413,31 @@ const FilterTabs = () => {
   const [activeTab, setActiveTab] = useState("ALL");
   const musicAssets = api.music.song.getAllSongMarketAssets.useInfiniteQuery(
     { limit: 10 },
-    { getNextPageParam: (lastPage) => lastPage.nextCursor },
+    { getNextPageParam: (lastPage) => lastPage.nextCursor, refetchOnWindowFocus: false },
   );
 
   const adminAssets =
     api.marketplace.market.getMarketAdminNfts.useInfiniteQuery(
       { limit: 10 },
-      { getNextPageParam: (lastPage) => lastPage.nextCursor },
+      { getNextPageParam: (lastPage) => lastPage.nextCursor, refetchOnWindowFocus: false },
     );
 
   const fanAssets = api.marketplace.market.getFanMarketNfts.useInfiniteQuery(
     { limit: 10 },
-    { getNextPageParam: (lastPage) => lastPage.nextCursor },
+    { getNextPageParam: (lastPage) => lastPage.nextCursor, refetchOnWindowFocus: false },
   );
 
   const artistAssets = api.marketplace.market.getPageAssets.useInfiniteQuery(
     { limit: 10 },
 
-    { getNextPageParam: (lastPage) => lastPage.nextCursor, },
+    { getNextPageParam: (lastPage) => lastPage.nextCursor, refetchOnWindowFocus: false },
+
   );
 
   const royaltyAssets = api.marketplace.market.getRoyalityItems.useInfiniteQuery(
     { limit: 10 },
     {
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      getNextPageParam: (lastPage) => lastPage.nextCursor, refetchOnWindowFocus: false
     },
   );
   const isLoading =
@@ -458,14 +459,14 @@ const FilterTabs = () => {
     artistAssets.isFetchingNextPage ??
     royaltyAssets.isFetchingNextPage;
 
-  const fetchNextPage = () => {
-    if (musicAssets.hasNextPage) musicAssets.fetchNextPage();
-    if (adminAssets.hasNextPage) adminAssets.fetchNextPage();
-    if (fanAssets.hasNextPage) fanAssets.fetchNextPage();
-    if (artistAssets.hasNextPage) artistAssets.fetchNextPage();
-    if (royaltyAssets.hasNextPage) royaltyAssets.fetchNextPage();
+  const fetchNextPage = async () => {
+    if (musicAssets.hasNextPage) await musicAssets.fetchNextPage();
+    if (adminAssets.hasNextPage) await adminAssets.fetchNextPage();
+    if (fanAssets.hasNextPage) await fanAssets.fetchNextPage();
+    if (artistAssets.hasNextPage) await artistAssets.fetchNextPage();
+    if (royaltyAssets.hasNextPage) await royaltyAssets.fetchNextPage();
   };
-  console.log("artist", artistAssets.data);
+
   return (
     <Card className="rounded-none" >
       <CardHeader className="w-full rounded-none  bg-secondary p-2 md:p-4">

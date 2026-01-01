@@ -17,3 +17,4 @@ export const marketplaceRouter = createTRPCRouter({
 });
 
 // export type definition of API
+export type MarketplaceRouter = typeof marketplaceRouter;

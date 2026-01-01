@@ -314,7 +314,7 @@ export const trxRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const token = await getplatformAssetNumberForXLM(input.xlm);
-      return token + input.platformAsset;
+      return token;
     }),
 
 

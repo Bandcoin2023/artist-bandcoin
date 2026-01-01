@@ -109,7 +109,7 @@ export default function BuyModal() {
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-4xl p-0 overflow-hidden border-border bg-background shadow-2xl transition-all duration-300">
+            <DialogContent className="max-w-4xl p-0 overflow-y-auto border-border bg-background shadow-2xl transition-all duration-300">
                 <DialogTitle className="sr-only">{data.asset.name}</DialogTitle>
 
                 {step === 1 && (
@@ -213,21 +213,21 @@ export default function BuyModal() {
                             <div className="mt-8 pt-8 border-t border-border space-y-4">
                                 {session.status === "authenticated" && data.placerId === session.data?.user.id ? (
                                     <DisableFromMarketButton code={data.asset.code} issuer={data.asset.issuer} />
-                                ) : copy.data && copy.data > 0 ? (
+                                ) : canBuyUser && copy.data && copy.data > 0 ? (
                                     <Button
                                         onClick={handleNext}
                                         className="w-full bg-primary text-muted-foreground shadow-foreground hover:bg-primary/90 h-14 font-black uppercase tracking-[0.2em] text-xs border-2 rounded-xl"
                                     >
                                         Initiate Purchase
                                     </Button>
-                                ) : (
+                                ) : copy.data === 0 ? (
                                     <Button
                                         disabled
                                         className="w-full h-14 text-muted-foreground bg-muted border-border uppercase tracking-[0.2em] text-xs italic italic rounded-xl"
                                     >
                                         Out of Stock
                                     </Button>
-                                )}
+                                ) : null}
                                 <div className="flex gap-3">
                                     <Link href={`/market-asset/${data.id}`} className="flex-1">
                                         <Button

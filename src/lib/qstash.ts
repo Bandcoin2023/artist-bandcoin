@@ -4,13 +4,13 @@ import { env } from "~/env"
 
 // Initialize QStash client for background jobs
 export const qstash = new Client({
-    token: env.QSTASH_TOKEN!,
+    token: env.QSTASH_TOKEN,
 })
 
 // Initialize Redis for job status storage
 export const redis = new Redis({
-    url: env.KV_REST_API_URL!,
-    token: env.KV_REST_API_TOKEN!,
+    url: env.KV_REST_API_URL,
+    token: env.KV_REST_API_TOKEN,
 })
 
 // Job status types
