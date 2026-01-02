@@ -109,7 +109,7 @@ export default function BuyModal() {
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-4xl p-0 overflow-y-auto border-border bg-background shadow-2xl transition-all duration-300">
+            <DialogContent className="max-w-3xl p-0 overflow-y-auto border-border bg-background shadow-2xl">
                 <DialogTitle className="sr-only">{data.asset.name}</DialogTitle>
 
                 {step === 1 && (

@@ -21,6 +21,7 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { getAssetToUSDCRate, getplatformAssetNumberForXLM, getPlatformAssetPrice, getXLMPrice, getXLMPriceByPlatformAsset } from "~/lib/stellar/fan/get_token_price";
+import { getReservedXLM } from "~/lib/stellar/helper";
 
 export type authDocType = {
   pubkey: string;
@@ -331,6 +332,15 @@ export const stellarRouter = createTRPCRouter({
       const requiredAsset = await getplatformAssetNumberForXLM(xlm);
       return requiredAsset;
     }),
+
+  getReservedXLM: protectedProcedure.input(
+    z.object({
+      userId: z.string().optional()
+    })
+  ).query(async ({ input, ctx }) => {
+    const userId = input.userId ?? ctx.session.user.id
+    return getReservedXLM(userId)
+  }),
 
   getSecretMessage: protectedProcedure.query(() => {
     return "you can now see this secret message!";

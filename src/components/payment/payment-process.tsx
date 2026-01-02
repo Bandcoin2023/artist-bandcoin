@@ -21,6 +21,7 @@ import RechargeLink from "./recharge-link"
 import { Badge } from "../shadcn/ui/badge"
 import type { MarketType } from "@prisma/client"
 import type { RouterOutputs } from "~/utils/api"
+import { toast as sonner } from "sonner"
 
 type PaymentProcessProps = {
     item: AssetType
@@ -82,7 +83,7 @@ export default function PaymentProcessItem({
     )
 
     const xdrMutation = api.marketplace.steller.buyFromMarketPaymentXDR.useMutation({
-        onError: (e) => toast.error(e.message.toString()),
+        onError: (e) => console.log("XDR Mutation Error:", e),
     })
 
     function handleXDR(method: PaymentMethod) {
@@ -108,19 +109,20 @@ export default function PaymentProcessItem({
         handleXDR(method)
     }
 
-    const handlePaymentConfirmation = () => {
+    const handlePaymentConfirmation = async () => {
         setSubmitLoading(true)
         if (!xdrMutation.data) {
             toast.error("XDR data is missing.")
             return
         }
-        clientsign({
-            presignedxdr: xdrMutation.data,
-            pubkey: session.data?.user.id,
-            walletType: session.data?.user.walletType,
-            test: clientSelect(),
-        })
-            .then((res) => {
+        try {
+            const res = await clientsign({
+                presignedxdr: xdrMutation.data,
+                pubkey: session.data?.user.id,
+                walletType: session.data?.user.walletType,
+                test: clientSelect(),
+            })
+            if (res) {
                 if (res) {
                     buyerUpdate.mutate({
                         assetId: item.id,
@@ -130,11 +132,29 @@ export default function PaymentProcessItem({
                     setClose()
                     setPaymentSuccess(true)
                 }
-            })
-            .catch((e) => console.log(e))
-            .finally(() => {
-                setSubmitLoading(false)
-            })
+            }
+        } catch (error: unknown) {
+            console.error("Error in test transaction", error)
+
+            const err = error as {
+                message?: string
+                details?: string
+                errorCode?: string
+            }
+
+            sonner.error(
+                typeof err?.message === "string"
+                    ? err.message
+                    : "Transaction Failed",
+                {
+                    description: `Error Code : ${err?.errorCode ?? "unknown"}`,
+                    duration: 8000,
+                }
+            )
+        }
+        finally {
+            setSubmitLoading(false)
+        }
     }
 
     useEffect(() => {
@@ -356,9 +376,9 @@ export function MethodDetails({
     submitLoading,
     paymentSuccess,
     xlmToPlatformEstimate,
-    platformToXlmEstimate,
     requiredPlatformAssetForTrust,
 }: MethodDetailsProps) {
+
     if (xdrMutation.isLoading) {
         return (
             <div className="flex justify-center py-4">
@@ -382,32 +402,45 @@ export function MethodDetails({
             const hasTrustOnPlatformAsset = hasTrust(PLATFORM_ASSET.code, PLATFORM_ASSET.issuer) ?? false
             const hasTrustOnAsset = hasTrust(code, issuer) ?? false
 
-            // Use requiredFee which is already calculated correctly on parent component
-            const requiredAssetValue = typeof requiredPlatformAssetForTrust === "number" ? requiredPlatformAssetForTrust : 0
-            const trustlineCost = (hasTrustOnAsset && hasTrustOnPlatformAsset) ? 0 : (hasTrustOnAsset || hasTrustOnPlatformAsset) ? requiredAssetValue : 2 * requiredAssetValue
-            const platformFeeCost = Number(PLATFORM_FEE)
-            const transactionFeeCost = Number(TrxBaseFeeInPlatformAsset)
-            const totalFees = trustlineCost + platformFeeCost + transactionFeeCost
-            const totalPlatformNeeded = price + totalFees
+            // Calculate minimum XLM reserve required
+            const baseReserve = api.marketplace.steller.getReservedXLM.useQuery({}, {
+                enabled: paymentMethod === "asset"
+            }).data ?? 0
+
+            const platformTrustReserve = hasTrustOnPlatformAsset ? 0 : 0.5
+            const assetTrustReserve = hasTrustOnAsset ? 0 : 0.5
+            const totalXlmReserve = baseReserve + platformTrustReserve + assetTrustReserve
+
+            // Calculate platform asset needed for trustlines
+            const trustPriceInPlatformAsset = requiredPlatformAssetForTrust
+            const requiredAsset2refundXlm = (hasTrustOnAsset && hasTrustOnPlatformAsset) ? 0 : (hasTrustOnAsset || hasTrustOnPlatformAsset) ? trustPriceInPlatformAsset : 2 * trustPriceInPlatformAsset
+            const platformFee = Number(PLATFORM_FEE)
+            const transactionFee = Number(TrxBaseFeeInPlatformAsset)
+            const totalPlatformFee = requiredAsset2refundXlm + platformFee + transactionFee
+            const totalPlatformNeeded = totalPlatformFee + price
             const currentBalance = platformAssetBalance
             const hasSufficientBalance = currentBalance >= totalPlatformNeeded
 
-            // Check if we need XLM conversion
-            const needsXlmConversion = !hasSufficientBalance && xlmBalance > 0
-            const { xlmNeeded } = xlmToPlatformEstimate.data ?? {}
-            const xlmNeededForConversion = needsXlmConversion ? (xlmNeeded ?? 0) : 0
-            const canConvertFromXlm = xlmBalance >= xlmNeededForConversion
-
-            if (!hasTrustOnPlatformAsset && xlmBalance < 0.5) {
+            // Check if account is active
+            if (xlmBalance < totalXlmReserve) {
                 return (
                     <Alert variant="destructive" className="text-sm bg-destructive/10 border-destructive/20">
-                        <div className="flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4" />
-                            <span>You need at least 0.5 XLM in your account to create a trustline for {PLATFORM_ASSET.code}.</span>
+                        <div className="flex items-start gap-2">
+                            <AlertCircle className="h-4 w-4 mt-0.5" />
+                            <span>
+                                Your account isn't active. You need at least {totalXlmReserve.toFixed(1)} XLM ({baseReserve} XLM base + {platformTrustReserve} XLM for PLATFORM trustline + {assetTrustReserve} XLM for asset trustline) but have {xlmBalance.toFixed(2)} XLM.
+                            </span>
                         </div>
                     </Alert>
                 )
             }
+
+            // Check if we need XLM conversion for PLATFORM
+            const needsXlmConversion = !hasSufficientBalance && xlmBalance > totalXlmReserve
+            const { xlmNeeded } = xlmToPlatformEstimate.data ?? {}
+            const xlmNeededForConversion = needsXlmConversion ? (xlmNeeded ?? 0) : 0
+            const availableXlm = xlmBalance - totalXlmReserve
+            const canConvertFromXlm = availableXlm >= xlmNeededForConversion
 
             return (
                 <div className="space-y-4">
@@ -422,26 +455,30 @@ export function MethodDetails({
 
                             {/* Fee Breakdown */}
                             <div className="bg-muted/30 rounded p-3 space-y-2">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fees</p>
-                                {trustlineCost > 0 && (
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fees & Reserves</p>
+                                {requiredAsset2refundXlm > 0 && (
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-muted-foreground">Trustline Setup</span>
                                         <span>
-                                            {trustlineCost.toFixed(7)} {PLATFORM_ASSET.code}
+                                            {requiredAsset2refundXlm.toFixed(7)} {PLATFORM_ASSET.code}
                                         </span>
                                     </div>
                                 )}
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-muted-foreground">Platform Fee</span>
                                     <span>
-                                        {platformFeeCost.toFixed(7)} {PLATFORM_ASSET.code}
+                                        {platformFee.toFixed(7)} {PLATFORM_ASSET.code}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-muted-foreground">Transaction Fee</span>
                                     <span>
-                                        {transactionFeeCost.toFixed(7)} {PLATFORM_ASSET.code}
+                                        {transactionFee.toFixed(7)} {PLATFORM_ASSET.code}
                                     </span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm text-xs text-muted-foreground border-t pt-2 mt-2">
+                                    <span>XLM Reserve Required</span>
+                                    <span>{totalXlmReserve.toFixed(1)} XLM</span>
                                 </div>
                             </div>
 
@@ -460,10 +497,16 @@ export function MethodDetails({
                                     Your Balance: <span className="font-semibold">{currentBalance.toFixed(7)}</span> {PLATFORM_ASSET.code}
                                 </span>
                             </div>
+                            <div className="bg-muted/50 rounded p-2 flex items-center gap-2">
+                                <Coins className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-xs">
+                                    XLM Available (after reserve): <span className="font-semibold">{availableXlm.toFixed(7)}</span> XLM
+                                </span>
+                            </div>
                         </CardContent>
                     </Card>
 
-                    {!hasSufficientBalance && xlmToPlatformEstimate.data && (
+                    {!hasSufficientBalance && needsXlmConversion && xlmToPlatformEstimate.data && (
                         <Card className="border-amber-200/50 bg-amber-50/30">
                             <CardContent className="pt-6 space-y-3">
                                 <p className="text-xs font-semibold text-amber-900 uppercase tracking-wide flex items-center gap-2">
@@ -473,9 +516,9 @@ export function MethodDetails({
                                     <div className="bg-white/50 rounded p-2 space-y-1">
                                         <p className="text-xs text-muted-foreground font-semibold uppercase">You have</p>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm">{xlmBalance.toFixed(7)} XLM</span>
+                                            <span className="text-sm">{availableXlm.toFixed(7)} XLM</span>
                                             <span className="text-xs text-muted-foreground">
-                                                ≈ ${(xlmBalance * (xlmToPlatformEstimate.data?.xlmPrice ?? 0)).toFixed(2)}
+                                                ≈ ${(availableXlm * (xlmToPlatformEstimate.data?.xlmPrice ?? 0)).toFixed(2)}
                                             </span>
                                         </div>
                                     </div>
@@ -522,8 +565,7 @@ export function MethodDetails({
                                         <AlertCircle className="h-4 w-4" />
                                         <AlertTitle>Insufficient XLM Balance</AlertTitle>
                                         <AlertDescription>
-                                            You need {xlmNeededForConversion.toFixed(7)} XLM to convert, but only have {xlmBalance.toFixed(7)}{" "}
-                                            XLM available.
+                                            You need {xlmNeededForConversion.toFixed(7)} XLM to convert, but only have {availableXlm.toFixed(7)} XLM available after reserve.
                                         </AlertDescription>
                                     </Alert>
                                 )}
@@ -547,6 +589,9 @@ export function MethodDetails({
                                 <p>
                                     Current balance: {currentBalance.toFixed(7)} {PLATFORM_ASSET.code}
                                 </p>
+                                <p className="text-xs text-muted-foreground">
+                                    Keep {totalXlmReserve.toFixed(1)} XLM as minimum reserve for account.
+                                </p>
                                 <div className="pt-2">
                                     <RechargeLink />
                                 </div>
@@ -560,16 +605,25 @@ export function MethodDetails({
         // XLM PAYMENT
         if (paymentMethod === "xlm") {
             const hasTrustOnAsset = hasTrust(code, issuer) ?? false
-            const trustlineCost = hasTrustOnAsset ? 0 : 0.5
-            const platformFeeCost = 2 // XLM platform fee
-            const priceInXlm = priceUSD // USD converted to XLM at 1:1 for display
-            const totalXlmNeeded = priceInXlm + trustlineCost + platformFeeCost
+            const hasTrustOnPlatformAsset = hasTrust(PLATFORM_ASSET.code, PLATFORM_ASSET.issuer) ?? false
+
+            const baseReserve = api.marketplace.steller.getReservedXLM.useQuery({}, {
+                enabled: paymentMethod === "xlm"
+            }).data ?? 0
+            const platformTrustReserve = hasTrustOnPlatformAsset ? 0 : 0.5
+            const assetTrustReserve = hasTrustOnAsset ? 0 : 0.5
+            const totalXlmReserve = baseReserve + platformTrustReserve + assetTrustReserve
+
+            const xlmPlatformFee = 2
             const currentXlmBalance = Number.parseFloat(getXLMBalance() ?? "0")
+            const totalXlmNeeded = priceUSD + xlmPlatformFee + totalXlmReserve
             const hasSufficientBalance = currentXlmBalance >= totalXlmNeeded
 
             // Check if we need PLATFORM conversion for shortfall
             const xlmShortage = Math.max(0, totalXlmNeeded - currentXlmBalance)
-            const needsPlatformConversion = xlmShortage > 0
+            const platformToXlmEstimate = api.marketplace.steller.estimatePlatformForXlm.useQuery({ xlm: xlmShortage }, { enabled: !!xlmShortage })
+
+            const needsPlatformConversion = xlmShortage > 0 && platformAssetBalance > 0
             const { platformNeeded } = platformToXlmEstimate.data ?? {}
             const platformNeededForConversion: number = needsPlatformConversion ? (platformNeeded ?? 0) : 0
             const platformBalance = platformAssetBalance
@@ -582,20 +636,30 @@ export function MethodDetails({
                             {/* Item Price */}
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-muted-foreground">Item Price</span>
-                                <span className="font-medium">{priceInXlm.toFixed(7)} XLM</span>
+                                <span className="font-medium">{priceUSD.toFixed(7)} XLM</span>
                             </div>
 
                             <div className="bg-muted/30 rounded p-3 space-y-2">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fees</p>
-                                {trustlineCost > 0 && (
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fees & Reserve</p>
+                                {platformTrustReserve > 0 && (
                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="text-muted-foreground">Trustline Setup</span>
-                                        <span>{trustlineCost.toFixed(7)} XLM</span>
+                                        <span className="text-muted-foreground">PLATFORM Trustline Reserve</span>
+                                        <span>{platformTrustReserve.toFixed(7)} XLM</span>
+                                    </div>
+                                )}
+                                {assetTrustReserve > 0 && (
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-muted-foreground">Asset Trustline Reserve</span>
+                                        <span>{assetTrustReserve.toFixed(7)} XLM</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-muted-foreground">Platform Fee</span>
-                                    <span>{platformFeeCost.toFixed(7)} XLM</span>
+                                    <span>{xlmPlatformFee.toFixed(7)} XLM</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Base Reserve</span>
+                                    <span>{baseReserve.toFixed(7)} XLM</span>
                                 </div>
                             </div>
 
@@ -696,6 +760,9 @@ export function MethodDetails({
                             <AlertDescription className="mt-2 space-y-2">
                                 <p>You need {totalXlmNeeded.toFixed(7)} XLM to complete this purchase.</p>
                                 <p>Current balance: {currentXlmBalance.toFixed(7)} XLM</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Keep {totalXlmReserve.toFixed(1)} XLM as minimum reserve for account.
+                                </p>
                                 <div className="pt-2">
                                     <RechargeLink />
                                 </div>

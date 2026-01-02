@@ -19,6 +19,7 @@ import {
   getServerAndMotherAcc,
   getNativeBalance,
   getAssetBalance,
+  getReservedXLM,
 } from "../../helper"
 
 export async function XDR4BuyUSDC({
@@ -124,15 +125,22 @@ export async function XDR4BuyAsset({
   const hasPlatformTrust = await checkTrustline(buyer, PLATFORM_ASSET.code, PLATFORM_ASSET.issuer)
   const hasAssetTrust = await checkTrustline(buyer, code, issuerPub)
 
+  // Calculate minimum XLM reserve required
+  const baseReserve = await getReservedXLM(buyer)
+  const platformTrustReserve = hasPlatformTrust ? 0 : 0.5
+  const assetTrustReserve = hasAssetTrust ? 0 : 0.5
+  const totalXlmReserve = baseReserve + platformTrustReserve + assetTrustReserve
+
   // Calculate platform asset needed for 0.5 XLM trustline if needed
   const trustPriceInPlatformAsset = await getplatformAssetNumberForXLM(0.5)
   const requiredAsset2refundXlm = (hasAssetTrust && hasPlatformTrust) ? 0 : (hasAssetTrust || hasPlatformTrust) ? trustPriceInPlatformAsset : 2 * trustPriceInPlatformAsset
   const totalPlatformFee = requiredAsset2refundXlm + Number(PLATFORM_FEE) + Number(TrxBaseFeeInPlatformAsset)
   const totalPlatformNeeded = totalPlatformFee + Number(price)
 
-  // CASE 1: Account not active (no PLATFORM trust AND low XLM)
-  if (!hasPlatformTrust && xlmBalance < 1) {
-    throw new Error("Your account isn't active. Please activate your account by adding XLM to establish trustlines.")
+  // CASE 1: Account not active (insufficient XLM for minimum reserve)
+  // No Trust and insufficient XLM that's mean we can't farther convert xlm to platform 
+  if (!hasPlatformTrust && xlmBalance < totalXlmReserve) {
+    throw new Error(`Your account isn't active. You need at least ${totalXlmReserve.toFixed(1)} XLM (${baseReserve} XLM base + ${platformTrustReserve} XLM for PLATFORM trustline + ${assetTrustReserve} XLM for asset trustline) but have ${xlmBalance.toFixed(2)} XLM. Please add ${(totalXlmReserve - xlmBalance).toFixed(2)} XLM.`)
   }
 
   const Tx2 = await createTransactionBuilder(motherAcc.publicKey(), TrxBaseFee)
@@ -141,16 +149,14 @@ export async function XDR4BuyAsset({
   let xlmFromConversion = 0
 
   // CASE 2: No PLATFORM trust but has XLM → Convert XLM to PLATFORM
-  if (!hasPlatformTrust && xlmBalance >= 1) {
-    const xlmNeeded = (await getXLMNumberForPlatformAsset(totalPlatformNeeded)) + 0.5 // +0.5 for trustline
+  if (!hasPlatformTrust && xlmBalance >= totalXlmReserve) {
+    const xlmNeeded = (await getXLMNumberForPlatformAsset(totalPlatformNeeded)) + 0.5 + totalXlmReserve // +0.5 for conversion + reserve
 
     if (xlmBalance < xlmNeeded) {
       const platformPrice = await getPlatformAssetPrice()
       const xlmPrice = await getXLMPrice()
-      const xlmToUsd = xlmPrice
-      const platformToUsd = platformPrice
       throw new Error(
-        `Insufficient XLM to complete purchase. You need ${xlmNeeded.toFixed(2)} XLM (≈$${(xlmNeeded * xlmToUsd).toFixed(2)}) to convert to ${totalPlatformNeeded.toFixed(0)} ${PLATFORM_ASSET.code} (≈$${(totalPlatformNeeded * platformToUsd).toFixed(2)}). You have ${xlmBalance.toFixed(2)} XLM (≈$${(xlmBalance * xlmToUsd).toFixed(2)}).`,
+        `Insufficient XLM to complete purchase. You need ${xlmNeeded.toFixed(2)} XLM (≈$${(xlmNeeded * xlmPrice).toFixed(2)}) to convert to ${totalPlatformNeeded.toFixed(0)} ${PLATFORM_ASSET.code} (≈$${(totalPlatformNeeded * platformPrice).toFixed(2)}). You have ${xlmBalance.toFixed(2)} XLM (≈$${(xlmBalance * xlmPrice).toFixed(2)}). Remember to keep ${totalXlmReserve.toFixed(1)} XLM as minimum reserve.`,
       )
     }
 
@@ -163,7 +169,7 @@ export async function XDR4BuyAsset({
     )
 
     // Convert XLM to PLATFORM via payment from mother account
-    const xlmToConvert = xlmNeeded - 0.5
+    const xlmToConvert = xlmNeeded - totalXlmReserve - 0.5
     addPaymentOp(Tx2, motherAcc.publicKey(), xlmToConvert.toFixed(7), Asset.native(), buyer)
 
     addPaymentOp(Tx2, buyer, totalPlatformNeeded.toFixed(7), PLATFORM_ASSET, motherAcc.publicKey())
@@ -171,15 +177,16 @@ export async function XDR4BuyAsset({
   }
 
   // CASE 3: Has PLATFORM trust but insufficient balance AND has XLM → Convert XLM to PLATFORM
-  if (hasPlatformTrust && platformBalance < totalPlatformNeeded && xlmBalance > 0) {
+  if (hasPlatformTrust && platformBalance < totalPlatformNeeded && xlmBalance > totalXlmReserve) {
     const platformShortage = totalPlatformNeeded - platformBalance
     const xlmNeeded = await getXLMNumberForPlatformAsset(platformShortage)
+    const availableXlm = xlmBalance - totalXlmReserve
 
-    if (xlmBalance < xlmNeeded) {
+    if (availableXlm < xlmNeeded) {
       const platformPrice = await getPlatformAssetPrice()
       const xlmPrice = await getXLMPrice()
       throw new Error(
-        `Insufficient funds to complete purchase. You need ${platformShortage.toFixed(0)} more ${PLATFORM_ASSET.code} (≈$${(platformShortage * platformPrice).toFixed(2)}). This requires ~${xlmNeeded.toFixed(2)} XLM to convert, but you only have ${xlmBalance.toFixed(2)} XLM (≈$${(xlmBalance * xlmPrice).toFixed(2)}). You're short by ${(xlmNeeded - xlmBalance).toFixed(2)} XLM (≈$${((xlmNeeded - xlmBalance) * xlmPrice).toFixed(2)}).`,
+        `Insufficient funds to complete purchase. You need ${platformShortage.toFixed(0)} more ${PLATFORM_ASSET.code} (≈$${(platformShortage * platformPrice).toFixed(2)}). This requires ~${xlmNeeded.toFixed(2)} XLM to convert, but you only have ${availableXlm.toFixed(2)} XLM available (after ${totalXlmReserve.toFixed(1)} XLM reserve). You're short by ${(xlmNeeded - availableXlm).toFixed(2)} XLM (≈$${((xlmNeeded - availableXlm) * xlmPrice).toFixed(2)}).`,
       )
     }
 
@@ -191,7 +198,7 @@ export async function XDR4BuyAsset({
   }
 
   // CASE 4: Has PLATFORM but no XLM for asset trustline → Convert PLATFORM to XLM
-  if (hasPlatformTrust && xlmBalance < 0.5 && !hasAssetTrust) {
+  if (hasPlatformTrust && (xlmBalance - totalXlmReserve) < 0.5 && !hasAssetTrust) {
     const platformToConvert = await getplatformAssetNumberForXLM(0.5)
 
     if (platformBalance < platformToConvert + totalPlatformNeeded) {
@@ -220,13 +227,14 @@ export async function XDR4BuyAsset({
     const xlmNeededForConversion = await getXLMNumberForPlatformAsset(platformShortage)
 
     throw new Error(
-      `Insufficient ${PLATFORM_ASSET.code} balance. You need ${totalPlatformNeeded.toFixed(0)} ${PLATFORM_ASSET.code} (≈$${(totalPlatformNeeded * platformPrice).toFixed(2)}) but have ${effectivePlatformBalance.toFixed(0)} ${PLATFORM_ASSET.code} (≈$${(effectivePlatformBalance * platformPrice).toFixed(2)}).\n\nYou can use XLM to convert: You need ${xlmNeededForConversion.toFixed(2)} XLM (≈$${(xlmNeededForConversion * xlmPrice).toFixed(2)}) to buy ${platformShortage.toFixed(0)} ${PLATFORM_ASSET.code} (≈$${(platformShortage * platformPrice).toFixed(2)}).`,
+      `Insufficient ${PLATFORM_ASSET.code} balance. You need ${totalPlatformNeeded.toFixed(0)} ${PLATFORM_ASSET.code} (≈$${(totalPlatformNeeded * platformPrice).toFixed(2)}) but have ${effectivePlatformBalance.toFixed(0)} ${PLATFORM_ASSET.code} (≈$${(effectivePlatformBalance * platformPrice).toFixed(2)}).\n\nYou can use XLM to convert: You need ${xlmNeededForConversion.toFixed(2)} XLM (≈$${(xlmNeededForConversion * xlmPrice).toFixed(2)}) to buy ${platformShortage.toFixed(0)} ${PLATFORM_ASSET.code} (≈$${(platformShortage * platformPrice).toFixed(2)}). Remember to keep ${totalXlmReserve.toFixed(1)} XLM as minimum reserve.`,
     )
   }
 
-  if (effectiveXlmBalance < (hasAssetTrust ? 0 : 0.5)) {
+  const availableXlmAfterReserve = effectiveXlmBalance - totalXlmReserve
+  if (availableXlmAfterReserve < (hasAssetTrust ? 0 : 0.5)) {
     throw new Error(
-      `Insufficient XLM for trustline setup. You need ${hasAssetTrust ? "0" : "0.5"} XLM but have ${effectiveXlmBalance.toFixed(2)} XLM.`,
+      `Insufficient XLM for trustline setup. You need ${hasAssetTrust ? "0" : "0.5"} XLM available (after ${totalXlmReserve.toFixed(1)} XLM reserve) but have ${availableXlmAfterReserve.toFixed(2)} XLM.`,
     )
   }
 
@@ -287,22 +295,36 @@ export async function XDR4BuyAssetWithXLM({
   const hasPlatformTrust = await checkTrustline(buyer, PLATFORM_ASSET.code, PLATFORM_ASSET.issuer)
   const hasAssetTrust = await checkTrustline(buyer, code, issuerPub)
 
-  // Calculate XLM requirements
-  const xlmForTrustline = (hasAssetTrust && hasPlatformTrust) ? 0 : (hasAssetTrust || hasPlatformTrust) ? 0.5 : 1
+  // Calculate minimum XLM reserve required
+  const baseReserve = await getReservedXLM(buyer)
+  const platformTrustReserve = hasPlatformTrust ? 0 : 0.5
+  const assetTrustReserve = hasAssetTrust ? 0 : 0.5
+  const totalXlmReserve = baseReserve + platformTrustReserve + assetTrustReserve
+
+  // Calculate XLM needed for transaction
   const xlmPlatformFee = 2
-  const totalXlmNeeded = Number(priceInNative) + xlmForTrustline + xlmPlatformFee
+  const totalXlmNeeded = Number(priceInNative) + xlmPlatformFee + totalXlmReserve
 
-  // CASE 1: Account not active (no PLATFORM trust AND low XLM)
-  if (!hasPlatformTrust && xlmBalance < 1) {
-    throw new Error("Your account isn't active. Please activate your account by adding XLM.")
-  }
 
-  // CASE 2: No PLATFORM trust and insufficient XLM
+
+  // CASE 1: No PLATFORM trust and insufficient XLM for transaction
+  // They cannot convert PLATFORM to XLM — block XDR creation early.
   if (!hasPlatformTrust && xlmBalance < totalXlmNeeded) {
     const xlmPrice = await getXLMPrice()
     const xlmNeeded = totalXlmNeeded - xlmBalance
     throw new Error(
-      `Insufficient XLM to complete purchase. You need ${totalXlmNeeded.toFixed(2)} XLM (≈$${(totalXlmNeeded * xlmPrice).toFixed(2)}) but have ${xlmBalance.toFixed(2)} XLM (≈$${(xlmBalance * xlmPrice).toFixed(2)}). You're short by ${xlmNeeded.toFixed(2)} XLM (≈$${(xlmNeeded * xlmPrice).toFixed(2)}). Please add more XLM or use a different payment method.`,
+      `Insufficient XLM to complete purchase. You need ${totalXlmNeeded.toFixed(2)} XLM (≈$${(totalXlmNeeded * xlmPrice).toFixed(2)}) but have ${xlmBalance.toFixed(2)} XLM (≈$${(xlmBalance * xlmPrice).toFixed(2)}). You're short by ${xlmNeeded.toFixed(2)} XLM (≈$${(xlmNeeded * xlmPrice).toFixed(2)}). Remember to keep ${totalXlmReserve.toFixed(1)} XLM as minimum reserve. Please add more XLM or use a different payment method.`
+    )
+  }
+
+
+  // Case 2: If buyer has PLATFORM trust but no PLATFORM balance and insufficient XLM,
+  // they cannot complete an XLM-based purchase — block XDR creation early.
+  if (hasPlatformTrust && platformBalance <= 0 && xlmBalance < totalXlmNeeded) {
+    const xlmPrice = await getXLMPrice()
+    const xlmNeeded = totalXlmNeeded - xlmBalance
+    throw new Error(
+      `Insufficient XLM to complete purchase. You need ${totalXlmNeeded.toFixed(2)} XLM (≈$${(totalXlmNeeded * xlmPrice).toFixed(2)}) but have ${xlmBalance.toFixed(2)} XLM (≈$${(xlmBalance * xlmPrice).toFixed(2)}). You're short by ${xlmNeeded.toFixed(2)} XLM (≈$${(xlmNeeded * xlmPrice).toFixed(2)}). Consider funding your XLM balance or using PLATFORM to convert.`
     )
   }
 
@@ -318,7 +340,7 @@ export async function XDR4BuyAssetWithXLM({
       const xlmPrice = await getXLMPrice()
       const insufficientPlatform = platformToConvert - platformBalance
       throw new Error(
-        `Insufficient funds to complete XLM payment. You need ${xlmShortage.toFixed(2)} more XLM (≈$${(xlmShortage * xlmPrice).toFixed(2)}). This requires ~${platformToConvert.toFixed(0)} ${PLATFORM_ASSET.code} (≈$${(platformToConvert * platformPrice).toFixed(2)}). You only have ${platformBalance.toFixed(0)} ${PLATFORM_ASSET.code} (≈$${(platformBalance * platformPrice).toFixed(2)}). You're short by ${insufficientPlatform.toFixed(0)} ${PLATFORM_ASSET.code} (≈$${(insufficientPlatform * platformPrice).toFixed(2)}). Please recharge your account.`,
+        `Insufficient funds to complete XLM payment. You need ${xlmShortage.toFixed(2)} more XLM (≈$${(xlmShortage * xlmPrice).toFixed(2)}). This requires ~${platformToConvert.toFixed(0)} ${PLATFORM_ASSET.code} (≈$${(platformToConvert * platformPrice).toFixed(2)}). You only have ${platformBalance.toFixed(0)} ${PLATFORM_ASSET.code} (≈$${(platformBalance * platformPrice).toFixed(2)}). You're short by ${insufficientPlatform.toFixed(0)} ${PLATFORM_ASSET.code} (≈$${(insufficientPlatform * platformPrice).toFixed(2)}). Please recharge your account.`
       )
     }
 
@@ -326,6 +348,7 @@ export async function XDR4BuyAssetWithXLM({
     addPaymentOp(Tx2, motherAcc.publicKey(), platformToConvert.toFixed(7), PLATFORM_ASSET, buyer)
     addPaymentOp(Tx2, buyer, xlmShortage.toFixed(7), Asset.native(), motherAcc.publicKey())
   }
+
 
   // CASE 4: Normal flow - pay seller, set up trustline, transfer asset
   if (Number(priceInNative) > 0) {
@@ -335,6 +358,7 @@ export async function XDR4BuyAssetWithXLM({
   if (!hasAssetTrust) {
     addTrustlineSetup(Tx2, buyer, asset, motherAcc.publicKey())
   }
+
 
   // Transfer asset
   addPaymentOp(Tx2, buyer, "1", asset, storageAcc.publicKey())

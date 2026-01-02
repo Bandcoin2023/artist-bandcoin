@@ -158,3 +158,18 @@ export async function getAllBalances(accountPub: string): Promise<(Horizon.Horiz
     const balances = transactionInializer.balances;
     return balances;
 }
+
+
+/**
+ * Get reserved (minimum) XLM for an account
+ */
+export async function getReservedXLM(accountPub: string): Promise<number> {
+    const server = new Horizon.Server(STELLAR_URL);
+    const account = await server.loadAccount(accountPub);
+
+    const BASE_RESERVE = 0.5; // XLM
+    const subentryCount = account.subentry_count;
+    console.log("USBENTYR..............", subentryCount)
+    const reservedXLM = (2 + subentryCount) * BASE_RESERVE;
+    return reservedXLM;
+}
