@@ -32,6 +32,7 @@ import {
   USER_ACCOUNT_URL_APPLE,
 } from "package/connect_wallet/src/lib/stellar/constant";
 import { verifyXDRSignature } from "package/connect_wallet/src/lib/stellar/trx/deummy";
+import { env } from "~/env";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -250,6 +251,7 @@ async function getUserPublicKey({
       params: {
         uid,
         email,
+        from: env.NEXT_PUBLIC_ASSET_CODE
       },
     },
   );
