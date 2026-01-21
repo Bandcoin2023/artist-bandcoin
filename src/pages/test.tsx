@@ -1,20 +1,90 @@
-import Markdown from "react-markdown";
-import rehypeHighlight from "rehype-highlight";
-import rehypeKatex from "rehype-katex";
-import rehypeReact from "rehype-react";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import remarkParse from "remark-parse";
-import remarkRehype from "remark-rehype";
-import { Remark } from 'react-remark';
-import { MarkdownRenderer } from "~/components/markdown-renderer";
+"use client"
 
-const text = "---\n**SEO Meta Title:** Generate an Article about Bangladesh: A Complete Guide\n\n**SEO Meta Description:** Discover how to generate an insightful article about Bangladesh, covering its culture, history, geography, and more in this comprehensive guide.\n\n---\n\n# Generate an Article about Bangladesh: A Comprehensive Guide\n\nBangladesh, a country of rich cultural heritage, vibrant history, and diverse geography, offers a plethora of topics for anyone looking to generate an article. Whether you're an experienced writer or a novice looking to explore, this guide aims to provide you with a structured approach to crafting an informative and engaging article about Bangladesh. \n\n## Table of Contents\n\n1. [Introduction](#introduction)\n2. [Understanding Bangladesh](#understanding-bangladesh)\n3. [Steps to Generate an Article about Bangladesh](#steps-to-generate-an-article)\n4. [Key Elements to Include](#key-elements-to-include)\n5. [FAQ Section](#faq-section)\n6. [Conclusion](#conclusion)\n\n## Introduction\n\nBangladesh, with its captivating history, lush landscapes, and diverse culture, stands as a beacon of resilience and pride in South Asia. Writing an article about Bangladesh requires not only an understanding of its nuances but also an appreciation for its spirit. This guide is designed to help you navigate through the process, ensuring your article is both informative and compelling.\n\n## Understanding Bangladesh\n\nBefore diving into the writing process, it's crucial to gain a deep understanding of Bangladesh. This section will briefly touch upon its geography, history, culture, and significant aspects that make it unique.\n\n- **Geography**: Nestled between India and Myanmar, Bangladesh is renowned for its scenic beauty, dominated by the world's largest river delta formed by the Ganges, Brahmaputra, and Meghna rivers.\n- **History**: From ancient times through the Mughal Empire, the British Raj, and its liberation in 1971, Bangladesh's history is a tapestry of struggle, resilience, and triumph.\n- **Culture**: Known for its rich traditions, literature, music, dance, and cuisine, Bangladesh's culture is a vibrant mosaic that reflects the diversity of its people.\n\n## Steps to Generate an Article about Bangladesh\n\nGenerating an article about Bangladesh involves several key steps, from research to writing and editing. Here's a structured approach:\n\n1. **Choose a Specific Topic**: Focus on a particular aspect of Bangladesh to keep your article focused and engaging.\n2. **Conduct Thorough Research**: Utilize credible sources to gather information, statistics, and unique insights about your chosen topic.\n3. **Outline Your Article**: Plan the structure of your article, including an introduction, body paragraphs, and a conclusion.\n4. **Write with an Engaging Tone**: Use a professional yet accessible tone, making sure to include anecdotes or quotes to enrich your narrative.\n5. **Incorporate SEO Best Practices**: Integrate the primary keyword \"generate an article about Bangladesh\" strategically, aiming for a 2% keyword density.\n\n## Key Elements to Include\n\nYour article about Bangladesh should encapsulate the essence of the country, including:\n\n- **Historical Significance**: Delve into Bangladesh's rich history, highlighting key events that shaped its identity.\n- **Cultural Richness**: Explore the diverse cultural elements, from traditional music and dance to festivals and cuisine.\n- **Geographical Wonders**: Describe the breathtaking landscapes, rivers, and natural resources that define Bangladesh.\n- **Economic and Social Development**: Discuss Bangladesh's economic growth, challenges, and its strides in sectors like textiles and technology.\n- **Personal Stories**: Incorporate personal anecdotes or stories from locals to add depth and authenticity to your article.\n\n[IMAGE: Busy streets of Dhaka with vibrant colors and people] - *Alt text: The vibrant streets of Dhaka, showcasing Bangladesh's bustling capital.*\n\n[IMAGE: Scenic landscapes of Sundarbans mangrove forest] - *Alt text: The lush greenery of Sundarbans, home to the majestic Royal Bengal Tiger.*\n\n## FAQ Section\n\n**Q1: What is Bangladesh known for?**\n\nA1: Bangladesh is known for its rich cultural heritage, the Sundarbans mangrove forest, the Bay of Bengal, historical landmarks, and as the birthplace of the Bengali Renaissance.\n\n**Q2: What language do people speak in Bangladesh?**\n\nA2: The official language of Bangladesh is Bengali, spoken by the majority of the population.\n\n**Q3: What are some traditional dishes of Bangladesh?**\n\nA3: Traditional dishes include Hilsa fish curry, Biryani, Pitha (rice cakes), and Bhuna Khichuri.\n\n**Q4: What is the significance of the 1971 Liberation War of Bangladesh?**\n\nA4: The 1971 Liberation War led to Bangladesh gaining independence from Pakistan, marking a significant event in the nation's history.\n\n**Q5: Can tourists visit Bangladesh?**\n\nA5: Yes, Bangladesh welcomes tourists with its rich history, natural beauty, and cultural sites. Major attractions include the Sundarbans, Cox's Bazar, and historical sites in Dhaka and Chittagong.\n\n**Q6: How is the climate in Bangladesh?**\n\nA6: Bangladesh has a tropical monsoon climate, characterized by heavy monsoon rains in the summer and a dry winter season.\n\n## Conclusion\n\nGenerating an article about Bangladesh offers a unique opportunity to explore and celebrate the country's multifaceted identity. From its lush landscapes and historical depth to its rich cultural tapestry and resilient spirit, Bangladesh provides endless inspiration for writers. By following this guide, you'll be well-equipped to create a compelling, informative article that does justice to the essence of Bangladesh.\n\nRemember, the key to a successful article lies in thorough research, an engaging narrative, and genuine appreciation for your subject matter. Happy writing!"
+import { useQueryClient } from "@tanstack/react-query"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+    Loader2,
+    Search,
+    Users,
+    Heart,
+    Globe,
+    Building2,
+    Filter,
+    Grid3X3,
+    List,
+    ChevronUp,
+    ChevronDown,
+    Crown,
+    X,
+} from "lucide-react"
+import { useSession } from "next-auth/react"
+import Image from "next/image"
+import { clientsign, WalletType } from "package/connect_wallet"
+import { Button } from "~/components/shadcn/ui/button"
+import { Card, CardContent } from "~/components/shadcn/ui/card"
+import { Input } from "~/components/shadcn/ui/input"
+import { Switch } from "~/components/shadcn/ui/switch"
+import { Tabs, TabsList, TabsTrigger } from "~/components/shadcn/ui/tabs"
+import { Badge } from "~/components/shadcn/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/shadcn/ui/select"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "~/components/shadcn/ui/dialog"
+import useNeedSign from "~/lib/hook"
+import { clientSelect } from "~/lib/stellar/fan/utils"
+import { api } from "~/utils/api"
+import { useBrandFollowMode } from "~/lib/state/augmented-reality/useBrandFollowMode"
+import { useAccountAction } from "~/lib/state/augmented-reality/useAccountAction"
+import Loading from "~/components/common/loading"
+import { Walkthrough } from "~/components/common/walkthrough"
+import { useWalkThrough } from "~/hooks/useWalkthrough"
+import { submitSignedXDRToServer4UserTestnet } from "package/connect_wallet/src/lib/stellar/trx/payment_fb_g"
+import { toast as sonner } from "sonner"
+import { ActivationModal } from "~/components/modal/activation-modal"
 
-export default function Test() {
+type ButtonLayout = {
+    x: number
+    y: number
+    width: number
+    height: number
+}
+
+type ViewMode = "grid" | "list"
+type SortOption = "name" | "followers" | "recent"
+type FilterOption = "all" | "following" | "not-following"
+
+interface Creator {
+    isFollowed: boolean;
+    isCurrentUser: boolean;
+    name: string;
+    id: string;
+    _count: {
+        temporalFollows: number;
+    };
+    profileUrl: string | null;
+}
+
+export default function CreatorPage() {
+    const [dialogOpen, setDialogOpen] = useState(false)
+
     return (
-        <MarkdownRenderer content={text} />
-
-
+        <>
+            <Button
+                onClick={() => setDialogOpen(true)}
+            >
+                Click Me
+            </Button >
+            <ActivationModal
+                dialogOpen={dialogOpen}
+                setDialogOpen={setDialogOpen}
+            />
+        </>
     )
+
 }

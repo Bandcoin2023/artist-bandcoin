@@ -1,42 +1,77 @@
-import React, { useState } from "react"
-import Image from "next/image"
-import { Award, Trophy, User, Users } from "lucide-react"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/shadcn/ui/card"
-import { Badge } from "~/components/shadcn/ui/badge"
-import type { BountyTypes } from "~/types/bounty/bounty-type"
-import { PLATFORM_ASSET } from "~/lib/stellar/constant"
-import DOMPurify from "isomorphic-dompurify"
-import { useRouter } from "next/navigation"
-import { Button } from "~/components/shadcn/ui/button"
-import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances"
-import { api } from "~/utils/api"
-import { toast } from "~/hooks/use-toast"
-import { addrShort } from "~/utils/utils"
-import { Spinner } from "../shadcn/ui/spinner"
-import { Preview } from "../common/quill-preview"
+"use client";
 
-function SafeHTML({
-    html,
-}: {
-    html: string
-}) {
-    return (
-        <Preview
-
-            value={html}
-        />
-    )
+import Image from "next/image";
+import { Award, Trophy, User, Users, MapPin, Target } from "lucide-react";
+import {
+    Card,
+    CardContent,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "~/components/shadcn/ui/card";
+import { Badge } from "~/components/shadcn/ui/badge";
+import { type BountyTypes } from "~/types/bounty/bounty-type";
+import { PLATFORM_ASSET } from "~/lib/stellar/constant";
+import { useRouter } from "next/navigation";
+import { Button } from "~/components/shadcn/ui/button";
+import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances";
+import { api } from "~/utils/api";
+import { toast } from "~/hooks/use-toast";
+import { addrShort } from "~/utils/utils";
+import { Spinner } from "~/components/shadcn/ui/spinner";
+import { Preview } from "../common/quill-preview";
+import { Slider } from "../shadcn/ui/slider";
+import { Progress } from "../shadcn/ui/progress";
+import { useState } from "react";
+import { ActivationModal } from "../modal/activation-modal";
+export enum BountyTypeEnum {
+    GENERAL = "GENERAL",
+    LOCATION_BASED = "LOCATION_BASED",
+    SCAVENGER_HUNT = "SCAVENGER_HUNT",
+}
+function SafeHTML({ html }: { html: string }) {
+    return <Preview value={html} />;
 }
 
-export default function BountyList({
-    bounties,
+// Helper function to get bounty type icon
+const getBountyTypeIcon = (type: BountyTypeEnum) => {
+    switch (type) {
+        case BountyTypeEnum.LOCATION_BASED:
+            return <MapPin className="h-4 w-4" />;
+        case BountyTypeEnum.SCAVENGER_HUNT:
+            return <Target className="h-4 w-4" />;
+        default:
+            return <Trophy className="h-4 w-4" />;
+    }
+};
+
+// Helper function to get bounty type label
+const getBountyTypeLabel = (type: BountyTypeEnum) => {
+    switch (type) {
+        case BountyTypeEnum.LOCATION_BASED:
+            return "Location";
+        case BountyTypeEnum.SCAVENGER_HUNT:
+            return "Scavenger";
+        default:
+            return "General";
+    }
+};
+
+export default function BountyList({ bounties,
+    isActive,
+    isActiveStatusLoading
 }: {
-    bounties: BountyTypes[]
+    bounties: BountyTypes[],
+    isActive: boolean,
+    isActiveStatusLoading: boolean
 }) {
-    const router = useRouter()
-    const { getAssetBalance, balances } = useUserStellarAcc();
-    const [failedReasons, setFailedReasons] = useState<Record<number, string>>({})
-    console.log("BountyList rendered with getAssetBalance:", balances);
+    const router = useRouter();
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const { getAssetBalance } = useUserStellarAcc();
+    const [failedReasons, setFailedReasons] = useState<Record<number, string>>(
+        {},
+    );
+
     const isEligible = (bounty: BountyTypes) => {
         console.log("Checking eligibility for bounty:", bounty.requiredBalanceCode, bounty.requiredBalanceIssuer);
         const balance = getAssetBalance({
@@ -258,15 +293,30 @@ export default function BountyList({
                                                         ? "You have already joined"
                                                         : "You are eligible to join"}
                                         </p>
-                                    )
-                                }
-                            </CardFooter>
-                        </Card>
+                                    )}
+                            </div>
+                            ) : (!isActive && !isActiveStatusLoading) && (
+                            <div className="w-full">
+                                <Button
+                                    onClick={() => setDialogOpen(true)}
+                                    variant="destructive"
+                                    className="w-full"
+                                >
+                                    Join Bounty
 
+                                </Button>
 
-                    ))
-            })}
-        </div>
+                            </div>
+                            )}
+                        </CardFooter>
+                    </Card>
+    );
+})}
+<ActivationModal
+    dialogOpen={dialogOpen}
+    setDialogOpen={setDialogOpen}
+/>
+        </div >
     )
 }
 
