@@ -25,7 +25,6 @@ import {
 import { MediaType } from "@prisma/client"
 import ShowThreeDModel from "~/components/3d-model/model-show"
 import { useRouter } from "next/router"
-import { NFTVideoPlayer } from "~/components/player/nft-video-player"
 import { checkStellarAccountActivity } from "~/lib/helper/helper_client"
 import { ActivationModal } from "~/components/modal/activation-modal"
 const SingleAssetView = () => {
