@@ -1,6 +1,6 @@
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "~/utils/api";
 
 import { ArrowLeft, Eye, X, DollarSign, User, Hash, Package, Copy } from 'lucide-react'
@@ -38,6 +38,8 @@ import { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
 import { useBottomPlayer } from "../player/context/bottom-player-context";
 import Link from "next/link";
 import { Separator } from "../shadcn/ui/separator";
+import { checkStellarAccountActivity } from "~/lib/helper/helper_client";
+import { ActivationModal } from "./activation-modal";
 
 export const PaymentMethodEnum = z.enum(["asset", "xlm", "card"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
@@ -47,7 +49,9 @@ export default function BuyModal() {
     const [step, setStep] = useState(1);
     const { data, isOpen, setIsOpen } = useBuyModalStore()
     const { showPlayer } = useBottomPlayer()
-
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [isActive, setIsActive] = useState<boolean>(false);
+    const [isActiveStatusLoading, setIsActiveStatusLoading] = useState<boolean>(false);
     // const { setCurrentTrack, currentTrack, setIsPlaying, setCurrentAudioPlayingId } = usePlayer();
     const handleClose = () => {
         console.log(isOpen)
@@ -57,7 +61,9 @@ export default function BuyModal() {
 
     const { hasTrust } = useUserStellarAcc()
 
-    const handleNext = () => {
+    const handleNext = async () => {
+
+
         setStep((prev) => prev + 1);
     };
 
@@ -93,6 +99,19 @@ export default function BuyModal() {
                 enabled: !!data
             }
         );
+
+    useEffect(() => {
+        const checkAccountActivity = async () => {
+            if (session.data?.user.id) {
+                setIsActiveStatusLoading(true);
+                const active = await checkStellarAccountActivity(session.data.user.id);
+                setIsActive(active);
+                setIsActiveStatusLoading(false);
+            }
+        }
+        checkAccountActivity();
+    }, [session.data?.user.id]);
+
 
     if (!data || !data.asset)
         return (
@@ -229,6 +248,17 @@ export default function BuyModal() {
                                     </Button>
                                 ) : null}
                                 <div className="flex gap-3">
+                                    {
+                                        session.status === "authenticated" && !canBuyUser && !isActiveStatusLoading && !isActive && (
+                                            <Button
+                                                variant="destructive"
+                                                onClick={() => setDialogOpen(true)}
+                                            >
+                                                Buy Item
+                                            </Button>
+                                        )
+                                    }
+
                                     <Link href={`/market-asset/${data.id}`} className="flex-1">
                                         <Button
                                             onClick={handleClose}
@@ -248,40 +278,47 @@ export default function BuyModal() {
                                             </Button>
                                         </Link>
                                     )}
+
+
+
+                                    <p className="text-xs text-muted-foreground text-center">
+                                        Once purchased, this item will be added to your collection.
+                                    </p>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {step === 2 && (
-                    <div className="p-10 max-h-[90vh] overflow-y-auto bg-background animate-in fade-in zoom-in-95 duration-300">
-                        <div className="mb-10 flex items-center justify-between">
-                            <Button
-                                variant="ghost"
-                                onClick={handleBack}
-                                className="p-0 h-auto hover:bg-transparent text-muted-foreground hover:text-muted-foreground font-mono text-[10px] uppercase tracking-widest flex items-center gap-2 group"
-                            >
-                                <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Back to Intelligence
-                            </Button>
-                            <h2 className="text-sm font-black uppercase tracking-[0.3em] font-sans text-foreground">
-                                Secure Checkout
-                            </h2>
-                            <div className="w-16" />
+                    {step === 2 && (
+                        <div className="max-h-[90vh] overflow-y-auto">
+                            <Card>
+                                <CardContent className="p-0">
+                                    <PaymentProcessItem
+                                        marketItemId={data.id}
+                                        priceUSD={data.priceUSD}
+                                        item={data.asset}
+                                        price={data.price}
+                                        placerId={data.placerId}
+                                        setClose={handleClose}
+                                        type={data.type}
+                                    />
+                                </CardContent>
+                                <CardFooter className="p-2">
+                                    {step === 2 && (
+                                        <Button onClick={handleBack} variant="destructive" className="shadow-sm shadow-background">
+                                            Back
+                                        </Button>
+                                    )}
+                                </CardFooter>
+                            </Card>
                         </div>
-
-                        <PaymentProcessItem
-                            marketItemId={data.id}
-                            priceUSD={data.priceUSD}
-                            item={data.asset}
-                            price={data.price}
-                            placerId={data.placerId}
-                            setClose={handleClose}
-                            type={data.type}
-                        />
-                    </div>
-                )}
-            </DialogContent>
-        </Dialog>
-    )
+                    )}
+                </DialogContent>
+            </Dialog >
+            <ActivationModal
+                dialogOpen={dialogOpen}
+                setDialogOpen={setDialogOpen}
+            />
+        </>
+    );
 }

@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
-import { Heart, Loader2, Crown, X } from "lucide-react"
+import { Heart, Loader2, Crown, X, Coins } from "lucide-react"
 import { Button } from "~/components/shadcn/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/shadcn/ui/dialog"
 import { api } from "~/utils/api"
@@ -10,6 +10,9 @@ import { clientsign } from "package/connect_wallet"
 import { clientSelect } from "~/lib/stellar/fan/utils"
 import useNeedSign from "~/lib/hook"
 import toast from "react-hot-toast"
+import { toast as sonner } from "sonner"
+import { checkStellarAccountActivity } from "~/lib/helper/helper_client"
+import { ActivationModal } from "../modal/activation-modal"
 
 interface FollowAndMembershipButtonProps {
   creatorId: string
@@ -32,7 +35,9 @@ export default function FollowAndMembershipButton({
   const [showMembershipDialog, setShowMembershipDialog] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [showRejoinDialog, setShowRejoinDialog] = useState(false)
-  console.log("Creator ID in hasPageAsset:", hasPageAsset)
+  const [isActiveStatusLoading, setIsActiveStatusLoading] = useState(true)
+  const [isActive, setIsActive] = useState<boolean>(false);
+  const [openDialog, setOpenDialog] = useState(false);
   const followStatusQuery = api.fan.creator.checkCurrentUserFollowsCreator.useQuery(
     { creatorId: creatorId },
     {
@@ -154,6 +159,17 @@ export default function FollowAndMembershipButton({
     setShowRejoinDialog(true)
   }
 
+  useEffect(() => {
+    const checkAccountActivity = async () => {
+      if (session.data?.user.id) {
+        setIsActiveStatusLoading(true);
+        const active = await checkStellarAccountActivity(session.data.user.id);
+        setIsActive(active);
+        setIsActiveStatusLoading(false);
+      }
+    }
+    checkAccountActivity();
+  }, [session.data?.user.id]);
   const isLoading = membershipXDR.isLoading || membership.isLoading || removeMembership.isLoading
 
   if (session.data?.user.id === creatorId || !session.data?.user.id) {
@@ -223,7 +239,8 @@ export default function FollowAndMembershipButton({
                 <Crown className="h-4 w-4" />
                 Rejoin
               </Button>
-            ) : (
+            ) : isActive && !isActiveStatusLoading ? (
+
               <Button
                 onClick={() => setShowMembershipDialog(true)}
                 variant="default"
@@ -232,6 +249,15 @@ export default function FollowAndMembershipButton({
               >
                 <Crown className="h-4 w-4" />
                 Become a Member
+              </Button>
+            ) : (!isActive && !isActiveStatusLoading) && (
+              <Button
+                onClick={() => setOpenDialog(true)}
+                variant="destructive"
+                size="default"
+              >
+                <Coins className="h-4 w-4" />
+                Active Account
               </Button>
             )
           )
@@ -484,6 +510,10 @@ export default function FollowAndMembershipButton({
           </div>
         </DialogContent>
       </Dialog>
+      <ActivationModal
+        dialogOpen={openDialog}
+        setDialogOpen={setOpenDialog}
+      />
     </>
   )
 }

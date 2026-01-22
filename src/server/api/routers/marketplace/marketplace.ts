@@ -222,7 +222,9 @@ export const marketRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const { limit, cursor, skip } = input
-      if (ctx.session?.user.id) {
+      const isActive = await checkStellarAccountActivity(ctx.session?.user.id ?? "");
+
+      if (ctx.session?.user.id && isActive) {
         const currentUserId = ctx.session.user.id
 
         const fetchAndFilterItems = async (
@@ -481,7 +483,9 @@ export const marketRouter = createTRPCRouter({
   getLatestMarketNFT: publicProcedure
 
     .query(async ({ ctx, input }) => {
-      if (ctx.session?.user.id) {
+      const isActive = await checkStellarAccountActivity(ctx.session?.user.id ?? "");
+
+      if (ctx.session?.user.id && isActive) {
         const currentUserId = ctx.session.user.id;
 
         const items = await ctx.db.marketAsset.findMany({
@@ -652,7 +656,9 @@ export const marketRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const { limit, cursor, skip } = input;
-      if (ctx.session?.user.id) {
+      const isActive = await checkStellarAccountActivity(ctx.session?.user.id ?? "");
+
+      if (ctx.session?.user.id && isActive) {
         const currentUserId = ctx.session.user.id;
 
         const items = await ctx.db.marketAsset.findMany({
@@ -1111,9 +1117,7 @@ export const marketRouter = createTRPCRouter({
           },
         },
       });
-      console.log("marketAsset", marketAsset);
       if (!marketAsset) return false;
-
       if (marketAsset.privacy === ItemPrivacy.PUBLIC) {
         return true;
       }

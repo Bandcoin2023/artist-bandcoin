@@ -1,9 +1,13 @@
+"use client"
+
+import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
-import BountyList from "~/components/bounty/bounty-list";
-import BountySkeleton from "~/components/bounty/bounty-skeleton";
-import SearchAndSort from "~/components/bounty/search-and-sort";
-import { Button } from "~/components/shadcn/ui/button";
-import { sortOptionEnum } from "~/types/bounty/bounty-type";
+import BountyList from "~/components/bounty/bounty-list"
+import BountySkeleton from "~/components/bounty/bounty-skeleton"
+import SearchAndSort from "~/components/bounty/search-and-sort"
+import { Button } from "~/components/shadcn/ui/button"
+import { checkStellarAccountActivity } from "~/lib/helper/helper_client"
+import { sortOptionEnum } from "~/types/bounty/bounty-type"
 import { api } from "~/utils/api"
 
 export enum filterEnum {
@@ -13,10 +17,14 @@ export enum filterEnum {
 }
 
 const Bounty = () => {
+    const session = useSession()
     const [searchTerm, setSearchTerm] = useState("")
     const [sortOption, setSortOption] = useState<sortOptionEnum>(sortOptionEnum.DATE_DESC);
     const [filter, setFilter] = useState<filterEnum>(filterEnum.ALL)
-
+    const [typeFilter, setTypeFilter] = useState<BountyTypeFilter>(BountyTypeFilter.ALL)
+    const [scrolled, setScrolled] = useState(false)
+    const [isActive, setIsActive] = useState<boolean>(false);
+    const [isActiveStatusLoading, setIsActiveStatusLoading] = useState<boolean>(false);
     const debouncedSearchTerm = useDebounce(searchTerm, 500)
 
     const getAllBounty = api.bounty.Bounty.getAllBounties.useInfiniteQuery(
@@ -30,6 +38,17 @@ const Bounty = () => {
             getNextPageParam: (lastPage) => lastPage.nextCursor,
         },
     )
+    useEffect(() => {
+        const checkAccountActivity = async () => {
+            if (session.data?.user.id) {
+                setIsActiveStatusLoading(true);
+                const active = await checkStellarAccountActivity(session.data.user.id);
+                setIsActive(active);
+                setIsActiveStatusLoading(false);
+            }
+        }
+        checkAccountActivity();
+    }, [session.data?.user.id]);
 
     return (
         <div className="
@@ -53,9 +72,10 @@ const Bounty = () => {
                         <div className=" grid gap-6 sm:grid-cols-2 lg:grid-cols-3 " > {Array.from({ length: 5 }, (_, index: number) => (< BountySkeleton key={index} />))} </ div >
                     }
                     {getAllBounty.data?.pages.map((page) => (
-                        <BountyList key={page.nextCursor} bounties={page.bounties} />
-
-
+                        <BountyList
+                            isActive={isActive}
+                            isActiveStatusLoading={isActiveStatusLoading}
+                            key={page.nextCursor} bounties={page.bounties} />
                     ))}
                 </div>
                 {getAllBounty.hasNextPage && (
