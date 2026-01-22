@@ -127,168 +127,170 @@ export default function BuyModal() {
         )
 
     return (
-        <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-3xl p-0 overflow-y-auto border-border bg-background shadow-2xl">
-                <DialogTitle className="sr-only">{data.asset.name}</DialogTitle>
+        <>
+            <Dialog open={isOpen} onOpenChange={handleClose}>
+                <DialogContent className="max-w-3xl p-0 overflow-y-auto border-border bg-background shadow-2xl">
+                    <DialogTitle className="sr-only">{data.asset.name}</DialogTitle>
 
-                {step === 1 && (
-                    <div className="flex flex-col md:flex-row h-full max-h-[90vh]">
-                        {/* Left: Media Preview */}
-                        <div className="w-full md:w-1/2 bg-muted/30 relative flex items-center justify-center min-h-[300px] md:min-h-[500px] group overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <Image
-                                src={data.asset.thumbnail || "/placeholder.svg?height=600&width=600&query=Asset+Thumbnail"}
-                                alt={data.asset.name}
-                                fill
-                                className="object-cover "
-                                priority
-                            />
-                            <div className="absolute bottom-6 left-6 z-20">
-                                <Badge
-                                    variant="secondary"
-                                    className="bg-primary/20 backdrop-blur-xl border-primary/20 text-[10px] uppercase tracking-[0.2em] px-3 py-1 font-mono text-muted-foreground"
-                                >
-                                    {data.asset.mediaType === "THREE_D" ? "3D Collectible" : data.asset.mediaType}
-                                </Badge>
-                            </div>
-                        </div>
-
-                        {/* Right: Info & Actions */}
-                        <div className="w-full md:w-1/2 p-8 md:p-10 flex flex-col bg-card text-foreground border-l border-border">
-                            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-8">
-                                <div className="space-y-2">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <h2 className="text-3xl font-black tracking-tighter uppercase font-sans leading-none italic italic">
-                                            {data.asset.name}
-                                        </h2>
-                                        <Badge variant="outline" className="font-mono text-[10px] border-border bg-muted/50 py-1">
-                                            {data.asset.code}
-                                        </Badge>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />
-                                        <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">
-                                            Issuer: {addrShort(data.asset.issuer, 8)}
-                                        </p>
-                                    </div>
+                    {step === 1 && (
+                        <div className="flex flex-col md:flex-row h-full max-h-[90vh]">
+                            {/* Left: Media Preview */}
+                            <div className="w-full md:w-1/2 bg-muted/30 relative flex items-center justify-center min-h-[300px] md:min-h-[500px] group overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                <Image
+                                    src={data.asset.thumbnail || "/placeholder.svg?height=600&width=600&query=Asset+Thumbnail"}
+                                    alt={data.asset.name}
+                                    fill
+                                    className="object-cover "
+                                    priority
+                                />
+                                <div className="absolute bottom-6 left-6 z-20">
+                                    <Badge
+                                        variant="secondary"
+                                        className="bg-primary/20 backdrop-blur-xl border-primary/20 text-[10px] uppercase tracking-[0.2em] px-3 py-1 font-mono text-muted-foreground"
+                                    >
+                                        {data.asset.mediaType === "THREE_D" ? "3D Collectible" : data.asset.mediaType}
+                                    </Badge>
                                 </div>
+                            </div>
 
-                                <div className="space-y-8">
-                                    <section>
-                                        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] mb-4">
-                                            Asset Description
-                                        </h3>
-                                        <p className="text-sm leading-relaxed text-foreground/80 font-sans font-medium">
-                                            {data.asset.description ?? "Secure this unique digital asset on the Stellar blockchain network."}
-                                        </p>
-                                    </section>
-
-                                    <div className="grid grid-cols-2 gap-4 bg-muted/20 p-6 rounded-2xl border border-border/50">
-                                        <section className="space-y-1">
-                                            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                                                Acquisition
-                                            </h3>
-                                            <div className="flex flex-col">
-                                                <span className="text-2xl font-mono font-black text-muted-foreground italic ">
-                                                    {data.price} <span className="text-xs">{PLATFORM_ASSET.code}</span>
-                                                </span>
-                                                <span className="text-[10px] text-muted-foreground font-mono opacity-60">
-                                                    ≈ ${data.priceUSD} USD
-                                                </span>
-                                            </div>
-                                        </section>
-                                        <section className="space-y-1 text-right">
-                                            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                                                Scarcity
-                                            </h3>
-                                            <div className="flex items-center justify-end gap-2">
-                                                <Package className="h-3 w-3 text-muted-foreground" />
-                                                <span className="text-sm font-mono font-bold">
-                                                    {copy.data ?? 0} {copy.data === 1 ? "Unit" : "Units"}
-                                                </span>
-                                            </div>
-                                        </section>
-                                    </div>
-
-                                    <section className="space-y-2">
-                                        <div
-                                            className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/30 transition-colors group cursor-pointer"
-                                            onClick={() => copyToClipboard(data.asset.issuer)}
-                                        >
-                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                                Verified Issuer
-                                            </span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[10px] font-mono text-foreground/60 group-hover:text-muted-foreground transition-colors italic italic">
-                                                    {addrShort(data.asset.issuer, 6)}
-                                                </span>
-                                                <Copy className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
-                                            </div>
+                            {/* Right: Info & Actions */}
+                            <div className="w-full md:w-1/2 p-8 md:p-10 flex flex-col bg-card text-foreground border-l border-border">
+                                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-8">
+                                    <div className="space-y-2">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <h2 className="text-3xl font-black tracking-tighter uppercase font-sans leading-none italic italic">
+                                                {data.asset.name}
+                                            </h2>
+                                            <Badge variant="outline" className="font-mono text-[10px] border-border bg-muted/50 py-1">
+                                                {data.asset.code}
+                                            </Badge>
                                         </div>
-                                    </section>
-                                </div>
-                            </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+                                            <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">
+                                                Issuer: {addrShort(data.asset.issuer, 8)}
+                                            </p>
+                                        </div>
+                                    </div>
 
-                            <div className="mt-8 pt-8 border-t border-border space-y-4">
-                                {session.status === "authenticated" && data.placerId === session.data?.user.id ? (
-                                    <DisableFromMarketButton code={data.asset.code} issuer={data.asset.issuer} />
-                                ) : canBuyUser && copy.data && copy.data > 0 ? (
-                                    <Button
-                                        onClick={handleNext}
-                                        className="w-full bg-primary text-muted-foreground shadow-foreground hover:bg-primary/90 h-14 font-black uppercase tracking-[0.2em] text-xs border-2 rounded-xl"
-                                    >
-                                        Initiate Purchase
-                                    </Button>
-                                ) : copy.data === 0 ? (
-                                    <Button
-                                        disabled
-                                        className="w-full h-14 text-muted-foreground bg-muted border-border uppercase tracking-[0.2em] text-xs italic italic rounded-xl"
-                                    >
-                                        Out of Stock
-                                    </Button>
-                                ) : null}
-                                <div className="flex gap-3">
-                                    {
-                                        session.status === "authenticated" && !canBuyUser && !isActiveStatusLoading && !isActive && (
-                                            <Button
-                                                variant="destructive"
-                                                onClick={() => setDialogOpen(true)}
+                                    <div className="space-y-8">
+                                        <section>
+                                            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] mb-4">
+                                                Asset Description
+                                            </h3>
+                                            <p className="text-sm leading-relaxed text-foreground/80 font-sans font-medium">
+                                                {data.asset.description ?? "Secure this unique digital asset on the Stellar blockchain network."}
+                                            </p>
+                                        </section>
+
+                                        <div className="grid grid-cols-2 gap-4 bg-muted/20 p-6 rounded-2xl border border-border/50">
+                                            <section className="space-y-1">
+                                                <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
+                                                    Acquisition
+                                                </h3>
+                                                <div className="flex flex-col">
+                                                    <span className="text-2xl font-mono font-black text-muted-foreground italic ">
+                                                        {data.price} <span className="text-xs">{PLATFORM_ASSET.code}</span>
+                                                    </span>
+                                                    <span className="text-[10px] text-muted-foreground font-mono opacity-60">
+                                                        ≈ ${data.priceUSD} USD
+                                                    </span>
+                                                </div>
+                                            </section>
+                                            <section className="space-y-1 text-right">
+                                                <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
+                                                    Scarcity
+                                                </h3>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Package className="h-3 w-3 text-muted-foreground" />
+                                                    <span className="text-sm font-mono font-bold">
+                                                        {copy.data ?? 0} {copy.data === 1 ? "Unit" : "Units"}
+                                                    </span>
+                                                </div>
+                                            </section>
+                                        </div>
+
+                                        <section className="space-y-2">
+                                            <div
+                                                className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/30 transition-colors group cursor-pointer"
+                                                onClick={() => copyToClipboard(data.asset.issuer)}
                                             >
-                                                Buy Item
-                                            </Button>
-                                        )
-                                    }
+                                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                    Verified Issuer
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-mono text-foreground/60 group-hover:text-muted-foreground transition-colors italic italic">
+                                                        {addrShort(data.asset.issuer, 6)}
+                                                    </span>
+                                                    <Copy className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+                                                </div>
+                                            </div>
+                                        </section>
+                                    </div>
+                                </div>
 
-                                    <Link href={`/market-asset/${data.id}`} className="flex-1">
+                                <div className="mt-8 pt-8 border-t border-border space-y-4">
+                                    {session.status === "authenticated" && data.placerId === session.data?.user.id ? (
+                                        <DisableFromMarketButton code={data.asset.code} issuer={data.asset.issuer} />
+                                    ) : canBuyUser && copy.data && copy.data > 0 ? (
                                         <Button
-                                            onClick={handleClose}
-                                            variant="outline"
-                                            className="w-full h-12 border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 text-[10px] uppercase tracking-[0.2em] font-bold rounded-xl bg-transparent"
+                                            onClick={handleNext}
+                                            className="w-full bg-primary text-muted-foreground shadow-foreground hover:bg-primary/90 h-14 font-black uppercase tracking-[0.2em] text-xs border-2 rounded-xl"
                                         >
-                                            <Eye className="mr-2 h-3 w-3" /> DETAILS
+                                            Initiate Purchase
                                         </Button>
-                                    </Link>
-                                    {data.type === "ROYALTY" && (
-                                        <Link href={`/royalty/${data.asset.id}`} className="flex-1">
+                                    ) : copy.data === 0 ? (
+                                        <Button
+                                            disabled
+                                            className="w-full h-14 text-muted-foreground bg-muted border-border uppercase tracking-[0.2em] text-xs italic italic rounded-xl"
+                                        >
+                                            Out of Stock
+                                        </Button>
+                                    ) : null}
+                                    <div className="flex gap-3">
+                                        {
+                                            session.status === "authenticated" && !canBuyUser && !isActiveStatusLoading && !isActive && (
+                                                <Button
+                                                    variant="destructive"
+                                                    onClick={() => setDialogOpen(true)}
+                                                >
+                                                    Buy Item
+                                                </Button>
+                                            )
+                                        }
+
+                                        <Link href={`/market-asset/${data.id}`} className="flex-1">
                                             <Button
+                                                onClick={handleClose}
                                                 variant="outline"
                                                 className="w-full h-12 border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 text-[10px] uppercase tracking-[0.2em] font-bold rounded-xl bg-transparent"
                                             >
-                                                Royalty Share
+                                                <Eye className="mr-2 h-3 w-3" /> DETAILS
                                             </Button>
                                         </Link>
-                                    )}
+                                        {data.type === "ROYALTY" && (
+                                            <Link href={`/royalty/${data.asset.id}`} className="flex-1">
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full h-12 border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 text-[10px] uppercase tracking-[0.2em] font-bold rounded-xl bg-transparent"
+                                                >
+                                                    Royalty Share
+                                                </Button>
+                                            </Link>
+                                        )}
 
 
 
-                                    <p className="text-xs text-muted-foreground text-center">
-                                        Once purchased, this item will be added to your collection.
-                                    </p>
+                                        <p className="text-xs text-muted-foreground text-center">
+                                            Once purchased, this item will be added to your collection.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
+
                         </div>
                     )}
-
                     {step === 2 && (
                         <div className="max-h-[90vh] overflow-y-auto">
                             <Card>
