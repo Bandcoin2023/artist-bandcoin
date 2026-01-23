@@ -21,8 +21,7 @@ const Bounty = () => {
     const [searchTerm, setSearchTerm] = useState("")
     const [sortOption, setSortOption] = useState<sortOptionEnum>(sortOptionEnum.DATE_DESC);
     const [filter, setFilter] = useState<filterEnum>(filterEnum.ALL)
-    const [typeFilter, setTypeFilter] = useState<BountyTypeFilter>(BountyTypeFilter.ALL)
-    const [scrolled, setScrolled] = useState(false)
+
     const [isActive, setIsActive] = useState<boolean>(false);
     const [isActiveStatusLoading, setIsActiveStatusLoading] = useState<boolean>(false);
     const debouncedSearchTerm = useDebounce(searchTerm, 500)

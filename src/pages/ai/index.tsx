@@ -25,8 +25,8 @@ export default function AIGenerationPage() {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as Element
             if (
-                target.closest("[data-radix-popper-content-wrapper]") ||
-                target.closest("[data-radix-select-content]") ||
+                target.closest("[data-radix-popper-content-wrapper]") ??
+                target.closest("[data-radix-select-content]") ??
                 target.closest("[data-radix-popover-content]")
             ) {
                 return
