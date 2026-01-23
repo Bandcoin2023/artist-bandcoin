@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AlertCircle } from "lucide-react";
 import { Button } from "~/components/shadcn/ui/button";
 import {
   Dialog,
@@ -24,6 +25,19 @@ interface PaymentMethodStore {
   setPaymentMethod: (method: PaymentMethod) => void;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  conversionInfo?: ConversionInfo;
+  setConversionInfo: (info?: ConversionInfo) => void;
+}
+
+export interface ConversionInfo {
+  isConverting: boolean;
+  fromAsset: string;
+  toAsset: string;
+  fromAmount: number;
+  toAmount: number;
+  trustlineCost?: number;
+  xlmShortage?: number;
+  message: string;
 }
 
 export const usePaymentMethodStore = create<PaymentMethodStore>((set) => ({
@@ -31,6 +45,8 @@ export const usePaymentMethodStore = create<PaymentMethodStore>((set) => ({
   setPaymentMethod: (method) => set({ paymentMethod: method }),
   isOpen: false,
   setIsOpen: (isOpen) => set({ isOpen }),
+  conversionInfo: undefined,
+  setConversionInfo: (info) => set({ conversionInfo: info }),
 }));
 
 export interface CostBreakdownItem {
@@ -49,7 +65,10 @@ export function PaymentChoose({
   trigger,
   beforeTrigger,
   costBreakdown,
-  USDC_EQUIVALENT
+  USDC_EQUIVALENT,
+  conversionInfo,
+  showAlert,
+  alertMessage,
 }: {
   requiredToken?: number;
   XLM_EQUIVALENT?: number;
@@ -59,6 +78,9 @@ export function PaymentChoose({
   beforeTrigger?: () => Promise<boolean>;
   costBreakdown?: CostBreakdownItem[];
   USDC_EQUIVALENT?: number;
+  conversionInfo?: ConversionInfo;
+  showAlert?: boolean;
+  alertMessage?: string;
 }) {
   const { paymentMethod, setPaymentMethod, isOpen, setIsOpen } =
     usePaymentMethodStore();
@@ -89,6 +111,46 @@ export function PaymentChoose({
             Choose Payment Method
           </DialogTitle>
         </DialogHeader>
+
+        {/* Alert for inactive account or conversion warnings */}
+        {showAlert && alertMessage && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-900">{alertMessage}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Conversion info display */}
+        {conversionInfo && conversionInfo.isConverting && (
+          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm font-medium text-blue-900 mb-2">Conversion Required</p>
+            <div className="space-y-1 text-sm text-blue-800">
+              <div className="flex justify-between">
+                <span>Converting from:</span>
+                <span className="font-semibold">{conversionInfo.fromAmount} {conversionInfo.fromAsset}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Converting to:</span>
+                <span className="font-semibold">{conversionInfo.toAmount.toFixed(7)} {conversionInfo.toAsset}</span>
+              </div>
+              {conversionInfo.trustlineCost && (
+                <div className="flex justify-between border-t border-blue-200 pt-1 mt-1">
+                  <span>Trust cost:</span>
+                  <span className="font-semibold">{conversionInfo.trustlineCost} XLM</span>
+                </div>
+              )}
+              {conversionInfo.xlmShortage && conversionInfo.xlmShortage > 0 && (
+                <div className="flex justify-between text-orange-700 border-t border-blue-200 pt-1 mt-1">
+                  <span>XLM shortage:</span>
+                  <span className="font-semibold">{conversionInfo.xlmShortage.toFixed(7)} XLM</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="py-4">
           <RadioGroup
             value={paymentMethod}
@@ -195,7 +257,7 @@ export function PaymentChoose({
                 {item.label}
               </span>
               <span>
-                {item.amount.toFixed(0)} {paymentMethod === "asset" ? PLATFORM_ASSET.code :
+                {item.amount.toFixed(7)} {paymentMethod === "asset" ? PLATFORM_ASSET.code :
                   paymentMethod === "xlm" ? "XLM" : paymentMethod === "usdc" ? "USDC" : ""
                 }
               </span>

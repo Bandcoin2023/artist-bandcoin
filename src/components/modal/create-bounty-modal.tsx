@@ -51,7 +51,9 @@ import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances"
 import { PLATFORM_ASSET } from "~/lib/stellar/constant"
 import { clientSelect } from "~/lib/stellar/fan/utils"
 import { api } from "~/utils/api"
-import { PaymentChoose, usePaymentMethodStore } from "../common/payment-options"
+import { PaymentChoose, usePaymentMethodStore, type ConversionInfo } from "../common/payment-options"
+import { validateBountyPayment } from "~/lib/stellar/bounty/bounty-payment-handler"
+import { validatePaymentMethod } from "~/lib/stellar/account-validation"
 import { UploadS3Button } from "../common/upload-button"
 import { Editor } from "../common/quill-editor"
 import { cn } from "~/lib/utils"
@@ -136,6 +138,12 @@ const CreateBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange
   const [activeStep, setActiveStep] = useState<FormStep>("details")
   const [formProgress, setFormProgress] = useState(25)
   const [showConfetti, setShowConfetti] = useState(false)
+
+  // Payment validation states
+  const [showAlert, setShowAlert] = useState(false)
+  const [alertMessage, setAlertMessage] = useState("")
+  const [conversionInfo, setConversionInfo] = useState<ConversionInfo | undefined>(undefined)
+  const [validationInProgress, setValidationInProgress] = useState(false)
 
   // Hooks
   const { needSign } = useNeedSign()
@@ -307,18 +315,89 @@ const CreateBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange
   const onSubmit: SubmitHandler<z.infer<typeof BountySchema>> = (data) => {
     data.medias = media
     setLoading(true)
+
     const rewardType = getValues("rewardType")
     const prizeAmount =
       rewardType === "platform_asset"
         ? Number(getValues("platformAssetAmount"))
         : Number((getValues("usdcAmount")))
 
+    // Proceed with payment (validation already done in beforeTrigger)
     SendBalanceToBountyMother.mutate({
       signWith: needSign(),
       prize: prizeAmount,
       fees: 0,
       method: paymentMethod,
     })
+  }
+
+  // Validate payment before opening dialog
+  const handleBeforeTrigger = async (): Promise<boolean> => {
+    const userPubKey = session.data?.user?.id
+    if (!userPubKey) {
+      toast.error("Wallet not connected")
+      return false
+    }
+
+    const rewardType = getValues("rewardType")
+    const prizeAmount =
+      rewardType === "platform_asset"
+        ? Number(getValues("platformAssetAmount"))
+        : Number((getValues("usdcAmount")))
+
+    try {
+      setValidationInProgress(true)
+      setShowAlert(false)
+      setConversionInfo(undefined)
+
+      // Validate payment
+      const validationResult = await validateBountyPayment(paymentMethod, prizeAmount, userPubKey)
+      setValidationInProgress(false)
+
+      // Handle validation result
+      if (!validationResult.success) {
+        setShowAlert(true)
+        setAlertMessage(validationResult.message)
+
+        if (validationResult.error === "ACCOUNT_INACTIVE") {
+          // Block payment - account not active
+          return false
+        }
+        return false
+      }
+
+      if (validationResult.requiresConversion) {
+        // Show conversion info in dialog
+        const context = validationResult.conversionContext
+        if (context) {
+          setConversionInfo({
+            isConverting: true,
+            fromAsset: context.convertedFromAsset ?? "xlm",
+            toAsset: context.paymentMethod === "asset" ? PLATFORM_ASSET.code : context.paymentMethod,
+            fromAmount: context.convertedFromXLM ?? 0,
+            toAmount: context.requiredAmount,
+            trustlineCost: context.trustlineCostXLM,
+            xlmShortage: validationResult.message.includes("shortage") ? context.convertedFromXLM : undefined,
+            message: validationResult.message,
+          })
+        }
+
+        if (validationResult.message.includes("shortage")) {
+          setShowAlert(true)
+          setAlertMessage(`Insufficient XLM: ${validationResult.message}`)
+          return false
+        }
+      }
+
+      // All validations passed - allow dialog to open
+      return true
+    } catch (error) {
+      setValidationInProgress(false)
+      console.error("Validation error:", error)
+      setShowAlert(true)
+      setAlertMessage(error instanceof Error ? error.message : "Validation error occurred")
+      return false
+    }
   }
 
   const handlePayLater = () => {
@@ -549,9 +628,16 @@ const CreateBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange
                     </Button>
 
                     {/* Pay Now Button */}
-                    {platformAssetBalance < getPrizeAmount() ? (
+                    {(platformAssetBalance < getPrizeAmount() || validationInProgress) ? (
                       <Button disabled className="shadow-sm shadow-foreground">
-                        Insufficient Balance
+                        {validationInProgress ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Validating...
+                          </>
+                        ) : (
+                          "Insufficient Balance"
+                        )}
                       </Button>
                     ) : (
                       <PaymentChoose
@@ -580,9 +666,8 @@ const CreateBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange
                           : {
                             requiredToken: getPrizeAmount() + totalFees
                           })}
-
                         handleConfirm={handleSubmit(onSubmit)}
-
+                        beforeTrigger={handleBeforeTrigger}
                         loading={loading}
                         trigger={
                           <Button disabled={loading || !isValid} className="shadow-sm shadow-foreground">
@@ -599,6 +684,9 @@ const CreateBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange
                             )}
                           </Button>
                         }
+                        conversionInfo={conversionInfo}
+                        showAlert={showAlert}
+                        alertMessage={alertMessage}
                       />
                     )}
                   </div>

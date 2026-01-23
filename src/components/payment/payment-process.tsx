@@ -428,7 +428,7 @@ export function MethodDetails({
                         <div className="flex items-start gap-2">
                             <AlertCircle className="h-4 w-4 mt-0.5" />
                             <span>
-                                Your account isn't active. You need at least {totalXlmReserve.toFixed(1)} XLM ({baseReserve} XLM base + {platformTrustReserve} XLM for PLATFORM trustline + {assetTrustReserve} XLM for asset trustline) but have {xlmBalance.toFixed(2)} XLM.
+                                Your account isn{"'"}t active. You need at least {totalXlmReserve.toFixed(1)} XLM ({baseReserve} XLM base + {platformTrustReserve} XLM for PLATFORM trustline + {assetTrustReserve} XLM for asset trustline) but have {xlmBalance.toFixed(2)} XLM.
                             </span>
                         </div>
                     </Alert>

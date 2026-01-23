@@ -45,7 +45,7 @@ export async function getXLMPrice(): Promise<number> {
 
     const xlmUsdPrice = parseFloat(response.data.price);
 
-    return xlmUsdPrice ?? 1;
+    return xlmUsdPrice ?? 0.123;
   } catch (error) {
     console.error("Error fetching XLM USD price:", error);
     throw error;
@@ -69,7 +69,7 @@ export async function getAssetPrice(): Promise<number> {
 
 export async function getPlatformAssetPrice() {
   if (env.NEXT_PUBLIC_STELLAR_PUBNET) return await getAssetPrice();
-  else return 1;
+  else return 0.01;
 }
 
 export async function getplatformAssetNumberForXLM(xlm = 1.5) {
@@ -132,4 +132,37 @@ export async function getXLMNumberForPlatformAsset(platformAmount: number): Prom
   const platformPrice = await getPlatformAssetPrice();
   // Formula: (platformAmount * platformPrice) / xlmPrice
   return (platformAmount * platformPrice) / xlmPrice;
+}
+
+/**
+ * Convert USDC amount to equivalent XLM amount
+ */
+export async function getXLMNumberForUSDC(usdcAmount: number): Promise<number> {
+  if (usdcAmount === 0) return 0;
+  const xlmPrice = await getXLMPrice();
+  const usdcPrice = await getAssetToUSDCRate();
+  // Formula: (usdcAmount * usdcPrice) / xlmPrice
+  return (usdcAmount * usdcPrice) / xlmPrice;
+}
+
+/**
+ * Convert USDC amount to equivalent platform asset amount
+ */
+export async function getPlatformAssetNumberForUSDC(usdcAmount: number): Promise<number> {
+  if (usdcAmount === 0) return 0;
+  const platformPrice = await getPlatformAssetPrice();
+  const usdcPrice = await getAssetToUSDCRate();
+  // Formula: (usdcAmount * usdcPrice) / platformPrice
+  return (usdcAmount * usdcPrice) / platformPrice;
+}
+
+/**
+ * Convert platform asset to USDC
+ */
+export async function getUSDCNumberForPlatformAsset(platformAmount: number): Promise<number> {
+  if (platformAmount === 0) return 0;
+  const platformPrice = await getPlatformAssetPrice();
+  const usdcPrice = await getAssetToUSDCRate();
+  // Formula: (platformAmount * platformPrice) / usdcPrice
+  return (platformAmount * platformPrice) / usdcPrice;
 }
