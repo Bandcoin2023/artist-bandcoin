@@ -1,3 +1,4 @@
+import { Client, Environment } from "square";
 import { z } from "zod";
 import {
   getAssetPrice,
@@ -5,6 +6,7 @@ import {
   getPlatformTokenNumberForUSD,
 } from "~/lib/stellar/fan/get_token_price";
 import { sendSiteAsset2pub } from "~/lib/stellar/marketplace/trx/site_asset_recharge";
+import { randomUUID } from "crypto";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
@@ -13,6 +15,12 @@ const url = "https://next-actionverse.vercel.app/api/square";
 process.env.NODE_ENV === "production"
   ? "https://next-actionverse.vercel.app/api/square"
   : "http://localhost:3000/api/square";
+
+
+const { paymentsApi } = new Client({
+  accessToken: process.env.SQUARE_ACCESS_TOKEN,
+  environment: Environment.Sandbox,
+});
 
 export const payRouter = createTRPCRouter({
   getRechargeXDR: protectedProcedure
