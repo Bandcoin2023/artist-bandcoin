@@ -14,7 +14,6 @@ import {
   FileText,
   Check,
   Loader2,
-  Sparkles,
   Ticket,
   Clock,
 } from "lucide-react"
@@ -52,8 +51,11 @@ import { PLATFORM_ASSET } from "~/lib/stellar/constant"
 import { clientSelect } from "~/lib/stellar/fan/utils"
 import { api } from "~/utils/api"
 import { PaymentChoose, usePaymentMethodStore, type ConversionInfo } from "../common/payment-options"
-import { validateBountyPayment } from "~/lib/stellar/bounty/bounty-payment-handler"
-import { validatePaymentMethod } from "~/lib/stellar/account-validation"
+import {
+  calculatePlatformAssetBountyRequirements,
+  calculateUSDCBountyRequirements,
+  calculateXLMBountyRequirements,
+} from "~/lib/stellar/bounty/bounty-payment-handler"
 import { UploadS3Button } from "../common/upload-button"
 import { Editor } from "../common/quill-editor"
 import { cn } from "~/lib/utils"
@@ -137,8 +139,6 @@ const CreateBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange
   const [loading, setLoading] = useState(false)
   const [activeStep, setActiveStep] = useState<FormStep>("details")
   const [formProgress, setFormProgress] = useState(25)
-  const [showConfetti, setShowConfetti] = useState(false)
-
   // Payment validation states
   const [showAlert, setShowAlert] = useState(false)
   const [alertMessage, setAlertMessage] = useState("")
@@ -149,7 +149,7 @@ const CreateBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange
   const { needSign } = useNeedSign()
   const session = useSession()
   const { platformAssetBalance } = useUserStellarAcc()
-  const { isOpen, setIsOpen, paymentMethod, setPaymentMethod } = usePaymentMethodStore()
+  const { setIsOpen, paymentMethod, setPaymentMethod } = usePaymentMethodStore()
   const utils = api.useUtils()
 
   const totalFees = 0
@@ -172,14 +172,12 @@ const CreateBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange
   })
 
   const {
-    register,
     handleSubmit,
-    setValue,
     getValues,
     reset,
     trigger,
     watch,
-    formState: { errors, isValid },
+    formState: { isValid },
   } = methods
 
   useEffect(() => {
@@ -228,7 +226,6 @@ const CreateBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange
   const CreateBountyMutation = api.bounty.Bounty.createBounty.useMutation({
     onSuccess: async () => {
       toast.success("Bounty Created Successfully! 🎉")
-      setShowConfetti(true)
       utils.bounty.Bounty.getAllBounties.refetch().catch((error) => {
         console.error("Error refetching bounties", error)
       })
@@ -241,7 +238,6 @@ const CreateBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange
   const CreateBountyPayLaterMutation = api.bounty.Bounty.createBountyPayLater.useMutation({
     onSuccess: async () => {
       toast.success("Bounty Created Successfully! Payment pending. 🎉")
-      setShowConfetti(true)
       utils.bounty.Bounty.getAllBounties.refetch().catch((error) => {
         console.error("Error refetching bounties", error)
       })
@@ -350,46 +346,80 @@ const CreateBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange
       setShowAlert(false)
       setConversionInfo(undefined)
 
-      // Validate payment
-      const validationResult = await validateBountyPayment(paymentMethod, prizeAmount, userPubKey)
+      let requirementResult:
+        | Awaited<ReturnType<typeof calculatePlatformAssetBountyRequirements>>
+        | Awaited<ReturnType<typeof calculateUSDCBountyRequirements>>
+        | Awaited<ReturnType<typeof calculateXLMBountyRequirements>>
+        | null = null
+
+      // Use the appropriate calculation based on reward type
+      if (paymentMethod === "asset" && rewardType === "platform_asset") {
+        requirementResult = await calculatePlatformAssetBountyRequirements(userPubKey, prizeAmount, 0)
+      } else if (paymentMethod === "usdc" && rewardType === "usdc") {
+        requirementResult = await calculateUSDCBountyRequirements(userPubKey, prizeAmount, 0)
+      } else if (paymentMethod === "xlm") {
+        requirementResult = await calculateXLMBountyRequirements(userPubKey, prizeAmount, 0)
+      }
+
       setValidationInProgress(false)
 
-      // Handle validation result
-      if (!validationResult.success) {
+      // Check if payment can proceed based on requirements
+      if (!requirementResult || !requirementResult.canProceed) {
         setShowAlert(true)
-        setAlertMessage(validationResult.message)
-
-        if (validationResult.error === "ACCOUNT_INACTIVE") {
-          // Block payment - account not active
-          return false
-        }
+        setAlertMessage(requirementResult?.message ?? "Validation failed")
         return false
       }
 
-      if (validationResult.requiresConversion) {
-        // Show conversion info in dialog
-        const context = validationResult.conversionContext
-        if (context) {
-          setConversionInfo({
-            isConverting: true,
-            fromAsset: context.convertedFromAsset ?? "xlm",
-            toAsset: context.paymentMethod === "asset" ? PLATFORM_ASSET.code : context.paymentMethod,
-            fromAmount: context.convertedFromXLM ?? 0,
-            toAmount: context.requiredAmount,
-            trustlineCost: context.trustlineCostXLM,
-            xlmShortage: validationResult.message.includes("shortage") ? context.convertedFromXLM : undefined,
-            message: validationResult.message,
-          })
-        }
+      // If conversion is required, show conversion info
+      if (requirementResult && requirementResult.requiresConversion) {
+        let conversionDetails: ConversionInfo
 
-        if (validationResult.message.includes("shortage")) {
-          setShowAlert(true)
-          setAlertMessage(`Insufficient XLM: ${validationResult.message}`)
-          return false
+        if (
+          paymentMethod === "asset" &&
+          "xlmForConversion" in requirementResult
+        ) {
+          conversionDetails = {
+            isConverting: true,
+            fromAsset: "XLM",
+            canProceed: requirementResult.canProceed,
+            toAsset: PLATFORM_ASSET.code,
+            fromAmount: (requirementResult).xlmForConversion || 0,
+            toAmount: prizeAmount,
+            trustlineCost: (requirementResult as { platformTrustReserve: number }).platformTrustReserve || 0,
+            message: requirementResult.message,
+          }
+        } else if (
+          paymentMethod === "usdc" &&
+          "xlmForConversion" in requirementResult
+        ) {
+          conversionDetails = {
+            isConverting: true,
+            fromAsset: "XLM",
+            toAsset: "USDC",
+            canProceed: requirementResult.canProceed,
+
+            fromAmount: (requirementResult).xlmForConversion || 0,
+            toAmount: prizeAmount,
+            trustlineCost: (requirementResult as { usdcTrustReserve: number }).usdcTrustReserve || 0,
+            message: requirementResult.message,
+          }
+        } else {
+          // XLM payment - conversion is PLATFORM to XLM
+          conversionDetails = {
+            isConverting: true,
+            canProceed: requirementResult.canProceed,
+
+            fromAsset: PLATFORM_ASSET.code,
+            toAsset: "XLM",
+            fromAmount: (requirementResult as { platformForConversion: number }).platformForConversion || 0,
+            toAmount: prizeAmount,
+            message: requirementResult.message,
+          }
         }
+        setConversionInfo(conversionDetails)
       }
 
-      // All validations passed - allow dialog to open
+      // All checks passed - allow dialog to open
       return true
     } catch (error) {
       setValidationInProgress(false)
@@ -454,9 +484,11 @@ const CreateBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange
   }
 
   useEffect(() => {
-    console.log("Watched Reward Type changed:", watchedRewardType);
-    setPaymentMethod(watchedRewardType === "usdc" ? "usdc" : "asset")
-  }, [watchedRewardType])
+    console.log("Watched Reward Type changed:", watchedRewardType)
+    if (setPaymentMethod) {
+      setPaymentMethod(watchedRewardType === "usdc" ? "usdc" : "asset")
+    }
+  }, [watchedRewardType, setPaymentMethod])
 
 
   return (
@@ -628,15 +660,13 @@ const CreateBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange
                     </Button>
 
                     {/* Pay Now Button */}
-                    {(platformAssetBalance < getPrizeAmount() || validationInProgress) ? (
+                    {(validationInProgress) ? (
                       <Button disabled className="shadow-sm shadow-foreground">
-                        {validationInProgress ? (
+                        {validationInProgress && (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Validating...
                           </>
-                        ) : (
-                          "Insufficient Balance"
                         )}
                       </Button>
                     ) : (
@@ -716,7 +746,8 @@ function DetailsStep() {
   const usdcAmount = watch("usdcAmount")
   const platformAssetAmount = watch("platformAssetAmount")
   const totalWinner = watch("totalWinner")
-  const [loading, setLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, setTrustLineLoading] = useState(false);
   const handleEditorChange = (value: string): void => {
     setValue("content", value)
   }
@@ -754,11 +785,11 @@ function DetailsStep() {
           }
           console.log("Error", error);
         } finally {
-          setLoading(false);
+          setTrustLineLoading(false);
         }
       },
       onError: (error) => {
-        setLoading(false);
+        setTrustLineLoading(false);
         toast.error(error.message);
       },
     });
@@ -1105,7 +1136,6 @@ function SettingsStep() {
 
   const generateRedeemCodes = watch("generateRedeemCodes")
   const totalWinner = watch("totalWinner")
-  const selectedAssetCode = watch("requiredBalanceCode")
 
   const { platformAssetBalance } = useUserStellarAcc()
   const pageAssetbal = api.fan.creator.getCreatorPageAssetBalance.useQuery()

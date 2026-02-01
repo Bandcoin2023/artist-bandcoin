@@ -52,12 +52,17 @@ import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances"
 import { PLATFORM_ASSET } from "~/lib/stellar/constant"
 import { clientSelect } from "~/lib/stellar/fan/utils"
 import { api } from "~/utils/api"
-import { PaymentChoose, usePaymentMethodStore } from "../common/payment-options"
+import { ConversionInfo, PaymentChoose, usePaymentMethodStore } from "../common/payment-options"
 import { UploadS3Button } from "../common/upload-button"
 import { Editor } from "../common/quill-editor"
 import { useCreatorMapModalStore } from "../store/creator-map-modal-store"
 import { cn } from "~/lib/utils"
 import { USDC_ASSET_CODE, USDC_ISSUER } from "~/lib/usdc"
+import {
+    calculatePlatformAssetBountyRequirements,
+    calculateUSDCBountyRequirements,
+    calculateXLMBountyRequirements,
+} from "~/lib/stellar/bounty/bounty-payment-handler"
 
 // Schema definitions
 const MediaInfo = z.object({
@@ -147,11 +152,18 @@ const FORM_STEPS: FormStep[] = ["details", "location", "media", "settings", "rev
 
 const CreateLocationBasedBountyModal = ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => {
     // State management
+    const session = useSession()
     const [media, setMedia] = useState<MediaInfoType[]>([])
     const [activeStep, setActiveStep] = useState<FormStep>("details")
     const [formProgress, setFormProgress] = useState(20)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [showConfetti, setShowConfetti] = useState(false)
+
+    // Payment validation states
+    const [showAlert, setShowAlert] = useState(false)
+    const [alertMessage, setAlertMessage] = useState("")
+    const [conversionInfo, setConversionInfo] = useState<ConversionInfo | undefined>(undefined)
+    const [validationInProgress, setValidationInProgress] = useState(false)
 
     // Hooks
     const { isOpen, setIsOpen, paymentMethod, setPaymentMethod } = usePaymentMethodStore()
@@ -348,6 +360,108 @@ const CreateLocationBasedBountyModal = ({ open, onOpenChange }: { open: boolean;
             fees: 0,
             method: paymentMethod,
         })
+    }
+    // Validate payment before opening dialog
+    const handleBeforeTrigger = async (): Promise<boolean> => {
+        const userPubKey = session.data?.user?.id
+        if (!userPubKey) {
+            toast.error("Wallet not connected")
+            return false
+        }
+
+        const rewardType = getValues("rewardType")
+        const prizeAmount =
+            rewardType === "platform_asset"
+                ? Number(getValues("platformAssetAmount"))
+                : Number((getValues("usdcAmount")))
+
+        try {
+            setValidationInProgress(true)
+            setShowAlert(false)
+            setConversionInfo(undefined)
+
+            let requirementResult:
+                | Awaited<ReturnType<typeof calculatePlatformAssetBountyRequirements>>
+                | Awaited<ReturnType<typeof calculateUSDCBountyRequirements>>
+                | Awaited<ReturnType<typeof calculateXLMBountyRequirements>>
+                | null = null
+
+            // Use the appropriate calculation based on reward type
+            if (paymentMethod === "asset" && rewardType === "platform_asset") {
+                requirementResult = await calculatePlatformAssetBountyRequirements(userPubKey, prizeAmount, 0)
+            } else if (paymentMethod === "usdc" && rewardType === "usdc") {
+                requirementResult = await calculateUSDCBountyRequirements(userPubKey, prizeAmount, 0)
+            } else if (paymentMethod === "xlm") {
+                requirementResult = await calculateXLMBountyRequirements(userPubKey, prizeAmount, 0)
+            }
+
+            setValidationInProgress(false)
+
+            // Check if payment can proceed based on requirements
+            if (!requirementResult || !requirementResult.canProceed) {
+                setShowAlert(true)
+                setAlertMessage(requirementResult?.message ?? "Validation failed")
+                return false
+            }
+
+            // If conversion is required, show conversion info
+            if (requirementResult && requirementResult.requiresConversion) {
+                let conversionDetails: ConversionInfo
+
+                if (
+                    paymentMethod === "asset" &&
+                    "xlmForConversion" in requirementResult
+                ) {
+                    conversionDetails = {
+                        isConverting: true,
+                        fromAsset: "XLM",
+                        toAsset: PLATFORM_ASSET.code,
+                        canProceed: requirementResult.canProceed,
+
+                        fromAmount: (requirementResult).xlmForConversion || 0,
+                        toAmount: prizeAmount,
+                        trustlineCost: (requirementResult as { platformTrustReserve: number }).platformTrustReserve || 0,
+                        message: requirementResult.message,
+                    }
+                } else if (
+                    paymentMethod === "usdc" &&
+                    "xlmForConversion" in requirementResult
+                ) {
+                    conversionDetails = {
+                        isConverting: true,
+                        fromAsset: "XLM",
+                        canProceed: requirementResult.canProceed,
+                        toAsset: "USDC",
+                        fromAmount: (requirementResult).xlmForConversion || 0,
+                        toAmount: prizeAmount,
+                        trustlineCost: (requirementResult as { usdcTrustReserve: number }).usdcTrustReserve || 0,
+                        message: requirementResult.message,
+                    }
+                } else {
+                    // XLM payment - conversion is PLATFORM to XLM
+                    conversionDetails = {
+                        isConverting: true,
+                        canProceed: requirementResult.canProceed,
+
+                        fromAsset: PLATFORM_ASSET.code,
+                        toAsset: "XLM",
+                        fromAmount: (requirementResult as { platformForConversion: number }).platformForConversion || 0,
+                        toAmount: prizeAmount,
+                        message: requirementResult.message,
+                    }
+                }
+                setConversionInfo(conversionDetails)
+            }
+
+            // All checks passed - allow dialog to open
+            return true
+        } catch (error) {
+            setValidationInProgress(false)
+            console.error("Validation error:", error)
+            setShowAlert(true)
+            setAlertMessage(error instanceof Error ? error.message : "Validation error occurred")
+            return false
+        }
     }
 
     const handlePayLater = () => {
@@ -589,10 +703,14 @@ const CreateLocationBasedBountyModal = ({ open, onOpenChange }: { open: boolean;
                                             )}
                                         </Button>
 
-                                        {/* Pay Now Button */}
-                                        {platformAssetBalance < getPrizeAmount() ? (
+                                        {(validationInProgress) ? (
                                             <Button disabled className="shadow-sm shadow-foreground">
-                                                Insufficient Balance
+                                                {validationInProgress && (
+                                                    <>
+                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                        Validating...
+                                                    </>
+                                                )}
                                             </Button>
                                         ) : (
                                             <PaymentChoose
@@ -622,6 +740,7 @@ const CreateLocationBasedBountyModal = ({ open, onOpenChange }: { open: boolean;
                                                         requiredToken: getPrizeAmount() + totalFees,
                                                     })}
                                                 handleConfirm={handleSubmit(onSubmit)}
+                                                beforeTrigger={handleBeforeTrigger}
                                                 loading={isSubmitting}
                                                 trigger={
                                                     <Button disabled={isSubmitting || !isValid} className="shadow-sm shadow-foreground">
@@ -638,6 +757,9 @@ const CreateLocationBasedBountyModal = ({ open, onOpenChange }: { open: boolean;
                                                         )}
                                                     </Button>
                                                 }
+                                                conversionInfo={conversionInfo}
+                                                showAlert={showAlert}
+                                                alertMessage={alertMessage}
                                             />
                                         )}
                                     </div>

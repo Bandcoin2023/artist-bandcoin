@@ -1,17 +1,8 @@
-import { Asset } from "@stellar/stellar-sdk";
-import {
-    validatePlatformAssetPayment,
-    validateUSDCPayment,
-    validateXLMPayment,
-    convertXLMToPlatformAsset,
-    convertXLMToUSDC,
-    convertPlatformAssetToXLM,
-} from "../payment-conversion";
 import {
     getAssetBalance,
     getNativeBalance,
     checkTrustline,
-    addTrustlineSetup,
+    getReservedXLM,
 } from "../helper";
 import { PLATFORM_ASSET } from "../constant";
 import { USDC_ASSET_CODE, USDC_ISSUER } from "~/lib/usdc";
@@ -20,7 +11,7 @@ import {
     getPlatformAssetPrice,
     getAssetToUSDCRate,
 } from "../fan/get_token_price";
-import { PaymentMethod } from "~/components/payment/payment-process";
+import type { PaymentMethod } from "~/components/payment/payment-process";
 
 
 
@@ -43,220 +34,347 @@ export interface BountyPaymentResult {
     error?: string;
 }
 
+
+
+
+
+
 /**
- * Validate bounty payment with automatic conversion handling
+ * Calculate balance requirements for PLATFORM_ASSET bounty
+ * Mirrors backend: SendBountyBalanceToMotherAccountViaAsset
+ * 
+ * CASE 1: Account not active (insufficient XLM for minimum reserve) → BLOCK
+ * CASE 2: No PLATFORM trust but has XLM → Convert XLM to PLATFORM
+ * CASE 3: Has PLATFORM trust but insufficient balance AND has XLM → Convert XLM to PLATFORM
+ * CASE 4: Normal flow - has sufficient balance
  */
-export async function validateBountyPayment(
-    paymentMethod: PaymentMethod,
-    amount: number,
-    userPubKey: string
-): Promise<BountyPaymentResult> {
-    try {
-        if (paymentMethod === "asset") {
-            const validation = await validatePlatformAssetPayment(userPubKey, amount);
+export async function calculatePlatformAssetBountyRequirements(
+    userPubKey: string,
+    prize: number,
+    fees = 0
+): Promise<{
+    totalAmount: number;
+    userXLMBalance: number;
+    userPlatformBalance: number;
+    hasPlatformTrust: boolean;
+    baseReserve: number;
+    platformTrustReserve: number;
+    totalXlmReserve: number;
+    xlmForConversion: number;
+    platformFromConversion: number;
+    effectivePlatformBalance: number;
+    canProceed: boolean;
+    message: string;
+    requiresConversion: boolean;
+}> {
+    const totalAmount = prize + fees;
+    const baseReserve = await getReservedXLM(userPubKey);
+    const userXLMBalance = await getNativeBalance(userPubKey);
+    const userPlatformBalance = await getAssetBalance(
+        userPubKey,
+        PLATFORM_ASSET.code,
+        PLATFORM_ASSET.issuer
+    ).catch(() => 0);
+    const hasPlatformTrust = await checkTrustline(
+        userPubKey,
+        PLATFORM_ASSET.code,
+        PLATFORM_ASSET.issuer
+    );
 
-            if (validation.status === "success") {
-                return {
-                    success: true,
-                    requiresConversion: false,
-                    message: "Payment validation successful",
-                };
-            }
+    const platformTrustReserve = hasPlatformTrust ? 0 : 0.5;
+    const totalXlmReserve = baseReserve + platformTrustReserve;
 
-            if (validation.status === "account_inactive") {
-                return {
-                    success: false,
-                    requiresConversion: false,
-                    message: validation.message,
-                    error: "ACCOUNT_INACTIVE",
-                };
-            }
+    let platformFromConversion = 0;
+    let xlmForConversion = 0;
+    let canProceed = false;
+    let message = "";
+    let requiresConversion = false;
 
-            if (validation.status === "requires_conversion") {
-                const xlmNeeded = validation.totalCost ?? 0;
-                const xlmBalance = await getNativeBalance(userPubKey);
-                const xlmToConvert = xlmNeeded - xlmBalance;
-
-                return {
-                    success: true,
-                    requiresConversion: true,
-                    conversionContext: {
-                        paymentMethod: "asset",
-                        requiredAmount: amount,
-                        userPubKey,
-                        conversionNeeded: true,
-                        convertedFromXLM: xlmToConvert,
-                        convertedFromAsset: "xlm",
-                        trustlineCostXLM: validation.trustlineCost,
-                    },
-                    message: `Conversion needed: ${xlmToConvert.toFixed(7)} XLM to ${PLATFORM_ASSET.code}`,
-                };
-            }
-
-            return {
-                success: false,
-                requiresConversion: false,
-                message: validation.message,
-                error: validation.status,
-            };
-        } else if (paymentMethod === "usdc") {
-            const validation = await validateUSDCPayment(userPubKey, amount);
-
-            if (validation.status === "success") {
-                return {
-                    success: true,
-                    requiresConversion: false,
-                    message: "Payment validation successful",
-                };
-            }
-
-            if (validation.status === "account_inactive") {
-                return {
-                    success: false,
-                    requiresConversion: false,
-                    message: validation.message,
-                    error: "ACCOUNT_INACTIVE",
-                };
-            }
-
-            if (validation.status === "requires_conversion") {
-                const xlmNeeded = validation.totalCost ?? 0;
-                const xlmBalance = await getNativeBalance(userPubKey);
-                const xlmToConvert = xlmNeeded - xlmBalance;
-
-                return {
-                    success: true,
-                    requiresConversion: true,
-                    conversionContext: {
-                        paymentMethod: "usdc",
-                        requiredAmount: amount,
-                        userPubKey,
-                        conversionNeeded: true,
-                        convertedFromXLM: xlmToConvert,
-                        convertedFromAsset: "xlm",
-                        trustlineCostXLM: validation.trustlineCost,
-                    },
-                    message: `Conversion needed: ${xlmToConvert.toFixed(7)} XLM to USDC`,
-                };
-            }
-
-            return {
-                success: false,
-                requiresConversion: false,
-                message: validation.message,
-                error: validation.status,
-            };
-        } else if (paymentMethod === "xlm") {
-            const validation = await validateXLMPayment(userPubKey, amount);
-
-            if (validation.status === "success") {
-                return {
-                    success: true,
-                    requiresConversion: false,
-                    message: "Payment validation successful",
-                };
-            }
-
-            if (validation.status === "requires_conversion") {
-                // Need to convert PLATFORM_ASSET to XLM
-                const platformNeeded = validation.originalAmount;
-
-                return {
-                    success: true,
-                    requiresConversion: true,
-                    conversionContext: {
-                        paymentMethod: "xlm",
-                        requiredAmount: amount,
-                        userPubKey,
-                        conversionNeeded: true,
-                        convertedFromXLM: amount,
-                        convertedFromAsset: PLATFORM_ASSET.code,
-                    },
-                    message: `Conversion needed: ${platformNeeded.toFixed(7)} ${PLATFORM_ASSET.code} to XLM`,
-                };
-            }
-
-            return {
-                success: false,
-                requiresConversion: false,
-                message: validation.message,
-                error: "INSUFFICIENT_XLM",
-            };
-        }
-
-        return {
-            success: false,
-            requiresConversion: false,
-            message: "Invalid payment method",
-        };
-    } catch (error) {
-        console.error("Error validating bounty payment:", error);
-        return {
-            success: false,
-            requiresConversion: false,
-            message: error instanceof Error ? error.message : "Unknown error",
-            error: "VALIDATION_ERROR",
-        };
+    // CASE 1: Account not active (insufficient XLM for minimum reserve)
+    if (!hasPlatformTrust && userXLMBalance < totalXlmReserve) {
+        message = `Account not active. Need ${totalXlmReserve.toFixed(7)} XLM for reserve but only have ${userXLMBalance.toFixed(7)} XLM`;
+        canProceed = false;
     }
+    // CASE 2: No PLATFORM trust but has XLM → Convert XLM to PLATFORM
+    else if (!hasPlatformTrust && userXLMBalance >= totalXlmReserve) {
+        requiresConversion = true;
+        const { getXLMNumberForPlatformAsset } = await import("../fan/get_token_price");
+        const xlmNeeded = (await getXLMNumberForPlatformAsset(totalAmount)) + 0.5 + totalXlmReserve; // +0.5 for conversion + reserve
+        xlmForConversion = xlmNeeded - totalXlmReserve - 0.5; // Actual XLM to convert
+        platformFromConversion = totalAmount;
+        message = `Will convert ${xlmForConversion.toFixed(7)} XLM to ~${platformFromConversion.toFixed(7)} ${PLATFORM_ASSET.code}`;
+        canProceed = userXLMBalance >= xlmNeeded;
+    }
+    // CASE 3: Has PLATFORM trust but insufficient balance AND has XLM → Convert XLM to PLATFORM
+    else if (
+        hasPlatformTrust &&
+        userPlatformBalance < totalAmount &&
+        userXLMBalance > totalXlmReserve
+    ) {
+        requiresConversion = true;
+        const { getXLMNumberForPlatformAsset } = await import("../fan/get_token_price");
+        const platformShortage = totalAmount - userPlatformBalance;
+        const xlmNeeded = await getXLMNumberForPlatformAsset(platformShortage);
+        const availableXlm = userXLMBalance - totalXlmReserve;
+
+        xlmForConversion = xlmNeeded;
+        platformFromConversion = platformShortage;
+        message = `Convert ${xlmForConversion.toFixed(7)} XLM to ~${platformFromConversion.toFixed(7)} ${PLATFORM_ASSET.code}`;
+        canProceed = availableXlm >= xlmForConversion;
+    }
+    // CASE 4: Normal flow - has sufficient balance
+    else if (hasPlatformTrust && userPlatformBalance >= totalAmount) {
+        message = `Sufficient ${PLATFORM_ASSET.code} balance available`;
+        canProceed = true;
+    } else {
+        message = `Insufficient ${PLATFORM_ASSET.code} balance. Need ${totalAmount.toFixed(7)}, have ${userPlatformBalance.toFixed(7)}`;
+        canProceed = false;
+    }
+
+    const effectivePlatformBalance = userPlatformBalance + platformFromConversion;
+
+    return {
+        totalAmount,
+        userXLMBalance,
+        userPlatformBalance,
+        hasPlatformTrust,
+        baseReserve,
+        platformTrustReserve,
+        totalXlmReserve,
+        xlmForConversion,
+        platformFromConversion,
+        effectivePlatformBalance,
+        canProceed,
+        message,
+        requiresConversion,
+    };
 }
 
 /**
- * Calculate XLM needed for conversion (including trust costs)
+ * Calculate balance requirements for USDC bounty
+ * Mirrors backend: SendBountyBalanceToMotherAccountViaUSDC
+ * 
+ * CASE 1: Account not active (insufficient XLM for minimum reserve) → BLOCK
+ * CASE 2: No USDC trust but has XLM → Convert XLM to USDC (includes 0.5 XLM buffer + trustline cost)
+ * CASE 3: Has USDC trust but insufficient balance AND has XLM → Convert XLM to USDC
+ * CASE 4: Normal flow - has sufficient balance
  */
-export async function calculateConversionXLMRequired(
-    paymentMethod: PaymentMethod,
-    amount: number,
-    userPubKey: string
-): Promise<number> {
-    const TRUSTLINE_RESERVE = 0.5;
-    const TX_FEE = 0.00001;
+export async function calculateUSDCBountyRequirements(
+    userPubKey: string,
+    prize: number,
+    fees = 0
+): Promise<{
+    totalAmount: number;
+    userXLMBalance: number;
+    userUSDCBalance: number;
+    hasUSDCTrust: boolean;
+    baseReserve: number;
+    usdcTrustReserve: number;
+    totalXlmReserve: number;
+    xlmForConversion: number;
+    usdcFromConversion: number;
+    effectiveUSDCBalance: number;
+    canProceed: boolean;
+    message: string;
+    requiresConversion: boolean;
+}> {
+    const totalAmount = prize + fees;
+    const baseReserve = await getReservedXLM(userPubKey);
+    const userXLMBalance = await getNativeBalance(userPubKey);
+    const userUSDCBalance = await getAssetBalance(
+        userPubKey,
+        USDC_ASSET_CODE,
+        USDC_ISSUER
+    ).catch(() => 0);
+    const hasUSDCTrust = await checkTrustline(
+        userPubKey,
+        USDC_ASSET_CODE,
+        USDC_ISSUER
+    );
 
-    if (paymentMethod === "asset") {
-        const hasTrust = await checkTrustline(
-            userPubKey,
-            PLATFORM_ASSET.code,
-            PLATFORM_ASSET.issuer
-        );
+    const usdcTrustReserve = hasUSDCTrust ? 0 : 0.5;
+    const totalXlmReserve = baseReserve + usdcTrustReserve;
 
-        if (!hasTrust) {
-            const xlmPrice = await getXLMPrice();
-            const platformPrice = await getPlatformAssetPrice();
-            const assetCostXLM = (amount * platformPrice) / xlmPrice;
-            return TRUSTLINE_RESERVE + assetCostXLM + TX_FEE;
-        }
+    let usdcFromConversion = 0;
+    let xlmForConversion = 0;
+    let canProceed = false;
+    let message = "";
+    let requiresConversion = false;
 
-        return TX_FEE;
-    } else if (paymentMethod === "usdc") {
-        const hasTrust = await checkTrustline(
-            userPubKey,
-            USDC_ASSET_CODE,
-            USDC_ISSUER
-        );
+    // CASE 1: Account not active (insufficient XLM for minimum reserve)
+    if (!hasUSDCTrust && userXLMBalance < totalXlmReserve) {
+        message = `Account not active. Need ${totalXlmReserve.toFixed(7)} XLM for reserve but only have ${userXLMBalance.toFixed(7)} XLM`;
+        canProceed = false;
+    }
+    // CASE 2: No USDC trust but has XLM → Convert XLM to USDC
+    else if (!hasUSDCTrust && userXLMBalance >= totalXlmReserve) {
+        requiresConversion = true;
+        const { getXLMNumberForUSDC } = await import("../fan/get_token_price");
+        const xlmNeeded = (await getXLMNumberForUSDC(totalAmount)) + 0.5 + totalXlmReserve; // +0.5 for conversion + reserve
+        xlmForConversion = xlmNeeded - totalXlmReserve - 0.5; // Actual XLM to convert
+        usdcFromConversion = totalAmount;
+        message = `Will convert ${xlmForConversion.toFixed(7)} XLM to ~${usdcFromConversion.toFixed(7)} USDC`;
+        canProceed = userXLMBalance >= xlmNeeded;
+    }
+    // CASE 3: Has USDC trust but insufficient balance AND has XLM → Convert XLM to USDC
+    else if (
+        hasUSDCTrust &&
+        userUSDCBalance < totalAmount &&
+        userXLMBalance > totalXlmReserve
+    ) {
+        requiresConversion = true;
+        const { getXLMNumberForUSDC } = await import("../fan/get_token_price");
+        const usdcShortage = totalAmount - userUSDCBalance;
+        const xlmNeeded = await getXLMNumberForUSDC(usdcShortage);
+        const availableXlm = userXLMBalance - totalXlmReserve;
 
-        if (!hasTrust) {
-            const xlmPrice = await getXLMPrice();
-            const usdcPrice = await getAssetToUSDCRate();
-            const assetCostXLM = (amount * usdcPrice) / xlmPrice;
-            return TRUSTLINE_RESERVE + assetCostXLM + TX_FEE;
-        }
-
-        return TX_FEE;
+        xlmForConversion = xlmNeeded;
+        usdcFromConversion = usdcShortage;
+        message = `Convert ${xlmForConversion.toFixed(7)} XLM to ~${usdcFromConversion.toFixed(7)} USDC`;
+        canProceed = availableXlm >= xlmForConversion;
+    }
+    // CASE 4: Normal flow - has sufficient balance
+    else if (hasUSDCTrust && userUSDCBalance >= totalAmount) {
+        message = `Sufficient USDC balance available`;
+        canProceed = true;
+    } else {
+        message = `Insufficient USDC balance. Need ${totalAmount.toFixed(7)}, have ${userUSDCBalance.toFixed(7)}`;
+        canProceed = false;
     }
 
-    return TX_FEE;
+    const effectiveUSDCBalance = userUSDCBalance + usdcFromConversion;
+
+    return {
+        totalAmount,
+        userXLMBalance,
+        userUSDCBalance,
+        hasUSDCTrust,
+        baseReserve,
+        usdcTrustReserve,
+        totalXlmReserve,
+        xlmForConversion,
+        usdcFromConversion,
+        effectiveUSDCBalance,
+        canProceed,
+        message,
+        requiresConversion,
+    };
 }
 
+/**
+ * Calculate balance requirements for XLM bounty
+ * Mirrors backend: SendBountyBalanceToMotherAccountViaXLM
+ * 
+ * CASE 1: No PLATFORM trust and insufficient XLM → BLOCK (can't convert)
+ * CASE 2: Has PLATFORM trust but no PLATFORM balance and insufficient XLM → BLOCK
+ * CASE 3: Has PLATFORM but insufficient XLM → Convert PLATFORM to XLM
+ * CASE 4: Normal flow - has sufficient XLM
+ */
+export async function calculateXLMBountyRequirements(
+    userPubKey: string,
+    prizeInXLM: number,
+    fees = 0
+): Promise<{
+    totalAmount: number;
+    userXLMBalance: number;
+    userPlatformBalance: number;
+    hasPlatformTrust: boolean;
+    baseReserve: number;
+    platformTrustReserve: number;
+    totalXlmReserve: number;
+    totalXlmNeeded: number;
+    platformForConversion: number;
+    xlmFromConversion: number;
+    canProceed: boolean;
+    message: string;
+    requiresConversion: boolean;
+}> {
+    const totalAmount = prizeInXLM + fees;
+    const baseReserve = await getReservedXLM(userPubKey);
+    const userXLMBalance = await getNativeBalance(userPubKey);
+    const userPlatformBalance = await getAssetBalance(
+        userPubKey,
+        PLATFORM_ASSET.code,
+        PLATFORM_ASSET.issuer
+    ).catch(() => 0);
+    const hasPlatformTrust = await checkTrustline(
+        userPubKey,
+        PLATFORM_ASSET.code,
+        PLATFORM_ASSET.issuer
+    );
 
+    const platformTrustReserve = hasPlatformTrust ? 0 : 0.5;
+    const totalXlmReserve = baseReserve + platformTrustReserve;
+    const totalXlmNeeded = totalAmount + totalXlmReserve;
 
+    let canProceed = false;
+    let message = "";
+    let requiresConversion = false;
+    let platformForConversion = 0;
+    let xlmFromConversion = 0;
 
+    // CASE 1: No PLATFORM trust and insufficient XLM for transaction
+    // They cannot convert PLATFORM to XLM — block XDR creation early.
+    if (!hasPlatformTrust && userXLMBalance < totalXlmNeeded) {
+        const xlmNeeded = totalXlmNeeded - userXLMBalance;
+        message = `Insufficient XLM to complete bounty. You need ${totalXlmNeeded.toFixed(2)} XLM but have ${userXLMBalance.toFixed(2)} XLM. Short by ${xlmNeeded.toFixed(2)} XLM. Please add more XLM or use a different payment method.`;
+        canProceed = false;
+    }
+    // CASE 2: Has PLATFORM trust but no PLATFORM balance and insufficient XLM
+    else if (
+        hasPlatformTrust &&
+        userPlatformBalance <= 0 &&
+        userXLMBalance < totalXlmNeeded
+    ) {
+        const xlmNeeded = totalXlmNeeded - userXLMBalance;
+        message = `Insufficient XLM for bounty. You need ${totalXlmNeeded.toFixed(2)} XLM but have ${userXLMBalance.toFixed(2)} XLM. You're short by ${xlmNeeded.toFixed(2)} XLM. Consider funding your XLM balance or using PLATFORM to convert.`;
+        canProceed = false;
+    }
+    // CASE 3: Has PLATFORM but insufficient XLM → Convert PLATFORM to XLM
+    else if (userXLMBalance < totalXlmNeeded && userPlatformBalance > 0) {
+        requiresConversion = true;
+        const xlmShortage = totalXlmNeeded - userXLMBalance;
+        const xlmPrice = await getXLMPrice();
+        const platformPrice = await getPlatformAssetPrice();
+        platformForConversion = (xlmShortage * xlmPrice) / platformPrice;
+        xlmFromConversion = xlmShortage;
+
+        message = `Will convert ~${platformForConversion.toFixed(7)} ${PLATFORM_ASSET.code} to ${xlmShortage.toFixed(7)} XLM`;
+        canProceed = userPlatformBalance >= platformForConversion;
+    }
+    // CASE 4: Normal flow - has sufficient XLM
+    else if (userXLMBalance >= totalXlmNeeded) {
+        message = `Sufficient XLM balance available`;
+        canProceed = true;
+    } else {
+        message = `Insufficient funds for XLM bounty`;
+        canProceed = false;
+    }
+
+    return {
+        totalAmount,
+        userXLMBalance,
+        userPlatformBalance,
+        hasPlatformTrust,
+        baseReserve,
+        platformTrustReserve,
+        totalXlmReserve,
+        totalXlmNeeded,
+        platformForConversion,
+        xlmFromConversion,
+        canProceed,
+        message,
+        requiresConversion,
+    };
+}
 
 /**
  * Create conversion transaction if needed
  * This function handles XLM to Asset conversion via mother account
  */
 export async function createConversionTransaction(
-    context: TransactionConversionContext,
-    motherPubKey: string
+    _context: TransactionConversionContext,
+    _motherPubKey: string
 ): Promise<string> {
     // This would need to interact with a DEX or conversion service
     // For now, returning placeholder - integrate with your actual conversion logic

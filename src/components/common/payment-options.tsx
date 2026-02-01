@@ -38,6 +38,7 @@ export interface ConversionInfo {
   trustlineCost?: number;
   xlmShortage?: number;
   message: string;
+  canProceed: boolean;
 }
 
 export const usePaymentMethodStore = create<PaymentMethodStore>((set) => ({
@@ -94,6 +95,7 @@ export function PaymentChoose({
       });
     } else {
       setIsOpen(open);
+      setPaymentMethod("asset");
     }
   }
 
@@ -135,12 +137,12 @@ export function PaymentChoose({
                 <span>Converting to:</span>
                 <span className="font-semibold">{conversionInfo.toAmount.toFixed(7)} {conversionInfo.toAsset}</span>
               </div>
-              {conversionInfo.trustlineCost && (
+              {conversionInfo.trustlineCost ? (
                 <div className="flex justify-between border-t border-blue-200 pt-1 mt-1">
                   <span>Trust cost:</span>
                   <span className="font-semibold">{conversionInfo.trustlineCost} XLM</span>
                 </div>
-              )}
+              ) : null}
               {conversionInfo.xlmShortage && conversionInfo.xlmShortage > 0 && (
                 <div className="flex justify-between text-orange-700 border-t border-blue-200 pt-1 mt-1">
                   <span>XLM shortage:</span>

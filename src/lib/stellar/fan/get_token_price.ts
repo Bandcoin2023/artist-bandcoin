@@ -106,7 +106,11 @@ export async function getAssetToUSDCRate(): Promise<number> {
   try {
     // https://api.stellar.expert/explorer/public/asset/USDC-GCTDHOF4JMAULZKOX5DKAYHF3JDEQMED73JFMNCJZTO2DMDEJW6VSWIS
     const response = await axios.get<PlatformAssetInfo>(
-      `https://api.stellar.expert/explorer/public/asset/${USDC_ASSET_CODE}-${USDC_ISSUER}`,
+      `https://api.stellar.expert/explorer/${env.NEXT_PUBLIC_STAGE
+        === "prod"
+        ? "public"
+        : "testnet"
+      }/asset/${USDC_ASSET_CODE}-${USDC_ISSUER}`,
     );
 
     const platformAssetInfo = response.data;

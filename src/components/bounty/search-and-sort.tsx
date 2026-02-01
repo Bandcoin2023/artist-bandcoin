@@ -39,6 +39,7 @@ export default function SearchAndSort({
     const [createBountyOpen, setCreateBountyOpen] = useState(false)
     const [scavengerHuntOpen, setScavengerHuntOpen] = useState(false)
     const [locationBasedOpen, setLocationBasedOpen] = useState(false)
+    const [selectValue, setSelectValue] = useState("")
 
     const handleCreateBountySelect = (value: string) => {
         switch (value) {
@@ -63,7 +64,10 @@ export default function SearchAndSort({
                     </h1>
 
                     {router.pathname === "/artist/bounty" && (
-                        <Select onValueChange={handleCreateBountySelect}>
+                        <Select value={selectValue} onValueChange={(value) => {
+                            setSelectValue(value)
+                            handleCreateBountySelect(value)
+                        }}>
                             <SelectTrigger className="w-auto gap-2 bg-primary text-primary-foreground hover:bg-primary/90 border-0 shadow-sm transition-colors">
                                 <SelectValue className="" placeholder="Create Bounty" />
                             </SelectTrigger>
@@ -128,8 +132,14 @@ export default function SearchAndSort({
 
             </div>
 
-            <CreateBountyModal open={createBountyOpen} onOpenChange={setCreateBountyOpen} />
-            <CreateLocationBasedBountyModal open={locationBasedOpen} onOpenChange={setLocationBasedOpen} />
+            <CreateBountyModal open={createBountyOpen} onOpenChange={(open) => {
+                setCreateBountyOpen(open)
+                if (!open) setSelectValue("")
+            }} />
+            <CreateLocationBasedBountyModal open={locationBasedOpen} onOpenChange={(open) => {
+                setLocationBasedOpen(open)
+                if (!open) setSelectValue("")
+            }} />
         </div >
     )
 }
