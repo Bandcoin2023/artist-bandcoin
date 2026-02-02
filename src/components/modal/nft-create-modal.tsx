@@ -90,6 +90,7 @@ import RechargeLink from "../payment/recharge-link";
 import { useNFTCreateModalStore } from "../store/nft-create-modal-store";
 import { cn } from "~/lib/utils";
 import { Progress } from "../shadcn/ui/progress";
+import { calculatePlatformAssetNFTRequirements, calculateXLMNFTRequirements } from "~/lib/stellar/nft/nft-payment-handler";
 
 export const ExtraSongInfo = z.object({
   artist: z.string(),
@@ -181,6 +182,26 @@ export default function NftCreateModal() {
   const [coverUrl, setCover] = useState<string>();
   const { needSign } = useNeedSign();
 
+  // Payment validation states
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [validationInProgress, setValidationInProgress] = useState(false);
+  const [paymentValidationResult, setPaymentValidationResult] = useState<{
+    canProceed: boolean;
+    message: string;
+    requiresConversion?: boolean;
+  } | null>(null);
+  const [conversionInfo, setConversionInfo] = useState<{
+    isConverting: boolean;
+    fromAsset: string;
+    toAsset: string;
+    fromAmount: number;
+    toAmount: number;
+    trustlineCost?: number;
+    canProceed: boolean;
+    message: string;
+  } | undefined>(undefined);
+
   const walletType = session.data?.user.walletType ?? WalletType.none;
 
   // Wait for the required token data to be loaded
@@ -264,6 +285,107 @@ export default function NftCreateModal() {
       );
     },
   });
+
+  /**
+   * Validate payment method and balances before creating NFT
+   */
+  const validatePaymentMethod = async (): Promise<boolean> => {
+    try {
+      setValidationInProgress(true);
+      setShowAlert(false);
+      setConversionInfo(undefined);
+
+      const userPubKey = session.data?.user.id;
+
+      if (!userPubKey) {
+        setAlertMessage("User not authenticated");
+        setShowAlert(true);
+        setValidationInProgress(false);
+        return false;
+      }
+
+      let requirementResult:
+        | Awaited<ReturnType<typeof calculatePlatformAssetNFTRequirements>>
+        | Awaited<ReturnType<typeof calculateXLMNFTRequirements>>
+        | null = null;
+
+      if (paymentMethod === "asset") {
+        // PLATFORM asset payment validation
+        requirementResult = await calculatePlatformAssetNFTRequirements(
+          userPubKey,
+          requiredTokenAmount
+        );
+      } else if (paymentMethod === "xlm") {
+        // XLM payment validation
+        requirementResult = await calculateXLMNFTRequirements(
+          userPubKey,
+          totalXlmCost
+        );
+      }
+
+      setValidationInProgress(false);
+
+      // Check if payment can proceed based on requirements
+      if (!requirementResult || !requirementResult.canProceed) {
+        setShowAlert(true);
+        setAlertMessage(requirementResult?.message ?? "Validation failed");
+        return false;
+      }
+
+      // If conversion is required, extract and set conversion details
+      if (requirementResult && requirementResult.requiresConversion) {
+        let conversionDetails;
+
+        if (
+          paymentMethod === "asset" &&
+          "xlmForConversion" in requirementResult
+        ) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const assetResult = requirementResult;
+          conversionDetails = {
+            isConverting: true,
+            fromAsset: "XLM",
+            toAsset: PLATFORM_ASSET.code,
+            fromAmount: assetResult.xlmForConversion || 0,
+            toAmount: requiredTokenAmount,
+            trustlineCost: assetResult.platformTrustReserve || 0,
+            canProceed: requirementResult.canProceed,
+            message: requirementResult.message,
+          };
+        } else if (paymentMethod === "xlm" && "platformForConversion" in requirementResult) {
+          // XLM payment - conversion is PLATFORM to XLM
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const xlmResult = requirementResult;
+          conversionDetails = {
+            isConverting: true,
+            fromAsset: PLATFORM_ASSET.code,
+            toAsset: "XLM",
+            fromAmount: xlmResult.platformForConversion || 0,
+            toAmount: totalXlmCost,
+            canProceed: requirementResult.canProceed,
+            message: requirementResult.message,
+          };
+        }
+
+        if (conversionDetails) {
+          setConversionInfo(conversionDetails);
+        }
+      }
+
+      // All checks passed - allow to proceed
+      return true;
+    } catch (error) {
+      console.error("Payment validation error:", error);
+      setAlertMessage(
+        error instanceof Error
+          ? error.message
+          : "Error validating payment method"
+      );
+      setShowAlert(true);
+      setValidationInProgress(false);
+      return false;
+    }
+  };
 
   const onSubmit = () => {
     console.log("vlaues", getValues());
@@ -783,25 +905,17 @@ export default function NftCreateModal() {
                         )}
                       </div>
 
-                      <Separator className="my-4" />
 
-                      <Alert
-                        variant={
-                          requiredTokenAmount > platformAssetBalance
-                            ? "destructive"
-                            : "default"
-                        }
-                      >
-                        <AlertDescription>
-                          {`You'll need ${requiredTokenAmount} ${PLATFORM_ASSET.code} in your wallet to create an NFT`}
-                        </AlertDescription>
-                      </Alert>
 
-                      {requiredTokenAmount > platformAssetBalance && (
-                        <div className="mt-2">
-                          <RechargeLink />
-                        </div>
+                      {showAlert && (
+                        <Alert variant={paymentValidationResult?.canProceed === false ? "destructive" : "default"}>
+                          <AlertDescription>
+                            {alertMessage}
+                          </AlertDescription>
+                        </Alert>
                       )}
+
+
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -860,19 +974,22 @@ export default function NftCreateModal() {
                   ]}
                   XLM_EQUIVALENT={totalXlmCost}
                   handleConfirm={handleSubmit(onSubmit)}
-                  loading={loading}
+                  beforeTrigger={validatePaymentMethod}
+                  loading={loading || validationInProgress}
                   requiredToken={requiredTokenAmount}
+                  conversionInfo={conversionInfo}
+                  showAlert={showAlert}
+                  alertMessage={alertMessage}
                   trigger={
                     <Button
                       variant="default"
                       disabled={
                         loading ||
-                        requiredTokenAmount > platformAssetBalance ||
-                        !isValid
+                        validationInProgress || !isValid
                       }
                       className="flex items-center gap-1 shadow-sm shadow-foreground"
                     >
-                      {loading ? (
+                      {loading || validationInProgress ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Creating NFT...

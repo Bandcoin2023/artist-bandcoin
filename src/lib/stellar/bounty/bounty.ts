@@ -84,7 +84,7 @@ export async function SendBountyBalanceToMotherAccountViaAsset({
     );
 
     // Convert XLM to PLATFORM via payment from mother account
-    const xlmToConvert = xlmNeeded - totalXlmReserve - 0.5;
+    const xlmToConvert = (xlmNeeded + platformTrustReserve) - totalXlmReserve - 0.5;
     addPaymentOp(transaction, motherAcc.publicKey(), xlmToConvert.toFixed(7), Asset.native(), userPubKey);
     addPaymentOp(transaction, userPubKey, totalAmount.toFixed(7), PLATFORM_ASSET, motherAcc.publicKey());
     platformFromConversion = totalAmount;
@@ -201,7 +201,7 @@ export async function SendBountyBalanceToMotherAccountViaUSDC({
     );
 
     // Convert XLM to USDC via payment from mother account
-    const xlmToConvert = xlmNeeded - totalXlmReserve - 0.5;
+    const xlmToConvert = (xlmNeeded + usdcTrustReserve) - totalXlmReserve - 0.5;
     addPaymentOp(transaction, motherAcc.publicKey(), xlmToConvert.toFixed(7), Asset.native(), userPubKey);
     addPaymentOp(transaction, userPubKey, totalAmount.toFixed(7), USDC, motherAcc.publicKey());
     usdcFromConversion = totalAmount;

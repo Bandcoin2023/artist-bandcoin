@@ -129,7 +129,6 @@ export async function XDR4BuyAsset({
   const platformTrustReserve = hasPlatformTrust ? 0 : 0.5
   const assetTrustReserve = hasAssetTrust ? 0 : 0.5
   const totalXlmReserve = baseReserve + platformTrustReserve + assetTrustReserve
-
   // Calculate platform asset needed for 0.5 XLM trustline if needed
   const trustPriceInPlatformAsset = await getplatformAssetNumberForXLM(0.5)
   const requiredAsset2refundXlm = (hasAssetTrust && hasPlatformTrust) ? 0 : (hasAssetTrust || hasPlatformTrust) ? trustPriceInPlatformAsset : 2 * trustPriceInPlatformAsset
@@ -167,7 +166,7 @@ export async function XDR4BuyAsset({
     )
 
     // Convert XLM to PLATFORM via payment from mother account
-    const xlmToConvert = xlmNeeded - totalXlmReserve - 0.5
+    const xlmToConvert = (xlmNeeded + platformTrustReserve) - totalXlmReserve - 0.5
     addPaymentOp(Tx2, motherAcc.publicKey(), xlmToConvert.toFixed(7), Asset.native(), buyer)
 
     addPaymentOp(Tx2, buyer, totalPlatformNeeded.toFixed(7), PLATFORM_ASSET, motherAcc.publicKey())
