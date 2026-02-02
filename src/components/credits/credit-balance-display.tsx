@@ -20,7 +20,7 @@ export function CreditBalanceDisplay({
 }: CreditBalanceDisplayProps) {
   if (variant === "compact") {
     return (
-      <Button variant="outline" className="gap-2 h-9 px-3 bg-transparent" onClick={onPurchaseClick}>
+      <Button variant="outline" className="gap-2 h-9 px-3 " onClick={onPurchaseClick}>
         <Coins className="h-4 w-4 text-amber-500" />
         {isLoading ? (
           <Skeleton className="h-4 w-12" />
@@ -32,7 +32,7 @@ export function CreditBalanceDisplay({
   }
 
   return (
-    <Card className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-amber-200 dark:border-amber-900">
+    <Card className="p-4 ">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-amber-500 rounded-lg">

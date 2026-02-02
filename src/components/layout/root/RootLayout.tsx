@@ -105,7 +105,7 @@ export default function Layout({
         >
             <MiniPlayerProvider>
                 <BottomPlayerProvider>
-                    <div className={clsx("flex h-screen w-full flex-col")}>
+                    <div className={clsx("flex h-screen w-full flex-col ")}>
                         <Header />
                         {isStudioRoute ? (
                             session.status === "authenticated" ? (

@@ -6,7 +6,7 @@ import { UsageAnalytics } from "~/components/history/usage-analytics"
 
 export function HistoryPanel() {
   return (
-    <div className="flex-1 overflow-y-auto bg-background">
+    <div className="flex-1 overflow-y-auto">
       <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
         {/* Header */}
         <div>

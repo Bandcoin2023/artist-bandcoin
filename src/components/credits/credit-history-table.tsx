@@ -42,7 +42,7 @@ export function CreditHistoryTable() {
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-border bg-muted/50">
+            <tr className="border-b border-border">
               <th className="text-left p-4 font-semibold text-sm">Type</th>
               <th className="text-left p-4 font-semibold text-sm">Description</th>
               <th className="text-left p-4 font-semibold text-sm hidden md:table-cell">Method</th>

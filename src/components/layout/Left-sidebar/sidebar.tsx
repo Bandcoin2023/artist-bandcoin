@@ -96,15 +96,15 @@ const MiniCalendar = () => {
   };
 
   return (
-    <div className="w-full rounded-lg p-2 border bg-card shadow-sm">
-      <div className="flex items-center justify-between mb-2">
-        <button onClick={goToPreviousWeek} className="p-1 hover:bg-muted rounded-full">
+    <div className="w-full rounded-lg p-3 border bg-white/10 dark:bg-black/20 backdrop-blur-lg shadow-lg border-white/20 dark:border-white/10">
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={goToPreviousWeek} className="p-1 hover:bg-white/20 dark:hover:bg-white/10 rounded-full transition-colors backdrop-blur-sm">
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <span className="text-xs font-medium">
+        <span className="text-xs font-semibold text-foreground">
           {currentWeek[0] && `${monthNames[currentWeek[0].getMonth()]} ${currentWeek[0].getFullYear()}`}
         </span>
-        <button onClick={goToNextWeek} className="p-1 hover:bg-muted rounded-full">
+        <button onClick={goToNextWeek} className="p-1 hover:bg-white/20 dark:hover:bg-white/10 rounded-full transition-colors backdrop-blur-sm">
           <ChevronRight className="h-4 w-4" />
         </button>
       </div>
@@ -164,7 +164,7 @@ export default function Sidebar({ className }: SidebarProps) {
   return (
     <div
       className={cn(
-        ` h-[calc(100vh-13vh)] sticky   p-1 w-full overflow-hidden border-r  hidden transition-[width] duration-500 md:block`,
+        `h-[calc(100vh-13vh)] sticky p-2 w-full overflow-hidden border-r hidden transition-[width] duration-500 md:block bg-white/5 dark:bg-black/20 backdrop-blur-xl border-white/10 dark:border-white/5 `,
         !isMinimized ? "w-[280px]" : "w-[78px]",
         className,
       )}
@@ -179,29 +179,31 @@ export default function Sidebar({ className }: SidebarProps) {
           </div>
           <div className={`relative w-full flex items-center justify-center ${isMinimized ? "hidden" : "flex"}`}>
             <Button
-
               className="
-              relative text-xl font-bold
-              bg-black
-              border-2 border-accent dark:border-primary
-              text-accent dark:text-primary
+              relative text-lg font-bold
+              bg-gradient-to-r from-accent to-accent/70 dark:from-primary dark:to-primary/70
+              border-2 border-accent/50 dark:border-primary/50
+              text-accent-foreground dark:text-primary-foreground
               hover:text-white dark:hover:text-black
               transition-all duration-300
               overflow-hidden
               group
               neon-studio-button
-              backdrop-blur-sm
+              backdrop-blur-lg
               hover:px-6
+               hover:shadow-accent/60 dark:hover:shadow-primary/60
+              hover:border-accent/80 dark:hover:border-primary/80
+              rounded-lg
             "
               onClick={() =>
-                router.push("/artist/studio")
+                router.push("/ai")
               }
 
             >
               {/* Always-Active Background Animations */}
-              <div className="absolute inset-0 bg-gradient-to-r from-accent/0 via-accent/20 to-accent/0 dark:from-primary/0 dark:via-primary/30 dark:to-primary/0 animate-neon-sweep"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent animate-shimmer-fast"></div>
-              <div className="absolute inset-0 bg-gradient-to-l from-purple-500/0 via-purple-500/15 to-purple-500/0 dark:from-purple-400/0 dark:via-purple-400/20 dark:to-purple-400/0 animate-reverse-sweep"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent animate-neon-sweep"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-accent via-primary to-success animate-shimmer-fast"></div>
+              <div className="absolute inset-0 bg-gradient-to-l from-secondary via-success to-primary animate-reverse-sweep"></div>
 
               {/* Button Text with Icons */}
               <div className="relative z-10 flex items-center gap-3">
@@ -242,8 +244,8 @@ function LogOutButon() {
     });
   }
   return (
-    <Button className="flex flex-col p-3 shadow-sm shadow-black" onClick={disconnectWallet}>
-      <span> <LogOut /></span>
+    <Button className="flex flex-col p-3  bg-gradient-to-br from-accent/60 to-accent/40 dark:from-primary/60 dark:to-primary/40 backdrop-blur-lg hover:from-accent/80 hover:to-accent/60 dark:hover:from-primary/80 dark:hover:to-primary/60 justify-center rounded-lg items-center text-xs normal-case w-full border border-white/20 shadow-sm shadow-foreground  transition-all " onClick={disconnectWallet}>
+      <span> <LogOut className="w-5 h-5" /></span>
       <span className="text-xs">Logout</span>
     </Button>
   );
@@ -257,13 +259,11 @@ export function LeftBottom() {
   const [date, setDate] = useState<Date | undefined>(new Date())
 
   return (
-    <div className="flex w-full flex-col justify-center gap-4 p-1">
-
-
+    <div className="flex w-full flex-col justify-center gap-2 p-1 rounded-lg bg-gradient-to-t from-white/5 dark:from-black/20 to-transparent backdrop-blur-sm">
       {/* <MiniCalendar /> */}
 
-
-      <div className="flex  items-center justify-center">
+      {/* Theme Toggle */}
+      <div className="flex items-center justify-center">
         <button
           onClick={() => tougleTheme()}
           className="relative h-10 w-20  rounded-full transition-shadow duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-purple-400"
@@ -312,51 +312,51 @@ export function LeftBottom() {
           />
         </button>
       </div>
-      <div className="w-full flex items-center justify-center ">
+      <div className="w-full flex items-center justify-center backdrop-blur-sm rounded-lg p-2 bg-white/5 dark:bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
         <ConnectWalletButton />
       </div>
 
-      <div className="flex  items-center justify-between  gap-4 ">
+      <div className="flex items-center justify-between gap-3">
         <Link
           href={"https://facebook.com/bandcoinio"}
-          className="btn flex h-12 shadow-sm shadow-black flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
+          className="btn flex h-12 flex-col bg-gradient-to-br from-accent/60 to-accent/40 dark:from-primary/60 dark:to-primary/40 backdrop-blur-lg hover:from-accent/80 hover:to-accent/60 dark:hover:from-primary/80 dark:hover:to-primary/60 justify-center rounded-lg items-center text-xs normal-case w-full border border-white/20 shadow-sm shadow-foreground transition-all "
           target="_blank"
         >
-          <Facebook size={26} />
-
+          <Facebook size={24} />
         </Link>
         <Link
           href={"https://x.com/bandcoinio"}
-          className="btn flex h-12 shadow-sm shadow-black flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
+          className="btn flex h-12 flex-col bg-gradient-to-br from-accent/60 to-accent/40 dark:from-primary/60 dark:to-primary/40 backdrop-blur-lg hover:from-accent/80 hover:to-accent/60 dark:hover:from-primary/80 dark:hover:to-primary/60 justify-center rounded-lg items-center text-xs normal-case w-full border border-white/20 shadow-sm shadow-foreground transition-all "
           target="_blank"
         >
           <Image src="/images/icons/x.svg" alt="X" height={18} width={18}
             className="w-5 h-5"
           />
-
         </Link>
         <Link
           href={"https://www.instagram.com/bandcoin"}
-          className="btn flex h-12 shadow-sm shadow-black flex-col bg-primary justify-center  rounded-lg items-center  text-xs normal-case w-full"
+          className="btn flex h-12 flex-col bg-gradient-to-br from-accent/60 to-accent/40 dark:from-primary/60 dark:to-primary/40 backdrop-blur-lg hover:from-accent/80 hover:to-accent/60 dark:hover:from-primary/80 dark:hover:to-primary/60 justify-center rounded-lg items-center text-xs normal-case w-full border border-white/20 shadow-sm shadow-foreground transition-all "
           target="_blank"
         >
-          <Instagram size={26} />
+          <Instagram size={24} />
         </Link>
       </div>
-      <div className="flex w-full flex-col text-center text-xs text-base-content">
-        <p>© 2024 {env.NEXT_PUBLIC_HOME_DOMAIN}</p>
-        <div className="flex w-full justify-center gap-2 ">
-          <Link className="link-hover link" href="/about">
+      <div className="flex w-full flex-col text-center text-xs text-foreground/70 backdrop-blur-sm rounded-lg p-3 bg-white/5 dark:bg-white/5 border border-white/10 dark:border-white/10">
+        <p className="font-semibold text-foreground mb-2">© 2024 {env.NEXT_PUBLIC_HOME_DOMAIN}</p>
+        <div className="flex w-full justify-center gap-2 mb-2">
+          <Link className="link-hover link hover:text-accent transition-colors text-xs" href="/about">
             About
           </Link>
-          <Link className="link-hover link" href="/privacy">
+          <span className="text-white/20">•</span>
+          <Link className="link-hover link hover:text-accent transition-colors text-xs" href="/privacy">
             Privacy
           </Link>
-          <Link className="link-hover link" href="/support">
+          <span className="text-white/20">•</span>
+          <Link className="link-hover link hover:text-accent transition-colors text-xs" href="/support">
             Support
           </Link>
         </div>
-        <p>v{1.1}</p>
+        <p className="text-[10px] text-foreground/50">v1.1.0</p>
       </div>
     </div>
   );

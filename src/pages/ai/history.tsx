@@ -11,7 +11,7 @@ const AIGenerationPage = () => {
 
 
     return (
-        <div className="flex flex-col h-[calc(100vh-11vh)] bg-background relative">
+        <div className="flex flex-col h-[calc(100vh-11vh)]  relative overflow-hidden  bg-gradient-to-b from-accent/40 via-accent/20 to-accent/10 backdrop-blur-sm ">
             <AISidebar />
             <HistoryPanel />
         </div>

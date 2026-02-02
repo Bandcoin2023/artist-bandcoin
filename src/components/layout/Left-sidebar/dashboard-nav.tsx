@@ -33,7 +33,7 @@ export function DashboardNav({ items, setOpen }: DashboardNavProps) {
     return null
   }
   return (
-    <nav className="grid w-full gap-1 p-1 ">
+    <nav className="grid w-full gap-2 px-2 ">
       <TooltipProvider>
         {items.map((item, index) => {
           const Icon = Icons[item.icon as keyof typeof Icons];
@@ -45,13 +45,15 @@ export function DashboardNav({ items, setOpen }: DashboardNavProps) {
                     key={item.href}
                   >
                     <Button
-                      className={cn(
-                        "  flex    w-full items-center shadow-sm  justify-start   gap-1 overflow-hidden rounded-md text-sm font-medium hover:text-[#dbdd2c]",
-                        path === item.href
-                          ? "border-[#dbdd2c] border-2 text-[#dbdd2c] font-bold "
-                          : "transparent shadow-black ",
-                        item.disabled && "cursor-not-allowed opacity-80",
-                      )}
+                      className={
+                        cn(
+                          "w-full justify-start rounded-lg transition-all  duration-300 ease-in-out relative overflow-hidden group ",
+                          path === item.href
+                            ? "bg-gradient-to-r from-accent to-accent/80 text-sidebar-foreground  hover:shadow-sm hover:shadow-accent/60 scale-105 shadow-sm shadow-foreground"
+                            : "text-muted-foreground hover:text-sidebar-foreground bg-transparent border border-accent/30 hover:border-accent/60 hover:bg-accent/20 dark:hover:bg-accent/10 ",
+                          item.disabled && "cursor-not-allowed opacity-50 hover:bg-transparent hover:shadow-none hover:border-transparent scale-100"
+                        )
+                      }
                       onClick={() => {
                         if (setOpen) setOpen(false);
                         if (isSheetOpen) setIsSheetOpen(false);
