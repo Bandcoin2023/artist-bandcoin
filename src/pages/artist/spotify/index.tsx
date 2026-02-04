@@ -273,7 +273,7 @@ const SpotifyPage = () => {
                                             alt={currentlyPlaying.item?.name ?? ""}
                                             width={40}
                                             height={40}
-                                            className="rounded"
+                                            className="rounded h-8 w-8"
                                         />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs font-medium truncate">{currentlyPlaying.item?.name}</p>
@@ -350,7 +350,7 @@ const SpotifyPage = () => {
                                                             alt={track.name}
                                                             width={48}
                                                             height={48}
-                                                            className="rounded"
+                                                            className="rounded h-8 w-8"
                                                         />
                                                         <div className="flex-1 min-w-0">
                                                             <p className="font-medium truncate">{track.name}</p>
@@ -389,11 +389,14 @@ const SpotifyPage = () => {
                                                             className="flex items-center gap-3 p-2 border rounded hover:bg-muted/50"
                                                         >
                                                             <Image
-                                                                src={track.album?.images?.[0]?.url ?? "/placeholder.svg?height=40&width=40"}
+                                                                src={track.album?.images?.[0]?.url ?? "/images/logo.png"}
                                                                 alt={track.name}
                                                                 width={40}
                                                                 height={40}
-                                                                className="rounded"
+                                                                className="rounded h-8 w-8"
+                                                                onError={(e) => {
+                                                                    e.currentTarget.src = "/images/logo.png"
+                                                                }}
                                                             />
                                                             <div className="flex-1 min-w-0">
                                                                 <p className="text-sm font-medium truncate">{track.name}</p>
@@ -431,7 +434,7 @@ const SpotifyPage = () => {
                                                                 alt={playlist.name}
                                                                 width={40}
                                                                 height={40}
-                                                                className="rounded"
+                                                                className="rounded h-8 w-8"
                                                             />
                                                             <div className="flex-1 min-w-0">
                                                                 <p className="text-sm font-medium truncate">{playlist.name}</p>
@@ -494,7 +497,7 @@ const SpotifyPage = () => {
                                     alt={selectedPlaylist.name}
                                     width={48}
                                     height={48}
-                                    className="rounded"
+                                    className="rounded h-8 w-8"
                                 />
                                 <div>
                                     <DialogTitle>{selectedPlaylist.name}</DialogTitle>
@@ -514,7 +517,7 @@ const SpotifyPage = () => {
                                                 alt={item.track.name}
                                                 width={40}
                                                 height={40}
-                                                className="rounded"
+                                                className="rounded h-8 w-8"
                                             />
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-medium truncate">{item.track.name}</p>
@@ -625,7 +628,7 @@ const RewardedSongsList: React.FC = () => {
                                     alt={reward.trackName}
                                     width={48}
                                     height={48}
-                                    className="rounded"
+                                    className="rounded h-8 w-8"
                                 />
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium truncate">{reward.trackName}</p>

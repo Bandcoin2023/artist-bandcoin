@@ -1,13 +1,205 @@
 import { z } from "zod"
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc"
 import { TRPCError } from "@trpc/server"
+import { createLastFmClient } from "~/lib/lastfm/api"
+import { db } from "~/server/db"
 import { getClaimXDR, sendRewardAssetToStorage } from "~/lib/stellar/music/spotify"
+import { SignUser } from "~/lib/stellar/utils"
 
-export const spotifyRewardRouter = createTRPCRouter({
+export const lastFMRouter = createTRPCRouter({
+    getlastFMAccount: protectedProcedure.query(async ({ ctx }) => {
+        return db.lastFMAccount.findUnique({
+            where: { userId: ctx.session.user.id },
+        })
+    }),
+
+    saveLastFmAccount: protectedProcedure
+        .input(
+            z.object({
+                username: z.string(),
+                realName: z.string(),
+                sessionKey: z.string(),
+                profileUrl: z.string(),
+                image: z.string().nullable(),
+                playCount: z.number(),
+                country: z.string(),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            const userId = ctx.session.user.id
+
+            await db.lastFMAccount.upsert({
+                where: { userId: userId },
+                update: {
+                    username: input.username,
+                    realName: input.realName,
+                    sessionKey: input.sessionKey,
+                    profileUrl: input.profileUrl,
+                    image: input.image,
+                    playCount: input.playCount,
+                    country: input.country,
+                },
+                create: {
+                    userId: userId,
+                    username: input.username,
+                    realName: input.realName,
+                    sessionKey: input.sessionKey,
+                    profileUrl: input.profileUrl,
+                    image: input.image,
+                    playCount: input.playCount,
+                    country: input.country,
+                },
+            })
+
+            return { success: true }
+        }),
+
+    disconnectLastFm: protectedProcedure.mutation(async ({ ctx }) => {
+        await db.lastFMAccount.delete({
+            where: { userId: ctx.session.user.id },
+        })
+        return { success: true }
+    }),
+
+    getRecentTracks: protectedProcedure
+        .input(
+            z.object({
+                limit: z.number().int().min(1).max(200).default(10),
+            }),
+        )
+        .query(async ({ ctx, input }) => {
+            const account = await db.lastFMAccount.findUnique({
+                where: { userId: ctx.session.user.id },
+            })
+
+            if (!account) {
+                throw new Error("Last.fm account not connected")
+            }
+
+            const client = createLastFmClient()
+            return client.getRecentTracks(account.username, input.limit)
+        }),
+
+    getTopTracks: protectedProcedure
+        .input(
+            z.object({
+                period: z
+                    .enum(["overall", "7day", "1month", "3month", "6month", "12month"])
+                    .default("overall"),
+                limit: z.number().int().min(1).max(200).default(10),
+            }),
+        )
+        .query(async ({ ctx, input }) => {
+            const account = await db.lastFMAccount.findUnique({
+                where: { userId: ctx.session.user.id },
+            })
+
+            if (!account) {
+                throw new Error("Last.fm account not connected")
+            }
+
+            const client = createLastFmClient()
+            return client.getTopTracks(account.username, input.period, input.limit)
+        }),
+
+    getLovedTracks: protectedProcedure
+        .input(
+            z.object({
+                limit: z.number().int().min(1).max(200).default(10),
+            }),
+        )
+        .query(async ({ ctx, input }) => {
+            const account = await db.lastFMAccount.findUnique({
+                where: { userId: ctx.session.user.id },
+            })
+
+            if (!account) {
+                throw new Error("Last.fm account not connected")
+            }
+
+            const client = createLastFmClient()
+            return client.getLovedTracks(account.username, input.limit)
+        }),
+
+    searchTracks: protectedProcedure
+        .input(
+            z.object({
+                query: z.string().min(1, "Search query cannot be empty."),
+                limit: z.number().int().min(1).max(200).default(10),
+            }),
+        )
+        .query(async ({ ctx, input }) => {
+            try {
+                const client = createLastFmClient()
+                return await client.searchTracks(input.query, input.limit)
+            } catch (error) {
+                console.error(`Failed to search Last.fm tracks for query "${input.query}":`, error)
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Failed to search Last.fm tracks.`,
+                })
+            }
+        }),
+
+    loveTrack: protectedProcedure
+        .input(
+            z.object({
+                artist: z.string(),
+                track: z.string(),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            const account = await db.lastFMAccount.findUnique({
+                where: { userId: ctx.session.user.id },
+            })
+
+            if (!account) {
+                throw new Error("Last.fm account not connected")
+            }
+
+            const client = createLastFmClient()
+            return client.loveTrack(input.artist, input.track, account.sessionKey)
+        }),
+
+    unloveTrack: protectedProcedure
+        .input(
+            z.object({
+                artist: z.string(),
+                track: z.string(),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            const account = await db.lastFMAccount.findUnique({
+                where: { userId: ctx.session.user.id },
+            })
+
+            if (!account) {
+                throw new Error("Last.fm account not connected")
+            }
+
+            const client = createLastFmClient()
+            return client.unloveTrack(input.artist, input.track, account.sessionKey)
+        }),
+
+    getNowPlaying: protectedProcedure.query(async ({ ctx }) => {
+        const account = await db.lastFMAccount.findUnique({
+            where: { userId: ctx.session.user.id },
+        })
+
+        if (!account) {
+            throw new Error("Last.fm account not connected")
+        }
+
+        const client = createLastFmClient()
+        return client.getNowPlaying(account.username)
+    }),
+
+
+    // Reward Features
     addRewardedTrack: protectedProcedure
         .input(
             z.object({
-                spotifyTrackId: z.string(),
+                lastFMTrackURL: z.string(),
                 trackName: z.string(),
                 artistName: z.string(),
                 albumName: z.string().optional().nullable(),
@@ -22,7 +214,7 @@ export const spotifyRewardRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }) => {
             const {
-                spotifyTrackId,
+                lastFMTrackURL,
                 trackName,
                 artistName,
                 albumName,
@@ -42,10 +234,6 @@ export const spotifyRewardRouter = createTRPCRouter({
                 })
             }
 
-
-
-
-            // Validate that maximumRewardAmount is greater than or equal to rewardAmount
             if (maximumRewardAmount < rewardAmount) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
@@ -53,10 +241,10 @@ export const spotifyRewardRouter = createTRPCRouter({
                 })
             }
 
-            const existingReward = await ctx.db.spotifyTrack.findUnique({
+            const existingReward = await db.lastFMTrack.findUnique({
                 where: {
-                    spotifyTrackId_creatorId: {
-                        spotifyTrackId,
+                    trackurl_creatorId: {
+                        trackurl: lastFMTrackURL,
                         creatorId,
                     },
                 },
@@ -69,9 +257,9 @@ export const spotifyRewardRouter = createTRPCRouter({
                 })
             }
 
-            return ctx.db.spotifyTrack.create({
+            return db.lastFMTrack.create({
                 data: {
-                    spotifyTrackId,
+                    trackurl: lastFMTrackURL,
                     trackName,
                     artistName,
                     albumName,
@@ -80,7 +268,7 @@ export const spotifyRewardRouter = createTRPCRouter({
                     rewardAmount,
                     maximumRewardAmount,
                     assetId,
-                    assetIssuer, // Placeholder, should be set later
+                    assetIssuer,
                     creatorId,
                 },
             })
@@ -101,14 +289,14 @@ export const spotifyRewardRouter = createTRPCRouter({
         .mutation(async ({ ctx, input }) => {
             const { id, rewardIntervalDays, rewardAmount, maximumRewardAmount, rewardCurrency } = input
             const creatorId = ctx.session.user.id
-            const [assetId, assetIssuer] = input.rewardCurrency.split("-")
+            const [assetId, assetIssuer] = rewardCurrency.split("-")
             if (!assetId || !assetIssuer) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "Invalid reward currency format. Expected 'assetId-assetIssuer'.",
                 })
             }
-            // Validate that maximumRewardAmount is greater than or equal to rewardAmount
+
             if (maximumRewardAmount < rewardAmount) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
@@ -116,8 +304,7 @@ export const spotifyRewardRouter = createTRPCRouter({
                 })
             }
 
-            // Check if the reward exists and belongs to the creator
-            const existingReward = await ctx.db.spotifyTrack.findFirst({
+            const existingReward = await db.lastFMTrack.findFirst({
                 where: {
                     id,
                     creatorId,
@@ -131,7 +318,6 @@ export const spotifyRewardRouter = createTRPCRouter({
                 })
             }
 
-            // Check if the new maximum is less than already given amount
             if (maximumRewardAmount < existingReward.alreadyGivenAmount) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
@@ -139,7 +325,7 @@ export const spotifyRewardRouter = createTRPCRouter({
                 })
             }
 
-            return ctx.db.spotifyTrack.update({
+            return db.lastFMTrack.update({
                 where: { id },
                 data: {
                     rewardIntervalDays,
@@ -152,18 +338,18 @@ export const spotifyRewardRouter = createTRPCRouter({
         }),
 
     getRewardedTrackStatus: protectedProcedure
-        .input(z.object({ spotifyTrackId: z.string() }))
+        .input(z.object({ lastFMTrackURL: z.string() }))
         .query(async ({ ctx, input }) => {
             const creatorId = ctx.session.user.id
-            const spotifyTrack = await ctx.db.spotifyTrack.findUnique({
+            const lastFmTrack = await db.lastFMTrack.findUnique({
                 where: {
-                    id_creatorId: {
-                        spotifyTrackId: input.spotifyTrackId,
+                    trackurl_creatorId: {
+                        trackurl: input.lastFMTrackURL,
                         creatorId,
                     },
                 },
             })
-            return spotifyTrack
+            return lastFmTrack
         }),
 
     getCreatorRewardedTracks: protectedProcedure
@@ -177,7 +363,7 @@ export const spotifyRewardRouter = createTRPCRouter({
             const { limit, cursor } = input
             const creatorId = ctx.session.user.id
 
-            const items = await ctx.db.spotifyTrack.findMany({
+            const items = await db.lastFMTrack.findMany({
                 take: limit + 1,
                 cursor: cursor ? { id: cursor } : undefined,
                 where: { creatorId },
@@ -198,7 +384,7 @@ export const spotifyRewardRouter = createTRPCRouter({
 
     removeRewardedTrack: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
         const creatorId = ctx.session.user.id
-        return ctx.db.spotifyTrack.delete({
+        return db.lastFMTrack.delete({
             where: {
                 id: input.id,
                 creatorId,
@@ -216,14 +402,13 @@ export const spotifyRewardRouter = createTRPCRouter({
         .query(async ({ ctx, input }) => {
             const { limit, cursor } = input
 
-            const items = await ctx.db.spotifyTrack.findMany({
+            const items = await db.lastFMTrack.findMany({
                 take: limit + 1,
                 skip: cursor ? 1 : undefined,
                 ...(cursor && { cursor: { id: cursor } }),
                 where: {
-                    // Only show tracks that haven't reached their maximum reward amount
                     alreadyGivenAmount: {
-                        lt: ctx.db.spotifyTrack.fields.maximumRewardAmount,
+                        lt: db.lastFMTrack.fields.maximumRewardAmount,
                     },
                 },
                 orderBy: { createdAt: "desc" },
@@ -235,30 +420,26 @@ export const spotifyRewardRouter = createTRPCRouter({
                 nextCursor = nextItem?.id
             }
 
-            // Check if the current user has claimed these rewards and when they last claimed
             const userClaimData = ctx.session?.user?.id
-                ? await ctx.db.claimSpotifyReward.findMany({
+                ? await db.claimLastFMReward.findMany({
                     where: {
                         userId: ctx.session.user.id,
-                        spotifyTrackId: { in: items.map((item) => item.id) },
+                        lastFMTrackId: { in: items.map((item) => item.id) },
                     },
                     select: {
-                        spotifyTrackId: true,
+                        lastFMTrackId: true,
                         lastClaimedAt: true,
                         rewardAmount: true,
                     },
                     orderBy: { lastClaimedAt: "desc" },
-                    distinct: ["spotifyTrackId"],
+                    distinct: ["lastFMTrackId"],
                 })
                 : []
 
-            const claimDataMap = new Map(userClaimData.map((claim) => [claim.spotifyTrackId, claim]))
+            const claimDataMap = new Map(userClaimData.map((claim) => [claim.lastFMTrackId, claim]))
 
             const itemsWithClaimStatus = items.map((item) => {
                 const userClaim = claimDataMap.get(item.id)
-                // Determine if the user can claim this reward again
-                // If the user has never claimed this track, they can claim it
-                // If they have claimed it, check the last claimed date against the reward interval
                 const canClaimAgain = userClaim
                     ? new Date().getTime() - userClaim.lastClaimedAt.getTime() >= item.rewardIntervalDays * 24 * 60 * 60 * 1000
                     : true
@@ -285,20 +466,18 @@ export const spotifyRewardRouter = createTRPCRouter({
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.session.user.id
 
-            // 1. Check if user is connected to Spotify
-            const spotifyAccount = await ctx.db.spotifyAccount.findUnique({
+            const lastFmAccount = await db.lastFMAccount.findUnique({
                 where: { userId },
             })
 
-            if (!spotifyAccount) {
+            if (!lastFmAccount) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
-                    message: "Please connect your Spotify account first.",
+                    message: "Please connect your Last.fm account first.",
                 })
             }
 
-            // 2. Check if the reward exists and hasn't reached maximum
-            const rewardedTrack = await ctx.db.spotifyTrack.findUnique({
+            const rewardedTrack = await db.lastFMTrack.findUnique({
                 where: { id: input.rewardedTrackId },
             })
 
@@ -316,7 +495,6 @@ export const spotifyRewardRouter = createTRPCRouter({
                 })
             }
 
-            // 3. Check if enough reward amount is remaining
             if (rewardedTrack.alreadyGivenAmount + rewardedTrack.rewardAmount > rewardedTrack.maximumRewardAmount) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
@@ -324,11 +502,10 @@ export const spotifyRewardRouter = createTRPCRouter({
                 })
             }
 
-            // 4. Check if the user has waited enough time since last claim
-            const lastClaim = await ctx.db.claimSpotifyReward.findFirst({
+            const lastClaim = await db.claimLastFMReward.findFirst({
                 where: {
                     userId,
-                    spotifyTrackId: input.rewardedTrackId,
+                    lastFMTrackId: input.rewardedTrackId,
                 },
                 orderBy: { lastClaimedAt: "desc" },
             })
@@ -346,21 +523,16 @@ export const spotifyRewardRouter = createTRPCRouter({
                 }
             }
 
-            // 5. TODO: Check if user has recently played this track on Spotify
-            // This would require calling Spotify API to get user's recent tracks
-            // For now, we'll skip this check but you should implement it
-
-            // 6. Create the claim entry and update the track's given amount
-            const [newClaim] = await ctx.db.$transaction([
-                ctx.db.claimSpotifyReward.create({
+            const [newClaim] = await db.$transaction([
+                db.claimLastFMReward.create({
                     data: {
                         userId,
-                        spotifyTrackId: input.rewardedTrackId,
+                        lastFMTrackId: input.rewardedTrackId,
                         lastClaimedAt: new Date(),
                         rewardAmount: rewardedTrack.rewardAmount,
                     },
                 }),
-                ctx.db.spotifyTrack.update({
+                db.lastFMTrack.update({
                     where: { id: input.rewardedTrackId },
                     data: {
                         alreadyGivenAmount: {
@@ -374,43 +546,9 @@ export const spotifyRewardRouter = createTRPCRouter({
                 success: true,
                 claim: newClaim,
                 rewardAmount: rewardedTrack.rewardAmount,
-
             }
         }),
-    checkUserRecentTracks: protectedProcedure
-        .input(z.object({ spotifyTrackId: z.string() }))
-        .mutation(async ({ ctx, input }) => {
-            const userId = ctx.session.user.id
 
-            // Get user's Spotify account
-            const spotifyAccount = await ctx.db.spotifyAccount.findUnique({
-                where: { userId },
-            })
-
-            if (!spotifyAccount?.accessToken) {
-                throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Spotify account not connected or token expired.",
-                })
-            }
-
-            try {
-                const hasPlayedRecently = await checkUserRecentlyPlayedTrack(spotifyAccount, input.spotifyTrackId)
-
-                return {
-                    hasPlayedRecently,
-                    message: hasPlayedRecently
-                        ? "Track found in your recent listening history!"
-                        : "Track not found in recent listening history. Please play the song on Spotify first.",
-                }
-            } catch (error) {
-                console.error("Spotify API error:", error)
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: "Failed to check recent tracks.",
-                })
-            }
-        }),
     sendRewardsToStorage: protectedProcedure
         .input(
             z.object({
@@ -430,7 +568,7 @@ export const spotifyRewardRouter = createTRPCRouter({
                     message: "Invalid reward currency format. Expected 'assetId-assetIssuer'.",
                 })
             }
-            const creator = await ctx.db.creator.findUnique({
+            const creator = await db.creator.findUnique({
                 where: { id: creatorId },
             })
             if (!creator) {
@@ -440,7 +578,6 @@ export const spotifyRewardRouter = createTRPCRouter({
                 })
             }
 
-            // Validate that maximumRewardAmount is greater than 0
             if (maximumRewardAmount <= 0) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
@@ -448,7 +585,7 @@ export const spotifyRewardRouter = createTRPCRouter({
                 })
             }
 
-            console.log("Storage Secrat:", creator.storageSecret)
+            console.log("Storage Secret:", creator.storageSecret)
             return sendRewardAssetToStorage({
                 assetCode: assetId,
                 assetIssuer,
@@ -456,24 +593,26 @@ export const spotifyRewardRouter = createTRPCRouter({
                 storageSecret: creator.storageSecret,
                 userId: creatorId,
             })
-        }
-        ),
+        }),
+
     getClaimXDR: protectedProcedure
-        .input(z.object({ rewardedTrackId: z.number() }))
+        .input(z.object({
+            rewardedTrackId: z.number(), signWith: SignUser,
+        }))
         .mutation(async ({ ctx, input }) => {
             const { rewardedTrackId } = input
             const userId = ctx.session.user.id
-            const spotifyTrack = await ctx.db.spotifyTrack.findUnique({
+            const lastFmTrack = await db.lastFMTrack.findUnique({
                 where: { id: rewardedTrackId },
             })
-            if (!spotifyTrack) {
+            if (!lastFmTrack) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
                     message: "Rewarded track not found.",
                 })
             }
-            const creator = await ctx.db.creator.findUnique({
-                where: { id: spotifyTrack.creatorId },
+            const creator = await db.creator.findUnique({
+                where: { id: lastFmTrack.creatorId },
             })
             if (!creator) {
                 throw new TRPCError({
@@ -483,98 +622,12 @@ export const spotifyRewardRouter = createTRPCRouter({
             }
 
             return getClaimXDR({
-                assetCode: spotifyTrack.assetId,
-                rewardAmount: spotifyTrack.rewardAmount,
-                assetIssuer: spotifyTrack.assetIssuer,
+                assetCode: lastFmTrack.assetId,
+                rewardAmount: lastFmTrack.rewardAmount,
+                assetIssuer: lastFmTrack.assetIssuer,
                 storageSecret: creator.storageSecret,
                 userId,
+                signWith: input.signWith,
             })
-
-        })
+        }),
 })
-type SpotifyAccount = {
-    accessToken: string | null;
-    refreshToken: string | null;
-    expiresAt: Date | null;
-};
-
-type SpotifyTrackItem = {
-    track: { id: string };
-};
-
-type RecentlyPlayedResponse = {
-    items: SpotifyTrackItem[];
-};
-
-type TopTracksResponse = {
-    items: { id: string }[];
-};
-
-type CurrentlyPlayingResponse = {
-    item?: { id: string };
-};
-
-export async function checkUserRecentlyPlayedTrack(
-    spotifyAccount: SpotifyAccount,
-    trackId: string,
-): Promise<boolean> {
-    if (!spotifyAccount.accessToken) {
-        throw new Error("No access token available");
-    }
-
-    const headers = {
-        Authorization: `Bearer ${spotifyAccount.accessToken}`,
-    };
-
-    // 1. Recently Played Tracks
-    try {
-        const recentlyPlayedResponse = await fetch("https://api.spotify.com/v1/me/player/recently-played?limit=50", {
-            headers,
-        });
-
-        if (recentlyPlayedResponse.ok) {
-            const data = (await recentlyPlayedResponse.json()) as RecentlyPlayedResponse;
-            const recentTrackIds = data.items?.map(item => item.track?.id) ?? [];
-            if (recentTrackIds.includes(trackId)) {
-                return true;
-            }
-        }
-    } catch (error) {
-        console.error("Error checking recently played tracks:", error);
-    }
-
-    // 2. Top Tracks (short_term)
-    try {
-        const topTracksResponse = await fetch("https://api.spotify.com/v1/me/top/tracks?limit=50&time_range=short_term", {
-            headers,
-        });
-
-        if (topTracksResponse.ok) {
-            const data = (await topTracksResponse.json()) as TopTracksResponse;
-            const topTrackIds = data.items?.map(track => track.id) ?? [];
-            if (topTrackIds.includes(trackId)) {
-                return true;
-            }
-        }
-    } catch (error) {
-        console.error("Error checking top tracks:", error);
-    }
-
-    // 3. Currently Playing
-    try {
-        const currentPlayingResponse = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
-            headers,
-        });
-
-        if (currentPlayingResponse.ok && currentPlayingResponse.status !== 204) {
-            const data = (await currentPlayingResponse.json()) as CurrentlyPlayingResponse;
-            if (data.item?.id === trackId) {
-                return true;
-            }
-        }
-    } catch (error) {
-        console.error("Error checking currently playing:", error);
-    }
-
-    return false;
-}

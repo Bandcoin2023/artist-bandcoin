@@ -522,7 +522,7 @@ function AddToSongForm({
                                         alt={album.name}
                                         width={24}
                                         height={24}
-                                        className="rounded"
+                                        className="rounded h-8 w-8"
                                     />
                                     {album.name}
                                 </div>

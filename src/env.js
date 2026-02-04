@@ -77,6 +77,10 @@ export const env = createEnv({
     NEXT_PUBLIC_SQUARE_APP_ID: z.string(),
     NEXT_PUBLIC_SQUARE_LOCATION: z.string(),
     NEXT_PUBLIC_HOME_DOMAIN: z.string(),
+    // LAST FM API
+    NEXT_PUBLIC_LASTFM_API_KEY: z.string(),
+    NEXT_PUBLIC_LASTFM_SHARED_SECRET: z.string(),
+    NEXT_PUBLIC_LASTFM_CALLBACK_URL: z.string().url(),
   },
 
   /**
@@ -121,6 +125,11 @@ export const env = createEnv({
     QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY,
     KV_REST_API_URL: process.env.KV_REST_API_URL,
     KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN,
+    NEXT_PUBLIC_LASTFM_API_KEY: process.env.NEXT_PUBLIC_LASTFM_API_KEY,
+    NEXT_PUBLIC_LASTFM_SHARED_SECRET:
+      process.env.NEXT_PUBLIC_LASTFM_SHARED_SECRET,
+    NEXT_PUBLIC_LASTFM_CALLBACK_URL:
+      process.env.NEXT_PUBLIC_LASTFM_CALLBACK_URL,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

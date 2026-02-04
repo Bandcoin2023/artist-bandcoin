@@ -327,10 +327,10 @@ export default function CreatorLayout({
                               <Button
                                 size="icon"
                                 className={cn(
-                                  "hover:scale-109 hover: h-12 w-12 shadow-lg transition-transform hover:bg-foreground",
+                                  "hover:scale-109 hover: h-12 w-12 shadow-lg transition-transform hover:bg-primary ",
                                   item.color,
-                                  "text-white",
-                                  path === item.href ? "bg-foreground " : "",
+                                  "text-white ",
+                                  path === item.href ? "bg-primary " : "",
                                 )}
                                 onClick={() => setIsExpanded(false)}
                               >
@@ -454,10 +454,16 @@ const CreatorNavigation: DockerItem[] = [
     label: "MAP",
     color: "bg-pink-500",
   },
+  // {
+  //   href: "/artist/spotify",
+  //   icon: "spotify",
+  //   label: "SPOTIFY",
+  //   color: "bg-yellow-500",
+  // },
   {
-    href: "/artist/spotify",
-    icon: "spotify",
-    label: "SPOTIFY",
+    href: "/artist/lastfm",
+    icon: "lastfm",
+    label: "LASTFM",
     color: "bg-yellow-500",
   },
   {

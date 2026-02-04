@@ -387,6 +387,22 @@ model User {
     bountyRedeems      BountyRedeem[]
     creditBalance      CreditBalance?
     temporalFollows    TemporalFollow[]
+    lastFMAccount      LastFMAccount?
+    lastFMTracks       LastFMTrack[]
+    claimLastFMRewards ClaimLastFMReward[]
+}
+
+model LastFMAccount {
+    id         String  @id @default(cuid())
+    username   String
+    realName   String?
+    country    String
+    sessionKey String  @unique
+    profileUrl String
+    image      String?
+    playCount  Int     @default(0)
+    userId     String  @unique
+    user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SpotifyAccount {
@@ -954,9 +970,44 @@ model SpotifyTrack {
     creator             User                 @relation(fields: [creatorId], references: [id], onDelete: Cascade)
     createdAt           DateTime             @default(now())
     updatedAt           DateTime             @default(now())
-    ClaimSpotifyReward  ClaimSpotifyReward[]
+    claimSpotifyRewards ClaimSpotifyReward[]
 
-    @@unique([spotifyTrackId, creatorId]) // A creator can only reward a specific track once
+    @@unique([id, creatorId]) // A creator can only reward a specific track once
+}
+
+model LastFMTrack {
+    id                  Int                 @id @default(autoincrement())
+    trackurl            String // Spotify's unique ID for the track
+    trackName           String
+    artistName          String
+    albumName           String?
+    albumCoverUrl       String?
+    rewardIntervalDays  Int // e.g., 7 for weekly, 30 for monthly
+    rewardAmount        Float
+    maximumRewardAmount Float // Maximum total reward that can be given for this track
+    alreadyGivenAmount  Float               @default(0) // Amount already given out for this track
+    assetId             String
+    assetIssuer         String // The issuer of the asset
+    creatorId           String // The creator who added this reward
+    creator             User                @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+    createdAt           DateTime            @default(now())
+    updatedAt           DateTime            @default(now())
+    claimLastFMRewards  ClaimLastFMReward[]
+
+    @@unique([trackurl, creatorId]) // A creator can only reward a specific track once
+}
+
+model ClaimLastFMReward {
+    id            Int         @id @default(autoincrement())
+    userId        String // The user who claimed the reward
+    user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+    lastFMTrackId Int // The LastFM track ID
+    lastFMTrack   LastFMTrack @relation(fields: [lastFMTrackId], references: [id], onDelete: Cascade)
+    claimedAt     DateTime    @default(now())
+    lastClaimedAt DateTime // Track when the user last claimed this reward
+    rewardAmount  Float // Amount claimed in this specific claim
+
+    @@index([userId, lastFMTrackId, lastClaimedAt]) // Index for efficient querying
 }
 
 model ClaimSpotifyReward {

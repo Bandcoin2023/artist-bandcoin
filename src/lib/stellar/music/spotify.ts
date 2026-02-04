@@ -2,6 +2,7 @@ import { Asset, BASE_FEE, Horizon, Keypair, Operation, TransactionBuilder } from
 import { STELLAR_URL, TrxBaseFee, networkPassphrase } from "../constant";
 import { env } from "~/env";
 import { StellarAccount } from "~/lib/stellar/stellar";
+import { SignUserType, WithSing } from "../utils";
 
 export const sendRewardAssetToStorage = async (
     {
@@ -25,8 +26,8 @@ export const sendRewardAssetToStorage = async (
     const transactionInializer = await server.loadAccount(motherKeyPair.publicKey());
     const storageKeyPair = Keypair.fromSecret(storageSecret);
     const storageAcc = await StellarAccount.create(storageKeyPair.publicKey());
-
     const hasTrust = storageAcc.hasTrustline(asset.code, asset.issuer);
+
 
     const Tx1 = new TransactionBuilder(transactionInializer, {
         fee: TrxBaseFee,
@@ -53,7 +54,7 @@ export const sendRewardAssetToStorage = async (
         buildTrx.sign(motherKeyPair, storageKeyPair);
     }
     else {
-        buildTrx.sign(storageKeyPair);
+        buildTrx.sign(motherKeyPair);
     }
     return buildTrx.toXDR();
 
@@ -66,13 +67,17 @@ export const getClaimXDR = async (
         rewardAmount,
         assetIssuer,
         storageSecret,
-        userId
+        userId,
+        signWith,
+
     }: {
         assetCode: string;
         rewardAmount: number;
         assetIssuer: string;
         storageSecret: string;
         userId: string;
+        signWith: SignUserType;
+
     }
 ) => {
     const asset = new Asset(assetCode, assetIssuer);
@@ -107,8 +112,10 @@ export const getClaimXDR = async (
     ).setTimeout(0);
     const buildTrx = Tx1.build();
     buildTrx.sign(motherKeyPair, storageKeyPair);
+    const xdr = buildTrx.toXDR();
+    const signedXDR = await WithSing({ xdr, signWith });
     return {
-        xdr: buildTrx.toXDR(),
+        xdr: signedXDR,
         needSign: !hasTrust,
     };
 

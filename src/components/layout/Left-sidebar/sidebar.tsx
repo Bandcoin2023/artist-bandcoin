@@ -28,7 +28,9 @@ export const LeftNavigation: NavItem[] = [
   { href: "/bounty", icon: "bounty", title: "BOUNTY" },
   { href: "/artist/home", icon: "creator", title: "ARTIST" },
   // { href: "/settings", icon: "setting", title: "SETTINGS" },
-  { href: "/spotify", icon: "spotify", title: "SPOTIFY" },
+  // { href: "/spotify", icon: "spotify", title: "SPOTIFY" },
+  { href: "/lastfm", icon: "lastfm", title: "LASTFM" },
+
   { href: "https://showcase.bandcoin.io/vibeportal", icon: "link", title: "VIBE STUDIO" },
 ];
 

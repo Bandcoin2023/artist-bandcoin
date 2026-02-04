@@ -16,6 +16,7 @@ import { qrRouter } from "./routers/qr";
 import { agentRouter } from "./routers/agent";
 import { aiRouter } from "./routers/ai";
 import { creditRouter } from "./routers/credit"
+import { lastFMRouter } from "./routers/lastfm";
 
 /**
  * This is the primary router for your server.
@@ -40,6 +41,7 @@ export const appRouter = createTRPCRouter({
   agent: agentRouter,
   ai: aiRouter,
   credit: creditRouter,
+  lastfm: lastFMRouter,
 });
 
 // export type definition of API

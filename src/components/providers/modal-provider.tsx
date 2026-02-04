@@ -21,6 +21,7 @@ import ExportCreateSongModal from "../modal/export-create-song-modal";
 import CreateRoyalityModal from "../modal/create-royality-modal";
 import { AddSpotifyRewardDialog } from "../modal/add-spotify-reward-dialog";
 import SellPageAssetModal from "../modal/sell-page-asset-modal";
+import { AddLastFMRewardDialog } from "../modal/add-lastfm-reward-dialog";
 
 const ModalProvider = () => {
       const [isMounted, setIsMounted] = useState(false);
@@ -49,7 +50,7 @@ const ModalProvider = () => {
                   <CreatorStoredAssetModal />
                   <CreateSongModal />
                   <ShareModal />
-
+                  <AddLastFMRewardDialog />
                   <CreatePostModal />
                   <AddSubscriptionModal />
                   <ExportCreateSongModal />
