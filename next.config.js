@@ -44,6 +44,9 @@ const config = {
       {
         hostname: `${process.env.NEXT_AWS_BUCKET_NAME}.s3.us-east-1.amazonaws.com`,
       },
+      {
+        hostname: "https://lastfm.freetls.fastly.net",
+      },
     ],
     unoptimized: true,
   },

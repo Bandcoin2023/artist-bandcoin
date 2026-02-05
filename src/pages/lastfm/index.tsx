@@ -10,35 +10,40 @@ import { Badge } from "~/components/shadcn/ui/badge"
 import {
     Loader2,
     Music,
-    Heart,
-    HeartOff,
-    Calendar,
-    TrendingUp,
-    Play,
-    Disc3,
     AlertTriangle,
     XCircle,
     CheckCircle,
+    Youtube,
+    Zap,
 } from "lucide-react"
 import Image from "next/image"
 import { Skeleton } from "~/components/shadcn/ui/skeleton"
 import { useRouter } from "next/router"
 import { ScrollArea } from "~/components/shadcn/ui/scroll-area"
 import { Alert, AlertDescription } from "~/components/shadcn/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/shadcn/ui/tabs"
 import { env } from "~/env"
-import { Gift, Info, Link as LinkIcon } from "lucide-react"
+import { Gift, Link as LinkIcon } from "lucide-react"
 import { clientsign } from "package/connect_wallet"
 import { clientSelect } from "~/lib/stellar/fan/utils"
 import { WalletType } from "~/types/wallet/wallet-types"
 import toast from "react-hot-toast"
 import useNeedSign from "~/lib/hook"
+import { Icons } from "~/components/layout/Left-sidebar/icons"
 
 type LastFmTrack = {
     name: string
-    artist: string
+    artist: {
+        name: string
+        url: string
+    }
     url: string
-    image: string
+    image: Array<{ "#text": string; size: string }>
+    playcount?: string
+    loved?: string
+    date?: {
+        uts: string
+        "#text": string
+    }
 }
 
 type RewardTrackWithStatus = {
@@ -51,6 +56,10 @@ type RewardTrackWithStatus = {
     artistName: string
     albumName?: string | null
     albumCoverUrl?: string | null
+    trackImageUrl?: string | null
+    trackurl: string
+    spotifyURL?: string | null
+    youtubeURL?: string | null
     rewardAmount: number
     assetId: string
     rewardIntervalDays: number
@@ -71,7 +80,6 @@ const LastFMPage = () => {
     } = api.lastfm.getlastFMAccount.useQuery(undefined, {
         enabled: status === "authenticated",
     })
-
 
 
 
@@ -141,156 +149,193 @@ const LastFMPage = () => {
         }
 
         const authUrl =
-            `https://www.last.fm/api/auth/?` +
-            `api_key=${clientId}&` +
-            `callback_url=${encodeURIComponent(callbackUrl)}&` +
-            `state=${encodeURIComponent(state)}`
+            `http://www.last.fm/api/auth/?` +
+            `api_key=${clientId}`
 
         window.location.href = authUrl
     }
 
     if (status === "loading" || isLoadingAccount) {
         return (
-            <div className="flex items-center justify-center min-h-[calc(100vh-10vh)]">
-                <div className="flex flex-col items-center space-y-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <span className="text-lg text-muted-foreground">Loading Last.fm integration...</span>
+            <main className="min-h-screen  flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                    <span className=" font-medium">Loading your music rewards...</span>
                 </div>
-            </div>
+            </main>
         )
     }
 
     if (status === "unauthenticated") {
         return (
-            <div className="flex items-center justify-center min-h-[calc(100vh-10vh)] p-4">
-                <Card className="w-full max-w-md">
-                    <CardHeader className="text-center">
-                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                            <Music className="h-8 w-8 text-primary" />
+            <main className="min-h-screen  flex items-center justify-center p-4">
+                <Card className="w-full max-w-md border-slate-200 shadow-lg">
+                    <CardHeader className="text-center pb-6">
+                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
+                            <Music className="h-8 w-8 text-blue-600" />
                         </div>
-                        <CardTitle className="text-2xl">Last.fm Integration</CardTitle>
+                        <CardTitle className="text-3xl font-bold ">Music Rewards</CardTitle>
+                        <p className=" text-sm mt-2">Track your listening and earn rewards</p>
                     </CardHeader>
-                    <CardContent className="text-center space-y-4">
-                        <p className="text-muted-foreground">
-                            Please sign in to connect your Last.fm account and track your music.
-                        </p>
-                        <Button onClick={() => router.push("/api/auth/signin")} className="w-full">
+                    <CardContent className="space-y-4">
+                        <Button
+                            onClick={() => router.push("/api/auth/signin")}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-11"
+                        >
                             Sign In to Continue
                         </Button>
+                        <p className="text-xs text-slate-500 text-center">
+                            By signing in, you agree to our terms and privacy policy
+                        </p>
                     </CardContent>
                 </Card>
-            </div>
+            </main>
         )
     }
 
     return (
-        <div className="container mx-auto p-4 py-8 space-y-8">
-            {/* Connection Status Card */}
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                                <Music className="h-6 w-6 text-primary" />
+        <main className="">
+            {/* Header Section */}
+            <div className="border-b border-slate-200 ">
+                <div className="p-2">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
+                                <Music className="h-6 w-6 text-blue-600" />
                             </div>
                             <div>
-                                <CardTitle className="text-2xl">Last.fm Integration</CardTitle>
-                                <p className="text-sm text-muted-foreground">Track your music listening history</p>
+                                <h1 className="text-2xl font-bold ">Last.fm Rewards</h1>
+                                <p className="text-sm ">Earn tokens from your listening history</p>
                             </div>
                         </div>
-                        {lastfmAccount ? (
-                            <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">
-                                <XCircle className="mr-1 h-4 w-4" />
-                                Connected
-                            </Badge>
-                        ) : (
-                            <Badge variant="secondary" className="bg-muted text-muted-foreground">
-                                <XCircle className="mr-1 h-4 w-4" />
-                                Disconnected
-                            </Badge>
+                        <Badge className={`px-3 py-1.5 font-medium ${lastfmAccount ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: lastfmAccount ? '#10b981' : '#94a3b8' }} />
+                            {lastfmAccount ? 'Connected' : 'Disconnected'}
+                        </Badge>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="p-2 ">
+                <div className="grid lg:grid-cols-3 gap-2 ">
+                    {/* Connection Panel */}
+                    <div className="lg:col-span-1  h-[calc(100vh-20vh)]">
+                        <Card className="border-slate-200 shadow-sm h-full">
+                            <CardHeader>
+                                <CardTitle className="text-lg ">Account</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {lastfmAccount ? (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-4">
+                                            {lastfmAccount.image ? (
+                                                <Image
+                                                    src={lastfmAccount.image || "/placeholder.svg"}
+                                                    alt="Last.fm Profile"
+                                                    width={64}
+                                                    height={64}
+                                                    className="rounded-full border-2 border-slate-200"
+                                                />
+                                            ) : (
+                                                <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-slate-200 bg-slate-100">
+                                                    <Music className="h-6 w-6 text-slate-400" />
+                                                </div>
+                                            )}
+                                            <div className="min-w-0">
+                                                <h3 className="font-semibold  truncate">{lastfmAccount.username}</h3>
+                                                <p className="text-sm ">{lastfmAccount.playCount.toLocaleString()} plays</p>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3 pt-4 border-t border-slate-200">
+                                            <div className="space-y-2">
+                                                <p className="text-xs font-semibold  uppercase tracking-wide">Connect Platforms</p>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <Button
+                                                        onClick={() => window.open('https://www.last.fm/about/trackmymusic', '_blank')}
+                                                        className="bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 font-medium h-10"
+                                                        variant="outline"
+                                                    >
+                                                        <Icons.spotify className="mr-2 h-4 w-4" />
+                                                        Spotify
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => window.open('https://www.last.fm/about/trackmymusic', '_blank')}
+                                                        className="bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 font-medium h-10"
+                                                        variant="outline"
+                                                    >
+                                                        <Youtube className="mr-2 h-4 w-4" />
+                                                        YouTube
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                onClick={() => disconnectMutation.mutate()}
+                                                disabled={isDisconnecting}
+                                                className="w-full bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 font-medium"
+                                                variant="outline"
+                                            >
+                                                {isDisconnecting ? (
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                ) : (
+                                                    <XCircle className="mr-2 h-4 w-4" />
+                                                )}
+                                                Disconnect
+                                            </Button>
+                                        </div>
+
+                                        {/* How to Claim Rewards */}
+                                        <div className="space-y-3 pt-4 border-t border-slate-200">
+                                            <div className="flex items-start gap-2">
+                                                <Zap className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                                                <div>
+                                                    <p className="text-sm font-semibold  mb-2">How to Claim</p>
+                                                    <ol className="text-xs  space-y-1.5 list-decimal list-inside">
+                                                        <li>Listen to tracks on Last.fm</li>
+                                                        <li>Click Claim Reward button</li>
+
+                                                    </ol>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4 text-center">
+                                        <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-blue-100">
+                                            <Music className="h-6 w-6 text-blue-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm  font-medium">Not Connected</p>
+                                            <p className="text-xs text-slate-500 mt-1">Connect your Last.fm account to start</p>
+                                        </div>
+                                        <Button
+                                            onClick={handleConnectLastFm}
+                                            disabled={isConnecting}
+                                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-10"
+                                        >
+                                            {isConnecting ? (
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Music className="mr-2 h-4 w-4" />
+                                            )}
+                                            Connect Last.fm
+                                        </Button>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div className=" lg:col-span-2 space-y-8 ">
+                        {/* Rewards Section */}
+                        {lastfmAccount && (
+                            <RewardedSongsList lastfmAccountConnected={!!lastfmAccount} />
                         )}
                     </div>
-                </CardHeader>
-                <CardContent>
-                    {lastfmAccount ? (
-                        <div className="space-y-6">
-                            <div className="flex items-center space-x-4 rounded-lg bg-muted/50 p-4">
-                                <div className="relative">
-                                    {lastfmAccount.image ? (
-                                        <Image
-                                            src={lastfmAccount.image || "/placeholder.svg"}
-                                            alt="Last.fm Profile"
-                                            width={80}
-                                            height={80}
-                                            className="rounded-full border-2 border-border"
-                                        />
-                                    ) : (
-                                        <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-border bg-muted">
-                                            <Music className="h-8 w-8 text-muted-foreground" />
-                                        </div>
-                                    )}
-                                    <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-emerald-500">
-                                        <XCircle className="h-3 w-3 text-white" />
-                                    </div>
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="text-xl font-semibold">{lastfmAccount.username}</h3>
-                                    {lastfmAccount.realName && (
-                                        <p className="text-muted-foreground">{lastfmAccount.realName}</p>
-                                    )}
-                                    <div className="mt-2 flex items-center gap-2">
-                                        <Badge variant="outline">{lastfmAccount.playCount} plays</Badge>
-                                        {lastfmAccount.country && (
-                                            <Badge variant="secondary">{lastfmAccount.country}</Badge>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            <Button
-                                onClick={() => disconnectMutation.mutate()}
-                                disabled={isDisconnecting}
-                                variant="outline"
-                                className="border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground w-full"
-                            >
-                                {isDisconnecting ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                )}
-                                Disconnect Last.fm Account
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="space-y-6">
-                            <Alert>
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertDescription>
-                                    Connect your Last.fm account to see your listening stats, loved tracks, and more.
-                                </AlertDescription>
-                            </Alert>
-                            <Button
-                                onClick={handleConnectLastFm}
-                                disabled={isConnecting}
-                                size="lg"
-                                className="w-full"
-                            >
-                                {isConnecting ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Music className="mr-2 h-4 w-4" />
-                                )}
-                                Connect Last.fm Account
-                            </Button>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Rewarded Songs Section */}
-            {lastfmAccount && (
-                <RewardedSongsList lastfmAccountConnected={!!lastfmAccount} />
-            )}
-        </div>
+                </div>
+            </div>
+        </main>
     )
 }
 
@@ -302,23 +347,19 @@ const RewardedSongsList: React.FC<RewardedSongsListProps> = ({ lastfmAccountConn
     const utils = api.useUtils()
     const [isSubmitting, setIsSubmitting] = useState(false)
     const session = useSession()
-    const router = useRouter()
     const { needSign } = useNeedSign()
-
     const scrollAreaRef = React.useRef<HTMLDivElement>(null)
 
     const GetClaimXDR = api.lastfm.getClaimXDR.useMutation({
         onSuccess: async (data, variables) => {
             if (data) {
                 const { xdr, needSign } = data
-                console.log("Received claim XDR:", xdr, "Need sign:", needSign)
                 try {
                     setIsSubmitting(true)
                     const clientResponse = await clientsign({
                         presignedxdr: xdr,
                         walletType: needSign ? session.data?.user?.walletType : WalletType.isAdmin,
                         pubkey: session.data?.user?.id,
-
                         test: clientSelect(),
                     })
 
@@ -405,13 +446,24 @@ const RewardedSongsList: React.FC<RewardedSongsListProps> = ({ lastfmAccountConn
         return `${minutes}m`
     }
 
-    const getButtonState = (reward: RewardTrackWithStatus) => {
+    const getButtonState = (reward: RewardTrackWithStatus, isInRecentTracks: boolean) => {
         if (!lastfmAccountConnected) {
             return {
                 disabled: true,
                 text: "Connect Last.fm",
                 variant: "secondary" as const,
                 icon: <LinkIcon className="w-4 h-4 mr-1" />,
+                tooltip: "Please connect your Last.fm account"
+            }
+        }
+
+        if (!isInRecentTracks) {
+            return {
+                disabled: true,
+                text: "Not Played",
+                variant: "secondary" as const,
+                icon: <AlertTriangle className="w-4 h-4 mr-1" />,
+                tooltip: "You must listen to this track on Last.fm first"
             }
         }
 
@@ -421,6 +473,7 @@ const RewardedSongsList: React.FC<RewardedSongsListProps> = ({ lastfmAccountConn
                 text: "Claim Reward",
                 variant: "default" as const,
                 icon: <Gift className="w-4 h-4 mr-1" />,
+                tooltip: "Claim reward for this track"
             }
         }
 
@@ -430,6 +483,7 @@ const RewardedSongsList: React.FC<RewardedSongsListProps> = ({ lastfmAccountConn
                 text: "Claim Again",
                 variant: "default" as const,
                 icon: <Gift className="w-4 h-4 mr-1" />,
+                tooltip: "Claim reward again"
             }
         }
 
@@ -438,50 +492,19 @@ const RewardedSongsList: React.FC<RewardedSongsListProps> = ({ lastfmAccountConn
             text: "Claimed",
             variant: "secondary" as const,
             icon: <CheckCircle className="w-4 h-4 mr-1" />,
+            tooltip: "You have already claimed this reward"
         }
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex items-center justify-between">
-                    <div>
-                        <CardTitle className="text-xl flex items-center gap-2">
-                            <Gift className="h-5 w-5 text-primary" />
-                            Rewarded Songs
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">Listen to tracks on Last.fm to claim rewards</p>
-                    </div>
-                    {rewardedTracks.length > 0 && <Badge variant="secondary">{rewardedTracks.length} available</Badge>}
-                </div>
+        <Card className="border-slate-200 shadow-sm  h-[calc(100vh-20vh)]">
+            <CardHeader className="border-b border-slate-200 pb-6">
+                <CardTitle className="text-xl ">Available Rewards</CardTitle>
+                <p className="text-sm  mt-1">
+                    {rewardedTracks.length} {rewardedTracks.length === 1 ? 'track' : 'tracks'} available to claim
+                </p>
             </CardHeader>
-            <CardContent>
-                {!lastfmAccountConnected && (
-                    <Alert className="mb-6 border-primary/20 bg-primary/5">
-                        <Info className="h-4 w-4 text-primary" />
-                        <AlertDescription className="text-primary">
-                            Connect your Last.fm account above to start claiming music rewards!
-                        </AlertDescription>
-                    </Alert>
-                )}
-
-                {lastfmAccountConnected && (
-                    <Alert className="mb-6 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
-                        <AlertTriangle className="h-4 w-4 text-amber-600" />
-                        <AlertDescription className="text-amber-800 dark:text-amber-200">
-                            <div className="space-y-1">
-                                <p className="font-semibold">How to claim rewards:</p>
-                                <ol className="list-decimal list-inside text-sm space-y-1">
-                                    <li>Listen to the tracks on Last.fm</li>
-                                    <li>Click Claim Reward on the track</li>
-                                    <li>Sign the transaction with your wallet</li>
-                                    <li>Reward will be transferred to your wallet</li>
-                                </ol>
-                            </div>
-                        </AlertDescription>
-                    </Alert>
-                )}
-
+            <CardContent className="pt-6">
                 {isLoading ? (
                     <div className="space-y-3">
                         {Array.from({ length: 5 }).map((_, i) => (
@@ -489,95 +512,142 @@ const RewardedSongsList: React.FC<RewardedSongsListProps> = ({ lastfmAccountConn
                         ))}
                     </div>
                 ) : rewardedTracks.length > 0 ? (
-                    <ScrollArea ref={scrollAreaRef} className="h-[600px] border rounded-lg">
-                        <div className="space-y-3 p-4">
+                    <ScrollArea ref={scrollAreaRef} className="h-[600px]">
+                        <div className="space-y-3 pr-4">
                             {rewardedTracks.map((reward) => {
-                                const buttonState = getButtonState(reward)
+                                const buttonState = getButtonState(reward, reward.isInRecentTracks)
+                                const trackImage = reward.albumCoverUrl ?? reward.trackImageUrl
                                 return (
                                     <div
                                         key={reward.id}
-                                        className="flex flex-col gap-3 rounded-lg border p-4 bg-card hover:bg-muted/50 transition-colors"
+                                        className="flex gap-4 rounded-lg border border-slate-200 p-4 bg-secondary hover:shadow-md hover:border-slate-300 transition-all group"
                                     >
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <h4 className="font-semibold text-sm">{reward.trackName}</h4>
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {reward.rewardAmount} {reward.assetId}
-                                                    </Badge>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground mt-1">{reward.artistName}</p>
-                                                {reward.albumName && (
-                                                    <p className="text-xs text-muted-foreground">{reward.albumName}</p>
-                                                )}
-                                            </div>
-                                            {reward.albumCoverUrl && (
-                                                <div className="ml-4">
-                                                    <Image
-                                                        src={reward.albumCoverUrl || "/placeholder.svg"}
-                                                        alt={reward.trackName}
-                                                        width={60}
-                                                        height={60}
-                                                        className="rounded h-8 w-8"
-                                                    />
-                                                </div>
-                                            )}
+                                        <div className="flex-shrink-0">
+                                            <Image
+                                                src={trackImage ?? "/images/logo.png"}
+                                                alt={reward.trackName}
+                                                width={80}
+                                                height={80}
+                                                className="rounded-lg h-20 w-20 object-cover shadow-sm"
+                                            />
                                         </div>
 
-                                        <div className="flex items-center justify-between gap-2 pt-2 border-t">
-                                            <div className="flex items-center gap-4 text-xs">
-                                                <div>
-                                                    <p className="text-muted-foreground">Interval</p>
-                                                    <p className="font-semibold">{reward.rewardIntervalDays} days</p>
+                                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <h4 className="font-semibold  text-sm group-hover:text-blue-600 transition-colors">{reward.trackName}</h4>
+                                                    {reward.isInRecentTracks && (
+                                                        <Badge className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                            <CheckCircle className="w-3 h-3 mr-1" />
+                                                            Played
+                                                        </Badge>
+                                                    )}
                                                 </div>
-                                                <div>
-                                                    <p className="text-muted-foreground">Given</p>
-                                                    <p className="font-semibold">
-                                                        {reward.alreadyGivenAmount} / {reward.maximumRewardAmount}
-                                                    </p>
-                                                </div>
-                                                {reward.isClaimed && reward.nextClaimAvailable && (
-                                                    <div>
-                                                        <p className="text-muted-foreground">Next Claim</p>
-                                                        <p className="font-semibold text-orange-600">
-                                                            {formatTimeRemaining(reward.nextClaimAvailable)}
-                                                        </p>
-                                                    </div>
+                                                <p className="text-xs  mt-1">{reward.artistName}</p>
+                                                {reward.albumName && (
+                                                    <p className="text-xs text-slate-500">{reward.albumName}</p>
                                                 )}
                                             </div>
-                                            <Button
-                                                size="sm"
-                                                disabled={buttonState.disabled || isSubmitting}
-                                                onClick={() => GetClaimXDR.mutate({
-                                                    rewardedTrackId: reward.id, signWith: needSign(),
-                                                })}
-                                                variant={buttonState.variant}
-                                                className="whitespace-nowrap"
-                                            >
-                                                {isSubmitting ? (
-                                                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                                ) : (
-                                                    buttonState.icon
-                                                )}
-                                                {buttonState.text}
-                                            </Button>
+
+                                            <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-100 flex-wrap">
+                                                <div className="flex items-center gap-1">
+                                                    <Button
+                                                        onClick={() => window.open(reward.trackurl, "_blank")}
+                                                        size="sm"
+
+                                                        title="Open on Last.fm"
+                                                    >
+                                                        <Icons.lastfm className="w-4 h-4" />
+                                                    </Button>
+
+                                                    {reward.spotifyURL && (
+                                                        <div className="flex items-center justify-center">
+                                                            <div
+                                                                className="w-px h-6 bg-slate-200 mx-2"
+                                                            />
+                                                            <Button
+                                                                onClick={() => window.open(reward.spotifyURL ?? "", "_blank")}
+                                                                size="sm"
+
+                                                                title="Open on Spotify"
+                                                            >
+                                                                <Icons.spotify className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    )}
+
+                                                    {reward.youtubeURL && (
+                                                        <div className="flex items-center justify-center">
+                                                            <div
+                                                                className="w-px h-6 bg-slate-200 mx-2"
+                                                            />
+                                                            <Button
+                                                                onClick={() => window.open(reward.youtubeURL ?? "", "_blank")}
+                                                                size="sm"
+                                                                title="Open on YouTube"
+                                                            >
+                                                                <Youtube className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex items-center gap-4 text-xs ">
+                                                    <div className="text-right">
+                                                        <p className="text-slate-500 text-xs">Reward</p>
+                                                        <p className="font-semibold ">{reward.rewardAmount} {reward.assetId}</p>
+                                                    </div>
+                                                    {reward.isClaimed && reward.nextClaimAvailable && (
+                                                        <div className="text-right">
+                                                            <p className="text-slate-500 text-xs">Next Claim</p>
+                                                            <p className="font-semibold text-orange-600">{formatTimeRemaining(reward.nextClaimAvailable)}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
+
+                                        <Button
+                                            size="sm"
+                                            disabled={buttonState.disabled || isSubmitting}
+                                            onClick={() => GetClaimXDR.mutate({
+                                                rewardedTrackId: reward.id,
+                                                signWith: needSign(),
+                                            })}
+                                            className={`flex-shrink-0 font-medium whitespace-nowrap ${buttonState.disabled
+                                                ? 'bg-slate-100 text-slate-500'
+                                                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                }`}
+                                            title={buttonState.tooltip}
+                                        >
+                                            {isSubmitting ? (
+                                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                            ) : (
+                                                buttonState.icon
+                                            )}
+                                            {buttonState.text}
+                                        </Button>
                                     </div>
                                 )
                             })}
                             {isFetchingNextPage && (
                                 <div className="flex justify-center py-4">
-                                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                                    <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
                                 </div>
                             )}
                         </div>
                     </ScrollArea>
                 ) : (
-                    <div className="text-center py-12">
-                        <Gift className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No Rewards Available</h3>
-                        <p className="text-muted-foreground text-sm">
-                            Rewards will appear here once creators add them on Last.fm
+                    <div className="text-center py-16">
+                        <div className="flex h-16 w-16 mx-auto items-center justify-center rounded-full bg-slate-100 mb-4">
+                            <Gift className="h-8 w-8 text-slate-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold  mb-2">No Rewards Yet</h3>
+                        <p className=" text-sm mb-4">
+                            Rewards will appear once you listen to featured tracks
+                        </p>
+                        <p className="text-xs text-slate-500">
+                            Check back soon for new music rewards to claim
                         </p>
                     </div>
                 )}

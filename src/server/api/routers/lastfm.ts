@@ -210,6 +210,9 @@ export const lastFMRouter = createTRPCRouter({
                 rewardCurrency: z.string({
                     required_error: "Currency is required",
                 }),
+                spotifyUrl: z.union([z.string().url(), z.literal("")]).optional(),
+                youtubeUrl: z.union([z.string().url(), z.literal("")]).optional(),
+                trackImageUrl: z.string().url().optional(),
             }),
         )
         .mutation(async ({ ctx, input }) => {
@@ -223,6 +226,9 @@ export const lastFMRouter = createTRPCRouter({
                 rewardAmount,
                 maximumRewardAmount,
                 rewardCurrency,
+                spotifyUrl,
+                youtubeUrl,
+                trackImageUrl
             } = input
             console.log("Adding rewarded track:", input)
             const creatorId = ctx.session.user.id
@@ -270,6 +276,9 @@ export const lastFMRouter = createTRPCRouter({
                     assetId,
                     assetIssuer,
                     creatorId,
+                    spotifyURL: spotifyUrl,
+                    youtubeURL: youtubeUrl,
+                    trackImageUrl: trackImageUrl,
                 },
             })
         }),
@@ -402,6 +411,14 @@ export const lastFMRouter = createTRPCRouter({
         .query(async ({ ctx, input }) => {
             const { limit, cursor } = input
 
+            const account = await db.lastFMAccount.findUnique({
+                where: { userId: ctx.session?.user.id },
+            })
+
+            if (!account) {
+                throw new Error("Last.fm account not connected")
+            }
+
             const items = await db.lastFMTrack.findMany({
                 take: limit + 1,
                 skip: cursor ? 1 : undefined,
@@ -438,16 +455,41 @@ export const lastFMRouter = createTRPCRouter({
 
             const claimDataMap = new Map(userClaimData.map((claim) => [claim.lastFMTrackId, claim]))
 
+            // Verify track exists in user's recent Last.fm tracks
+            const client = createLastFmClient()
+            const recentTracks = await client.getRecentTracks(account.username, 50)
+
+            console.log("Number of recent tracks fetched:", recentTracks?.length)
+            console.log("Sample recent track URLs:", recentTracks?.slice(0, 3).map(t => t.url))
+            console.log("Number of items to check:", items.length)
+
             const itemsWithClaimStatus = items.map((item) => {
                 const userClaim = claimDataMap.get(item.id)
                 const canClaimAgain = userClaim
                     ? new Date().getTime() - userClaim.lastClaimedAt.getTime() >= item.rewardIntervalDays * 24 * 60 * 60 * 1000
                     : true
 
+                // Add detailed logging for each item
+                console.log(`\nChecking item: ${item.trackurl}`)
+                console.log(`Looking in ${recentTracks?.length || 0} recent tracks`)
+
+                const foundInRecent = recentTracks && recentTracks.some(
+                    (track) => {
+                        const match = track.url === item.trackurl
+                        if (match) {
+                            console.log(`✓ MATCH FOUND: ${track.url}`)
+                        }
+                        return match
+                    }
+                )
+
+                console.log(`Result for ${item.trackurl}: ${foundInRecent ? 'FOUND' : 'NOT FOUND'}`)
+
                 return {
                     ...item,
                     isClaimed: !!userClaim,
                     canClaimAgain,
+                    isInRecentTracks: foundInRecent,
                     lastClaimedAt: userClaim?.lastClaimedAt,
                     nextClaimAvailable: userClaim
                         ? new Date(userClaim.lastClaimedAt.getTime() + item.rewardIntervalDays * 24 * 60 * 60 * 1000)
@@ -501,6 +543,7 @@ export const lastFMRouter = createTRPCRouter({
                     message: "Insufficient reward amount remaining.",
                 })
             }
+
 
             const lastClaim = await db.claimLastFMReward.findFirst({
                 where: {

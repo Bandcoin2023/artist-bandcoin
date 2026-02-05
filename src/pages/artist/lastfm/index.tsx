@@ -30,15 +30,21 @@ import { Separator } from "~/components/shadcn/ui/separator"
 import { useAddRewardModalStore } from "~/components/store/add-spotify-reward-modal-store"
 import { useAddLastFMRewardModalStore } from "~/components/store/add-lastfm-reward-modal-store"
 import { LastFMTrack } from "@prisma/client"
+import { env } from "~/env"
 
 const LastFmTracksPage = () => {
     const { data: session, status } = useSession()
     const router = useRouter()
+    const [isConnecting, setIsConnecting] = useState(false)
+
     const [isDisconnecting, setIsDisconnecting] = useState(false)
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
     const [searchQuery, setSearchQuery] = useState("")
     const [showLovedTracksModal, setShowLovedTracksModal] = useState(false)
     const [selectedLovedTrackIndex, setSelectedLovedTrackIndex] = useState(0)
+    const [recentTracksLimit, setRecentTracksLimit] = useState(10)
+    const [topTracksLimit, setTopTracksLimit] = useState(10)
+    const [lovedTracksLimit, setLovedTracksLimit] = useState(50)
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -56,21 +62,21 @@ const LastFmTracksPage = () => {
     })
 
     const { data: recentTracks, isLoading: isLoadingRecentTracks } = api.lastfm.getRecentTracks.useQuery(
-        { limit: 10 },
+        { limit: recentTracksLimit },
         {
             enabled: !!lastFmAccount,
         },
     )
 
     const { data: topTracks, isLoading: isLoadingTopTracks } = api.lastfm.getTopTracks.useQuery(
-        { limit: 10, period: "overall" },
+        { limit: topTracksLimit, period: "overall" },
         {
             enabled: !!lastFmAccount,
         },
     )
 
     const { data: lovedTracks, isLoading: isLoadingLovedTracks } = api.lastfm.getLovedTracks.useQuery(
-        { limit: 50 },
+        { limit: lovedTracksLimit },
         {
             enabled: !!lastFmAccount,
         },
@@ -82,7 +88,65 @@ const LastFmTracksPage = () => {
             enabled: debouncedSearchQuery.length > 2,
         },
     )
-    console.log("Search Results:", searchResults)
+
+    const saveAccountMutation = api.lastfm.saveLastFmAccount.useMutation({
+        onSuccess: () => {
+            refetchAccount()
+            setIsConnecting(false)
+            toast.success("Last.fm account connected successfully!")
+            router.push("/artist/lastfm?status=connected")
+        },
+        onError: (error) => {
+            console.error("Failed to save Last.fm account:", error)
+            setIsConnecting(false)
+            toast.error("Failed to save Last.fm account")
+        },
+    })
+
+    useEffect(() => {
+        if (router.query.success === "true" && router.query.lastfmData) {
+            try {
+                const lastfmData = JSON.parse(decodeURIComponent(router.query.lastfmData as string)) as { profileUrl: string; image: string | null; username: string; realName: string; sessionKey: string; playCount: number; country: string; }
+                saveAccountMutation.mutate(lastfmData)
+                router.replace("/artist/lastfm", undefined, { shallow: true })
+            } catch (error) {
+                console.error("Failed to parse Last.fm data:", error)
+                router.replace("/artist/lastfm", undefined, { shallow: true })
+            }
+        } else if (router.query.status) {
+            router.replace("/artist/lastfm", undefined, { shallow: true })
+        }
+    }, [router.query.success, router.query.lastfmData, router.query.status])
+
+    const handleConnectLastFm = () => {
+        if (status !== "authenticated" || !session?.user?.id) {
+            toast.error("You must be signed in to connect your Last.fm account")
+            return
+        }
+
+        setIsConnecting(true)
+        const clientId = env.NEXT_PUBLIC_ARTIST_LASTFM_API_KEY
+        const callbackUrl = env.NEXT_PUBLIC_ARTIST_LASTFM_CALLBACK_URL ?? ""
+        const state = `${session.user.id}_${encodeURIComponent(window.location.pathname)}`
+
+        if (!clientId) {
+            toast.error("Last.fm API key is not configured")
+            setIsConnecting(false)
+            return
+        }
+
+        // Build the auth URL
+        const authUrl =
+            `http://www.last.fm/api/auth/?` +
+            `api_key=${clientId}&` +
+            `callback_url=${encodeURIComponent(callbackUrl)}&` +
+            `state=${encodeURIComponent(state)}`
+
+        // Redirect to Last.fm auth URL (OAuth flow)
+        // Note: Direct redirect is required for auth/OAuth flows, not AJAX requests
+        window.location.href = authUrl
+    }
+
     const disconnectMutation = api.lastfm.disconnectLastFm.useMutation({
         onMutate: () => {
             setIsDisconnecting(true)
@@ -127,7 +191,7 @@ const LastFmTracksPage = () => {
     }
 
     return (
-        <div className="flex h-screen bg-background">
+        <div className="flex h-screen">
             {/* Sidebar */}
             <div className="w-80 border-r bg-muted/30 p-6">
                 <div className="space-y-6">
@@ -186,7 +250,14 @@ const LastFmTracksPage = () => {
                         ) : (
                             <div className="space-y-3">
                                 <p className="text-sm text-muted-foreground">Connect your Last.fm account to get started</p>
-                                <Button size="sm" className="w-full" disabled>
+                                <Button size="sm" className="w-full"
+                                    onClick={handleConnectLastFm}
+                                    disabled={isConnecting}
+                                >
+                                    {isConnecting ? (
+                                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                    ) : null}
+
                                     <Link className="w-3 h-3 mr-1" />
                                     Connect Last.fm
                                 </Button>
@@ -218,18 +289,19 @@ const LastFmTracksPage = () => {
             {/* Main Content */}
             <div className="flex-1 overflow-y-auto">
                 {lastFmAccount ? (
-                    <Tabs defaultValue="search" className="h-full flex flex-col">
+                    <Tabs defaultValue="search" className="overflow-hidden flex flex-col ">
                         <div className="border-b px-6 py-4">
                             <TabsList>
                                 <TabsTrigger value="search">Search & Add</TabsTrigger>
                                 <TabsTrigger value="library">Your Music</TabsTrigger>
+                                <TabsTrigger value="loved-tracks">Loved Tracks</TabsTrigger>
                                 <TabsTrigger value="rewards">Rewards</TabsTrigger>
                             </TabsList>
                         </div>
 
                         <div className="flex-1 overflow-y-auto">
                             {/* Search & Add Tab */}
-                            <TabsContent value="search" className="h-full p-6 space-y-4">
+                            <TabsContent value="search" className="h-full  px-4">
                                 <div className="space-y-4">
                                     <div>
                                         <h2 className="text-lg font-semibold">Search Songs</h2>
@@ -298,7 +370,7 @@ const LastFmTracksPage = () => {
                             </TabsContent>
 
                             {/* Library Tab */}
-                            <TabsContent value="library" className="h-full p-6 space-y-4">
+                            <TabsContent value="library" className="h-full px-4">
                                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-full">
                                     {/* Recent Tracks */}
                                     <div className="space-y-4">
@@ -342,6 +414,20 @@ const LastFmTracksPage = () => {
                                                 </div>
                                             )}
                                         </ScrollArea>
+                                        {recentTracks && recentTracks.length > 0 && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="w-full"
+                                                onClick={() => setRecentTracksLimit(prev => prev + 10)}
+                                                disabled={isLoadingRecentTracks}
+                                            >
+                                                {isLoadingRecentTracks ? (
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                ) : null}
+                                                Load More Recent Tracks
+                                            </Button>
+                                        )}
                                     </div>
 
                                     {/* Top Tracks */}
@@ -385,12 +471,26 @@ const LastFmTracksPage = () => {
                                                 </div>
                                             )}
                                         </ScrollArea>
+                                        {topTracks && topTracks.length > 0 && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="w-full"
+                                                onClick={() => setTopTracksLimit(prev => prev + 10)}
+                                                disabled={isLoadingTopTracks}
+                                            >
+                                                {isLoadingTopTracks ? (
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                ) : null}
+                                                Load More Top Tracks
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </TabsContent>
 
                             {/* Loved Tracks Tab */}
-                            <TabsContent value="loved-tracks" className="h-full p-6 space-y-4">
+                            <TabsContent value="loved-tracks" className="h-full  px-4">
                                 <div className="space-y-4">
                                     <h2 className="text-lg font-semibold">Your Loved Tracks</h2>
                                     <ScrollArea className="h-[calc(100vh-150px)]">
@@ -402,10 +502,7 @@ const LastFmTracksPage = () => {
                                                     <div
                                                         key={`loved-${track.artist.name}-${track.name}-${index}`}
                                                         className="flex items-center gap-3 p-3 border rounded hover:bg-muted/50 cursor-pointer"
-                                                        onClick={() => {
-                                                            setSelectedLovedTrackIndex(index)
-                                                            setShowLovedTracksModal(true)
-                                                        }}
+
                                                     >
                                                         {track.image && track.image.length > 0 && (
                                                             <Image
@@ -423,7 +520,7 @@ const LastFmTracksPage = () => {
                                                             <p className="font-medium truncate">{track.name}</p>
                                                             <p className="text-sm text-muted-foreground truncate">{track.artist.name}</p>
                                                         </div>
-                                                        <Badge variant="outline">Loved</Badge>
+                                                        <AddRewardButton track={track} />
                                                     </div>
                                                 ))}
                                             </div>
@@ -433,6 +530,20 @@ const LastFmTracksPage = () => {
                                             </div>
                                         )}
                                     </ScrollArea>
+                                    {lovedTracks && lovedTracks.length > 0 && (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="w-full"
+                                            onClick={() => setLovedTracksLimit(prev => prev + 10)}
+                                            disabled={isLoadingLovedTracks}
+                                        >
+                                            {isLoadingLovedTracks ? (
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            ) : null}
+                                            Load More Loved Tracks
+                                        </Button>
+                                    )}
                                 </div>
 
                                 {/* Loved Tracks Modal */}
@@ -486,7 +597,7 @@ const LastFmTracksPage = () => {
                             </TabsContent>
 
                             {/* Rewards Tab */}
-                            <TabsContent value="rewards" className="h-full p-6 space-y-4">
+                            <TabsContent value="rewards" className="h-full  px-4">
                                 <RewardedSongsList />
                             </TabsContent>
                         </div>
@@ -607,7 +718,7 @@ const RewardedSongsList: React.FC = () => {
                         {rewardedTracks.map((reward: LastFMTrack) => (
                             <div key={reward.id} className="flex items-center gap-3 p-3 border rounded">
                                 <Image
-                                    src={reward.albumCoverUrl ?? "/images/logo.png"}
+                                    src={reward.trackImageUrl ?? "/images/logo.png"}
                                     alt={reward.trackName}
                                     width={48}
                                     height={48}

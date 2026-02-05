@@ -34,6 +34,9 @@ import { useAddLastFMRewardModalStore } from "../store/add-lastfm-reward-modal-s
 
 const formSchema = z
     .object({
+        lastFmUrl: z.string().url("Invalid Last.fm URL").optional(),
+        spotifyUrl: z.union([z.string().url(), z.literal("")]).optional(),
+        youtubeUrl: z.union([z.string().url(), z.literal("")]).optional(),
         rewardIntervalDays: z.coerce.number().int().positive().min(1, "Interval must be at least 1 day"),
         rewardAmount: z.coerce.number().positive().min(0.01, "Amount must be positive"),
         maximumRewardAmount: z.coerce.number().positive().min(0.01, "Maximum reward amount must be positive"),
@@ -90,6 +93,9 @@ export const AddLastFMRewardDialog: React.FC = () => {
                             rewardAmount: Number(form.watch("rewardAmount")),
                             maximumRewardAmount: Number(form.watch("maximumRewardAmount")),
                             rewardCurrency: form.watch("rewardCurrency"),
+                            spotifyUrl: form.watch("spotifyUrl"),
+                            youtubeUrl: form.watch("youtubeUrl"),
+                            trackImageUrl: trackData.image[trackData.image.length - 1]?.["#text"] ?? "https://bandfan.io/images/logo.png",
                         })
                         setIsSubmitting(false)
                     } else {
@@ -158,6 +164,9 @@ export const AddLastFMRewardDialog: React.FC = () => {
     const form = useForm<AddRewardFormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
+            lastFmUrl: trackData?.url ?? "",
+            spotifyUrl: "",
+            youtubeUrl: "",
             rewardIntervalDays: 7,
             rewardAmount: 1,
             maximumRewardAmount: 100,
@@ -168,15 +177,26 @@ export const AddLastFMRewardDialog: React.FC = () => {
     useEffect(() => {
         if (isOpen && existingReward) {
             form.reset({
+                lastFmUrl: trackData?.url ?? "",
+                spotifyUrl: "",
+                youtubeUrl: "",
                 rewardIntervalDays: existingReward.rewardIntervalDays,
                 rewardAmount: existingReward.rewardAmount,
                 maximumRewardAmount: existingReward.maximumRewardAmount,
                 rewardCurrency: existingReward.assetId + "-" + existingReward.assetIssuer,
             })
         } else if (isOpen && !existingReward) {
-            form.reset() // Reset to default values for new reward
+            form.reset({
+                lastFmUrl: trackData?.url ?? "",
+                spotifyUrl: "",
+                youtubeUrl: "",
+                rewardIntervalDays: 7,
+                rewardAmount: 1,
+                maximumRewardAmount: 100,
+                rewardCurrency: `${PLATFORM_ASSET.code}-${PLATFORM_ASSET.issuer}`,
+            })
         }
-    }, [isOpen, existingReward, form])
+    }, [isOpen, existingReward, trackData?.url, form])
 
     // Get selected asset balance
     const selectedCurrency = form.watch("rewardCurrency")
@@ -241,6 +261,7 @@ export const AddLastFMRewardDialog: React.FC = () => {
                     lastFMTrackURL: trackData.url,
                     trackName: trackData.name,
                     artistName: trackData.artist.name ?? "Unknown Artist",
+                    trackImageUrl: trackData.image[trackData.image.length - 1]?.["#text"] ?? "https://bandfan.io/images/logo.png",
                     ...values,
                 })
 
@@ -269,7 +290,7 @@ export const AddLastFMRewardDialog: React.FC = () => {
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Gift className="h-5 w-5 text-purple-500" />
@@ -314,6 +335,57 @@ export const AddLastFMRewardDialog: React.FC = () => {
                             </div>
                         )}
 
+                        {/* Song URLs Section */}
+                        <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-muted/50">
+                            <h4 className="font-semibold text-sm">Song Links</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div className="space-y-2">
+                                    <Label htmlFor="lastFmUrl" className="text-xs font-medium">Last.fm</Label>
+                                    <Input
+                                        id="lastFmUrl"
+                                        type="text"
+                                        placeholder="Auto-filled"
+                                        {...form.register("lastFmUrl")}
+                                        disabled={true}
+                                        className="bg-muted text-xs h-9"
+                                    />
+                                    <p className="text-xs text-muted-foreground">Auto-filled (read-only)</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="spotifyUrl" className="text-xs font-medium">Spotify <span className="text-muted-foreground">(Optional)</span></Label>
+                                    <Input
+                                        id="spotifyUrl"
+                                        type="text"
+                                        placeholder="spotify.com/track"
+                                        {...form.register("spotifyUrl")}
+                                        disabled={isSubmitting}
+                                        className="text-xs h-9"
+                                    />
+                                    {form.formState.errors.spotifyUrl && (
+                                        <p className="text-xs text-destructive">{form.formState.errors.spotifyUrl.message}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="youtubeUrl" className="text-xs font-medium">YouTube <span className="text-muted-foreground">(Optional)</span></Label>
+                                    <Input
+                                        id="youtubeUrl"
+                                        type="text"
+                                        placeholder="youtube.com/watch"
+                                        {...form.register("youtubeUrl")}
+                                        disabled={isSubmitting}
+                                        className="text-xs h-9"
+                                    />
+                                    {form.formState.errors.youtubeUrl && (
+                                        <p className="text-xs text-destructive">{form.formState.errors.youtubeUrl.message}</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+
+                        {/* Maximum Limit Alert */}
                         {existingReward && existingReward.alreadyGivenAmount >= existingReward.maximumRewardAmount && (
                             <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
                                 <AlertTriangle className="h-4 w-4 text-amber-600" />
@@ -339,157 +411,144 @@ export const AddLastFMRewardDialog: React.FC = () => {
                             </Alert>
                         )}
 
-                        <div className="space-y-2">
-                            <Label htmlFor="rewardCurrency">Currency</Label>
-                            <Select
-                                onValueChange={(value) => {
-                                    form.setValue("rewardCurrency", value, { shouldValidate: true })
-                                }}
-                                value={form.watch("rewardCurrency")}
-                                disabled={isSubmitting}
-                            >
-                                <SelectTrigger className="focus-visible:ring-0 focus-visible:ring-offset-0">
-                                    <SelectValue placeholder="Select Asset" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        <SelectLabel>Choose Asset</SelectLabel>
-                                        <SelectItem value={`${PLATFORM_ASSET.code}-${PLATFORM_ASSET.issuer}`}>
-                                            <div className="flex items-center justify-between w-full">
+                        {/* Reward Settings Section */}
+                        <div className="space-y-4 p-4 bg-muted/20 rounded-lg border border-muted/50">
+                            <h4 className="font-semibold text-sm">Reward Settings</h4>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="rewardCurrency">Currency</Label>
+                                <Select
+                                    onValueChange={(value) => {
+                                        form.setValue("rewardCurrency", value, { shouldValidate: true })
+                                    }}
+                                    value={form.watch("rewardCurrency")}
+                                    disabled={isSubmitting}
+                                >
+                                    <SelectTrigger className="focus-visible:ring-0 focus-visible:ring-offset-0 h-9">
+                                        <SelectValue placeholder="Select Asset" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            <SelectLabel>Choose Asset</SelectLabel>
+                                            <SelectItem value={`${PLATFORM_ASSET.code}-${PLATFORM_ASSET.issuer}`}>
                                                 <div className="flex items-center gap-2">
                                                     <Image
                                                         src="/images/logo.png"
                                                         alt="Bandcoin"
-                                                        width={20}
-                                                        height={20}
+                                                        width={16}
+                                                        height={16}
                                                         className="rounded-full"
                                                     />
                                                     <span>Bandcoin</span>
                                                 </div>
-                                                <span className="text-xs text-muted-foreground ml-2">
-                                                    Balance:{" "}
-                                                    {Number(
-                                                        getAssetBalance({ code: PLATFORM_ASSET.code, issuer: PLATFORM_ASSET.issuer }) ?? "0",
-                                                    ).toFixed(2)}
-                                                </span>
-                                            </div>
-                                        </SelectItem>
-                                        {pageAssetbal && (
-                                            <SelectItem value={`${pageAssetbal.assetCode}-${pageAssetbal.assetIssuer}`}>
-                                                <div className="flex items-center justify-between w-full">
-                                                    <span>{pageAssetbal.assetCode || "Page Asset"}</span>
-                                                    <span className="text-xs text-muted-foreground ml-2">
-                                                        Balance:{" "}
-                                                        {Number(
-                                                            getPageAssetBalance({ code: pageAssetbal.assetCode, issuer: pageAssetbal.assetIssuer }) ??
-                                                            "0",
-                                                        ).toFixed(2)}
-                                                    </span>
-                                                </div>
                                             </SelectItem>
-                                        )}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                            {form.formState.errors.rewardCurrency && (
-                                <p className="text-sm text-destructive">{form.formState.errors.rewardCurrency.message}</p>
-                            )}
-                            {/* Show selected asset balance */}
-                            {selectedCurrency && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Wallet className="h-4 w-4" />
-                                    <span>
-                                        Available Balance: {selectedAssetBalance.toFixed(2)} {currencyCode}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
+                                            {pageAssetbal && (
+                                                <SelectItem value={`${pageAssetbal.assetCode}-${pageAssetbal.assetIssuer}`}>
+                                                    <span>{pageAssetbal.assetCode || "Page Asset"}</span>
+                                                </SelectItem>
+                                            )}
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
+                                {form.formState.errors.rewardCurrency && (
+                                    <p className="text-xs text-destructive">{form.formState.errors.rewardCurrency.message}</p>
+                                )}
+                                {selectedCurrency && (
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+                                        <Wallet className="h-3 w-3" />
+                                        <span>Balance: {selectedAssetBalance.toFixed(2)} {currencyCode}</span>
+                                    </div>
+                                )}
+                            </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                    <Label htmlFor="rewardAmount" className="text-xs font-medium">Reward Amount</Label>
+                                    <Input
+                                        id="rewardAmount"
+                                        type="number"
+                                        step="0.01"
+                                        {...form.register("rewardAmount")}
+                                        disabled={isSubmitting}
+                                        className="h-9"
+                                    />
+                                    {form.formState.errors.rewardAmount && (
+                                        <p className="text-xs text-destructive">{form.formState.errors.rewardAmount.message}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="rewardIntervalDays" className="text-xs font-medium">Interval (Days)</Label>
+                                    <Input
+                                        id="rewardIntervalDays"
+                                        type="number"
+                                        {...form.register("rewardIntervalDays")}
+                                        disabled={isSubmitting}
+                                        className="h-9"
+                                    />
+                                    {form.formState.errors.rewardIntervalDays && (
+                                        <p className="text-xs text-destructive">{form.formState.errors.rewardIntervalDays.message}</p>
+                                    )}
+                                </div>
+                            </div>
+
                             <div className="space-y-2">
-                                <Label htmlFor="rewardAmount">Reward Amount</Label>
+                                <Label htmlFor="maximumRewardAmount" className="text-xs font-medium">Maximum Total Reward</Label>
                                 <Input
-                                    id="rewardAmount"
+                                    id="maximumRewardAmount"
                                     type="number"
                                     step="0.01"
-                                    {...form.register("rewardAmount")}
+                                    {...form.register("maximumRewardAmount")}
                                     disabled={isSubmitting}
+                                    className={`h-9 ${isBalanceInsufficient ? "border-red-300 focus:border-red-500" : ""}`}
                                 />
-                                {form.formState.errors.rewardAmount && (
-                                    <p className="text-sm text-destructive">{form.formState.errors.rewardAmount.message}</p>
+                                {form.formState.errors.maximumRewardAmount && (
+                                    <p className="text-xs text-destructive">{form.formState.errors.maximumRewardAmount.message}</p>
                                 )}
+                                {balanceError && <p className="text-xs text-destructive">{balanceError}</p>}
+                                <p className="text-xs text-muted-foreground">
+                                    Total amount distributable across all users
+                                </p>
                             </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="rewardIntervalDays">Interval (Days)</Label>
-                                <Input
-                                    id="rewardIntervalDays"
-                                    type="number"
-                                    {...form.register("rewardIntervalDays")}
-                                    disabled={isSubmitting}
-                                />
-                                {form.formState.errors.rewardIntervalDays && (
-                                    <p className="text-sm text-destructive">{form.formState.errors.rewardIntervalDays.message}</p>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="maximumRewardAmount">Maximum Total Reward</Label>
-                            <Input
-                                id="maximumRewardAmount"
-                                type="number"
-                                step="0.01"
-                                {...form.register("maximumRewardAmount")}
-                                disabled={isSubmitting}
-                                className={isBalanceInsufficient ? "border-red-300 focus:border-red-500" : ""}
-                            />
-                            {form.formState.errors.maximumRewardAmount && (
-                                <p className="text-sm text-destructive">{form.formState.errors.maximumRewardAmount.message}</p>
-                            )}
-                            {balanceError && <p className="text-sm text-destructive">{balanceError}</p>}
-                            <p className="text-xs text-muted-foreground">
-                                Total amount that can be distributed for this track across all users
-                            </p>
                         </div>
 
                         {/* Reward Summary */}
-                        <div className="p-3 bg-muted/30 rounded-md space-y-2">
-                            <h4 className="font-medium text-sm">Reward Summary</h4>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <p className="text-muted-foreground">Per Claim</p>
-                                    <p className="font-medium">
-                                        {rewardAmount.toFixed(2)} {currencyCode}
+                        <div className="p-4 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-lg border border-purple-200/30 dark:border-purple-800/30">
+                            <h4 className="font-semibold text-sm mb-3">Reward Summary</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                <div className="space-y-1">
+                                    <p className="text-xs text-muted-foreground">Per Claim</p>
+                                    <p className="font-semibold text-base">
+                                        {rewardAmount.toFixed(2)} <span className="text-xs">{currencyCode}</span>
                                     </p>
                                 </div>
-                                <div>
-                                    <p className="text-muted-foreground">Max Claims</p>
-                                    <p className="font-medium">{potentialClaims} times</p>
+                                <div className="space-y-1">
+                                    <p className="text-xs text-muted-foreground">Max Claims</p>
+                                    <p className="font-semibold text-base">{potentialClaims}x</p>
                                 </div>
-                                <div>
-                                    <p className="text-muted-foreground">Your Balance</p>
-                                    <p className={`font-medium ${isBalanceInsufficient ? "text-red-600" : "text-green-600"}`}>
-                                        {selectedAssetBalance.toFixed(2)} {currencyCode}
+                                <div className="space-y-1">
+                                    <p className="text-xs text-muted-foreground">Your Balance</p>
+                                    <p className={`font-semibold text-base ${isBalanceInsufficient ? "text-red-600" : "text-green-600"}`}>
+                                        {selectedAssetBalance.toFixed(2)} <span className="text-xs">{currencyCode}</span>
                                     </p>
                                 </div>
-                                <div>
-                                    <p className="text-muted-foreground">Status</p>
-                                    <p className={`font-medium text-xs ${isBalanceInsufficient ? "text-red-600" : "text-green-600"}`}>
-                                        {isBalanceInsufficient ? "Insufficient" : "Sufficient"}
+                                <div className="space-y-1">
+                                    <p className="text-xs text-muted-foreground">Status</p>
+                                    <p className={`font-semibold text-xs ${isBalanceInsufficient ? "text-red-600" : "text-green-600"}`}>
+                                        {isBalanceInsufficient ? "⚠ Insufficient" : "✓ Sufficient"}
                                     </p>
                                 </div>
                                 {existingReward && (
                                     <>
-                                        <div>
-                                            <p className="text-muted-foreground">Remaining</p>
-                                            <p className="font-medium">
-                                                {remainingAmount.toFixed(2)} {existingReward.assetId}
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-muted-foreground">Remaining</p>
+                                            <p className="font-semibold text-base">
+                                                {remainingAmount.toFixed(2)} <span className="text-xs">{existingReward.assetId}</span>
                                             </p>
                                         </div>
-                                        <div>
-                                            <p className="text-muted-foreground">Claims Left</p>
-                                            <p className="font-medium">{remainingClaims} times</p>
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-muted-foreground">Claims Left</p>
+                                            <p className="font-semibold text-base">{remainingClaims}x</p>
                                         </div>
                                     </>
                                 )}

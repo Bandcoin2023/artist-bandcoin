@@ -980,8 +980,11 @@ model LastFMTrack {
     trackurl            String // Spotify's unique ID for the track
     trackName           String
     artistName          String
+    trackImageUrl       String?
     albumName           String?
     albumCoverUrl       String?
+    spotifyURL          String?
+    youtubeURL          String?
     rewardIntervalDays  Int // e.g., 7 for weekly, 30 for monthly
     rewardAmount        Float
     maximumRewardAmount Float // Maximum total reward that can be given for this track

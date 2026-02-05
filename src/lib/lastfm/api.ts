@@ -117,8 +117,18 @@ class LastFmClient {
             user: username,
             limit: String(limit),
             extended: "1",
+            // last 7 days 
+            from: String(Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60),
         })
-        return data.recenttracks?.track || []
+        console.log("data", data)
+        console.log("Recent tracks data", data.recenttracks?.track)
+
+        // Handle both single object and array responses
+        const tracks = data.recenttracks?.track
+        if (!tracks) return []
+
+        // If it's a single track, wrap it in an array
+        return Array.isArray(tracks) ? tracks : [tracks]
     }
 
     async getTopTracks(
@@ -131,7 +141,7 @@ class LastFmClient {
             period,
             limit: String(limit),
         })
-
+        console.log("Top tracks data", data.toptracks?.track)
         return data.toptracks?.track || []
     }
 

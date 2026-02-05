@@ -81,6 +81,11 @@ export const env = createEnv({
     NEXT_PUBLIC_LASTFM_API_KEY: z.string(),
     NEXT_PUBLIC_LASTFM_SHARED_SECRET: z.string(),
     NEXT_PUBLIC_LASTFM_CALLBACK_URL: z.string().url(),
+    // ARTIST PAGE LAST FM API
+    NEXT_PUBLIC_ARTIST_LASTFM_API_KEY: z.string(),
+    NEXT_PUBLIC_ARTIST_LASTFM_SHARED_SECRET: z.string(),
+    NEXT_PUBLIC_ARTIST_LASTFM_CALLBACK_URL: z.string().url(),
+  
   },
 
   /**
@@ -130,7 +135,12 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_LASTFM_SHARED_SECRET,
     NEXT_PUBLIC_LASTFM_CALLBACK_URL:
       process.env.NEXT_PUBLIC_LASTFM_CALLBACK_URL,
-  },
+    NEXT_PUBLIC_ARTIST_LASTFM_API_KEY: process.env.NEXT_PUBLIC_ARTIST_LASTFM_API_KEY,
+    NEXT_PUBLIC_ARTIST_LASTFM_SHARED_SECRET:
+      process.env.NEXT_PUBLIC_ARTIST_LASTFM_SHARED_SECRET,
+    NEXT_PUBLIC_ARTIST_LASTFM_CALLBACK_URL:
+      process.env.NEXT_PUBLIC_ARTIST_LASTFM_CALLBACK_URL,
+    },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
    * useful for Docker builds.
