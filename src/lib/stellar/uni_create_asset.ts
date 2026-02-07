@@ -59,7 +59,7 @@ export async function createUniAsset({
     requiredAsset2refundXlm +
     Number(PLATFORM_FEE) +
     Number(TrxBaseFeeInPlatformAsset);
-
+  console.log(`Total platform fee in ${PLATFORM_ASSET.code}: ${total.toFixed(2)}`);
   // Step 4a: Check user balances for conversion scenarios
   const userXLMBalance = await getNativeBalance(pubkey);
   const userPlatformBalance = await getAssetBalance(

@@ -152,6 +152,7 @@ export default function NftCreateModal() {
 
   const { isOpen: isNFTModalOpen, setIsOpen: setNFTModalOpen } =
     useNFTCreateModalStore();
+
   const requiredToken = api.fan.trx.getRequiredPlatformAsset.useQuery({
     xlm: requiredXlm,
   });
@@ -208,6 +209,7 @@ export default function NftCreateModal() {
   const requiredTokenAmount = requiredToken.data ?? 0;
   const totalFees = Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE);
 
+  const totalCostInPlatform = requiredTokenAmount + totalFees;
   const { paymentMethod, setIsOpen: setPaymentModalOpen } =
     usePaymentMethodStore();
 
@@ -313,7 +315,7 @@ export default function NftCreateModal() {
         // PLATFORM asset payment validation
         requirementResult = await calculatePlatformAssetNFTRequirements(
           userPubKey,
-          requiredTokenAmount
+          totalCostInPlatform
         );
       } else if (paymentMethod === "xlm") {
         // XLM payment validation
@@ -951,7 +953,7 @@ export default function NftCreateModal() {
                       label: "Stellar Fee",
                       amount:
                         paymentMethod === "asset"
-                          ? requiredTokenAmount - totalFees
+                          ? requiredTokenAmount
                           : requiredXlm,
                       type: "cost",
                       highlighted: true,
@@ -966,7 +968,7 @@ export default function NftCreateModal() {
                       label: "Total Cost",
                       amount:
                         paymentMethod === "asset"
-                          ? requiredTokenAmount
+                          ? totalCostInPlatform
                           : totalXlmCost,
                       highlighted: false,
                       type: "total",
@@ -976,7 +978,7 @@ export default function NftCreateModal() {
                   handleConfirm={handleSubmit(onSubmit)}
                   beforeTrigger={validatePaymentMethod}
                   loading={loading || validationInProgress}
-                  requiredToken={requiredTokenAmount}
+                  requiredToken={totalCostInPlatform}
                   conversionInfo={conversionInfo}
                   showAlert={showAlert}
                   alertMessage={alertMessage}

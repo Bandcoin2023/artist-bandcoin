@@ -56,8 +56,7 @@ export async function calculatePlatformAssetNFTRequirements(
     message: string;
     requiresConversion: boolean;
 }> {
-    const totalAmount = requiredAmount + Number(PLATFORM_FEE) +
-        Number(TrxBaseFeeInPlatformAsset)
+    const totalAmount = requiredAmount
     const baseReserve = await getReservedXLM(userPubKey);
     const userXLMBalance = await getNativeBalance(userPubKey);
     const userPlatformBalance = await getAssetBalance(

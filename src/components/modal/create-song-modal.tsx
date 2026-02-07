@@ -25,6 +25,7 @@ import { z } from "zod";
 import {
   PLATFORM_ASSET,
   PLATFORM_FEE,
+  SIMPLIFIED_FEE_IN_XLM,
   TrxBaseFeeInPlatformAsset,
 } from "~/lib/stellar/constant";
 import { AccountSchema, clientSelect } from "~/lib/stellar/fan/utils";
@@ -58,6 +59,8 @@ import {
 import { Badge } from "~/components/shadcn/ui/badge";
 import { Progress } from "~/components/shadcn/ui/progress";
 import { Separator } from "~/components/shadcn/ui/separator";
+import { Alert, AlertDescription } from "~/components/shadcn/ui/alert";
+import { calculatePlatformAssetNFTRequirements, calculateXLMNFTRequirements } from "~/lib/stellar/nft/nft-payment-handler";
 import { useCreateSongModalStore } from "../store/create-song-modal";
 import { UploadS3Button } from "../common/upload-button";
 import {
@@ -859,16 +862,40 @@ function SubmitButton({
   const { paymentMethod, setIsOpen: setPaymentModalOpen } =
     usePaymentMethodStore();
 
+  // cost in xlm
+  const requiredXlm = 2;
+  const feeInXLM = SIMPLIFIED_FEE_IN_XLM;
+  const totalXlmCost = requiredXlm + feeInXLM;
+
   const requiredToken = api.fan.trx.getRequiredPlatformAsset.useQuery(
     {
-      xlm: 2,
+      xlm: requiredXlm,
     },
     {
       enabled: !!albumId,
     },
   );
 
-  const totalFeees = Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE);
+  const requiredTokenAmount = requiredToken.data ?? 0;
+
+  const totalFees = Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE);
+  const totalCostInPlatform = requiredTokenAmount + totalFees;
+
+  // Payment validation states
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [validationInProgress, setValidationInProgress] = useState(false);
+
+  const [conversionInfo, setConversionInfo] = useState<{
+    isConverting: boolean;
+    fromAsset: string;
+    toAsset: string;
+    fromAmount: number;
+    toAmount: number;
+    trustlineCost?: number;
+    canProceed: boolean;
+    message: string;
+  } | undefined>(undefined);
 
   const addSong = api.fan.music.create.useMutation({
     onSuccess: () => {
@@ -882,6 +909,107 @@ function SubmitButton({
       setIsSubmitting(false);
     },
   });
+
+  /**
+   * Validate payment method and balances before creating song
+   */
+  const validatePaymentMethod = async (): Promise<boolean> => {
+    try {
+      setValidationInProgress(true);
+      setShowAlert(false);
+      setConversionInfo(undefined);
+
+      const userPubKey = session.data?.user.id;
+
+      if (!userPubKey) {
+        setAlertMessage("User not authenticated");
+        setShowAlert(true);
+        setValidationInProgress(false);
+        return false;
+      }
+
+      let requirementResult:
+        | Awaited<ReturnType<typeof calculatePlatformAssetNFTRequirements>>
+        | Awaited<ReturnType<typeof calculateXLMNFTRequirements>>
+        | null = null;
+
+      if (paymentMethod === "asset") {
+        // PLATFORM asset payment validation
+        requirementResult = await calculatePlatformAssetNFTRequirements(
+          userPubKey,
+          totalCostInPlatform
+        );
+      } else if (paymentMethod === "xlm") {
+        // XLM payment validation
+        requirementResult = await calculateXLMNFTRequirements(
+          userPubKey,
+          totalXlmCost
+        );
+      }
+
+      setValidationInProgress(false);
+
+      // Check if payment can proceed based on requirements
+      if (!requirementResult || !requirementResult.canProceed) {
+        setShowAlert(true);
+        setAlertMessage(requirementResult?.message ?? "Validation failed");
+        return false;
+      }
+
+      // If conversion is required, extract and set conversion details
+      if (requirementResult && requirementResult.requiresConversion) {
+        let conversionDetails;
+
+        if (
+          paymentMethod === "asset" &&
+          "xlmForConversion" in requirementResult
+        ) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const assetResult = requirementResult;
+          conversionDetails = {
+            isConverting: true,
+            fromAsset: "XLM",
+            toAsset: PLATFORM_ASSET.code,
+            fromAmount: assetResult.xlmForConversion || 0,
+            toAmount: requiredToken.data ?? 0,
+            trustlineCost: assetResult.platformTrustReserve || 0,
+            canProceed: requirementResult.canProceed,
+            message: requirementResult.message,
+          };
+        } else if (paymentMethod === "xlm" && "platformForConversion" in requirementResult) {
+          // XLM payment - conversion is PLATFORM to XLM
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const xlmResult = requirementResult;
+          conversionDetails = {
+            isConverting: true,
+            fromAsset: PLATFORM_ASSET.code,
+            toAsset: "XLM",
+            fromAmount: xlmResult.platformForConversion || 0,
+            toAmount: totalXlmCost,
+            canProceed: requirementResult.canProceed,
+            message: requirementResult.message,
+          };
+        }
+
+        if (conversionDetails) {
+          setConversionInfo(conversionDetails);
+        }
+      }
+
+      // All checks passed - allow to proceed
+      return true;
+    } catch (error) {
+      console.error("Payment validation error:", error);
+      setAlertMessage(
+        error instanceof Error
+          ? error.message
+          : "Error validating payment method"
+      );
+      setShowAlert(true);
+      setValidationInProgress(false);
+      return false;
+    }
+  };
 
   const xdrMutation = api.fan.trx.createUniAssetTrx.useMutation({
     onSuccess(data, variables, context) {
@@ -956,44 +1084,50 @@ function SubmitButton({
     );
   }
 
-  const requiredTokenAmount = requiredToken.data ?? 0;
-  const insufficientBalance = requiredTokenAmount > platformAssetBalance;
-
   return (
     <PaymentChoose
       costBreakdown={[
         {
           label: "Stellar Fee",
           amount:
-            paymentMethod === "asset" ? requiredTokenAmount - totalFeees : 2,
+            paymentMethod === "asset"
+              ? requiredTokenAmount
+              : requiredXlm,
           type: "cost",
           highlighted: true,
         },
         {
           label: "Platform Fee",
-          amount: paymentMethod === "asset" ? totalFeees : 2,
+          amount: paymentMethod === "asset" ? totalFees : feeInXLM,
           highlighted: false,
           type: "fee",
         },
         {
           label: "Total Cost",
-          amount: paymentMethod === "asset" ? requiredTokenAmount : 4,
+          amount:
+            paymentMethod === "asset"
+              ? totalCostInPlatform
+              : totalXlmCost,
           highlighted: false,
           type: "total",
         },
       ]}
-      XLM_EQUIVALENT={4}
+      XLM_EQUIVALENT={totalXlmCost}
       handleConfirm={handleSubmit}
-      loading={isSubmitting}
-      requiredToken={requiredTokenAmount}
+      beforeTrigger={validatePaymentMethod}
+      loading={isSubmitting || validationInProgress}
+      requiredToken={totalCostInPlatform}
+      conversionInfo={conversionInfo}
+      showAlert={showAlert}
+      alertMessage={alertMessage}
       trigger={
         <Button
           variant="sidebarAccent"
-          disabled={isSubmitting || insufficientBalance}
+          disabled={isSubmitting || validationInProgress}
           className="flex items-center gap-2
                         shadow-sm shadow-black transition-shadow duration-200 hover:shadow-xl"
         >
-          {isSubmitting ? (
+          {isSubmitting || validationInProgress ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
               Creating Song...
