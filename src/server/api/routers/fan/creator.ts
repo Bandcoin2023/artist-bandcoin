@@ -203,7 +203,7 @@ export const creatorRouter = createTRPCRouter({
   }),
 
   meCreator: protectedProcedure.query(async ({ ctx }) => {
-    return ctx.db.creator.findFirst({
+    const creator = await ctx.db.creator.findFirst({
       where: { user: { id: ctx.session.user.id } },
       include: {
         _count: {
@@ -211,11 +211,24 @@ export const creatorRouter = createTRPCRouter({
             followers: true,
             assets: true,
             posts: true,
-          },
+          }
         },
-        pageAsset: true,
-      },
+        pageAsset: {
+          select: {
+            code: true,
+            issuer: true,
+            thumbnail: true,
+            limit: true,
+          }
+        },
+      }
     });
+
+    if (creator) {
+      const { storageSecret, ...creatorData } = creator;
+      return creatorData;
+    }
+    return creator;
   }),
   vanitySubscription: protectedProcedure.query(async ({ ctx }) => {
     const creator = ctx.db.creator.findFirst({

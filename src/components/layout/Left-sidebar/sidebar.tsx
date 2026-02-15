@@ -29,9 +29,9 @@ export const LeftNavigation: NavItem[] = [
   { href: "/artist/home", icon: "creator", title: "ARTIST" },
   // { href: "/settings", icon: "setting", title: "SETTINGS" },
   // { href: "/spotify", icon: "spotify", title: "SPOTIFY" },
-  { href: "/lastfm", icon: "lastfm", title: "LASTFM" },
+  { href: "/lastfm", icon: "spotify", title: "SPOTIFY" },
 
-  { href: "https://showcase.bandcoin.io/vibeportal", icon: "link", title: "VIBE STUDIO" },
+  { href: "https://showcase.bandcoin.io/", icon: "link", title: "SHOWCASE" },
 ];
 
 export const BottomNavigation = {
@@ -210,7 +210,7 @@ export default function Sidebar({ className }: SidebarProps) {
               {/* Button Text with Icons */}
               <div className="relative z-10 flex items-center gap-3">
                 <Sparkles className="w-5 h-5 animate-spin-slow" />
-                <span className="tracking-wider font-semibold">TRY STUDIO</span>
+                <span className="tracking-wider font-semibold">BC STUDIO</span>
                 <div className="flex items-center gap-1">
                   <Zap className="w-4 h-4 animate-pulse" />
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
