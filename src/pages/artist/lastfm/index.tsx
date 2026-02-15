@@ -723,6 +723,9 @@ const RewardedSongsList: React.FC = () => {
                                     width={48}
                                     height={48}
                                     className="rounded h-8 w-8"
+                                    onError={(e) => {
+                                        e.currentTarget.src = "/images/logo.png"
+                                    }}
                                 />
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium truncate">{reward.trackName}</p>

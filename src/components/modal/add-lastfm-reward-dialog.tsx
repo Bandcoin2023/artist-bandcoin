@@ -95,7 +95,7 @@ export const AddLastFMRewardDialog: React.FC = () => {
                             rewardCurrency: form.watch("rewardCurrency"),
                             spotifyUrl: form.watch("spotifyUrl"),
                             youtubeUrl: form.watch("youtubeUrl"),
-                            trackImageUrl: trackData.image[trackData.image.length - 1]?.["#text"] ?? "https://bandfan.io/images/logo.png",
+                            trackImageUrl: trackData.image.find(img => img["#text"])?.["#text"] ?? "https://bandcoin.io/images/logo.png",
                         })
                         setIsSubmitting(false)
                     } else {
@@ -261,7 +261,7 @@ export const AddLastFMRewardDialog: React.FC = () => {
                     lastFMTrackURL: trackData.url,
                     trackName: trackData.name,
                     artistName: trackData.artist.name ?? "Unknown Artist",
-                    trackImageUrl: trackData.image[trackData.image.length - 1]?.["#text"] ?? "https://bandfan.io/images/logo.png",
+                    trackImageUrl: trackData.image.find(img => img["#text"])?.["#text"] ?? "https://bandcoin.io/images/logo.png",
                     ...values,
                 })
 
@@ -307,7 +307,7 @@ export const AddLastFMRewardDialog: React.FC = () => {
                         {trackData && (
                             <div className="flex items-center space-x-4 p-3 bg-muted/50 rounded-md">
                                 <Image
-                                    src={trackData.image[trackData.image.length - 1]?.["#text"] ?? "/images/logo.png"}
+                                    src={trackData.image.find(img => img["#text"])?.["#text"] ?? "/images/logo.png"}
                                     alt={trackData.name}
                                     width={60}
                                     height={60}
