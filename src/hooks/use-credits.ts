@@ -1,18 +1,20 @@
 "use client"
+import { useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { api } from "~/utils/api"
 
 export function useCredits() {
-    const { status } = useSession()
+    const { status, data } = useSession()
     const isAuthenticated = status === "authenticated"
 
-    const queryOptions = { enabled: isAuthenticated, staleTime: 5 * 60 * 1000 }
+    const queryOptions = {}
 
     const { data: balanceData, isLoading: balanceLoading } = api.credit.getBalance.useQuery(undefined, queryOptions)
     const { data: packagesData, isLoading: packagesLoading } = api.credit.getPackages.useQuery(undefined, queryOptions)
     const { data: statsData, isLoading: statsLoading } = api.credit.getUsageStats.useQuery(undefined, queryOptions)
 
     const utils = api.useUtils()
+
 
     return {
         balance: balanceData?.balance ?? 0,

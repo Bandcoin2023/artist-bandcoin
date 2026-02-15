@@ -69,15 +69,15 @@ export default function AIGenerationPage() {
     const creationModes = [
         {
             icon: ImageIcon,
-            label: "Image",
+            label: "IMAGE",
             active: false,
             href: "/ai-generation",
             badge: "NEW",
             mediaType: "image" as const,
         },
-        { icon: Video, label: "Video", active: false, href: "/ai-generation", badge: "NEW", mediaType: "video" as const },
-        { icon: Music, label: "Music", active: false, href: "/artist/studio" },
-        { icon: Text, label: "SEO", active: false, href: "/text-generation", badge: "NEW" },
+        { icon: Video, label: "VIDEO", active: false, href: "/ai-generation", badge: "NEW", mediaType: "video" as const },
+        { icon: Music, label: "MUSIC", active: false, href: "/artist/studio" },
+        { icon: Text, label: "SOCIAL", active: false, href: "/text-generation", badge: "NEW" },
     ]
 
     const currentModel = mediaType === "image" ? selectedImageModel : selectedVideoModel

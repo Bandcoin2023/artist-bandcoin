@@ -343,6 +343,11 @@ function App() {
             toast.error("No tracks to export. Add some audio files to the timeline first.")
             return
         }
+        if (!creator.data?.id) {
+            toast.error("You must be a creator to export your project.")
+            router.push("/artist/create")
+            return
+        }
         setShowExportOptionsModal(true)
     }, [tracks.length])
 
@@ -422,13 +427,7 @@ function App() {
         return () => document.removeEventListener("keydown", handleKeyDown)
     }, [playbackState.isPlaying, playbackState.duration, play, pause, seek, toggleLoop, snapToGrid, pixelsPerSecond])
 
-    if (creator.isLoading) {
-        return <LoadingScreen isDark={isDark} />
-    }
 
-    if (!creator.data?.id) {
-        return <AccessDenied isDark={isDark} />
-    }
 
     return (
         <div className={`h-[calc(100vh-10vh)] flex flex-col transition-colors duration-300`}>
