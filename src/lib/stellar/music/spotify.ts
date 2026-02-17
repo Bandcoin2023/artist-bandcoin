@@ -113,7 +113,7 @@ export const getClaimXDR = async (
     const buildTrx = Tx1.build();
     buildTrx.sign(motherKeyPair, storageKeyPair);
     const xdr = buildTrx.toXDR();
-    const signedXDR = await WithSing({ xdr, signWith });
+    const signedXDR = hasTrust ? xdr : await WithSing({ xdr, signWith });
     return {
         xdr: signedXDR,
         needSign: !hasTrust,
