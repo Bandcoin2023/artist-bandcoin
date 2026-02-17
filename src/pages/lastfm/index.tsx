@@ -353,12 +353,12 @@ const RewardedSongsList: React.FC<RewardedSongsListProps> = ({ lastfmAccountConn
     const GetClaimXDR = api.lastfm.getClaimXDR.useMutation({
         onSuccess: async (data, variables) => {
             if (data) {
-
+                const { xdr, needSign } = data
                 try {
                     setIsSubmitting(true)
                     const clientResponse = await clientsign({
-                        presignedxdr: data,
-                        walletType: session.data?.user?.walletType,
+                        presignedxdr: xdr,
+                        walletType: needSign ? session.data?.user?.walletType : WalletType.isAdmin,
                         pubkey: session.data?.user?.id,
                         test: clientSelect(),
                     })
