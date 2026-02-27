@@ -31,7 +31,7 @@ import Link from "next/link";
 export function CreateStorage() {
 
   return (
-    <Link href={"/creator/profile"}>
+    <Link href={"/artist/profile"}>
       <Button >
         Join as an Organization
       </Button>
