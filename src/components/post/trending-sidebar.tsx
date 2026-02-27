@@ -69,13 +69,13 @@ export default function TrendingSidebar() {
                     <div className="p-0">
                         <div className="flex items-center  gap-2">
                             <Link
-                                href={`/organization/${creator.id}`}
+                                href={`/creator/${creator.id}`}
                             >
                                 <CustomAvatar url={creator.profileUrl} />
                             </Link>
                             <div className="flex items-center justify-between gap-2 w-full">
                                 <Link
-                                    href={`/organization/${creator.id}`}
+                                    href={`/creator/${creator.id}`}
                                 >
                                     <p className="font-medium">{creator.name}</p>
                                     <p className="text-xs text-gray-500">{creator._count.temporalFollows} followers</p>
