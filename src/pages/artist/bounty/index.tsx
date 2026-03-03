@@ -29,7 +29,7 @@ const CreatorBounty = () => {
             limit: 10,
             search: debouncedSearchTerm,
             sortBy: sortOption,
-
+            bountyType: typeFilter !== BountyTypeFilter.ALL ? typeFilter : undefined,
         },
         {
             getNextPageParam: (lastPage) => lastPage.nextCursor,

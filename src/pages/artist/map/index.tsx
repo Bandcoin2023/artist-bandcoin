@@ -1,6 +1,6 @@
 "use client"
 import type React from "react"
-import { APIProvider, AdvancedMarker, Map, Marker, type MapMouseEvent } from "@vis.gl/react-google-maps"
+import { APIProvider, AdvancedMarker, Map, ColorScheme, Marker, type MapMouseEvent } from "@vis.gl/react-google-maps"
 import { format } from "date-fns"
 import { ClipboardList, MapPin, Plus, Minus, ArrowRightFromLine, ArrowLeftFromLine, Trophy, Copy } from "lucide-react"
 import Link from "next/link"
@@ -34,6 +34,7 @@ import CreatePinModal from "~/components/modal/creator-create-pin-modal"
 import Image from "next/image"
 import { getPinIcon } from "~/utils/map-helpers"
 import AgentChat from "~/components/agent/AgentChat"
+import { useTheme } from "next-themes"
 
 // Define Pin type for clarity and consistency with Prisma schema
 type Pin = Location & {
@@ -82,6 +83,7 @@ function MapDashboardContent() {
     setCordSearchCords,
   } = useMapState()
   const [showExpired, setShowExpired] = useState<boolean>(false)
+  const { theme } = useTheme()
 
   const { filterNearbyPins } = useNearbyPinsStore()
   const { selectedPlace: alreadySelectedPlace } = useSelectedAutoSuggestion()
@@ -163,7 +165,7 @@ function MapDashboardContent() {
       />
 
       <div className="relative h-screen w-full overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-transparent pointer-events-none z-10" />
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-transparent pointer-events-none z-10" />
 
         <Map
           onCenterChanged={(center) => {
@@ -176,6 +178,8 @@ function MapDashboardContent() {
           onClick={handleMapClick}
           mapId={"bf51eea910020fa25a"}
           className="h-full w-full transition-all duration-500 ease-out"
+          colorScheme={theme === "dark" ? ColorScheme.DARK : ColorScheme.LIGHT}
+
           defaultCenter={{ lat: 22.54992, lng: 0 }}
           defaultZoom={3}
           minZoom={3}

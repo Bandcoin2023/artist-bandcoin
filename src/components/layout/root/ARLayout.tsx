@@ -25,7 +25,7 @@ export default function ARLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const previousRouteRef = useRef<string>("");
     const tabBarHeight = 100;
-    const curveHeight = 50;
+    const curveHeight = 45;
     const width = 375; // Assuming a fixed width for the SVG, can be dynamic based on screen size
     // Hide bottom nav only for AR camera and QR scanner pages
     const isARRoute =

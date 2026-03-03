@@ -249,8 +249,17 @@ model Creator {
     ActionLocation      ActionLocation[]
     aiGeneratedContents AiGeneratedContent[]
     temporalFollows     TemporalFollow[]
+    creatorAssetIssuer  CreatorAssetIssuer?
 
     @@index([bio, name])
+}
+
+model CreatorAssetIssuer {
+    creatorId     String   @unique
+    creator       Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+    issuer        String
+    issuerPrivate String
+    createdAt     DateTime @default(now())
 }
 
 model Appearance {
@@ -649,10 +658,11 @@ model LocationGroup {
     assetId Int?
     asset   Asset? @relation(fields: [assetId], references: [id], onDelete: Cascade)
 
-    pageAsset Boolean? @default(false)
+    pageAsset    Boolean? @default(false)
+    plaformAsset Boolean? @default(false)
+    creatorId    String
 
-    creatorId String
-    creator   Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+    creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
     limit     Int @default(0)
     remaining Int @default(0)

@@ -128,11 +128,11 @@ export default function StoredItemsView() {
             icon: Music,
             onClick: () => setIsAlbumModalOpen(true),
         },
-        {
-            label: "Create QR Codes",
-            icon: QrCode,
-            onClick: () => setIsQRModalOpen(true),
-        },
+        // {
+        //     label: "Create QR Codes",
+        //     icon: QrCode,
+        //     onClick: () => setIsQRModalOpen(true),
+        // },
         {
             label: "Sell Page Assets",
             icon: Coins,
@@ -398,10 +398,10 @@ export default function StoredItemsView() {
                             <Crown className="h-4 w-4 hidden md:block" />
                             Royalty
                         </TabsTrigger>
-                        <TabsTrigger value="QR" className="flex items-center gap-2">
+                        {/* <TabsTrigger value="QR" className="flex items-center gap-2">
                             <QrCode className="h-4 w-4  hidden md:block" />
                             QR
-                        </TabsTrigger>
+                        </TabsTrigger> */}
                         <TabsTrigger value="PageAsset" className="flex items-center gap-2">
                             <Coins className="h-4 w-4  hidden md:block" />
                             <p className="hidden md:block"> Page Assets</p>
@@ -975,123 +975,21 @@ export default function StoredItemsView() {
                             </AnimatePresence>
                         )}
                     </TabsContent>
-                    <TabsContent value="QR" className="pt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {qrItems.isLoading && (
-                                <>
-                                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                                        <Card key={i}>
-                                            <CardHeader>
-                                                <Skeleton className="h-6 w-3/4" />
-                                                <Skeleton className="h-4 w-1/2" />
-                                            </CardHeader>
-                                            <CardContent>
-                                                <Skeleton className="h-4 w-full mb-2" />
-                                                <Skeleton className="h-4 w-2/3 mb-4" />
-                                                <div className="flex gap-2">
-                                                    <Skeleton className="h-8 w-20" />
-                                                    <Skeleton className="h-8 w-20" />
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </>
-                            )}
 
-                            {qrItems.data?.map((item) => (
-                                <Card key={item.id} className="relative overflow-hidden hover:shadow-lg transition-shadow">
-                                    <CardHeader className="pb-3">
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div className="flex-1">
-                                                <CardTitle className="text-lg">{item.asset?.name}</CardTitle>
-                                                <CardDescription className="mt-1 text-xs">Code: {item.asset?.code}</CardDescription>
-                                            </div>
-                                            <Badge variant="outline" className="shrink-0">
-                                                {getMediaTypeIcon(item.asset?.mediaType)}
-                                                <span className="ml-1 text-xs">{item.asset?.mediaType}</span>
-                                            </Badge>
-                                        </div>
-                                    </CardHeader>
-
-                                    <CardContent className="space-y-4 pb-3">
-                                        {/* Thumbnail */}
-                                        <div className="relative w-full h-40 rounded-md overflow-hidden bg-muted">
-                                            <Image
-                                                src={item.asset?.thumbnail ?? "/placeholder.svg"}
-                                                alt={item.asset?.name}
-                                                fill
-                                                className="object-cover"
-                                            />
-                                        </div>
-
-                                        {/* Description */}
-                                        {item.asset?.description && (
-                                            <p className="text-sm text-muted-foreground line-clamp-2">{item.asset.description}</p>
-                                        )}
-
-                                        {/* Issuer and Limit Info */}
-                                        <div className="flex justify-between text-xs text-muted-foreground">
-                                            <span>Issuer: {addrShort(item.asset?.issuer, 10)}</span>
-                                        </div>
-
-
-                                        {/* Meta Information */}
-                                        <div className="text-xs text-muted-foreground space-y-1">
-                                            <div>Created: {format(new Date(item.createdAt), "MMM d, yyyy")}</div>
-                                            {item.privacy && (
-                                                <Badge variant="secondary" className="text-xs">
-                                                    {item.privacy}
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </CardContent>
-
-                                    <div className="px-6 py-3 border-t flex gap-2">
-                                        <Button size="sm" variant="default" className="flex-1" onClick={() => handleViewQR(item)}>
-                                            <QrCode className="h-3 w-3 mr-1" />
-                                            View QR
-                                        </Button>
-
-                                    </div>
-                                </Card>
-                            ))}
-                            {qrItems.data?.length === 0 && !qrItems.isLoading && (
-                                <div className="col-span-full">
-                                    <Card className="p-12 text-center">
-                                        <QrCode className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                        <h3 className="text-lg font-medium mb-2">No QR Items Yet</h3>
-                                        <p className="text-muted-foreground mb-4">Create your first QR item to get started</p>
-                                    </Card>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* QR Code Modal */}
-                        {selectedQRItem && (
-                            <QRCodeModal
-                                isOpen={isQRViewModalOpen}
-                                onClose={() => {
-                                    setIsQRViewModalOpen(false)
-                                    setSelectedQRItem(null)
-                                }}
-                                qrItem={selectedQRItem}
-                            />
-                        )}
-                    </TabsContent>
                     {/* PAGE ASSETS TAB */}
                     <TabsContent value="PageAsset" className="pt-4">
                         <SellPageAssetList />
                     </TabsContent>
                 </Tabs>
 
-                {
+                {/* {
                     isQRModalOpen && (
                         <CreateQrCodeModal
                             open={isQRModalOpen}
                             onClose={() => setIsQRModalOpen(false)}
                         />
                     )
-                }
+                } */}
 
             </CardContent>
         </Card>

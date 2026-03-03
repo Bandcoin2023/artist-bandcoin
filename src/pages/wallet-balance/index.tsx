@@ -6,14 +6,14 @@ import { useSession } from "next-auth/react";
 import WBRightSideBar from "~/components/wallet-balance/wb-right-sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/shadcn/ui/tabs";
 
-import { Plus, QrCode, Send } from "lucide-react";
+import { Plus, QrCode, Send, User, Crown } from "lucide-react";
 import {
     checkStellarAccountActivity,
     clientsign,
 } from "package/connect_wallet/src/lib/stellar/utils";
 import { useCallback, useEffect, useState } from "react";
 import QRCode from "react-qr-code";
-import { useModal } from "~/lib/state/play/use-modal-store";
+import { useModal } from "~/lib/state/augmented-reality/use-modal-store";
 import TransactionHistory from "~/components/wallet-balance/transactionHistory";
 import CopyToClip from "~/components/common/copy_to_Clip";
 import useNeedSign from "~/lib/hook";
@@ -25,11 +25,17 @@ import toast from "react-hot-toast";
 import Loading from "~/components/common/loading";
 import ReceiveAssetsModal from "~/components/modal/receive-asset-modal";
 import SendAssetsModal from "~/components/modal/send-asset-modal";
+import { toast as sonner } from "sonner"
+import { useWalletBalanceStore } from "~/components/store/wallet-balance-store";
+import { cn } from "~/utils/utils";
+import { motion } from "framer-motion";
 
 const Wallets = () => {
     const session = useSession();
     const { onOpen } = useModal();
     const { needSign } = useNeedSign();
+    const { setBalanceType, isCreatorMode, setCreatorStorageId } = useWalletBalanceStore();
+
     const [isAccountActivate, setAccountActivate] = useState(false);
     const [isAccountActivateLoading, setAccountActivateLoading] = useState(false);
     const router = useRouter();
@@ -43,6 +49,14 @@ const Wallets = () => {
         setAccountActivate(isActive);
         setAccountActivateLoading(false);
     }
+    const creator = api.fan.creator.meCreator.useQuery(undefined, {
+        enabled: !!isCreatorMode
+    })
+
+    const { data: pageAssetBalance } = api.walletBalance.wallBalance.getPageAssetBalance.useQuery(
+        { creatorStorageId: creator.data?.storagePub, isCreatorMode },
+        { enabled: !!creator.data?.storagePub && isCreatorMode }
+    );
 
     const {
         data: hasTrustLineOnPlatformAsset,
@@ -74,10 +88,18 @@ const Wallets = () => {
         }
     }, [session.data?.user]);
 
+
+    useEffect(() => {
+        if (creator.data) {
+            setCreatorStorageId(creator.data.storagePub);
+        }
+    }, [creator.data])
+
+
     useEffect(() => {
         void checkStatus();
     }, []);
-
+    const creatorPageAssetCode = creator.data?.pageAsset?.code ?? creator.data?.customPageAssetCodeIssuer?.split("-")[0] ?? "";
     const AddTrustMutation =
         api.walletBalance.wallBalance.addTrustLine.useMutation({
             onSuccess: async (data) => {
@@ -101,13 +123,24 @@ const Wallets = () => {
                     } else {
                         toast.error("No Data Found at TrustLine Operation");
                     }
-                } catch (error) {
-                    if (error instanceof Error) {
-                        toast.error(`Error: ${error.message}`);
-                    } else {
-                        toast.error("An unknown error occurred.");
+                } catch (error: unknown) {
+                    console.error("Error in test transaction", error)
+
+                    const err = error as {
+                        message?: string
+                        details?: string
+                        errorCode?: string
                     }
-                    console.log("Error", error);
+
+                    sonner.error(
+                        typeof err?.message === "string"
+                            ? err.message
+                            : "Transaction Failed",
+                        {
+                            description: `Error Code : ${err?.errorCode ?? "unknown"}`,
+                            duration: 8000,
+                        }
+                    )
                 } finally {
                     setLoading(false);
                 }
@@ -136,7 +169,7 @@ const Wallets = () => {
         );
     }
 
-    const url = `https://app.wadzzo.com${router.pathname}?id=${session?.data?.user?.id}`;
+    const url = `https://app.action-tokens.com${router.pathname}?id=${session?.data?.user?.id}`;
 
     if (!isAccountActivate) {
         return (
@@ -182,38 +215,49 @@ const Wallets = () => {
     }
 
     return (
-        <div className=" p-6 space-y-6  w-full"  >
-            <Card className="bg-gradient-to-r  from-yellow-400 to-blue-400 text-white shadow-md">
+        <div className=" p-2 space-y-6  w-full"  >
+            <Card className="bg-gradient-to-r  from-primary to-blue-400 text-white shadow-md">
                 <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row justify-between items-center">
                         <div className="mb-4 md:mb-0">
-                            {hasTrustLineOnPlatformAsset ? (
-                                <>
-                                    <h2 className="text-2xl font-semibold mb-2">Current Balance</h2>
-                                    <p className="text-xl md:text-4xl font-bold">
-                                        {platformBalance?.toString() === "0.0000000" ? "0" : platformBalance?.toString()}
-                                        <span className="text-md md:text-2xl ml-2">{PLATFORM_ASSET.code}</span>
-                                    </p>
+                            {
+                                isCreatorMode ? <>
+                                    <>
+                                        <h2 className="text-2xl font-semibold mb-2">Page Asset Balance</h2>
+                                        <p className="text-xl md:text-4xl font-bold">
+                                            {pageAssetBalance?.toString() === "0.0000000" ? "0" : pageAssetBalance?.toString()}
+                                            <span className="text-md md:text-2xl ml-2">{creatorPageAssetCode}</span>
+                                        </p>
+                                    </>
+                                </> : <>
+                                    {hasTrustLineOnPlatformAsset ? (
+                                        <>
+                                            <h2 className="text-2xl font-semibold mb-2">Current Balance</h2>
+                                            <p className="text-xl md:text-4xl font-bold">
+                                                {platformBalance?.toString() === "0.0000000" ? "0" : platformBalance?.toString()}
+                                                <span className="text-md md:text-2xl ml-2">{PLATFORM_ASSET.code}</span>
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <div className="text-center md:text-left">
+                                            <p className="text-xl mb-2">You haven{"'t"} added trust for {PLATFORM_ASSET.code} yet!</p>
+                                            <Button
+                                                onClick={() => AddTrustMutation.mutate({
+                                                    asset_code: PLATFORM_ASSET.code,
+                                                    asset_issuer: PLATFORM_ASSET.issuer,
+                                                    signWith: needSign(),
+                                                })}
+                                                disabled={AddTrustMutation.isLoading}
+                                                variant="secondary"
+                                            >
+                                                {AddTrustMutation.isLoading ? "Adding Trustline..." : getPlatformLoading ? "Checking Trustline..." : "Add Trustline"}
+                                            </Button>
+                                        </div>
+                                    )}
                                 </>
-                            ) : (
-                                <div className="text-center md:text-left">
-                                    <p className="text-xl mb-2">You haven{"'t"} added trust for {PLATFORM_ASSET.code} yet!</p>
-                                    <Button
-                                        onClick={() =>
-                                            AddTrustMutation.mutate({
-                                                asset_code: PLATFORM_ASSET.code,
-                                                asset_issuer: PLATFORM_ASSET.issuer,
-                                                signWith: needSign(),
-                                            })}
-                                        disabled={AddTrustMutation.isLoading}
-                                        variant="secondary"
-                                    >
-                                        {AddTrustMutation.isLoading ? "Adding Trustline..." : getPlatformLoading ? "Checking Trustline..." : "Add Trustline"}
-                                    </Button>
-                                </div>
-                            )}
+                            }
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 items-center flex-wrap justify-center md:justify-end">
                             <Button variant="default" className="shadow-lg" onClick={() => setIsReceiveModalOpen(true)}>
                                 <QrCode size={18} className="mr-2" />
                                 Receive
@@ -222,6 +266,59 @@ const Wallets = () => {
                                 <Send size={18} className="mr-2" />
                                 Send
                             </Button>
+                            {/* Mode Toggle */}
+                            {
+                                creator.data && (
+                                    <button
+                                        onClick={() => setBalanceType(isCreatorMode ? "user" : "creator")}
+                                        className="relative h-12 w-24 rounded-full transition-shadow duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-purple-400 bg-gradient-to-r from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600"
+                                        style={{
+                                            boxShadow:
+                                                isCreatorMode
+                                                    ? "inset 0 0 15px rgba(255, 215, 0, 0.2), 0 0 20px rgba(255, 215, 0, 0.3)"
+                                                    : "inset 0 0 15px rgba(59, 130, 246, 0.2), 0 0 20px rgba(59, 130, 246, 0.3)",
+                                        }}
+                                        title={isCreatorMode ? "Switch to User Mode" : "Switch to Creator Mode"}
+                                    >
+                                        <motion.div
+                                            className="absolute top-1 left-1 right-1 bottom-1 rounded-full bg-gradient-to-br"
+                                            animate={{
+                                                background: isCreatorMode
+                                                    ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+                                                    : "linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)",
+                                            }}
+                                            transition={{ duration: 0.5 }}
+                                        />
+                                        <motion.div
+                                            className="absolute h-10 w-10 top-1 rounded-full flex items-center justify-center"
+                                            animate={{
+                                                x: isCreatorMode ? 55 : 4,
+                                                background: isCreatorMode ? "#fbbf24" : "#60a5fa",
+                                            }}
+                                            transition={{
+                                                type: "spring",
+                                                stiffness: 700,
+                                                damping: 30,
+                                            }}
+                                        >
+                                            {isCreatorMode ? (
+                                                <Crown className="h-5 w-5 text-amber-900" />
+                                            ) : (
+                                                <User className="h-5 w-5 text-blue-900" />
+                                            )}
+                                        </motion.div>
+                                        <motion.div
+                                            className="absolute inset-0 rounded-full"
+                                            animate={{
+                                                boxShadow: isCreatorMode
+                                                    ? "inset 4px 4px 8px rgba(0, 0, 0, 0.2), inset -4px -4px 8px rgba(255, 255, 255, 0.1)"
+                                                    : "inset 4px 4px 8px rgba(0, 0, 0, 0.1), inset -4px -4px 8px rgba(255, 255, 255, 0.3)",
+                                            }}
+                                            transition={{ duration: 0.5 }}
+                                        />
+                                    </button>
+                                )
+                            }
                         </div>
                     </div>
                 </CardContent>
@@ -230,7 +327,7 @@ const Wallets = () => {
             <div className="hidden md:grid  md:grid-cols-2 gap-6 ">
                 <Card className="md:col-span-1 h-[calc(100vh-32vh)] shadow-lg">
                     <CardHeader>
-                        <CardTitle >Transaction History</CardTitle>
+                        <CardTitle >{isCreatorMode ? "Creator" : "User"} Transaction History</CardTitle>
                     </CardHeader>
                     <CardContent className="">
                         <TransactionHistory />
@@ -238,7 +335,7 @@ const Wallets = () => {
                 </Card>
                 <Card className="h-[calc(100vh-32vh)] shadow-lg">
                     <CardHeader>
-                        <CardTitle className="hidden md:block">My Assets</CardTitle>
+                        <CardTitle className="hidden md:block">{isCreatorMode ? "Creator" : "User"} Assets</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <WBRightSideBar />
@@ -248,8 +345,8 @@ const Wallets = () => {
             <div className="md:hidden">
                 <Tabs defaultValue="history" className="w-full ">
                     <TabsList className="grid w-full grid-cols-2 " >
-                        <TabsTrigger value="history">Transaction History</TabsTrigger>
-                        <TabsTrigger value="assets">My Assets</TabsTrigger>
+                        <TabsTrigger value="history"> {isCreatorMode ? "Creator" : "User"} Transaction History</TabsTrigger>
+                        <TabsTrigger value="assets">{isCreatorMode ? "Creator" : "User"} Assets</TabsTrigger>
                     </TabsList>
                     <TabsContent value="history">
                         <Card className="h-[calc(100vh-42vh)] p-0 m-0 shadow-lg">

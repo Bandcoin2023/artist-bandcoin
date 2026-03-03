@@ -35,13 +35,16 @@ import { Button } from "~/components/shadcn/ui/button";
 import { api } from "~/utils/api";
 import { Loader2, RefreshCcw, RotateCw, Send } from "lucide-react";
 
-import { WalletType, clientsign } from "package/connect_wallet";
+import { WalletType, clientsign, submitSignedXDRToServer } from "package/connect_wallet";
 import { useSession } from "next-auth/react";
 import { Toaster } from "react-hot-toast";
 import useNeedSign from "~/lib/hook";
 import { clientSelect } from "~/lib/stellar/fan/utils";
 import { useRouter } from "next/router";
 import { fetchPubkeyfromEmail } from "~/utils/get-pubkey";
+import { toast as sonner } from "sonner"
+import { useWalletBalanceStore } from "../store/wallet-balance-store";
+import { submitSignedXDRToServer4User } from "package/connect_wallet/src/lib/stellar/trx/payment_fb_g";
 
 const formSchema = z.object({
     recipientId: z.string().length(56, {
@@ -64,8 +67,12 @@ interface SendAssetsModalProps {
 const SendAssetsModal = ({ isOpen, setIsOpen }: SendAssetsModalProps) => {
 
     const session = useSession();
+    const { creatorStorageId, isCreatorMode } = useWalletBalanceStore()
+
     const [loading, setLoading] = useState(false);
-    const { data } = api.walletBalance.wallBalance.getWalletsBalance.useQuery();
+    const { data } = api.walletBalance.wallBalance.getWalletsBalance.useQuery(
+        { creatorStorageId: creatorStorageId, isCreatorMode }
+    );
     const { needSign } = useNeedSign();
     const router = useRouter();
 
@@ -124,42 +131,65 @@ const SendAssetsModal = ({ isOpen, setIsOpen }: SendAssetsModalProps) => {
         api.walletBalance.wallBalance.sendWalletAssets.useMutation({
             onSuccess: async (data) => {
                 try {
-                    const clientResponse = await clientsign({
-                        presignedxdr: data.xdr,
-                        walletType: session.data?.user?.walletType,
-                        pubkey: data.pubKey,
-                        test: clientSelect(),
-                    });
-
-                    if (clientResponse) {
-                        toast.success("Transaction successful");
-                        try {
-                            await api
-                                .useUtils()
-                                .walletBalance.wallBalance.getWalletsBalance.refetch();
-                        } catch (balanceError) {
-                            console.log("Error refetching wallets balance", balanceError);
+                    if (data.submitWithoutSign) {
+                        const res = await submitSignedXDRToServer4User(data.xdr);
+                        if (res) {
+                            toast.success("Transaction successful");
                         }
-
-                        try {
-                            await api
-                                .useUtils()
-                                .walletBalance.wallBalance.getNativeBalance.refetch();
-                        } catch (nativeBalanceError) {
-                            console.log(
-                                "Error refetching native balance",
-                                nativeBalanceError,
-                            );
+                        else {
+                            toast.error("Transaction failed");
                         }
-                    } else {
-                        toast.error("Transaction failed");
                     }
-                } catch (signError) {
-                    if (signError instanceof Error) {
-                        toast.error(`Error: ${signError.message}`);
-                    } else {
-                        toast.error("Something went wrong.");
+                    else {
+                        const clientResponse = await clientsign({
+                            presignedxdr: data.xdr,
+                            walletType: session.data?.user?.walletType,
+                            pubkey: data.pubKey,
+                            test: clientSelect(),
+                        });
+
+                        if (clientResponse) {
+                            toast.success("Transaction successful");
+                            try {
+                                await api
+                                    .useUtils()
+                                    .walletBalance.wallBalance.getWalletsBalance.refetch();
+                            } catch (balanceError) {
+                                console.log("Error refetching wallets balance", balanceError);
+                            }
+
+                            try {
+                                await api
+                                    .useUtils()
+                                    .walletBalance.wallBalance.getNativeBalance.refetch();
+                            } catch (nativeBalanceError) {
+                                console.log(
+                                    "Error refetching native balance",
+                                    nativeBalanceError,
+                                );
+                            }
+                        } else {
+                            toast.error("Transaction failed");
+                        }
                     }
+                } catch (error: unknown) {
+                    console.error("Error in test transaction", error)
+
+                    const err = error as {
+                        message?: string
+                        details?: string
+                        errorCode?: string
+                    }
+
+                    sonner.error(
+                        typeof err?.message === "string"
+                            ? err.message
+                            : "Transaction Failed",
+                        {
+                            description: `Error Code : ${err?.errorCode ?? "unknown"}`,
+                            duration: 8000,
+                        }
+                    )
                 } finally {
                     setLoading(false);
                     await handleClose();
@@ -180,7 +210,7 @@ const SendAssetsModal = ({ isOpen, setIsOpen }: SendAssetsModalProps) => {
                 `${asset?.asset_code}-${asset?.asset_type}-${asset?.asset_issuer}` ===
                 values.selectItem,
         );
-
+        console.log("selectedAsset", selectedAsset);
         if (!selectedAsset || selectedAsset?.assetBalance < values.amount) {
             toast.error("Insufficient balance");
             return;
@@ -203,6 +233,8 @@ const SendAssetsModal = ({ isOpen, setIsOpen }: SendAssetsModalProps) => {
                         asset_type: type,
                         asset_issuer: issuer,
                         signWith: needSign(),
+                        creatorStorageId: creatorStorageId,
+                        isCreatorMode: isCreatorMode
                     });
                 } else {
                     // Handle the case where any of the parts are undefined
@@ -357,7 +389,7 @@ const SendAssetsModal = ({ isOpen, setIsOpen }: SendAssetsModalProps) => {
                                                                 key={idx}
                                                                 value={`${wallet?.asset_code}-${wallet?.asset_type}-${wallet?.asset_issuer}`}
                                                             >
-                                                                {wallet?.asset_code}
+                                                                {wallet?.asset_code} - Balance: {wallet?.assetBalance}
                                                             </SelectItem>
                                                         ))}
                                                     </SelectGroup>

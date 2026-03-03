@@ -143,6 +143,8 @@ export default function SellPageAssetModal() {
                 duration: 4000,
             })
             reset()
+            setIsOpen(false)
+
         },
         onError: (error) => {
             toast.error(`Failed to create asset: ${error.message}`)

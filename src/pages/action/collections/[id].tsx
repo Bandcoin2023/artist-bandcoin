@@ -11,22 +11,53 @@ import { Card, CardContent, CardHeader } from "~/components/shadcn/ui/card"
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/shadcn/ui/avatar"
 import { Badge } from "~/components/shadcn/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/shadcn/ui/tabs"
-import { useCollection } from "~/lib/state/augmented-reality/useCollection"
 import { useNearByPin } from "~/lib/state/augmented-reality/useNearbyPin"
 import { useModal } from "~/lib/state/augmented-reality/useModal"
 import { BASE_URL } from "~/lib/common"
-import { formatDistanceToNow } from "date-fns"
+import { useQuery } from "@tanstack/react-query"
+import { ConsumedLocation } from "~/types/game/location"
+import Loading from "~/components/common/loading"
+import ARPhotoFrame from "~/components/ar/ar-photo-frame"
 
 const SingleCollectionItem = () => {
-  const { data } = useCollection()
+
   const { setData } = useNearByPin()
   const { onOpen } = useModal()
   const router = useRouter()
   const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null)
-  const [isLiked, setIsLiked] = useState(false)
-  const [isBookmarked, setIsBookmarked] = useState(false)
-  const [activeTab, setActiveTab] = useState("overview")
 
+  const [activeTab, setActiveTab] = useState("overview")
+  const getCollection = async () => {
+    try {
+      const response = await fetch(new URL("api/game/locations/getConsumedLocationById", BASE_URL).toString(), {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          location_id: router.query.id,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch collections")
+      }
+
+      const data = (await response.json()) as { loc: ConsumedLocation }
+      return data
+    } catch (error) {
+      console.error("Error fetching collections:", error)
+      throw error
+    }
+  }
+  const locationsRes = useQuery({
+    queryKey: ["getConsumedLocationById", router.query.id],
+    queryFn: () => getCollection(),
+  })
+
+  const data = locationsRes.data?.loc
+  console.log("Fetched collection data:", data)
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -55,17 +86,21 @@ const SingleCollectionItem = () => {
     return R * c
   }
 
-  const distance = userLocation && data.collections ?
-    calculateDistance(userLocation.lat, userLocation.lng, data.collections.lat, data.collections.lng) : null
+  const distance = userLocation && data ?
+    calculateDistance(userLocation.lat, userLocation.lng, data.lat, data.lng) : null
 
-  if (!data.collections) {
+  if (locationsRes.isLoading) {
+    return <Loading />
+  }
+
+  if (!data) {
     return (
       <div className="min-h-screen  bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
         <div className="text-center">
           <Package className="w-16 h-16 text-slate-400 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Collection not found</h2>
           <p className="text-slate-600 dark:text-slate-400 mb-6">The collection you{"'"}re looking for doesn{"'"}t exist.</p>
-          <Button onClick={() => router.back()} className="rounded-xl">
+          <Button onClick={() => router.replace("/action/collections")} className="rounded-xl">
             Go Back
           </Button>
         </div>
@@ -88,14 +123,14 @@ const SingleCollectionItem = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.back()}
+                onClick={() => router.replace("/action/collections")}
                 className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
                 <h1 className="text-xl font-bold text-slate-900 dark:text-white line-clamp-1">
-                  {data.collections.title}
+                  {data.title}
                 </h1>
                 <p className="text-sm text-slate-600 dark:text-slate-400">Collection Details</p>
               </div>
@@ -139,8 +174,8 @@ const SingleCollectionItem = () => {
           transition={{ duration: 0.5 }}
         >
           <Image
-            src={data.collections.image_url || "/placeholder.svg"}
-            alt={data.collections.title}
+            src={data.image_url || "/placeholder.svg"}
+            alt={data.title}
             width={800}
             height={400}
             className="h-80 w-full object-cover"
@@ -149,15 +184,15 @@ const SingleCollectionItem = () => {
 
           {/* Enhanced Status Badges */}
           <div className="absolute top-6 right-6 flex flex-col gap-2">
-            {data.collections.collected ? (
+            {data.collected ? (
               <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg border-0 px-4 py-2 text-sm font-semibold">
                 <Trophy className="w-4 h-4 mr-2" />
                 Collected
               </Badge>
-            ) : data.collections.collection_limit_remaining > 0 ? (
+            ) : data.collection_limit_remaining > 0 ? (
               <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg border-0 px-4 py-2 text-sm font-semibold">
                 <Zap className="w-4 h-4 mr-2" />
-                {data.collections.collection_limit_remaining} uses left
+                {data.collection_limit_remaining} uses left
               </Badge>
             ) : (
               <Badge className="bg-gradient-to-r from-slate-500 to-slate-600 text-white shadow-lg border-0 px-4 py-2 text-sm font-semibold">
@@ -183,13 +218,13 @@ const SingleCollectionItem = () => {
             >
               <Avatar className="h-12 w-12 border-2 border-white dark:border-slate-800 shadow-lg">
                 <AvatarImage
-                  src={data.collections.brand_image_url || "/placeholder.svg"}
-                  alt={data.collections.brand_name}
+                  src={data.brand_image_url || "/placeholder.svg"}
+                  alt={data.brand_name}
                 />
-                <AvatarFallback>{data.collections.brand_name?.charAt(0)}</AvatarFallback>
+                <AvatarFallback>{data.brand_name?.charAt(0)}</AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-bold text-slate-900 dark:text-white text-lg">{data.collections.brand_name}</p>
+                <p className="font-bold text-slate-900 dark:text-white text-lg">{data.brand_name}</p>
                 <p className="text-sm text-slate-600 dark:text-slate-400">Brand Creator</p>
               </div>
             </motion.div>
@@ -198,7 +233,7 @@ const SingleCollectionItem = () => {
 
         {/* Enhanced Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-1">
+          <TabsList className="grid w-full grid-cols-3 backdrop-blur-xl rounded-2xl p-1">
             <TabsTrigger value="overview" className="rounded-xl">Overview</TabsTrigger>
             <TabsTrigger value="location" className="rounded-xl">Location</TabsTrigger>
             <TabsTrigger value="details" className="rounded-xl">Details</TabsTrigger>
@@ -222,7 +257,7 @@ const SingleCollectionItem = () => {
                   {/* Description */}
                   <div>
                     <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base">
-                      {data.collections.description}
+                      {data.description}
                     </p>
                   </div>
 
@@ -234,7 +269,7 @@ const SingleCollectionItem = () => {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-slate-900 dark:text-white">Collection ID</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 font-mono">#{data.collections.id}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 font-mono">#{data.id}</p>
                       </div>
                     </div>
 
@@ -245,7 +280,7 @@ const SingleCollectionItem = () => {
                       <div>
                         <p className="text-sm font-medium text-slate-900 dark:text-white">Status</p>
                         <p className="text-xs text-slate-600 dark:text-slate-400">
-                          {data.collections.collected ? 'Collected' : 'Available'}
+                          {data.collected ? 'Collected' : 'Available'}
                         </p>
                       </div>
                     </div>
@@ -256,7 +291,7 @@ const SingleCollectionItem = () => {
 
             {/* Action Buttons */}
             <motion.div
-              className="grid grid-cols-1 md:grid-cols-3 gap-4"
+              className="grid grid-cols-1 md:grid-cols-2 gap-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -269,7 +304,7 @@ const SingleCollectionItem = () => {
                     className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-2xl shadow-lg shadow-blue-500/25"
                   >
                     <Link
-                      href={data?.collections?.url ?? "https://www.app.wadzoo.com"}
+                      href={data?.url ?? "https://www.app.wadzoo.com"}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -282,24 +317,6 @@ const SingleCollectionItem = () => {
               </Card>
 
               {/* View in AR */}
-              <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-0 shadow-lg hover:shadow-xl transition-all duration-200">
-                <CardContent className="p-6">
-                  <Button
-                    onClick={() => {
-                      setData({
-                        nearbyPins: data.collections ? [data.collections] : [],
-                        singleAR: true,
-                      })
-                      router.push("/action/ar")
-                    }}
-                    className="w-full h-12 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-semibold rounded-2xl shadow-lg shadow-violet-500/25"
-                  >
-                    <Eye className="mr-2 h-5 w-5" />
-                    View in AR
-                    <Camera className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
 
               {/* Claim Reward */}
               <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-0 shadow-lg hover:shadow-xl transition-all duration-200">
@@ -315,6 +332,8 @@ const SingleCollectionItem = () => {
                 </CardContent>
               </Card>
             </motion.div>
+            <ARPhotoFrame imageUrl={data.image_url ?? data.brand_image_url} />
+
           </TabsContent>
 
           <TabsContent value="location" className="space-y-6">
@@ -340,7 +359,7 @@ const SingleCollectionItem = () => {
                       <div>
                         <p className="text-sm font-medium text-slate-900 dark:text-white">Coordinates</p>
                         <p className="text-xs text-slate-600 dark:text-slate-400 font-mono">
-                          {data.collections.lat.toFixed(6)}, {data.collections.lng.toFixed(6)}
+                          {data.lat.toFixed(6)}, {data.lng.toFixed(6)}
                         </p>
                       </div>
                     </div>
@@ -375,19 +394,19 @@ const SingleCollectionItem = () => {
                     <Map
                       mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_API}
                       initialViewState={{
-                        latitude: data.collections.lat,
-                        longitude: data.collections.lng,
+                        latitude: data.lat,
+                        longitude: data.lng,
                         zoom: 14,
                       }}
                       style={{ width: "100%", height: "100%" }}
                       mapStyle="mapbox://styles/suppport-10/cmcntcaoj010m01sb66oiddp8"
                     >
                       <Marker
-                        latitude={data.collections.lat}
-                        longitude={data.collections.lng}
+                        latitude={data.lat}
+                        longitude={data.lng}
                         onClick={() =>
                           onOpen("LocationInformation", {
-                            Collection: data.collections,
+                            Collection: data,
                           })
                         }
                       >
@@ -438,7 +457,7 @@ const SingleCollectionItem = () => {
                     <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-medium text-slate-900 dark:text-white">Collection ID</span>
-                        <span className="text-sm text-slate-600 dark:text-slate-400 font-mono">#{data.collections.id}</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-400 font-mono">#{data.id}</span>
                       </div>
                     </div>
 
@@ -446,7 +465,7 @@ const SingleCollectionItem = () => {
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-medium text-slate-900 dark:text-white">Remaining Uses</span>
                         <span className="text-sm text-slate-600 dark:text-slate-400">
-                          {data.collections.collection_limit_remaining}
+                          {data.collection_limit_remaining}
                         </span>
                       </div>
                     </div>
@@ -454,14 +473,14 @@ const SingleCollectionItem = () => {
                     <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-medium text-slate-900 dark:text-white">Status</span>
-                        <Badge className={`${data.collections.collected
+                        <Badge className={`${data.collected
                           ? 'bg-emerald-100 text-emerald-700'
-                          : data.collections.collection_limit_remaining > 0
+                          : data.collection_limit_remaining > 0
                             ? 'bg-blue-100 text-blue-700'
                             : 'bg-slate-100 text-slate-700'
                           }`}>
-                          {data.collections.collected ? 'Collected' :
-                            data.collections.collection_limit_remaining > 0 ? 'Available' : 'Expired'}
+                          {data.collected ? 'Collected' :
+                            data.collection_limit_remaining > 0 ? 'Available' : 'Expired'}
                         </Badge>
                       </div>
                     </div>
@@ -469,7 +488,7 @@ const SingleCollectionItem = () => {
                     <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-medium text-slate-900 dark:text-white">Brand</span>
-                        <span className="text-sm text-slate-600 dark:text-slate-400">{data.collections.brand_name}</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">{data.brand_name}</span>
                       </div>
                     </div>
                   </div>

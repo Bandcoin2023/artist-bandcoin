@@ -12,30 +12,36 @@ import { Input } from "~/components/shadcn/ui/input"
 import { Label } from "~/components/shadcn/ui/label"
 import { Textarea } from "~/components/shadcn/ui/textarea"
 import { Button } from "~/components/shadcn/ui/button"
-import { useCreatorStorageAcc } from "~/lib/state/wallete/stellar-balances"
+import { useCreatorStorageAcc, useUserStellarAcc } from "~/lib/state/wallete/stellar-balances"
 import { api } from "~/utils/api"
 import { BADWORDS } from "~/utils/banned-word"
 import { PinType } from "@prisma/client"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../shadcn/ui/select"
+import { useMapInteractionStore } from "~/components/store/map-stores"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "../shadcn/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "../shadcn/ui/card"
 import { Badge } from "../shadcn/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../shadcn/ui/tabs"
+import CopyCutPinModal from "./copy-cut-pin-modal"
 import { UploadS3Button } from "../common/upload-button"
 import { Switch } from "../shadcn/ui/switch"
-import { useMapInteractionStore } from "../store/map-stores"
-import CopyCutPinModal from "./copy-cut-pin-modal"
+import { LocationAddressDisplay } from "../map/address-display"
+import { PLATFORM_ASSET } from "~/lib/stellar/constant"
+import useNeedSign from "~/lib/hook"
+import { clientsign } from "package/connect_wallet"
+import { useSession } from "next-auth/react"
+import { clientSelect } from "~/lib/stellar/fan/utils"
 
 // Define types for assets and pins
 type AssetType = {
     id: number
     code: string
     issuer: string
-    thumbnail: string
+    thumbnail?: string
 }
 
 export const PAGE_ASSET_NUM = -10
 export const NO_ASSET = -99
-
+export const PLATFORM_ASSET_NUM = -11
 export const createPinFormSchema = z.object({
     lat: z.number().min(-180).max(180),
     lng: z.number().min(-180).max(180),
@@ -60,7 +66,7 @@ export const createPinFormSchema = z.object({
     tokenAmount: z.number().nonnegative().optional(),
     pinNumber: z.number().nonnegative().min(1, "Number of pins must be at least 1"),
     radius: z.number().nonnegative("Radius cannot be negative").default(50), // Set default radius to 50
-    pinCollectionLimit: z.number().min(0, "Collection limit cannot be negative"),
+    pinCollectionLimit: z.number().min(1, "Collection limit must be greater than 0"),
     tier: z.string().optional(),
     multiPin: z.boolean().default(false),
     type: z.nativeEnum(PinType).default(PinType.OTHER),
@@ -70,7 +76,8 @@ type CreatePinType = z.infer<typeof createPinFormSchema>
 export default function CreatePinModal() {
     const { isOpenCreatePin, closeCreatePinModal, manual, position, duplicate, prevData, copiedPinData } =
         useMapInteractionStore()
-
+    const { needSign } = useNeedSign()
+    const session = useSession()
     const [coverUrl, setCover] = useState<string | undefined>()
     const [selectedToken, setSelectedToken] = useState<(AssetType & { bal: number }) | undefined>()
     const [remainingBalance, setRemainingBalance] = useState<number>(0)
@@ -127,9 +134,7 @@ export default function CreatePinModal() {
 
     const tokenAmount = watch("pinCollectionLimit")
 
-    const assetsQuery = api.fan.asset.myAssets.useQuery(undefined, {
-        enabled: isOpenCreatePin,
-    })
+    const assetsQuery = api.fan.asset.myAssets.useQuery(undefined, {})
 
     const addPinM = api.maps.pin.createPin.useMutation({
         onSuccess: () => {
@@ -163,6 +168,51 @@ export default function CreatePinModal() {
         }
     }
 
+    const CreatePinXDR = api.maps.pin.createPinXDR.useMutation({
+        onSuccess: async (data) => {
+            await toast.promise(
+                clientsign({
+                    presignedxdr: data,
+                    pubkey: session.data?.user.id,
+                    walletType: session.data?.user.walletType,
+                    test: clientSelect(),
+                })
+                    .then((res) => {
+                        if (res) {
+                            const finalData = getValues()
+                            if (position) {
+                                finalData.lat = position.lat
+                                finalData.lng = position.lng
+                            }
+
+                            finalData.autoCollect = collectionMode === "auto"
+                            console.log("Final data to submit:", finalData)
+                            addPinM.mutate({
+                                ...finalData,
+                                description: finalData.description ?? "",
+                            })
+                        } else {
+                            toast.error("Transaction Failed")
+
+                        }
+                    })
+                    .catch((e) => {
+                        console.error(e)
+
+                    }),
+                {
+                    loading: "Signing Transaction...",
+                    success: "Transaction Signed",
+                    error: "Signing Transaction Failed",
+                },
+            )
+        },
+        onError: (err) => {
+            console.error("Error creating pin XDR:", err)
+        },
+    })
+
+
     const onSubmit: SubmitHandler<z.infer<typeof createPinFormSchema>> = (data) => {
         if (selectedToken && data.pinCollectionLimit && data.pinCollectionLimit > selectedToken.bal) {
             setError("pinCollectionLimit", {
@@ -180,10 +230,23 @@ export default function CreatePinModal() {
 
         finalData.autoCollect = collectionMode === "auto"
         console.log("Final data to submit:", finalData)
-        addPinM.mutate({
-            ...finalData,
-            description: finalData.description ?? "",
-        })
+
+        if (data.token === PLATFORM_ASSET_NUM) {
+            CreatePinXDR.mutate({
+                token: data.token ?? 0,
+                amount: data.pinCollectionLimit ?? 0,
+                signWith: needSign(),
+            })
+        }
+        else {
+            addPinM.mutate({
+                ...finalData,
+                description: finalData.description ?? "",
+            })
+        }
+
+
+
     }
 
     useEffect(() => {
@@ -249,7 +312,7 @@ export default function CreatePinModal() {
             >
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="text-2xl font-bold">Create New Pin</DialogTitle>
+                        <DialogTitle className="text-2xl font-bold text-primary">Create New Pin</DialogTitle>
                         <div className="flex items-center justify-center space-x-4 mt-4">
                             <div className="flex items-center">
                                 <div
@@ -332,7 +395,7 @@ export default function CreatePinModal() {
                                                         <Input
                                                             id="title"
                                                             {...register("title")}
-                                                            className=" border-border focus:ring-ring"
+                                                            className="bg-input border-border focus:ring-ring"
                                                             placeholder="Enter a catchy title for your pin"
                                                         />
                                                         {errors.title && <p className="text-destructive text-sm">{errors.title.message}</p>}
@@ -345,7 +408,7 @@ export default function CreatePinModal() {
                                                         <Textarea
                                                             id="description"
                                                             {...register("description")}
-                                                            className=" border-border focus:ring-ring min-h-[100px] resize-none"
+                                                            className="bg-input border-border focus:ring-ring min-h-[100px] resize-none"
                                                             placeholder="Describe what makes this pin special..."
                                                         />
                                                         {errors.description && (
@@ -363,7 +426,7 @@ export default function CreatePinModal() {
                                                                 control={control}
                                                                 render={({ field }) => (
                                                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                                        <SelectTrigger className=" border-border">
+                                                                        <SelectTrigger className="bg-input border-border">
                                                                             <SelectValue placeholder="Choose Pin Type" />
                                                                         </SelectTrigger>
                                                                         <SelectContent>
@@ -385,7 +448,7 @@ export default function CreatePinModal() {
                                                             <Input
                                                                 id="url"
                                                                 {...register("url")}
-                                                                className=" border-border focus:ring-ring"
+                                                                className="bg-input border-border focus:ring-ring"
                                                                 placeholder="https://example.com"
                                                             />
                                                             {errors.url && <p className="text-destructive text-sm">{errors.url.message}</p>}
@@ -697,6 +760,7 @@ function CollectionInputs({
 }) {
     const { control, register, formState: { errors } } = useFormContext<z.infer<typeof createPinFormSchema>>()
     const { getAssetBalance } = useCreatorStorageAcc()
+    const { platformAssetBalance } = useUserStellarAcc();
 
     return (
         <div className="space-y-4">
@@ -716,7 +780,17 @@ function CollectionInputs({
                                     setRemainingBalance(0)
                                     return
                                 }
+                                if (selectedAssetId === PLATFORM_ASSET_NUM) {
+                                    setSelectedToken({
+                                        id: PLATFORM_ASSET_NUM,
+                                        code: PLATFORM_ASSET.code,
+                                        issuer: PLATFORM_ASSET.issuer,
+                                        bal: platformAssetBalance,
 
+                                    })
+                                    setRemainingBalance(platformAssetBalance)
+                                    return
+                                }
                                 if (selectedAssetId === PAGE_ASSET_NUM) {
                                     const pageAsset = assetsQuery.data?.pageAsset
                                     if (pageAsset) {
@@ -753,21 +827,57 @@ function CollectionInputs({
                             }}
                             defaultValue={NO_ASSET.toString()}
                         >
-                            <SelectTrigger className=" border-border">
+                            <SelectTrigger className="bg-input border-border">
                                 <SelectValue placeholder="Choose Token" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value={NO_ASSET.toString()}>Pin (No asset)</SelectItem>
-                                {assetsQuery.data?.pageAsset && (
-                                    <SelectItem value={PAGE_ASSET_NUM.toString()}>
-                                        {assetsQuery.data.pageAsset.code} - Page Asset
+                                <SelectGroup>
+                                    <SelectLabel className="mt-2 text-center font-semibold text-purple-500">
+                                        PLATFORM ASSET
+                                    </SelectLabel>
+                                    <SelectItem
+                                        value={PLATFORM_ASSET_NUM.toString()}
+                                    >
+                                        <div className="flex w-full items-center justify-between">
+                                            <span>{PLATFORM_ASSET.code}</span>
+                                            <Badge variant="outline" className="ml-2">
+                                                {platformAssetBalance}
+                                            </Badge>
+                                        </div>
                                     </SelectItem>
-                                )}
-                                {assetsQuery.data?.shopAsset?.map((asset: AssetType) => (
-                                    <SelectItem key={asset.id} value={asset.id.toString()}>
-                                        {asset.code}
-                                    </SelectItem>
-                                ))}
+                                </SelectGroup>
+
+                                <SelectGroup>
+                                    <SelectLabel className="mt-2 text-center font-semibold text-purple-500">
+                                        PLATFORM ASSET
+                                    </SelectLabel>
+
+                                    {assetsQuery.data?.shopAsset?.map((asset: AssetType) => (
+                                        <SelectItem key={asset.id} value={asset.id.toString()}>
+                                            {asset.code}
+                                            <Badge variant="outline" className="ml-2">
+                                                {getAssetBalance({ code: asset.code, issuer: asset.issuer })}
+                                            </Badge>
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                                <SelectGroup>
+                                    <SelectLabel className="mt-2 text-center font-semibold text-purple-500">
+                                        PAGE ASSET
+                                    </SelectLabel>
+                                    {assetsQuery.data?.pageAsset && (
+                                        <SelectItem value={PAGE_ASSET_NUM.toString()}>
+                                            {assetsQuery.data.pageAsset.code}
+                                            <Badge variant="outline" className="ml-2">
+                                                {getAssetBalance({
+                                                    code: assetsQuery.data?.pageAsset?.code ?? "",
+                                                    issuer: assetsQuery.data?.pageAsset?.issuer ?? "",
+                                                })}
+                                            </Badge>
+                                        </SelectItem>
+                                    )}
+                                </SelectGroup>
                             </SelectContent>
                         </Select>
                     )}
@@ -784,7 +894,7 @@ function CollectionInputs({
                         id="radius"
                         min={0}
                         {...register("radius", { valueAsNumber: true })}
-                        className=" border-border focus:ring-ring"
+                        className="bg-input border-border focus:ring-ring"
                         placeholder="50"
                     />
                     {errors.radius && <p className="text-destructive text-sm">{errors.radius.message}</p>}
@@ -799,7 +909,7 @@ function CollectionInputs({
                         id="pinNumber"
                         min={1}
                         {...register("pinNumber", { valueAsNumber: true })}
-                        className=" border-border focus:ring-ring"
+                        className="bg-input border-border focus:ring-ring"
                         placeholder="1"
                     />
                     {errors.pinNumber && <p className="text-destructive text-sm">{errors.pinNumber.message}</p>}
@@ -815,7 +925,7 @@ function CollectionInputs({
                     id="pinCollectionLimit"
                     min={0}
                     {...register("pinCollectionLimit", { valueAsNumber: true })}
-                    className=" border-border focus:ring-ring"
+                    className="bg-input border-border focus:ring-ring"
                     placeholder="Enter collection limit"
                 />
                 {selectedToken && (
@@ -912,6 +1022,11 @@ function ManualCoordinatesInput({ manual, position }: ManualCoordinatesInputProp
                         <Badge variant="secondary" className="font-mono text-xs">
                             {position?.lng?.toFixed(6)}
                         </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+
+                        <LocationAddressDisplay latitude={position?.lat ?? 0} longitude={position?.lng ?? 0} />
+
                     </div>
                 </div>
             </CardContent>
@@ -1020,12 +1135,14 @@ function TiersOptions() {
                                 field.onChange(value)
                             }}
                         >
-                            <SelectTrigger className=" border-border">
+                            <SelectTrigger className="bg-input border-border">
                                 <SelectValue placeholder="Choose Tier" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="public">Public</SelectItem>
-                                <SelectItem value="private">Only Members</SelectItem>
+                                <SelectItem value="follower">Only Follower</SelectItem>
+
+                                <SelectItem value="private">Only Member</SelectItem>
                                 {tiersQuery.data.map((model) => (
 
                                     <SelectItem key={model.id} value={model.id.toString()}>

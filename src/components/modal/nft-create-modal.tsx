@@ -136,8 +136,10 @@ export const NftFormSchema = z.object({
     .nonnegative(),
   code: z
     .string()
-    .min(4, { message: "Must be a minimum of 4 characters" })
-    .max(12, { message: "Must be a maximum of 12 characters" }),
+    .min(4, { message: "Asset code must be at least 4 characters long" })
+    .regex(/^[a-zA-Z0-9]{1,12}$/, {
+      message: "Asset code must be 4-12 alphanumeric characters",
+    }),
   issuer: AccountSchema.optional(),
   songInfo: ExtraSongInfo.optional(),
   isAdmin: z.boolean().optional(),
@@ -178,7 +180,8 @@ export default function NftCreateModal() {
   const [mediaType, setMediaType] = useState<MediaType>(MediaType.IMAGE);
   const [activeStep, setActiveStep] = useState<string>("details");
   const [formProgress, setFormProgress] = useState(25);
-
+  const [assetCodeError, setAssetCodeError] = useState<string>("");
+  const [isAvailableCode, setIsAvailableCode] = useState<boolean>(false)
   const [mediaUrl, setMediaUrl] = useState<string>();
   const [coverUrl, setCover] = useState<string>();
   const { needSign } = useNeedSign();
@@ -222,10 +225,13 @@ export default function NftCreateModal() {
     formState: { errors, isValid },
     control,
     trigger,
+    watch,
+
   } = useForm<z.infer<typeof NftFormSchema>>({
     resolver: zodResolver(NftFormSchema),
     mode: "onChange",
     defaultValues: {
+      limit: 1,
       mediaType: MediaType.IMAGE,
       price: 2,
       priceUSD: 1,
@@ -233,6 +239,23 @@ export default function NftCreateModal() {
   });
 
   const tiers = api.fan.member.getAllMembership.useQuery({});
+  const assetCodeValue = watch("code");
+
+  const checkAssetCode = api.fan.trx.checkAssetCodeAvailability.useMutation({
+    onSuccess: (data) => {
+      if (!data.available) {
+        setIsAvailableCode(false);
+        setAssetCodeError("Asset code already exists, please choose another one");
+
+      }
+      else {
+        setIsAvailableCode(true);
+        setAssetCodeError("");
+      }
+
+    }
+  },
+  );
 
   const addAsset = api.fan.asset.createAsset.useMutation({
     onSuccess: () => {
@@ -491,6 +514,13 @@ export default function NftCreateModal() {
   const nextStep = () => {
     const currentIndex = FORM_STEPS.indexOf(activeStep);
     if (currentIndex < FORM_STEPS.length - 1) {
+      if (activeStep === "details") {
+        console.log("isabailable", isAvailableCode);
+        if (errors.code ?? (assetCodeError || isAvailableCode === false)) {
+          toast.error(errors.code?.message ?? (assetCodeError || "Asset code is not available"));
+          return;
+        }
+      }
       const nextStep = FORM_STEPS[currentIndex + 1];
       if (nextStep) {
         setActiveStep(nextStep);
@@ -513,6 +543,18 @@ export default function NftCreateModal() {
     const stepIndex = FORM_STEPS.indexOf(activeStep);
     setFormProgress((stepIndex + 1) * (100 / FORM_STEPS.length));
   }, [activeStep]);
+  // Check asset code availability
+  React.useEffect(() => {
+    const codeRegex = /^[a-zA-Z0-9]{1,12}$/;
+
+    const timer = setTimeout(() => {
+      if (assetCodeValue && codeRegex.test(assetCodeValue)) {
+        checkAssetCode.mutate({ code: assetCodeValue });
+      }
+    }, 500); // Debounce 500ms
+
+    return () => clearTimeout(timer);
+  }, [assetCodeValue]);
 
   const handleClose = () => {
     setActiveStep("details");
@@ -636,6 +678,11 @@ export default function NftCreateModal() {
                           <p className="text-sm text-destructive">
                             {errors.code.message}
                           </p>
+                        )}
+                        {assetCodeValue?.length > 0 && (
+                          <span className={`text-xs mt-1 ${isAvailableCode ? "text-green-600" : "text-red-600"}`}>
+                            {isAvailableCode ? "✓ Available" : "✗ Not Available"}
+                          </span>
                         )}
                       </div>
 
@@ -931,7 +978,7 @@ export default function NftCreateModal() {
                 type="button"
                 variant="outline"
                 onClick={prevStep}
-                disabled={activeStep === "media"}
+                disabled={activeStep === "details"}
                 className="flex items-center gap-1"
               >
                 Previous
@@ -941,6 +988,10 @@ export default function NftCreateModal() {
                 <Button
                   type="button"
                   onClick={nextStep}
+                  disabled={
+                    (activeStep === "details" && (!!errors.code || !!assetCodeError || isAvailableCode === false)) ||
+                    (activeStep === "media" && (!!errors.mediaUrl || !!errors.coverImgUrl))
+                  }
                   className="flex items-center gap-1 shadow-sm shadow-foreground"
                 >
                   Next

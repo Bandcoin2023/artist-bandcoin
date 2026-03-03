@@ -332,7 +332,7 @@ export default function BountyList({ bounties,
                                     </Button>
 
                                 </div>
-                            ) : (isActive && isActiveStatusLoading) ? (
+                            ) : (isActive && !isActiveStatusLoading) ? (
                                 <div className="w-full">
                                     <Button
                                         variant="default"

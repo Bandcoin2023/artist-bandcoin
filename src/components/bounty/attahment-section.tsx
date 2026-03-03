@@ -36,9 +36,9 @@ const AttachmentSection: React.FC<AttachmentSectionProps> = ({ title, attachment
 
             <div className="space-y-4">
                 {attachments.map((attachment, idx) => (
-                    <div key={idx} className="rounded-md  p-4 shadow-sm">
-                        <div className="flex justify-between">
-                            <h3 className="mb-2 text-lg font-medium">{attachment.name}</h3>
+                    <div key={idx} className="rounded-md   shadow-sm ">
+                        <div className="flex justify-between py-2">
+                            <h3 className="mb-2 text-lg font-medium">{`${attachment.name.slice(0, 20)}.${attachment.type.split("/")[1]}`}</h3>
                             <Button
                                 className="shadow-sm shadow-black"
                                 variant="outline" onClick={() => handleDownload(attachment.name, attachment.url)}>
@@ -67,7 +67,7 @@ const AttachmentSection: React.FC<AttachmentSectionProps> = ({ title, attachment
                                 alt={attachment.name}
                                 width={500}
                                 height={300}
-                                className="rounded-md object-cover"
+                                className="rounded-md w-full h-full object-cover"
                             />
                         )}
                         {(attachment.type.startsWith("application/") || attachment.type.startsWith("text/")) && (

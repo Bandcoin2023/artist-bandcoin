@@ -61,8 +61,7 @@ export default function Layout({
         // }
         return (
             <>
-                {session?.status === "authenticated" ||
-                    router.pathname.includes("/action/qr") ? (
+                {session?.status === "authenticated" ? (
                     <div className="fixed inset-0 h-screen w-full overflow-hidden">
                         {isAugmentedRealityRoute ? (
                             <>

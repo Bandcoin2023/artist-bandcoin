@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { submitSignedXDRToServer4User } from "package/connect_wallet/src/lib/stellar/trx/payment_fb_g";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import OfferCard from "~/components/recharge/offer-card";
@@ -18,6 +18,8 @@ import {
 } from "~/components/shadcn/ui/alert";
 import ConvertCard from "./convert-card";
 import PaymentCardDialog from "./payment-card";
+import { checkStellarAccountActivity } from "~/lib/helper/helper_client";
+import { ActivationModal } from "~/components/modal/activation-modal";
 
 type Offer = {
     num: number;
@@ -180,6 +182,21 @@ function SiteAssetBuy() {
     const offersQ = api.marketplace.pay.getOffers.useQuery();
     const [isPaymentOpen, setIsPaymentOpen] = useState(false);
 
+    const [isActiveStatusLoading, setIsActiveStatusLoading] = useState(true)
+    const [isActive, setIsActive] = useState<boolean>(false);
+    const [openDialog, setOpenDialog] = useState(false);
+
+    useEffect(() => {
+        const checkAccountActivity = async () => {
+            if (session.data?.user.id) {
+                setIsActiveStatusLoading(true);
+                const active = await checkStellarAccountActivity(session.data.user.id);
+                setIsActive(active);
+                setIsActiveStatusLoading(false);
+            }
+        }
+        checkAccountActivity();
+    }, [session.data?.user.id]);
     const xdrMutation = api.marketplace.pay.getRechargeXDR.useMutation({
         onSuccess: (data) => {
             setXDR(data);
@@ -259,11 +276,17 @@ function SiteAssetBuy() {
                             size="lg"
                             className="w-full py-6 text-base font-medium md:w-2/3"
                             disabled={xdrMutation.isLoading}
-                            onClick={() =>
-                                xdrMutation.mutate({
-                                    tokenNum: selectedOffer.num,
-                                    xlm: selectedOffer.price,
-                                })
+                            onClick={() => {
+                                if (isActive) {
+                                    xdrMutation.mutate({
+                                        tokenNum: selectedOffer.num,
+                                        xlm: selectedOffer.price,
+                                    })
+                                }
+                                else {
+                                    setOpenDialog(true)
+                                }
+                            }
                             }
                         >
                             {xdrMutation.isLoading && (
@@ -285,15 +308,26 @@ function SiteAssetBuy() {
                 )}
 
                 {/* Payment Dialog */}
-                {xdr && selectedOffer && session.status === "authenticated" && (
-                    <PaymentCardDialog
-                        isOpen={isPaymentOpen}
-                        setIsOpen={setIsPaymentOpen}
-                        offer={selectedOffer}
-                        pubkey={session.data.user.id}
-                        xdr={xdr}
-                    />
-                )}
+                {
+                    !isActive && openDialog && (
+                        <ActivationModal
+                            dialogOpen={openDialog}
+                            setDialogOpen={setOpenDialog}
+                        />
+                    )
+                }
+                {/* Payment Dialog */}
+                {
+                    xdr && selectedOffer && session.status === "authenticated" && (
+                        <PaymentCardDialog
+                            isOpen={isPaymentOpen}
+                            setIsOpen={setIsPaymentOpen}
+                            offer={selectedOffer}
+                            pubkey={session.data.user.id}
+                            xdr={xdr}
+                        />
+                    )
+                }
             </div>
         );
     }

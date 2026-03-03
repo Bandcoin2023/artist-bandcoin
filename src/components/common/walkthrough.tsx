@@ -96,7 +96,7 @@ const Step: React.FC<StepProps> = ({
 
             // Ensure the card stays within the viewport
             top = Math.max(20, Math.min(top, window.innerHeight - cardHeight - 20))
-            left = Math.max(20, Math.min(left, window.innerWidth - cardWidth - 20))
+            left = 0
 
             setPosition({ top, left, placement })
         }

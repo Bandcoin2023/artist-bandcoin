@@ -28,6 +28,8 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import PendingAssetList from "./pending-asset";
 import { PLATFORM_ASSET } from "~/lib/stellar/constant";
+import { env } from "~/env";
+import { useWalletBalanceStore } from "../store/wallet-balance-store";
 
 export default function WBRightSideBar() {
   const { data: session } = useSession();
@@ -42,8 +44,12 @@ export default function WBRightSideBar() {
 }
 
 const MyAssetList = () => {
+  const { creatorStorageId, isCreatorMode } = useWalletBalanceStore()
+
   const { data, isLoading } =
-    api.walletBalance.wallBalance.getWalletsBalance.useQuery();
+    api.walletBalance.wallBalance.getWalletsBalance.useQuery(
+      { creatorStorageId: creatorStorageId, isCreatorMode }
+    );
   if (isLoading) return <div>Fetching...</div>;
   // console.log("data", data);
   return (
@@ -56,14 +62,7 @@ const MyAssetList = () => {
             <h1>No Assets Available</h1>
           ) : (
             data?.map((balance, idx) => {
-              if (
-                balance?.asset_code.toUpperCase() !== PLATFORM_ASSET.code.toUpperCase() &&
-                balance?.asset_issuer !== PLATFORM_ASSET.issuer &&
-                balance?.home_domain ===
-                (PLATFORM_ASSET.code.toLowerCase() === "wadzzo"
-                  ? "app.wadzzo.com"
-                  : "bandcoin.io")
-              ) {
+              if (balance?.home_domain === env.NEXT_PUBLIC_HOME_DOMAIN) {
                 return (
                   <div
                     key={`${balance?.asset_code}-${idx}`}

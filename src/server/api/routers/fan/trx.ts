@@ -33,6 +33,7 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
+import { AccountType } from "~/lib/stellar/fan/utils";
 enum assetType {
   PAGEASSET = "PAGEASSET",
   PLATFORMASSET = "PLATFORMASSET",
@@ -88,24 +89,53 @@ export const trxRouter = createTRPCRouter({
       const limit = i.limit.toString();
 
       // set this for admin and user
-      let pubkey = ctx.session.user.id;
-      let storageSecret: string;
+      const pubkey = ctx.session.user.id;
+
+      let issuer: AccountType
+      let issuerNowCreated = false;
       const homeDomain = env.NEXT_PUBLIC_HOME_DOMAIN;
 
-      if (signWith && "isAdmin" in signWith) {
-        storageSecret = env.STORAGE_SECRET;
-        pubkey = Keypair.fromSecret(env.MOTHER_SECRET).publicKey();
-      } else {
-        const storage = await db.creator.findFirstOrThrow({
-          where: { id: ctx.session.user.id },
-          select: { storageSecret: true },
-        });
 
-        storageSecret = storage.storageSecret;
+      const assetCodeFound = await ctx.db.asset.findFirst({
+        where: { code: i.code, creatorId: ctx.session.user.id },
+      });
+
+      if (assetCodeFound) {
+        throw new Error("Asset code already exists, please choose another one");
       }
 
-      // console.log("storageSecret", storageSecret);
+      const creator = await db.creator.findFirstOrThrow({
+        where: { id: ctx.session.user.id },
+        select: { storageSecret: true, creatorAssetIssuer: true },
+      });
 
+      const storageSecret = creator.storageSecret;
+      if (creator.creatorAssetIssuer) {
+        issuer = {
+          publicKey: creator.creatorAssetIssuer?.issuer,
+          secretKey: creator.creatorAssetIssuer?.issuerPrivate,
+        }
+      }
+      else {
+        //create new issuer 
+        const issuerAcc = Keypair.random();
+        await db.creatorAssetIssuer.create({
+          data: {
+            issuer: issuerAcc.publicKey(),
+            issuerPrivate: issuerAcc.secret(),
+            creatorId: ctx.session.user.id,
+          },
+        });
+        issuerNowCreated = true;
+        issuer = {
+          publicKey: issuerAcc.publicKey(),
+          secretKey: issuerAcc.secret(),
+        }
+      }
+
+
+      // console.log("storageSecret", storageSecret);
+      console.log("issuer", issuer);
       if (i.native) {
         return await createUniAssetWithXLM({
           actionAmount: assetAmount.toString(),
@@ -116,9 +146,12 @@ export const trxRouter = createTRPCRouter({
           limit,
           signWith,
           ipfsHash: i.ipfsHash,
+          issuerNowCreated,
+          issuer,
         });
       } else {
         return await createUniAsset({
+          actionAmount: assetAmount.toString(),
           pubkey,
           storageSecret,
           code: i.code,
@@ -126,11 +159,11 @@ export const trxRouter = createTRPCRouter({
           limit,
           signWith,
           ipfsHash: i.ipfsHash,
+          issuer,
+          issuerNowCreated
         });
       }
     }),
-
-
   getSecretMessage: protectedProcedure.query(() => {
     return "you can now see this secret message!";
   }),
@@ -317,5 +350,16 @@ export const trxRouter = createTRPCRouter({
       return token;
     }),
 
+  checkAssetCodeAvailability: protectedProcedure
+    .input(z.object({ code: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const existingAsset = await db.asset.findFirst({
+        where: { code: input.code, creatorId: ctx.session.user.id },
+      });
 
+      return {
+        available: !existingAsset,
+        message: existingAsset ? "Asset code already in use" : "Available",
+      };
+    }),
 });

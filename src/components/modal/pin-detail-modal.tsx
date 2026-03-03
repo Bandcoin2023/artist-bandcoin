@@ -18,6 +18,7 @@ import {
     ExternalLink,
     Check,
     Info,
+    Download,
 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import Image from "next/image"
@@ -41,12 +42,14 @@ import { Textarea } from "~/components/shadcn/ui/textarea"
 import { Badge } from "~/components/shadcn/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/shadcn/ui/card"
 import { Separator } from "~/components/shadcn/ui/separator"
+import { useMapInteractionStore } from "~/components/store/map-stores" // Changed to useMapInteractionStore
 
 // Re-using the Pin type from map-stores.ts for consistency
 import type { Location, LocationGroup } from "@prisma/client"
 import { PinType as PinTypeEnum } from "@prisma/client" // Declare PinType
 import { UploadS3Button } from "../common/upload-button"
-import { useMapInteractionStore } from "../store/map-stores"
+import QRCode from "react-qr-code"
+import { LocationAddressDisplay } from "../map/address-display"
 
 type Pin = {
     locationGroup:
@@ -70,7 +73,7 @@ type AssetType = {
 export const PAGE_ASSET_NUM = -10
 export const NO_ASSET = -99
 
-const MapOptionModal = () => {
+const PinDetailAndActionsModal = () => {
     const {
         selectedPinForDetail: data, // Use selectedPinForDetail from the store as 'data'
         closePinDetailModal: handleClose, // Use closePinDetailModal from the store
@@ -83,12 +86,12 @@ const MapOptionModal = () => {
         setDuplicate,
         setPrevData,
     } = useMapInteractionStore()
-    const utils = api.useUtils()
+
     const [isFormLocal, setIsFormLocal] = React.useState(false) // Local state for form view
     const session = useSession()
     const router = useRouter()
     const [activeTab, setActiveTab] = useState<string>("details")
-
+    const utils = api.useUtils()
     const pinM = api.maps.pin.getPinM.useMutation({
         onSuccess: (data) => {
             setPrevData(data)
@@ -144,9 +147,9 @@ const MapOptionModal = () => {
     const DeletePin = api.maps.pin.deletePin.useMutation({
         onSuccess: async (data) => {
             if (data.item) {
+                await utils.maps.pin.getCreatorPins.refetch()
+                await utils.maps.pin.getMyPins.refetch()
                 toast.success("Pin deleted successfully")
-                await utils.maps.pin.getMyPins.invalidate()
-
                 handleClose()
             } else {
                 toast.error("Pin not found or You are not authorized to delete this pin")
@@ -239,13 +242,11 @@ const MapOptionModal = () => {
                                     <TabsList className="grid w-full grid-cols-2 mb-4">
                                         <TabsTrigger
                                             value="details"
-                                            className="data-[state=active]:bg-primary data-[state=active]:shadow-sm data-[state=active]:shadow-foreground"
                                         >
                                             Pin Details
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="actions"
-                                            className="data-[state=active]:bg-primary data-[state=active]:shadow-sm data-[state=active]:shadow-foreground"
                                         >
                                             Actions
                                         </TabsTrigger>
@@ -375,7 +376,7 @@ const MapOptionModal = () => {
                                                 className="flex h-auto items-center justify-start gap-2 py-3 bg-transparent"
                                                 onClick={() => {
                                                     handleClose()
-                                                    router.push(`/artist/map/collection-report/${data.id}`)
+                                                    router.push(`/report/${data.id}`)
 
                                                 }}
                                             >
@@ -426,7 +427,7 @@ const MapOptionModal = () => {
                                                 variant="destructive"
                                                 className="col-span-1 flex h-auto items-center justify-start gap-2 py-3 md:col-span-2"
                                                 onClick={handleDelete}
-                                                disabled={DeletePin.isLoading}
+                                                disabled={DeletePin.isLoading || data.hidden}
                                             >
                                                 {DeletePin.isLoading ? (
                                                     <div className="flex items-center gap-2">
@@ -459,7 +460,7 @@ const MapOptionModal = () => {
     )
 }
 
-export default MapOptionModal
+export default PinDetailAndActionsModal
 
 function PinInfo({
     data,
@@ -468,6 +469,100 @@ function PinInfo({
     data: Pin // Use the consistent Pin type
     isLoading?: boolean
 }) {
+    const svgToCanvas = (svg: SVGElement, size = 512): Promise<HTMLCanvasElement> => {
+        return new Promise((resolve, reject) => {
+            // Force explicit size on the SVG clone
+            const cloned = svg.cloneNode(true) as SVGElement;
+            cloned.setAttribute("width", String(size));
+            cloned.setAttribute("height", String(size));
+            cloned.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+            const svgData = new XMLSerializer().serializeToString(cloned);
+            const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+            const url = URL.createObjectURL(svgBlob);
+
+            const img = new window.Image();
+            img.onload = () => {
+                // Add quiet zone: ISO 18004 recommends 4 modules; we use ~10% of total size
+                const padding = Math.floor(size * 0.1);
+                const qrSize = size - padding * 2;
+
+                const canvas = document.createElement("canvas");
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return reject("No canvas context");
+
+                // White background (acts as quiet zone)
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, size, size);
+                // Draw QR inset so white border surrounds it on all sides
+                ctx.drawImage(img, padding, padding, qrSize, qrSize);
+
+                URL.revokeObjectURL(url);
+                resolve(canvas);
+            };
+            img.onerror = reject;
+            img.src = url;
+        });
+    };
+
+    const getQRSvg = (): SVGElement | null => {
+        const container = document.getElementById("qr-code-container");
+        return container?.querySelector("svg") ?? null;
+    };
+
+    const handleDownloadQR = async (pinId: string) => {
+        const svg = getQRSvg();
+        if (!svg) {
+            toast.error("QR code not found");
+            return;
+        }
+
+        try {
+            const canvas = await svgToCanvas(svg, 512);
+            const link = document.createElement("a");
+            link.href = canvas.toDataURL("image/png");
+            link.download = `pin-qr-${pinId}.png`;
+            link.click();
+            toast.success("QR code downloaded!");
+        } catch {
+            toast.error("Failed to download QR code");
+        }
+    };
+
+    const handleCopyQR = async () => {
+        const svg = getQRSvg();
+        if (!svg) {
+            toast.error("QR code not found");
+            return;
+        }
+
+        try {
+            const canvas = await svgToCanvas(svg, 512);
+            canvas.toBlob((blob) => {
+                if (!blob) return toast.error("Failed to generate image");
+                navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).then(() => {
+                    toast.success("QR code copied to clipboard!");
+                }).catch(() => {
+                    toast.error("Failed to copy QR code");
+                });
+
+            }, "image/png");
+        } catch {
+            toast.error("Failed to copy QR code");
+        }
+    };
+
+    const handleUrlCopy = () => {
+        const url = `${window.location.origin}/action/qr/${data.id}`;
+        navigator.clipboard.writeText(url).then(() => {
+            toast.success("URL copied to clipboard!");
+        }).catch(() => {
+            toast.error("Failed to copy URL");
+        });
+    }
+
     if (isLoading) {
         return (
             <div className="space-y-4">
@@ -531,20 +626,71 @@ function PinInfo({
             )}
             <Card>
                 <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Location</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                        <span className="text-muted-foreground">Latitude:</span>
-                        <Badge variant="outline" className="ml-2 font-mono">
-                            {data.latitude?.toFixed(6)}
-                        </Badge>
+                <CardContent className="flex gap-2 text-sm items-center justify-between w-full">
+                    <div className="flex flex-col gap-2">
+                        <span className="text-lg">Location</span>
+
+                        <div>
+                            <span className="text-muted-foreground">Latitude:</span>
+                            <Badge variant="outline" className="ml-2 font-mono">
+                                {data.latitude?.toFixed(6)}
+                            </Badge>
+                        </div>
+                        <div>
+                            <span className="text-muted-foreground">Longitude:</span>
+                            <Badge variant="outline" className="ml-2 font-mono">
+                                {data.longitude?.toFixed(6)}
+                            </Badge>
+                        </div>
+                        <div>
+                            <LocationAddressDisplay
+
+                                className="p-1"
+                                latitude={data?.latitude ?? 0} longitude={data?.longitude ?? 0} />
+                        </div>
                     </div>
-                    <div>
-                        <span className="text-muted-foreground">Longitude:</span>
-                        <Badge variant="outline" className="ml-2 font-mono">
-                            {data.longitude?.toFixed(6)}
-                        </Badge>
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="bg-white p-4 rounded-2xl inline-block" id="qr-code-container">
+                            <QRCode
+                                value={`${window.location.origin}/action/qr?pinId=${data.id}`}
+                                size={128}
+                                bgColor="#ffffff"
+                                fgColor="#000000"
+                                level="H"
+                            />
+                        </div>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDownloadQR(data.id)}
+                                className="flex items-center gap-2"
+                            >
+                                <Download className="h-4 w-4" />
+                                Download
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleCopyQR()}
+                                className="flex items-center gap-2"
+                            >
+                                <Copy className="h-4 w-4" />
+                                Copy QR
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleUrlCopy()}
+                                className="flex items-center gap-2"
+                            >
+                                <Copy className="h-4 w-4" />
+                                Copy URL
+                            </Button>
+
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -764,6 +910,8 @@ function PinInfoUpdate({
     const update = api.maps.pin.updatePin.useMutation({
         onSuccess: async (updatedData) => {
             await utils.maps.pin.getMyPins.refetch()
+            await utils.maps.pin.getCreatorPins.refetch()
+
             toast.success("Pin updated successfully")
             closePinDetailModal() // Close the main modal
             handleClose() // Close the form view
@@ -976,7 +1124,7 @@ function PinInfoUpdate({
                                     render={({ field }) => (
                                         <select
                                             {...field}
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                            className="flex h-10 w-full rounded-md border border-input  bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             {Object.values(PinTypeEnum).map((type) => (
                                                 <option key={type} value={type}>

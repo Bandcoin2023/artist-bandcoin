@@ -15,9 +15,9 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/shadcn/ui/card";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Skeleton } from "../shadcn/ui/skeleton";
-import { useModal } from "~/lib/state/play/use-modal-store";
+import { useModal } from "~/lib/state/augmented-reality/use-modal-store";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { RecentTransactionHistory } from "~/lib/stellar/walletBalance/acc";
 import { useSession } from "next-auth/react";
@@ -32,6 +32,7 @@ import {
 import { InfiniteScroll } from "../common/infinite-scroll";
 import { TransactionHistoryTypes } from "~/types/transaction/transaction-history-types";
 import TransactionHistoryModal from "../modal/transaction-history-modal";
+import { useWalletBalanceStore } from "../store/wallet-balance-store";
 
 const BatchLimit = 10;
 
@@ -51,10 +52,11 @@ function AddressWithTooltip({ address }: { address: string }) {
 
 
 const TransactionHistory = () => {
+  const { creatorStorageId, isCreatorMode } = useWalletBalanceStore()
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionHistoryTypes>();
   const parentRef = useRef<HTMLDivElement>(null);
-
+  const utils = api.useUtils();
   const {
     data,
     fetchNextPage,
@@ -62,9 +64,10 @@ const TransactionHistory = () => {
     isFetchingNextPage,
     status,
   } = api.walletBalance.wallBalance.getTransactionHistory.useInfiniteQuery(
-    { limit: BatchLimit },
+    { limit: BatchLimit, creatorStorageId, isCreatorMode },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
+
     }
   );
 
@@ -74,6 +77,7 @@ const TransactionHistory = () => {
     }
   };
 
+
   if (status === "loading") {
     return <div>Fetching...</div>;
   }
@@ -81,6 +85,8 @@ const TransactionHistory = () => {
   if (status === "error") {
     return <div>Error loading transactions</div>;
   }
+
+
 
   return (
     <div ref={parentRef} className="h-[calc(100vh-44vh)] md:h-[calc(100vh-42vh)] rounded-lg overflow-y-auto scrollbar-hide " >
@@ -101,7 +107,7 @@ const TransactionHistory = () => {
 
 
                     <TableRow key={j}
-                      className={j % 2 === 1 ? " bg-primary" : " bg-secondary"}
+                      className={j % 2 === 1 ? " dark:bg-slate-500" : " dark:bg-gray-700"}
                       onClick={() => {
                         setIsTransactionModalOpen(true)
                         setSelectedTransaction(transaction)

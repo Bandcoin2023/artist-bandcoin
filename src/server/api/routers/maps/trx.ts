@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PLATFORM_ASSET } from "~/lib/stellar/constant";
 import { ClaimXDR } from "~/lib/stellar/map/claim";
 import { SignUser } from "~/lib/stellar/utils";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
@@ -25,13 +26,17 @@ export const trxRouter = createTRPCRouter({
         },
       });
 
-      if (!location.locationGroup?.asset && !location.locationGroup?.pageAsset)
+      if (!location.locationGroup?.asset && !location.locationGroup?.pageAsset && !location.locationGroup?.plaformAsset)
         throw new Error("Not claimable");
 
       let code: string | undefined = undefined;
       let issuer: string | undefined = undefined;
 
-      if (location.locationGroup.pageAsset) {
+      if (location.locationGroup.plaformAsset) {
+        code = PLATFORM_ASSET.code;
+        issuer = PLATFORM_ASSET.issuer;
+      }
+      else if (location.locationGroup.pageAsset) {
         if (!location.locationGroup.creator.pageAsset)
           throw new Error("No page Asset, found!");
 

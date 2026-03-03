@@ -13,6 +13,7 @@ import toast from "react-hot-toast"
 import { toast as sonner } from "sonner"
 import { checkStellarAccountActivity } from "~/lib/helper/helper_client"
 import { ActivationModal } from "../modal/activation-modal"
+import { PLATFORM_ASSET, PLATFORM_FEE, TrxBaseFeeInPlatformAsset } from "~/lib/stellar/constant"
 
 interface FollowAndMembershipButtonProps {
   creatorId: string
@@ -38,6 +39,10 @@ export default function FollowAndMembershipButton({
   const [isActiveStatusLoading, setIsActiveStatusLoading] = useState(true)
   const [isActive, setIsActive] = useState<boolean>(false);
   const [openDialog, setOpenDialog] = useState(false);
+  const platformPrice = api.fan.trx.getAssetNumberforXlm.useQuery(0.5, {
+    enabled: showMembershipDialog,
+  })
+
   const followStatusQuery = api.fan.creator.checkCurrentUserFollowsCreator.useQuery(
     { creatorId: creatorId },
     {
@@ -121,15 +126,31 @@ export default function FollowAndMembershipButton({
             } else {
               toast.error("Transaction failed while signing.")
             }
-          } catch (e) {
-            toast.error("Transaction failed while signing.")
+          } catch (error: unknown) {
+            console.error("Error in test transaction", error)
+
+            const err = error as {
+              message?: string
+              details?: string
+              errorCode?: string
+            }
+
+            sonner.error(
+              typeof err?.message === "string"
+                ? err.message
+                : "Transaction Failed",
+              {
+                description: `Error Code : ${err?.errorCode ?? "unknown"}`,
+                duration: 8000,
+              }
+            )
           }
         }
       } else {
         toast.error("Failed to create follow transaction")
       }
     },
-    onError: (e) => toast.error("Failed to create follow transaction"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to create follow transaction"),
   })
 
   const handleMembershipPurchase = () => {
@@ -182,8 +203,8 @@ export default function FollowAndMembershipButton({
         {isFollowing ? (
           <Button
             onClick={handleRemoveFollowClick}
-            variant="accent"
-            className="relative pr-8 "
+            variant="outline"
+            className="relative pr-8 bg-transparent"
             disabled={isLoading}
             title="Unfollow"
           >
@@ -227,9 +248,9 @@ export default function FollowAndMembershipButton({
             isMember ? (
               <Button
                 onClick={handleCancelMembershipClick}
-                variant="destructive"
+                variant="outline"
                 size="default"
-                className="gap-2 font-medium "
+                className="gap-2 font-medium bg-transparent"
               >
                 <Crown className="h-4 w-4" />
                 Member
@@ -282,8 +303,8 @@ export default function FollowAndMembershipButton({
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
               <div className="text-xs text-muted-foreground">It{"'"}d cost you</div>
               <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-amber-600 dark:text-amber-500">0.5</span>
-                <span className="text-sm font-medium text-muted-foreground">XLM</span>
+                <span className="text-3xl font-bold text-amber-600 dark:text-amber-500">{(platformPrice.data ?? 0) + Number(PLATFORM_FEE) + Number(TrxBaseFeeInPlatformAsset)}</span>
+                <span className="text-sm font-medium text-muted-foreground">{PLATFORM_ASSET.code}</span>
               </div>
               <div className="mt-1 text-xs text-muted-foreground">One-time</div>
             </div>
@@ -352,7 +373,7 @@ export default function FollowAndMembershipButton({
           </div>
 
           <div className="flex gap-3 w-full">
-            <Button variant="outline" className="w-full " onClick={() => setShowMembershipDialog(false)}>
+            <Button variant="outline" className="w-full bg-transparent" onClick={() => setShowMembershipDialog(false)}>
               Cancel
             </Button>
             <Button
@@ -392,7 +413,7 @@ export default function FollowAndMembershipButton({
           </div>
 
           <div className="flex gap-3 w-full">
-            <Button variant="outline" className="w-full " onClick={() => setShowCancelDialog(false)}>
+            <Button variant="outline" className="w-full bg-transparent" onClick={() => setShowCancelDialog(false)}>
               Keep Membership
             </Button>
             <Button
@@ -493,7 +514,7 @@ export default function FollowAndMembershipButton({
           </div>
 
           <div className="flex gap-3 w-full">
-            <Button variant="outline" className="w-full " onClick={() => setShowRejoinDialog(false)}>
+            <Button variant="outline" className="w-full bg-transparent" onClick={() => setShowRejoinDialog(false)}>
               Cancel
             </Button>
             <Button

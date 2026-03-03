@@ -24,12 +24,16 @@ import {
     Ban,
     Check,
     Clock,
+    Eye,
+    Globe,
+    Instagram,
     Loader2,
+    Pin,
     RefreshCw,
     Search,
-    Shield,
     Sparkles,
     Trash,
+    Twitter,
     UserCheck,
     UserX,
 } from "lucide-react"
@@ -118,7 +122,7 @@ function CreatorDashboard() {
         <Card className="overflow-hidden border shadow-md bg-card/50 backdrop-blur-sm">
             <CardHeader className="pb-3 border-b">
                 <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 " />
+                    <Sparkles className="h-5 w-5 text-primary" />
                     Creator Management
                 </CardTitle>
                 <CardDescription>View, approve, and manage creators on your platform</CardDescription>
@@ -176,7 +180,7 @@ function Creators({ filterStatus }: { filterStatus: "pending" | "approved" | "ba
     const utils = api.useUtils()
 
     const handleRefresh = () => {
-        utils.admin.creator.getCreators.invalidate()
+        void utils.admin.creator.getCreators.invalidate()
     }
 
     // Filter creators based on search term and status
@@ -214,7 +218,7 @@ function Creators({ filterStatus }: { filterStatus: "pending" | "approved" | "ba
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Search by name or pubkey..."
-                        className="pl-9 bg-background/50"
+                        className="pl-9  bg-background/50"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -222,7 +226,7 @@ function Creators({ filterStatus }: { filterStatus: "pending" | "approved" | "ba
 
                 <div className="flex items-center gap-2 w-full md:w-auto">
                     <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as "newest" | "oldest" | "name")}>
-                        <SelectTrigger className="w-full md:w-[180px] bg-background/50">
+                        <SelectTrigger className="w-full md:w-[180px]  bg-background/50">
                             <SelectValue placeholder="Sort by" />
                         </SelectTrigger>
                         <SelectContent>
@@ -237,7 +241,7 @@ function Creators({ filterStatus }: { filterStatus: "pending" | "approved" | "ba
                         size="icon"
                         onClick={handleRefresh}
                         disabled={creators.isLoading}
-                        className="bg-background/50"
+                        className=" bg-background/50"
                     >
                         <motion.div
                             animate={creators.isLoading ? { rotate: 360 } : {}}
@@ -257,7 +261,7 @@ function Creators({ filterStatus }: { filterStatus: "pending" | "approved" | "ba
             ) : filteredCreators.length === 0 ? (
                 <EmptyState searchTerm={searchTerm} filterStatus={filterStatus} />
             ) : (
-                <div className="rounded-md border bg-background/50 overflow-hidden">
+                <div className="rounded-md border  bg-background/50 overflow-hidden">
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
@@ -267,7 +271,6 @@ function Creators({ filterStatus }: { filterStatus: "pending" | "approved" | "ba
                                     <TableHead>Pubkey</TableHead>
                                     <TableHead>Joined At</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead>Details</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -295,7 +298,7 @@ function Creators({ filterStatus }: { filterStatus: "pending" | "approved" | "ba
                                                         whileHover={{ scale: 1.2 }}
                                                         whileTap={{ scale: 0.9 }}
                                                         onClick={() => {
-                                                            navigator.clipboard.writeText(creator.id)
+                                                            void navigator.clipboard.writeText(creator.id)
                                                             toast.success("Pubkey copied to clipboard")
                                                         }}
                                                         className="text-muted-foreground hover:text-foreground transition-colors"
@@ -318,6 +321,7 @@ function Creators({ filterStatus }: { filterStatus: "pending" | "approved" | "ba
                                                 <div className="flex items-center justify-end gap-2">
                                                     <ActionButton creatorId={creator.id} status={creator.approved} />
                                                     <DeleteCreatorButton creatorId={creator.id} />
+                                                    <ViewCreatorButton creator={creator} />
                                                 </div>
                                             </TableCell>
                                         </motion.tr>
@@ -430,7 +434,7 @@ function ActionButton({
                         ? "Creator banned successfully"
                         : "Creator unbanned successfully",
             )
-            utils.admin.creator.getCreators.invalidate()
+            void utils.admin.creator.getCreators.invalidate()
         },
         onError: () => {
             toast.error("Action failed. Please try again.")
@@ -566,6 +570,337 @@ function ActionButton({
     )
 }
 
+function ViewCreatorButton({ creator }: { creator: { id: string; name: string; approved: boolean | null; joinedAt: Date; profileUrl: string | null; coverUrl: string | null; bio?: string | null; website?: string | null; twitter?: string | null; instagram?: string | null; pageAsset?: { code: string; thumbnail: string | null; priceUSD?: number } | null } }) {
+    const [isOpen, setIsOpen] = React.useState(false)
+    const [activeTab, setActiveTab] = React.useState("overview")
+
+    const creatorDetails = api.fan.creator.getCreator.useQuery(
+        { id: creator.id },
+        {
+            enabled: isOpen,
+            refetchOnWindowFocus: false,
+        }
+    )
+
+    const creatorNFT = api.marketplace.market.getCreatorNftsByCreatorID.useInfiniteQuery(
+        { limit: 10, creatorId: creator.id ?? "" },
+        {
+            enabled: isOpen && activeTab === "assets",
+            getNextPageParam: (lastPage) => lastPage.nextCursor,
+        },
+    )
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                    <Button size="sm" variant="ghost" className="text-blue-600 hover:bg-blue-50 hover:text-blue-700 h-8 w-8 p-0">
+                        <Eye className="h-4 w-4" />
+                    </Button>
+                </motion.div>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto p-0 bg-white">
+                {creatorDetails.isLoading ? (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex items-center justify-center h-80"
+                    >
+                        <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
+                    </motion.div>
+                ) : creatorDetails.error ? (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex flex-col items-center justify-center h-80"
+                    >
+                        <AlertCircle className="h-12 w-12 text-red-400 mb-3" />
+                        <p className="text-neutral-600 text-center font-medium">Unable to load creator profile</p>
+                    </motion.div>
+                ) : creatorDetails.data ? (
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col overflow-hidden">
+                        {/* Header Section */}
+                        <div className="border-b border-neutral-200">
+
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.5 }}
+                                className="w-full h-40 bg-neutral-100 overflow-hidden"
+                            >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={creatorDetails.data.coverUrl ?? "/images/logo.png"}
+                                    alt="Cover"
+                                    onError={(e) => {
+                                        e.currentTarget.src = "/images/logo.png"
+                                    }}
+                                    className="w-full h-full object-cover"
+                                />
+                            </motion.div>
+
+
+                            {/* Profile Section */}
+                            <div className="px-8 py-8">
+                                <div className="flex items-end gap-6 mb-8">
+                                    {/* Profile Image */}
+                                    {creatorDetails.data.profileUrl ? (
+                                        <motion.div
+                                            initial={{ scale: 0.8, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                                        >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={creatorDetails.data.profileUrl}
+                                                alt={creatorDetails.data.name}
+                                                className="w-24 h-24 rounded-lg object-cover border border-neutral-300"
+                                            />
+                                        </motion.div>
+                                    ) : (
+                                        <div className="w-24 h-24 rounded-lg bg-neutral-200 border border-neutral-300" />
+                                    )}
+
+                                    {/* Name & Handle */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.1 }}
+                                        className="flex-1 pb-2"
+                                    >
+                                        <h1 className="text-2xl font-semibold text-neutral-900 mb-1">{creatorDetails.data.name}</h1>
+                                        <p className="text-sm text-neutral-500">@{addrShort(creatorDetails.data.id, 10)}</p>
+                                    </motion.div>
+                                </div>
+
+                                {/* Stats */}
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.15 }}
+                                    className="flex gap-12 mb-8"
+                                >
+                                    <div>
+                                        <div className="text-xl font-semibold text-neutral-900">{creatorDetails.data._count?.posts || 0}</div>
+                                        <div className="text-xs text-neutral-500 font-medium uppercase tracking-wide mt-1">Posts</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xl font-semibold text-neutral-900">{creatorDetails.data._count?.followers || 0}</div>
+                                        <div className="text-xs text-neutral-500 font-medium uppercase tracking-wide mt-1">Followers</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xl font-semibold text-neutral-900">{creatorDetails.data._count?.assets || 0}</div>
+                                        <div className="text-xs text-neutral-500 font-medium uppercase tracking-wide mt-1">Assets</div>
+                                    </div>
+                                </motion.div>
+
+                                {/* Tab Navigation */}
+                                <TabsList className="w-full bg-transparent border-t border-neutral-200 rounded-none p-0 h-auto -mx-8 px-8">
+                                    <TabsTrigger
+                                        value="overview"
+                                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-neutral-900 data-[state=active]:bg-transparent px-0 py-3 mr-8 text-sm font-medium text-neutral-500 data-[state=active]:text-neutral-900"
+                                    >
+                                        About
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="assets"
+                                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-neutral-900 data-[state=active]:bg-transparent px-0 py-3 text-sm font-medium text-neutral-500 data-[state=active]:text-neutral-900"
+                                    >
+                                        Gallery
+                                    </TabsTrigger>
+                                </TabsList>
+                            </div>
+                        </div>
+
+                        {/* Content Area */}
+                        <div className="flex-1 overflow-y-auto bg-neutral-50">
+                            <TabsContent value="overview" className="m-0 border-0 p-8">
+
+                                {/* Bio */}
+                                {creatorDetails.data.bio && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.2 }}
+                                        className="space-y-3"
+                                    >
+                                        <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">About</h3>
+                                        <p className="text-base leading-relaxed text-neutral-700">{creatorDetails.data.bio}</p>
+                                    </motion.div>
+                                )}
+
+                                {/* Social Links */}
+                                {(creatorDetails.data.website ?? creatorDetails.data.twitter ?? creatorDetails.data.instagram) && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.25 }}
+                                        className="space-y-4 pt-6 border-t border-neutral-200"
+                                    >
+                                        <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Connect</h3>
+                                        <div className="flex flex-wrap gap-3">
+                                            {creatorDetails.data.website && (
+                                                <motion.a
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    href={creatorDetails.data.website}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-2 px-4 py-2 bg-neutral-100 hover:bg-neutral-200 rounded-lg text-sm font-medium text-neutral-700 transition-colors border border-neutral-200"
+                                                >
+                                                    <Globe className="h-4 w-4" />
+                                                    Website
+                                                </motion.a>
+                                            )}
+                                            {creatorDetails.data.twitter && (
+                                                <motion.a
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    href={`https://twitter.com/${creatorDetails.data.twitter}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-2 px-4 py-2 bg-neutral-100 hover:bg-neutral-200 rounded-lg text-sm font-medium text-neutral-700 transition-colors border border-neutral-200"
+                                                >
+                                                    <Twitter className="h-4 w-4" />
+                                                    {creatorDetails.data.twitter}
+                                                </motion.a>
+                                            )}
+                                            {creatorDetails.data.instagram && (
+                                                <motion.a
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    href={`https://instagram.com/${creatorDetails.data.instagram}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-2 px-4 py-2 bg-neutral-100 hover:bg-neutral-200 rounded-lg text-sm font-medium text-neutral-700 transition-colors border border-neutral-200"
+                                                >
+                                                    <Instagram className="h-4 w-4" />
+                                                    {creatorDetails.data.instagram}
+                                                </motion.a>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+
+
+
+                                {/* Account Info */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.35 }}
+                                    className="space-y-3 pt-6 border-t border-neutral-200"
+                                >
+                                    <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Member Since</h3>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-neutral-700">
+                                            {new Date(creatorDetails.data.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                        </span>
+                                        <StatusBadge status={creatorDetails.data.approved} />
+                                    </div>
+                                </motion.div>
+                            </TabsContent>
+
+                            <TabsContent value="assets" className="m-0 border-0 p-8">
+                                {creatorNFT.isLoading ? (
+                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                                        {Array.from({ length: 15 }).map((_, i) => (
+                                            <motion.div
+                                                key={i}
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                transition={{ delay: i * 0.04 }}
+                                                className="aspect-square rounded-lg bg-neutral-200 animate-pulse"
+                                            />
+                                        ))}
+                                    </div>
+                                ) : creatorNFT.data?.pages[0]?.nfts.length === 0 ? (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="flex flex-col items-center justify-center py-24"
+                                    >
+                                        <Sparkles className="h-14 w-14 text-neutral-300 mb-4" />
+                                        <p className="text-neutral-700 font-medium mb-1">No assets published yet</p>
+                                        <p className="text-sm text-neutral-500">Check back soon for new works</p>
+                                    </motion.div>
+                                ) : (
+                                    <>
+                                        <motion.div
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ duration: 0.4 }}
+                                            className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                                        >
+                                            {creatorNFT.data?.pages.map((pageData, pageIdx) =>
+                                                pageData?.nfts?.map((nft, nftIdx) => (
+                                                    <motion.div
+                                                        key={`${pageIdx}-${nftIdx}`}
+                                                        initial={{ opacity: 0, scale: 0.9 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        transition={{ delay: nftIdx * 0.02 }}
+                                                        className="group relative rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200 hover:border-neutral-300 hover:shadow-lg transition-all duration-300 cursor-pointer"
+                                                    >
+                                                        {nft.asset.thumbnail ? (
+                                                            <img
+                                                                src={nft.asset.thumbnail}
+                                                                alt={nft.asset.name || "Asset"}
+                                                                className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-300"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full aspect-square bg-neutral-200 flex items-center justify-center">
+                                                                <Sparkles className="h-6 w-6 text-neutral-400" />
+                                                            </div>
+                                                        )}
+                                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300" />
+                                                        {nft.asset.name && (
+                                                            <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                                <p className="text-white text-xs font-semibold truncate">
+                                                                    {nft.asset.name}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </motion.div>
+                                                )),
+                                            )}
+                                        </motion.div>
+
+                                        {creatorNFT.hasNextPage && (
+                                            <motion.div
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                className="flex justify-center pt-10"
+                                            >
+                                                <Button
+                                                    onClick={() => creatorNFT.fetchNextPage()}
+                                                    disabled={creatorNFT.isFetchingNextPage}
+                                                    variant="outline"
+                                                    className="rounded-lg border-neutral-300 text-neutral-700 hover:bg-neutral-50"
+                                                >
+                                                    {creatorNFT.isFetchingNextPage ? (
+                                                        <>
+                                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                            Loading...
+                                                        </>
+                                                    ) : (
+                                                        "Load More"
+                                                    )}
+                                                </Button>
+                                            </motion.div>
+                                        )}
+                                    </>
+                                )}
+                            </TabsContent>
+                        </div>
+                    </Tabs>
+                ) : null}
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+
+
 function DeleteCreatorButton({ creatorId }: { creatorId: string }) {
     const [isOpen, setIsOpen] = React.useState(false)
     const utils = api.useUtils()
@@ -574,7 +909,7 @@ function DeleteCreatorButton({ creatorId }: { creatorId: string }) {
         onSuccess: () => {
             toast.success("Creator deleted successfully")
             setIsOpen(false)
-            utils.admin.creator.getCreators.invalidate()
+            void utils.admin.creator.getCreators.invalidate()
         },
         onError: () => {
             toast.error("Failed to delete creator")
@@ -636,7 +971,7 @@ function DeleteCreatorButton({ creatorId }: { creatorId: string }) {
 
 function LoadingState() {
     return (
-        <div className="rounded-md border bg-background/50 p-8">
+        <div className="rounded-md border  bg-background/50 p-8">
             <div className="flex flex-col items-center justify-center">
                 <motion.div
                     initial={{ opacity: 0 }}
@@ -650,7 +985,7 @@ function LoadingState() {
                             transition: { duration: 1.5, repeat: Number.POSITIVE_INFINITY, ease: "linear" },
                         }}
                     >
-                        <Loader2 className="h-10 w-10 " />
+                        <Loader2 className="h-10 w-10 text-primary" />
                     </motion.div>
                     <p className="text-muted-foreground">Loading creators...</p>
 
@@ -727,7 +1062,7 @@ function EmptyState({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="rounded-md border bg-background/50 p-12 flex flex-col items-center justify-center text-center"
+            className="rounded-md border  bg-background/50 p-12 flex flex-col items-center justify-center text-center"
         >
             <div className="flex flex-col items-center gap-4 max-w-md">
                 <motion.div

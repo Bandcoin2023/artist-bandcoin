@@ -22,7 +22,6 @@ import Image from "next/image"
 const ARPage = () => {
   const router = useRouter()
   const [selectedPin, setPin] = useState<ConsumedLocation>()
-  const collectPinRes = useRef()
   const { data } = useNearByPin()
   const winDim = useWindowDimensions()
   const [infoBoxVisible, setInfoBoxVisible] = useState(false)
@@ -542,7 +541,7 @@ const ARPage = () => {
         if (firstLocation) {
           const { latitude, longitude } = pos.coords
           const coinsPositions = data.nearbyPins
-
+          console.log(`Current position: ${latitude}, ${longitude}`)
           console.log("Loading coins:", coinsPositions?.length ?? 0)
 
           if (!coinsPositions) {
@@ -552,18 +551,12 @@ const ARPage = () => {
 
           let loadedCoins = 0
 
-          // Create AR coins for each location
-          for (const coinData of coinsPositions) {
-            // Calculate distance from current position to coin
-            const distance = calculateDistance(latitude, longitude, coinData.lat, coinData.lng)
+          // Check if single AR mode is enabled
+          if (data.singleAR && coinsPositions[0]) {
+            // Single AR mode: Show only one coin directly in front of the camera
+            const coinData = coinsPositions[0]
 
-            // Only add coins within reasonable distance (500 meters)
-            if (distance > 500) {
-              continue
-            }
-
-            // Create ARCoin instance
-            const consumedLocation: ConsumedLocation = {
+            const consumedLocation = {
               ...coinData,
               modal_url: coinData.url || "",
               viewed: false,
@@ -574,14 +567,17 @@ const ARPage = () => {
               const coinMesh = arCoin.getMesh()
               const billboardGroup = arCoin.getBillboardGroup()
 
-              // **FIX: Set userData on the coin mesh with the coin data**
+              // Set userData on the coin mesh with the coin data
               coinMesh.userData = consumedLocation
-
-              // Also set userData on billboard group for consistency
               billboardGroup.userData = consumedLocation
 
-              // Add to scene using location-based positioning
-              locar.add(coinMesh, coinData.lng, coinData.lat)
+              // Position coin directly in front of camera (ignore GPS distance)
+              // Place it at a fixed distance from camera (20 meters forward)
+              coinMesh.position.set(0, 0, -20)
+              billboardGroup.position.set(0, 0, -20)
+
+              // Add to scene directly without GPS positioning
+              scene.add(coinMesh)
               scene.add(billboardGroup)
 
               // Store references
@@ -589,9 +585,53 @@ const ARPage = () => {
               coinsRef.current.push(coinMesh)
 
               loadedCoins++
-              console.log(`Added AR coin: ${coinData.brand_name}`)
+              console.log(`Added single AR coin: ${coinData.brand_name}`)
             } catch (error) {
-              console.error(`Failed to create AR coin for ${coinData.brand_name}:`, error)
+              console.error(`Failed to create AR coin:`, error)
+            }
+          } else {
+            // Normal mode: Create AR coins based on GPS distance
+            // Create AR coins for each location
+            for (const coinData of coinsPositions) {
+              // Calculate distance from current position to coin
+              const distance = calculateDistance(latitude, longitude, coinData.lat, coinData.lng)
+
+              // Only add coins within reasonable distance (500 meters)
+              if (distance > 500) {
+                continue
+              }
+
+              // Create ARCoin instance
+              const consumedLocation: ConsumedLocation = {
+                ...coinData,
+                modal_url: coinData.url || "",
+                viewed: false,
+              }
+
+              try {
+                const arCoin = new ARCoin(consumedLocation)
+                const coinMesh = arCoin.getMesh()
+                const billboardGroup = arCoin.getBillboardGroup()
+
+                // **FIX: Set userData on the coin mesh with the coin data**
+                coinMesh.userData = consumedLocation
+
+                // Also set userData on billboard group for consistency
+                billboardGroup.userData = consumedLocation
+
+                // Add to scene using location-based positioning
+                locar.add(coinMesh, coinData.lng, coinData.lat)
+                scene.add(billboardGroup)
+
+                // Store references
+                arCoinsRef.current.push(arCoin)
+                coinsRef.current.push(coinMesh)
+
+                loadedCoins++
+                console.log(`Added AR coin: ${coinData.brand_name}`)
+              } catch (error) {
+                console.error(`Failed to create AR coin for ${coinData.brand_name}:`, error)
+              }
             }
           }
 
@@ -980,24 +1020,24 @@ const ARPage = () => {
         />
       )}
 
-      {selectedPin && (
+      {selectedPin && !data.singleAR && (
         <div className="fixed bottom-0 left-0 right-0 w-full z-40">
           <div className="flex justify-center pb-8 pt-4">
-            {!data.singleAR && (
-              <button
-                onClick={simulateApiCall}
-                disabled={showLoading}
-                className="group relative flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                <Image
 
-                  src="/augmented-reality/assets/images/capture.png"
-                  alt={selectedPin.brand_name}
-                  width={80}
-                  height={80}
-                  className="h-20 w-20 object-cover rounded-full" />
-              </button>
-            )}
+            <button
+              onClick={simulateApiCall}
+              disabled={showLoading}
+              className="group relative flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              <Image
+
+                src="/augmented-reality/assets/images/capture.png"
+                alt={selectedPin.brand_name}
+                width={80}
+                height={80}
+                className="h-20 w-20 object-cover rounded-full" />
+            </button>
+
           </div>
 
           {/* Optional capture hint */}
