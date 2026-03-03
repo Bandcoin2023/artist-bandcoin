@@ -312,11 +312,11 @@ export default function CreatePinModal() {
             >
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="text-2xl font-bold text-primary">Create New Pin</DialogTitle>
+                        <DialogTitle className="text-2xl font-bold ">Create New Pin</DialogTitle>
                         <div className="flex items-center justify-center space-x-4 mt-4">
                             <div className="flex items-center">
                                 <div
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep >= 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep >= 1 ? "bg-primary " : "bg-muted text-muted-foreground"
                                         }`}
                                 >
                                     1
@@ -328,7 +328,7 @@ export default function CreatePinModal() {
                             <div className={`w-8 h-0.5 ${currentStep >= 2 ? "bg-primary" : "bg-muted"}`} />
                             <div className="flex items-center">
                                 <div
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep >= 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep >= 2 ? "bg-primary " : "bg-muted text-muted-foreground"
                                         }`}
                                 >
                                     2
@@ -348,7 +348,7 @@ export default function CreatePinModal() {
                                         <Card>
                                             <CardHeader>
                                                 <CardTitle className="flex items-center gap-2 text-lg">
-                                                    <Settings className="w-5 h-5 text-primary" />
+                                                    <Settings className="w-5 h-5 " />
                                                     Collection Mode
                                                 </CardTitle>
                                             </CardHeader>
@@ -381,7 +381,7 @@ export default function CreatePinModal() {
                                             <Card>
                                                 <CardHeader>
                                                     <CardTitle className="flex items-center gap-2 text-lg">
-                                                        <MapPin className="w-5 h-5 text-primary" />
+                                                        <MapPin className="w-5 h-5 " />
                                                         Pin Details
                                                     </CardTitle>
                                                 </CardHeader>
@@ -465,7 +465,7 @@ export default function CreatePinModal() {
                                                 <Card>
                                                     <CardHeader>
                                                         <CardTitle className="flex items-center gap-2 text-lg">
-                                                            <Settings className="w-5 h-5 text-primary" />
+                                                            <Settings className="w-5 h-5 " />
                                                             Collection & Tier Settings
                                                         </CardTitle>
                                                     </CardHeader>
@@ -486,7 +486,7 @@ export default function CreatePinModal() {
                                                 <Card>
                                                     <CardHeader>
                                                         <CardTitle className="flex items-center gap-2 text-lg">
-                                                            <Calendar className="w-5 h-5 text-primary" />
+                                                            <Calendar className="w-5 h-5 " />
                                                             Schedule
                                                         </CardTitle>
                                                     </CardHeader>
@@ -552,7 +552,7 @@ export default function CreatePinModal() {
                                         <Card>
                                             <CardHeader>
                                                 <CardTitle className="flex items-center gap-2 text-lg">
-                                                    <CheckCircle className="w-5 h-5 text-primary" />
+                                                    <CheckCircle className="w-5 h-5 " />
                                                     Pin Preview
                                                 </CardTitle>
                                             </CardHeader>
@@ -702,7 +702,7 @@ export default function CreatePinModal() {
                                 <Button
                                     type="button"
                                     onClick={nextStep}
-                                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                                    className="bg-primary hover:bg-primary/90 "
                                 >
                                     Next: Preview
                                 </Button>
@@ -711,7 +711,7 @@ export default function CreatePinModal() {
                                     type="button"
                                     onClick={() => onSubmit(getValues())}
                                     disabled={addPinM.isLoading || remainingBalance < 0}
-                                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                                    className="bg-primary hover:bg-primary/90 "
                                 >
                                     {addPinM.isLoading && <Loader className="animate-spin mr-2 w-4 h-4" />}
                                     {addPinM.isLoading ? "Creating Pin..." : "Create Pin"}
@@ -1101,7 +1101,7 @@ function PinTypeToggles() {
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div className="flex-1">
-                                <Label htmlFor="multiPin" className="text-sm font-medium cursor-pointer text-gray-900">
+                                <Label htmlFor="multiPin" className="text-sm font-medium cursor-pointer ">
                                     Multi Pin
                                 </Label>
                                 <p className="text-xs text-gray-500 mt-1">Allow multiple pins to be collected from this location</p>

@@ -1,40 +1,30 @@
 "use client"
-import type React from "react"
-import { APIProvider, AdvancedMarker, Map, ColorScheme, Marker, type MapMouseEvent } from "@vis.gl/react-google-maps"
-import { format } from "date-fns"
-import { ClipboardList, MapPin, Plus, Minus, ArrowRightFromLine, ArrowLeftFromLine, Trophy, Copy } from "lucide-react"
-import Link from "next/link"
-import { useEffect, useState, useRef, memo } from "react"
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/shadcn/ui/avatar"
-import { Badge } from "~/components/shadcn/ui/badge"
-import { Button } from "~/components/shadcn/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/shadcn/ui/card"
-import { ScrollArea } from "~/components/shadcn/ui/scroll-area"
-import { useModal } from "~/lib/state/augmented-reality/use-modal-store"
-import { useSelectedAutoSuggestion } from "~/lib/state/augmented-reality/use-selectedAutoSuggestion"
-import { api } from "~/utils/api"
-import { motion, AnimatePresence } from "framer-motion"
-import { Skeleton } from "~/components/shadcn/ui/skeleton"
-import PinDetailAndActionsModal from "~/components/modal/pin-detail-modal"
 
-import { useCreatorMapModalStore } from "~/components/store/creator-map-modal-store"
-import { useMapOptionsModalStore } from "~/components/store/map-options-modal-store"
-import { useToast } from "~/components/shadcn/ui/use-toast"
-import { PinType, type Location, type LocationGroup } from "@prisma/client"
-import { useMapInteractionStore, useNearbyPinsStore } from "~/components/store/map-stores"
+import { memo, useEffect, useState } from "react"
+import { APIProvider, AdvancedMarker, ColorScheme, Map, Marker } from "@vis.gl/react-google-maps"
 import { useCreatorStorageAcc } from "~/lib/state/wallete/stellar-balances"
+import { api } from "~/utils/api"
+import { ClipboardList, MapPin } from "lucide-react"
+import Image from "next/image"
+
+import { NearbyLocationsPanel } from "~/components/map/nearby-locations-panel"
+import { getPinIcon } from "~/utils/map-helpers"
+
+import { useGeolocation } from "~/hooks/use-geolocation"
 import { useMapState } from "~/hooks/use-map-state"
 import { useMapInteractions } from "~/hooks/use-map-interactions"
-import { useGeolocation } from "~/hooks/use-geolocation"
 import { usePinsData } from "~/hooks/use-pins-data"
+import { PinType, type Location, type LocationGroup } from "@prisma/client"
 import { MapControls } from "~/components/map/map-controls"
-import { NearbyLocationsPanel } from "~/components/map/nearby-locations-panel"
+import AgentChat from "~/components/agent/AgentChat"
 import { MapHeader } from "~/components/map/map-header"
 import CreatePinModal from "~/components/modal/creator-create-pin-modal"
-import Image from "next/image"
-import { getPinIcon } from "~/utils/map-helpers"
-import AgentChat from "~/components/agent/AgentChat"
+import PinDetailAndActionsModal from "~/components/modal/pin-detail-modal"
+import { useMapInteractionStore, useNearbyPinsStore } from "~/components/store/map-stores"
+import Link from "next/link"
+import { Button } from "~/components/shadcn/ui/button"
 import { useTheme } from "next-themes"
+import { useSelectedAutoSuggestion } from "~/lib/state/map/useSelectedAutoSuggestion"
 
 // Define Pin type for clarity and consistency with Prisma schema
 type Pin = Location & {
@@ -48,8 +38,7 @@ type Pin = Location & {
   }
 }
 
-
-function MapDashboardContent() {
+function CreatorMapDashboardContent() {
   const {
     duplicate,
     manual,
@@ -84,7 +73,6 @@ function MapDashboardContent() {
   } = useMapState()
   const [showExpired, setShowExpired] = useState<boolean>(false)
   const { theme } = useTheme()
-
   const { filterNearbyPins } = useNearbyPinsStore()
   const { selectedPlace: alreadySelectedPlace } = useSelectedAutoSuggestion()
 
@@ -103,7 +91,7 @@ function MapDashboardContent() {
     copiedPinData,
     setMapZoom,
     mapZoom,
-    filterNearbyPins,
+    filterNearbyPins: (bounds) => filterNearbyPins(bounds, "my"),
     centerChanged,
   })
 
@@ -133,10 +121,10 @@ function MapDashboardContent() {
 
   useEffect(() => {
     if (position) {
-      setMapCenter(position);
-      setMapZoom(14);
+      setMapCenter(position)
+      setMapZoom(14)
     }
-  }, [position]);
+  }, [position])
 
   const handleManualPinClick = () => {
     setManual(true)
@@ -165,7 +153,7 @@ function MapDashboardContent() {
       />
 
       <div className="relative h-screen w-full overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-transparent pointer-events-none z-10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-transparent pointer-events-none z-10" />
 
         <Map
           onCenterChanged={(center) => {
@@ -175,11 +163,10 @@ function MapDashboardContent() {
           onZoomChanged={(zoom) => {
             setMapZoom(zoom.detail.zoom)
           }}
+          colorScheme={theme === "dark" ? ColorScheme.DARK : ColorScheme.LIGHT}
           onClick={handleMapClick}
           mapId={"bf51eea910020fa25a"}
           className="h-full w-full transition-all duration-500 ease-out"
-          colorScheme={theme === "dark" ? ColorScheme.DARK : ColorScheme.LIGHT}
-
           defaultCenter={{ lat: 22.54992, lng: 0 }}
           defaultZoom={3}
           minZoom={3}
@@ -189,13 +176,7 @@ function MapDashboardContent() {
           disableDefaultUI={true}
           onDragend={handleDragEnd}
         >
-          {position && !isCordsSearch && (
-            <Marker
-              position={{ lat: position.lat, lng: position.lng }}
-
-            />
-          )}
-          {/* Marker for search coordinates */}
+          {position && !isCordsSearch && <Marker position={{ lat: position.lat, lng: position.lng }} />}
           {isCordsSearch && searchCoordinates && (
             <AdvancedMarker position={searchCoordinates}>
               <div className="animate-bounce">
@@ -204,7 +185,6 @@ function MapDashboardContent() {
             </AdvancedMarker>
           )}
 
-          {/* Marker for manual coordinate search */}
           {isCordsSearch && cordSearchCords && (
             <AdvancedMarker position={cordSearchCords}>
               <div className="animate-bounce">
@@ -223,7 +203,11 @@ function MapDashboardContent() {
           />
         </Map>
       </div>
-
+      <Link href="/artist/map/collection-report">
+        <Button className="absolute bottom-32 right-6">
+          <ClipboardList className="mr-2 h-4 w-4" /> Collection Reports
+        </Button>
+      </Link>
       <NearbyLocationsPanel
         onSelectPlace={(coords) => {
           setMapCenter(coords)
@@ -232,13 +216,6 @@ function MapDashboardContent() {
         }}
       />
 
-      <Link href="/artist/map/collection-report">
-        <Button className="absolute bottom-28 right-6">
-          <ClipboardList className="mr-2 h-4 w-4" />
-          Collection Reports
-        </Button>
-      </Link>
-
       <CreatePinModal />
       <PinDetailAndActionsModal />
       <AgentChat />
@@ -246,7 +223,7 @@ function MapDashboardContent() {
   )
 }
 
-export default MapDashboardContent
+export default CreatorMapDashboardContent
 
 const MyPins = memo(function MyPins({
   onPinClick,
@@ -255,58 +232,91 @@ const MyPins = memo(function MyPins({
   onPinClick: (pin: Pin) => void
   showExpired: boolean
 }) {
-  const { allPins, setAllPins } = useNearbyPinsStore()
+  const { myPins, setMyPins } = useNearbyPinsStore()
   const pinsQuery = api.maps.pin.getMyPins.useQuery({ showExpired })
 
   useEffect(() => {
     if (pinsQuery.data) {
-      setAllPins(pinsQuery.data)
+      setMyPins(pinsQuery.data)
     }
-  }, [pinsQuery.data, setAllPins])
+  }, [pinsQuery.data, setMyPins])
 
   if (pinsQuery.isLoading) return null
 
+  // - Expired/Unapproved: opacity-50
+  // - Auto-Collect: Square (rounded-none)
+  // - Manual: Rounded (rounded-full)
+  // - Approved: opacity-100
+  // - Deleted/Hidden: border-red, opacity-40
   return (
     <>
-      {allPins.map((pin) => {
+      {myPins.map((pin) => {
         const PinIcon = getPinIcon(pin.locationGroup?.type ?? PinType.OTHER)
-        const isExpired = pin.locationGroup?.endDate && new Date(pin.locationGroup.endDate) < new Date()
+
+        // Pin state calculations
+        const isExpired = (pin.locationGroup?.endDate && new Date(pin.locationGroup.endDate) < new Date()) ?? false
         const isApproved = pin.locationGroup?.approved === true
         const isRemainingZero = pin.locationGroup?.remaining !== undefined && pin.locationGroup?.remaining <= 0
+        const isHidden = pin.hidden === true
+        const isAutoCollect = pin.autoCollect === true
+
+        // Determine pin state
+        const isInactive = isExpired || isRemainingZero || !isApproved
+        const showAnimation = !isExpired && !isRemainingZero && isApproved && !isHidden
+
+        // Build class names based on state
+        const baseClasses = "relative flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-125 hover:shadow-2xl cursor-pointer group transform hover:-translate-y-1"
+
+        const opacityClasses = isHidden
+          ? "opacity-40"
+          : isInactive
+            ? "opacity-50"
+            : "opacity-100"
+
+        const shapeClasses = isAutoCollect ? "rounded-none" : "rounded-full"
+
+        const borderClasses = isHidden
+          ? "border-dashed border-red-500 border-2"
+          : isApproved
+            ? "ring-2 ring-green-400"
+            : ""
+
+        const filterClasses = isInactive && !isHidden ? "grayscale" : ""
+
+        const bgClasses = !isApproved && !isHidden ? "bg-gray-500" : "bg-white/80 hover:bg-white/100"
 
         return (
           <AdvancedMarker
             key={pin.id}
             position={{ lat: pin.latitude, lng: pin.longitude }}
-            onClick={() => {
-              onPinClick(pin)
-            }}
+            onClick={() => onPinClick(pin)}
           >
             <div
-              className={`relative flex items-center justify-center rounded-full border-3 border-white shadow-xl transition-all duration-300 hover:scale-125 hover:shadow-2xl cursor-pointer group
-                ${isExpired ?? isRemainingZero ? "opacity-60 grayscale" : "opacity-100"}
-                ${!isApproved ? "bg-slate-500" : "bg-white"}
-                transform hover:-translate-y-1
-              `}
+              className={`${baseClasses} ${opacityClasses} ${shapeClasses} ${borderClasses} ${filterClasses} ${bgClasses}`}
             >
-              {!isExpired && !isRemainingZero && isApproved && (
-                <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-20" />
+              {/* Ping animation for active approved pins */}
+              {showAnimation && (
+                <div
+                  className={`absolute inset-0 bg-blue-400 animate-ping opacity-20 ${shapeClasses}`}
+                />
               )}
 
+              {/* Pin icon or creator image */}
               {pin.locationGroup?.creator.profileUrl ? (
                 <Image
                   src={pin.locationGroup.creator.profileUrl ?? "/placeholder.svg"}
                   width={32}
                   height={32}
                   alt="Creator"
-                  className="h-12 w-12 rounded-full object-cover ring-2 ring-white group-hover:ring-blue-400 transition-all duration-300"
+                  className={`h-12 w-12 ${shapeClasses} object-cover ring-2  transition-all duration-300`}
                 />
               ) : (
-                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center ring-2 ring-white group-hover:ring-blue-400 transition-all duration-300">
-                  <PinIcon className="h-6 w-6 text-gray-600 group-hover:text-blue-600 transition-colors duration-300" />
+                <div className={`h-12 w-12 ${shapeClasses} bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center ring-2  transition-all duration-300`}>
+                  <PinIcon className="h-6 w-6 text-gray-600  transition-colors duration-300" />
                 </div>
               )}
 
+              {/* Consumer count badge */}
               {pin._count.consumers > 0 && (
                 <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium shadow-lg">
                   {pin._count.consumers > 99 ? "99+" : pin._count.consumers}
