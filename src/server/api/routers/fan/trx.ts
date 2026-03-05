@@ -89,53 +89,24 @@ export const trxRouter = createTRPCRouter({
       const limit = i.limit.toString();
 
       // set this for admin and user
-      const pubkey = ctx.session.user.id;
-
-      let issuer: AccountType
-      let issuerNowCreated = false;
+      let pubkey = ctx.session.user.id;
+      let storageSecret: string;
       const homeDomain = env.NEXT_PUBLIC_HOME_DOMAIN;
 
-
-      const assetCodeFound = await ctx.db.asset.findFirst({
-        where: { code: i.code, creatorId: ctx.session.user.id },
-      });
-
-      if (assetCodeFound) {
-        throw new Error("Asset code already exists, please choose another one");
-      }
-
-      const creator = await db.creator.findFirstOrThrow({
-        where: { id: ctx.session.user.id },
-        select: { storageSecret: true, creatorAssetIssuer: true },
-      });
-
-      const storageSecret = creator.storageSecret;
-      if (creator.creatorAssetIssuer) {
-        issuer = {
-          publicKey: creator.creatorAssetIssuer?.issuer,
-          secretKey: creator.creatorAssetIssuer?.issuerPrivate,
-        }
-      }
-      else {
-        //create new issuer 
-        const issuerAcc = Keypair.random();
-        await db.creatorAssetIssuer.create({
-          data: {
-            issuer: issuerAcc.publicKey(),
-            issuerPrivate: issuerAcc.secret(),
-            creatorId: ctx.session.user.id,
-          },
+      if (signWith && "isAdmin" in signWith) {
+        storageSecret = env.STORAGE_SECRET;
+        pubkey = Keypair.fromSecret(env.MOTHER_SECRET).publicKey();
+      } else {
+        const storage = await db.creator.findFirstOrThrow({
+          where: { id: ctx.session.user.id },
+          select: { storageSecret: true },
         });
-        issuerNowCreated = true;
-        issuer = {
-          publicKey: issuerAcc.publicKey(),
-          secretKey: issuerAcc.secret(),
-        }
-      }
 
+        storageSecret = storage.storageSecret;
+      }
 
       // console.log("storageSecret", storageSecret);
-      console.log("issuer", issuer);
+
       if (i.native) {
         return await createUniAssetWithXLM({
           actionAmount: assetAmount.toString(),
@@ -146,12 +117,9 @@ export const trxRouter = createTRPCRouter({
           limit,
           signWith,
           ipfsHash: i.ipfsHash,
-          issuerNowCreated,
-          issuer,
         });
       } else {
         return await createUniAsset({
-          actionAmount: assetAmount.toString(),
           pubkey,
           storageSecret,
           code: i.code,
@@ -159,8 +127,6 @@ export const trxRouter = createTRPCRouter({
           limit,
           signWith,
           ipfsHash: i.ipfsHash,
-          issuer,
-          issuerNowCreated
         });
       }
     }),
