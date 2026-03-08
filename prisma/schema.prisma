@@ -96,37 +96,35 @@ model Subscription {
     price         Float // here price is the copy of creator page asset
     creatorId     String
     creator       Creator         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-    posts         Post[]
     assets        Asset[]
     LocationGroup LocationGroup[]
+    postGroup     PostGroup[]
 
     @@unique([name, creatorId])
 }
 
 model Like {
-    id        Int      @id @default(autoincrement())
-    postId    Int
-    post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-    userId    String
-    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    createdAt DateTime @default(now())
+    id          Int       @id @default(autoincrement())
+    userId      String
+    user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    createdAt   DateTime  @default(now())
+    postGroupId Int
+    postGroup   PostGroup @relation(fields: [postGroupId], references: [id], onDelete: Cascade)
+    status      Boolean   @default(true)
 
-    status Boolean @default(true)
-
-    @@unique([postId, userId])
+    @@unique([postGroupId, userId])
 }
 
 model Comment {
-    id              Int    @id @default(autoincrement())
+    id              Int       @id @default(autoincrement())
     parentCommentID Int? // Optional field to reference parent comment (for nested comments)
-    postId          Int // Foreign key referencing Post model
-    post            Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
     userId          String // Foreign key referencing User model
-    user            User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
     content         String // Content of the comment
-
+    postGroupId     Int
+    postGroup       PostGroup @relation(fields: [postGroupId], references: [id], onDelete: Cascade)
     // Optional relationship: a comment can have a parent comment
-    parentComment Comment? @relation("ChildComments", fields: [parentCommentID], references: [id], onDelete: Cascade)
+    parentComment   Comment?  @relation("ChildComments", fields: [parentCommentID], references: [id], onDelete: Cascade)
 
     createdAt DateTime @default(now()) // Timestamp when the comment was created
 
@@ -175,16 +173,16 @@ model TemporalFollow {
 }
 
 model Media {
-    id        Int       @id @default(autoincrement())
-    url       String
-    type      MediaType
-    title     String?
-    artist    String?
-    album     String?
-    thumbnail String?
-    duration  Int?
-    postId    Int
-    post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+    id          Int        @id @default(autoincrement())
+    url         String
+    type        MediaType
+    title       String?
+    artist      String?
+    album       String?
+    thumbnail   String?
+    duration    Int?
+    postGroupId Int?
+    postGroup   PostGroup? @relation(fields: [postGroupId], references: [id])
 }
 
 model CreatorPageAsset {
@@ -230,8 +228,8 @@ model Creator {
     twitter                   String?
     instagram                 String?
 
-    user                User                  @relation(fields: [id], references: [id], onDelete: Cascade)
-    posts               Post[]
+    user User @relation(fields: [id], references: [id], onDelete: Cascade)
+
     subscriptions       Subscription[]
     assets              Asset[]
     marketAssets        MarketAsset[]
@@ -250,6 +248,7 @@ model Creator {
     aiGeneratedContents AiGeneratedContent[]
     temporalFollows     TemporalFollow[]
     creatorAssetIssuer  CreatorAssetIssuer?
+    postGroups          PostGroup[]
 
     @@index([bio, name])
 }
@@ -307,25 +306,51 @@ model VanitySubscription {
     lastPaymentDate   DateTime
 }
 
-model Post {
-    id Int @id @default(autoincrement())
-
-    content String
-    heading String @default("Heading")
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    creator   Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-    creatorId String
-
-    subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+model PostGroup {
+    id             Int           @id @default(autoincrement())
+    content        String
+    heading        String        @default("Heading")
+    description    String?
+    creatorId      String
+    creator        Creator       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
     subscriptionId Int?
-    likes          Like[]
-    comments       Comment[]
-    medias         Media[]
+    subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
 
-    @@index([heading])
+    createdAt   DateTime         @default(now())
+    updatedAt   DateTime         @updatedAt
+    posts       Post[]
+    collections PostCollection[]
+    likes       Like[]
+    comments    Comment[]
+    medias      Media[]
+}
+
+model Post {
+    id          Int             @id @default(autoincrement())
+    isCollected Boolean         @default(false)
+    createdAt   DateTime        @default(now())
+    updatedAt   DateTime        @updatedAt
+    postGroupId Int
+    postGroup   PostGroup       @relation(fields: [postGroupId], references: [id], onDelete: Cascade)
+    collection  PostCollection?
+
+    @@index([postGroupId])
+    @@index([isCollected])
+}
+
+model PostCollection {
+    id          Int       @id @default(autoincrement())
+    postId      Int       @unique
+    post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+    userId      String
+    user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    postGroupId Int
+    postGroup   PostGroup @relation(fields: [postGroupId], references: [id], onDelete: Cascade)
+    collectedAt DateTime  @default(now())
+
+    @@unique([postGroupId, userId])
+    @@index([userId])
+    @@index([postGroupId])
 }
 
 // Necessary for Next auth
@@ -399,6 +424,7 @@ model User {
     lastFMAccount      LastFMAccount?
     lastFMTracks       LastFMTrack[]
     claimLastFMRewards ClaimLastFMReward[]
+    postCollections    PostCollection[]
 }
 
 model LastFMAccount {

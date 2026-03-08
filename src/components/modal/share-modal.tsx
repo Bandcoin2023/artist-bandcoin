@@ -92,7 +92,7 @@ export function ShareModal({
     const formattedPreview = formatForPlatform(post.content, previewPlatform)
     const currentPlatform = platforms.find((p) => p.id === previewPlatform)
     const charCount = formattedPreview.length
-    const charLimit = currentPlatform?.charLimit || 280
+    const charLimit = currentPlatform?.charLimit ?? 280
     const isOverLimit = charCount > charLimit
 
     return (

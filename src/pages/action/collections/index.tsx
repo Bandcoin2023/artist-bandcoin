@@ -2,328 +2,217 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, Grid3X3, List, Filter, Star, Trophy, Package, Clock, MapPin, Zap, Eye, EyeOff, ChevronDown, ChevronUp, Navigation } from 'lucide-react'
+import { Search, Grid3X3, List, Filter, Trophy, Package, ChevronDown, ChevronUp, Crown, MapPin, Zap, Clock, Navigation } from 'lucide-react'
 import { Button } from "~/components/shadcn/ui/button"
 import { Input } from "~/components/shadcn/ui/input"
 import { Card, CardContent } from "~/components/shadcn/ui/card"
 import { Badge } from "~/components/shadcn/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/shadcn/ui/select"
-import { useQuery } from "@tanstack/react-query"
-import { getUserPlatformAsset } from "~/lib/augmented-reality/get-user-platformAsset"
-import { getMapAllPins } from "~/lib/augmented-reality/get-Map-all-pins"
-import type { ConsumedLocation } from "~/types/game/location"
+import { api } from "~/utils/api"
 import Image from "next/image"
 import Loading from "~/components/common/loading"
 import { useRouter } from "next/router"
-import { useCollection } from "~/lib/state/augmented-reality/useCollection"
 import { formatDistanceToNow } from "date-fns"
-import { BASE_URL } from "~/lib/common"
-import { addrShort } from "~/utils/utils"
+import type { ConsumedLocation } from "~/types/game/location"
 
 type ViewMode = 'grid' | 'list'
-type SortOption = 'recent' | 'name' | 'brand' | 'distance' | 'collected'
-type FilterOption = 'all' | 'collected' | 'available' | 'expired' | 'nearby'
+type SortOption = 'recent' | 'name' | 'brand'
+type ContentFilter = 'all' | 'posts' | 'locations'
 
 export default function CollectionsPage() {
     const [searchQuery, setSearchQuery] = useState("")
     const [viewMode, setViewMode] = useState<ViewMode>('grid')
     const [sortBy, setSortBy] = useState<SortOption>('recent')
-    const [filterBy, setFilterBy] = useState<FilterOption>('all')
+    const [contentFilter, setContentFilter] = useState<ContentFilter>('all')
     const [showFilters, setShowFilters] = useState(false)
     const [showHeader, setShowHeader] = useState(true)
+    const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
     const router = useRouter()
-    const { setData } = useCollection()
 
-    const balanceRes = useQuery({
-        queryKey: ["balance"],
-        queryFn: getUserPlatformAsset,
-    })
-    const getCollections = async () => {
-        try {
-            const response = await fetch(new URL("api/game/locations/get_consumed_location", BASE_URL).toString(), {
-                method: "GET",
-                credentials: "include",
-            })
-
-            if (!response.ok) {
-                throw new Error("Failed to fetch collections")
-            }
-
-            const data = (await response.json()) as { locations: ConsumedLocation[] }
-            return data
-        } catch (error) {
-            console.error("Error fetching collections:", error)
-            throw error
-        }
-    }
-    const locationsRes = useQuery({
-        queryKey: ["MapsAllPins"],
-        queryFn: () => getCollections(),
-    })
-
-    const locations = locationsRes.data?.locations ?? []
-
-    // Calculate user's current location (mock for now)
-    const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null)
+    const postsRes = api.maps.pin.getAllCollectedPosts.useQuery()
+    const locationsRes = api.maps.pin.getConsumedLocations.useQuery()
+    const posts = postsRes.data ?? []
+    const locations = locationsRes.data ?? []
 
     useEffect(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setUserLocation({
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    })
-                },
-                (error) => {
-                    console.log("Location access denied")
-                }
+                (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                () => console.log("Location access denied")
             )
         }
     }, [])
 
-    // Calculate distance between two points
     const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-        const R = 6371 // Earth's radius in km
+        const R = 6371
         const dLat = (lat2 - lat1) * Math.PI / 180
         const dLng = (lng2 - lng1) * Math.PI / 180
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLng / 2) * Math.sin(dLng / 2)
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-        return R * c
+        const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
     }
 
-    // Filter and sort locations
-    const filteredAndSortedLocations = locations
-        .filter((location: ConsumedLocation) => {
-            const matchesSearch = location.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                location.brand_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                location.description.toLowerCase().includes(searchQuery.toLowerCase())
+    // Normalise posts
+    const normalisedPosts = posts.map((item) => ({
+        id: item.id,
+        type: 'post' as const,
+        title: item.postGroup.heading,
+        subtitle: item.postGroup.heading,
+        description: item.postGroup.description ?? "",
+        image: item.postGroup.medias.find((m) => m.type === "IMAGE")?.url ?? "https://app.beam-us.com/images/logo.png",
+        creatorName: item.postGroup.creator.name,
+        collectedAt: new Date(item.collectedAt),
+        subscription: item.postGroup.subscription ?? null,
+        navigateTo: `/action/collections/post/${item.postId}`,
+        lat: null as number | null,
+        lng: null as number | null,
+        limitRemaining: null as number | null,
+        collected: true,
+    }))
 
-            const matchesFilter = (() => {
-                switch (filterBy) {
-                    case 'collected':
-                        return location.collected
-                    case 'available':
-                        return !location.collected && location.collection_limit_remaining > 0
-                    case 'expired':
-                        return location.collection_limit_remaining <= 0
-                    case 'nearby':
-                        if (!userLocation) return false
-                        const distance = calculateDistance(
-                            userLocation.lat, userLocation.lng,
-                            location.lat, location.lng
-                        )
-                        return distance <= 5 // Within 5km
-                    default:
-                        return true
-                }
-            })()
+    // Normalise locations
+    const normalisedLocations = locations.map((loc: ConsumedLocation) => ({
+        id: loc.id,
+        type: 'location' as const,
+        title: loc.title,
+        subtitle: loc.brand_name,
+        description: loc.description,
+        image: loc.image_url ?? null,
+        creatorName: loc.brand_name,
+        collectedAt: new Date(),
+        subscription: null,
+        navigateTo: `/action/collections/${loc.id}`,
+        lat: loc.lat as number | null,
+        lng: loc.lng as number | null,
+        limitRemaining: loc.collection_limit_remaining as number | null,
+        collected: loc.collected,
+    }))
 
-            return matchesSearch && matchesFilter
+    // Merge based on content filter
+    const merged = [
+        ...(contentFilter !== 'locations' ? normalisedPosts : []),
+        ...(contentFilter !== 'posts' ? normalisedLocations : []),
+    ]
+
+    const filtered = merged
+        .filter((item) => {
+            const q = searchQuery.toLowerCase()
+            return (
+                item.title.toLowerCase().includes(q) ||
+                item.subtitle.toLowerCase().includes(q) ||
+                item.description.toLowerCase().includes(q) ||
+                item.creatorName.toLowerCase().includes(q)
+            )
         })
-        .sort((a: ConsumedLocation, b: ConsumedLocation) => {
+        .sort((a, b) => {
             switch (sortBy) {
-                case 'name':
-                    return a.title.localeCompare(b.title)
-                case 'brand':
-                    return a.brand_name.localeCompare(b.brand_name)
-                case 'distance':
-                    if (!userLocation) return 0
-                    const distA = calculateDistance(userLocation.lat, userLocation.lng, a.lat, a.lng)
-                    const distB = calculateDistance(userLocation.lat, userLocation.lng, b.lat, b.lng)
-                    return distA - distB
-                case 'collected':
-                    return (b.collected ? 1 : 0) - (a.collected ? 1 : 0)
-                default:
-                    return a.title.localeCompare(b.title)
+                case 'name': return a.title.localeCompare(b.title)
+                case 'brand': return a.creatorName.localeCompare(b.creatorName)
+                default: return b.collectedAt.getTime() - a.collectedAt.getTime()
             }
         })
 
-    const collectedCount = locations.filter((loc: ConsumedLocation) => loc.collected).length
-    const availableCount = locations.filter((loc: ConsumedLocation) => !loc.collected && loc.collection_limit_remaining > 0).length
-    const nearbyCount = userLocation ? locations.filter((loc: ConsumedLocation) => {
-        const distance = calculateDistance(userLocation.lat, userLocation.lng, loc.lat, loc.lng)
-        return distance <= 5
-    }).length : 0
+    if (postsRes.isLoading || locationsRes.isLoading) return <Loading />
 
-    const handleCollectionClick = (location: ConsumedLocation) => {
-        setData({ collections: location })
-        router.push(`/action/collections/${location.id}`)
-    }
-
-    if (locationsRes.isLoading) {
-        return <Loading />
-    }
+    const collectedLocations = locations.filter((l: ConsumedLocation) => l.collected).length
 
     return (
-        <div className="min-h-screen ">
-            {/* Compact Header */}
+        <div className="min-h-screen bg-background">
+
+            {/* Header */}
             <AnimatePresence>
                 {showHeader && (
                     <motion.div
-                        className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-lg border-b border-slate-200/50 dark:border-slate-700/50"
+                        className="bg-background/95 backdrop-blur-xl border-b border-border shadow-sm"
                         initial={{ opacity: 0, y: -100 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -100 }}
                         transition={{ duration: 0.3 }}
                     >
-                        <div className="px-6 pt-4 pb-6">
-                            <div className="flex items-center justify-between mb-4">
+                        <div className="px-5 pt-4 pb-5 space-y-4">
+
+                            {/* Title */}
+                            <div className="flex items-center justify-between">
                                 <div>
-                                    <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
-                                        AR Collections
-                                    </h1>
-                                    <p className="text-slate-600 dark:text-slate-400 text-sm">
-                                        Discover and collect AR experiences
+                                    <h1 className="text-2xl font-bold text-foreground">Collections</h1>
+                                    <p className="text-muted-foreground text-sm">
+                                        {posts.length} post{posts.length !== 1 ? 's' : ''} · {collectedLocations}/{locations.length} locations
                                     </p>
                                 </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setShowHeader(false)}
-                                    className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
-                                >
+                                <Button variant="ghost" size="sm" onClick={() => setShowHeader(false)} className="p-2 rounded-xl">
                                     <ChevronUp className="h-4 w-4" />
                                 </Button>
                             </div>
 
-                            {/* Enhanced Stats Cards */}
-                            {/* <div className="grid grid-cols-4 gap-3 mb-4">
-                                <motion.div
-                                    className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl p-3 text-center shadow-lg"
-                                    whileHover={{ scale: 1.02, y: -2 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <Package className="w-5 h-5 text-white mx-auto mb-1" />
-                                    <p className="text-white text-lg font-bold">{locations.length}</p>
-                                    <p className="text-white/80 text-xs">Total</p>
-                                </motion.div>
+                            {/* Content filter tabs */}
+                            <div className="flex gap-2">
+                                {([
+                                    { key: 'all', label: `All (${posts.length + locations.length})` },
+                                    { key: 'posts', label: `Posts (${posts.length})` },
+                                    { key: 'locations', label: `Locations (${locations.length})` },
+                                ] as { key: ContentFilter; label: string }[]).map(({ key, label }) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => setContentFilter(key)}
+                                        className={`px-3 py-1.5 rounded-2xl text-xs font-semibold transition-colors ${contentFilter === key
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                                            }`}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
 
-                                <motion.div
-                                    className="bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl p-3 text-center shadow-lg"
-                                    whileHover={{ scale: 1.02, y: -2 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <Trophy className="w-5 h-5 text-white mx-auto mb-1" />
-                                    <p className="text-white text-lg font-bold">{collectedCount}</p>
-                                    <p className="text-white/80 text-xs">Collected</p>
-                                </motion.div>
-
-                                <motion.div
-                                    className="bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl p-3 text-center shadow-lg"
-                                    whileHover={{ scale: 1.02, y: -2 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <Star className="w-5 h-5 text-white mx-auto mb-1" />
-                                    <p className="text-white text-lg font-bold">{availableCount}</p>
-                                    <p className="text-white/80 text-xs">Available</p>
-                                </motion.div>
-
-                                <motion.div
-                                    className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-3 text-center shadow-lg"
-                                    whileHover={{ scale: 1.02, y: -2 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <Navigation className="w-5 h-5 text-white mx-auto mb-1" />
-                                    <p className="text-white text-lg font-bold">{nearbyCount}</p>
-                                    <p className="text-white/80 text-xs">Nearby</p>
-                                </motion.div>
-                            </div> */}
-
-                            {/* Enhanced Search Bar */}
-                            <div className="relative mb-4">
-                                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                            {/* Search */}
+                            <div className="relative">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
                                 <Input
-                                    placeholder="Search collections, brands, or descriptions..."
+                                    placeholder="Search title, creator..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-12 h-12 bg-slate-100/70 dark:bg-slate-800/70 border-0 rounded-2xl backdrop-blur-sm text-base"
+                                    className="pl-11 h-11 bg-muted border-0 rounded-2xl text-sm"
                                 />
                             </div>
 
-                            {/* Enhanced Controls */}
+                            {/* View + sort controls */}
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <Button
-                                        variant={viewMode === 'grid' ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => setViewMode('grid')}
-                                        className="h-10 px-4 rounded-xl"
-                                    >
-                                        <Grid3X3 className="w-4 h-4 mr-2" />
-                                        Grid
+                                    <Button variant={viewMode === 'grid' ? "default" : "outline"} size="sm" onClick={() => setViewMode('grid')} className="h-9 w-9 p-0 rounded-xl">
+                                        <Grid3X3 className="w-4 h-4" />
                                     </Button>
-                                    <Button
-                                        variant={viewMode === 'list' ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => setViewMode('list')}
-                                        className="h-10 px-4 rounded-xl"
-                                    >
-                                        <List className="w-4 h-4 mr-2" />
-                                        List
+                                    <Button variant={viewMode === 'list' ? "default" : "outline"} size="sm" onClick={() => setViewMode('list')} className="h-9 w-9 p-0 rounded-xl">
+                                        <List className="w-4 h-4" />
                                     </Button>
                                 </div>
-
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setShowFilters(!showFilters)}
-                                    className="h-10 px-4 rounded-xl"
-                                >
-                                    <Filter className="w-4 h-4 mr-2" />
-                                    Filters
-                                    {showFilters ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
+                                <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="h-9 px-3 rounded-xl gap-1.5">
+                                    <Filter className="w-3.5 h-3.5" />
+                                    Sort
+                                    {showFilters ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                                 </Button>
                             </div>
 
-                            {/* Enhanced Filter Panel */}
+                            {/* Sort panel */}
                             <AnimatePresence>
                                 {showFilters && (
                                     <motion.div
-                                        className="mt-4 p-4 bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-slate-700/50"
+                                        className="p-4 bg-card border border-border rounded-2xl"
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: "auto" }}
                                         exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.3 }}
+                                        transition={{ duration: 0.2 }}
                                     >
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
-                                                    Sort by
-                                                </label>
-                                                <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-                                                    <SelectTrigger className="h-10 rounded-xl">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="name">Name A-Z</SelectItem>
-                                                        <SelectItem value="brand">Brand A-Z</SelectItem>
-                                                        <SelectItem value="collected">Collected First</SelectItem>
-                                                        {userLocation && <SelectItem value="distance">Nearest First</SelectItem>}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-
-                                            <div>
-                                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
-                                                    Filter by
-                                                </label>
-                                                <Select value={filterBy} onValueChange={(value: FilterOption) => setFilterBy(value)}>
-                                                    <SelectTrigger className="h-10 rounded-xl">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="all">All Collections</SelectItem>
-                                                        <SelectItem value="collected">Collected</SelectItem>
-                                                        <SelectItem value="available">Available</SelectItem>
-                                                        <SelectItem value="expired">Expired</SelectItem>
-                                                        {userLocation && <SelectItem value="nearby">Nearby (5km)</SelectItem>}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        </div>
+                                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Sort by</label>
+                                        <Select value={sortBy} onValueChange={(v: SortOption) => setSortBy(v)}>
+                                            <SelectTrigger className="h-10 rounded-xl">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="recent">Most Recent</SelectItem>
+                                                <SelectItem value="name">Title A–Z</SelectItem>
+                                                <SelectItem value="brand">Creator A–Z</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
@@ -332,207 +221,171 @@ export default function CollectionsPage() {
                 )}
             </AnimatePresence>
 
-            {/* Header Toggle Button (when collapsed) */}
+            {/* Floating toggle */}
             {!showHeader && (
-                <motion.div
-                    className="fixed top-4 right-4 z-50"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                >
-                    <Button
-                        onClick={() => setShowHeader(true)}
-                        className="w-12 h-12 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl shadow-lg border border-slate-200/50 dark:border-slate-700/50 hover:scale-105 transition-transform"
-                    >
-                        <ChevronDown className="h-5 w-5" />
+                <motion.div className="fixed top-4 right-4 z-50" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
+                    <Button onClick={() => setShowHeader(true)} size="sm" variant="outline" className="w-10 h-10 rounded-full p-0 bg-background/90 backdrop-blur-xl shadow-lg">
+                        <ChevronDown className="h-4 w-4" />
                     </Button>
                 </motion.div>
             )}
 
             {/* Content */}
-            <div className={`px-6 py-6 pb-32 ${!showHeader ? 'pt-20' : ''}`}>
+            <div className={`px-5 py-5 pb-32 ${!showHeader ? 'pt-16' : ''}`}>
                 <AnimatePresence mode="wait">
-                    {viewMode === 'grid' ? (
-                        <motion.div
-                            key="grid"
-                            className="grid grid-cols-2 gap-2"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            {filteredAndSortedLocations.map((location: ConsumedLocation, index: number) => (
-                                <motion.div
-                                    key={location.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.4, delay: 0.05 * index }}
-                                    whileHover={{ scale: 1.02, y: -4 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => handleCollectionClick(location)}
-                                >
-                                    <Card className="overflow-hidden bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border-0">
-                                        <CardContent className="p-0">
-                                            <div className="aspect-square bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 relative overflow-hidden">
-                                                <Image
-                                                    height={200}
-                                                    width={200}
-                                                    alt={location.title}
-                                                    src={location.image_url || "/placeholder.svg"}
-                                                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
-                                                />
 
-                                                {/* Enhanced Status Badge */}
-                                                <div className="absolute top-3 right-2">
-                                                    {location.collected ? (
-                                                        <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs shadow-lg border-0">
-                                                            <Trophy className="w-3 h-3 mr-1" />
-                                                            Collected
-                                                        </Badge>
-                                                    ) : location.collection_limit_remaining > 0 ? (
-                                                        <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs shadow-lg border-0">
-                                                            <Zap className="w-3 h-3 mr-1" />
-                                                            {location.collection_limit_remaining} left
+                    {/* Grid */}
+                    {viewMode === 'grid' ? (
+                        <motion.div key="grid" className="grid grid-cols-2 gap-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                            {filtered.map((item, index) => (
+                                <motion.div
+                                    key={`${item.type}-${item.id}`}
+                                    initial={{ opacity: 0, y: 16 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.04 * index }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => router.push(item.navigateTo)}
+                                >
+                                    <Card className="overflow-hidden bg-card border border-border cursor-pointer hover:shadow-md transition-shadow h-full">
+                                        <CardContent className="p-0">
+                                            <div className="aspect-square bg-muted relative overflow-hidden">
+                                                <Image fill alt={item.title} src={item.image ?? "/placeholder.svg"} className="object-cover" />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+
+                                                {/* Type badge — top left */}
+                                                <div className="absolute top-2 left-2">
+                                                    {item.type === 'post' ? (
+                                                        <Badge className="bg-primary/25 text-primary border border-primary/30 text-xs px-2 py-0.5 gap-1 backdrop-blur-sm">
+                                                            <Package className="w-2.5 h-2.5" />
+                                                            Post
                                                         </Badge>
                                                     ) : (
-                                                        <Badge className="bg-gradient-to-r from-slate-400 to-slate-500 text-white text-xs shadow-lg border-0">
-                                                            <Clock className="w-3 h-3 mr-1" />
+                                                        <Badge className="bg-secondary/25 text-secondary border border-secondary/30 text-xs px-2 py-0.5 gap-1 backdrop-blur-sm">
+                                                            <MapPin className="w-2.5 h-2.5" />
+                                                            Pin
+                                                        </Badge>
+                                                    )}
+                                                </div>
+
+                                                {/* Status badge — top right */}
+                                                <div className="absolute top-2 right-2">
+                                                    {item.type === 'post' || item.collected ? (
+                                                        <Badge className="bg-emerald-500/25 text-emerald-500 border border-emerald-500/30 text-xs px-2 py-0.5 gap-1 backdrop-blur-sm">
+                                                            <Trophy className="w-2.5 h-2.5" />
+                                                            Owned
+                                                        </Badge>
+                                                    ) : item.limitRemaining !== null && item.limitRemaining > 0 ? (
+                                                        <Badge className="bg-primary/25 text-primary border border-primary/30 text-xs px-2 py-0.5 gap-1 backdrop-blur-sm">
+                                                            <Zap className="w-2.5 h-2.5" />
+                                                            {item.limitRemaining}
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge className="bg-muted text-muted-foreground border border-border text-xs px-2 py-0.5 gap-1 backdrop-blur-sm">
+                                                            <Clock className="w-2.5 h-2.5" />
                                                             Expired
                                                         </Badge>
                                                     )}
                                                 </div>
 
-                                                {/* Distance Badge */}
-                                                {userLocation && (
-                                                    <div className="absolute top-3 left-2">
-                                                        <Badge className="bg-black/50 text-white text-xs backdrop-blur-sm border-0">
-                                                            <Navigation className="w-3 h-3 mr-1" />
-                                                            {calculateDistance(userLocation.lat, userLocation.lng, location.lat, location.lng).toFixed(1)}km
+                                                {/* Distance — bottom right (locations only) */}
+                                                {item.type === 'location' && userLocation && item.lat && item.lng && (
+                                                    <div className="absolute bottom-2 right-2">
+                                                        <Badge className="bg-black/40 text-white border-0 backdrop-blur-sm text-xs px-2 py-0.5 gap-1">
+                                                            <Navigation className="w-2.5 h-2.5" />
+                                                            {calculateDistance(userLocation.lat, userLocation.lng, item.lat, item.lng).toFixed(1)}km
                                                         </Badge>
                                                     </div>
                                                 )}
-
-                                                {/* Gradient Overlay */}
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                                             </div>
 
-                                            <div className="p-4">
-                                                <h3 className="font-bold text-slate-900 dark:text-white text-sm mb-1 line-clamp-1">
-                                                    {location.title}
-                                                </h3>
-                                                <p className="text-xs text-slate-600 dark:text-slate-400 mb-2 line-clamp-1">
-                                                    by {location.brand_name}
-                                                </p>
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 line-clamp-2">
-                                                    {location.description}
-                                                </p>
-                                                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                                                    <div className="flex items-center gap-1">
-                                                        <MapPin className="w-3 h-3" />
-                                                        <span>ID: {addrShort(location.id.toString())}</span>
+                                            <div className="p-3 space-y-1.5">
+                                                <h3 className="font-semibold text-foreground text-sm line-clamp-1">{item.title}</h3>
+                                                <p className="text-xs text-muted-foreground line-clamp-1">{item.subtitle}</p>
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="w-3.5 h-3.5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                                                        <span className="text-primary font-bold" style={{ fontSize: 7 }}>{item.creatorName.charAt(0)}</span>
                                                     </div>
-                                                    {location.collected && (
-                                                        <div className="flex items-center gap-1 text-emerald-600">
-                                                            <Star className="w-3 h-3 fill-current" />
-                                                            <span>Owned</span>
-                                                        </div>
-                                                    )}
+                                                    <span className="text-xs text-muted-foreground truncate">{item.creatorName}</span>
                                                 </div>
+                                                {item.subscription && (
+                                                    <Badge className="bg-secondary/15 text-secondary border border-secondary/20 text-xs gap-1 px-2 py-0.5">
+                                                        <Crown className="w-2.5 h-2.5" />
+                                                        {item.subscription.name}
+                                                    </Badge>
+                                                )}
                                             </div>
                                         </CardContent>
                                     </Card>
                                 </motion.div>
                             ))}
                         </motion.div>
+
                     ) : (
-                        <motion.div
-                            key="list"
-                            className="space-y-4"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            {filteredAndSortedLocations.map((location: ConsumedLocation, index: number) => (
+                        // List view
+                        <motion.div key="list" className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                            {filtered.map((item, index) => (
                                 <motion.div
-                                    key={location.id}
-                                    initial={{ opacity: 0, x: -20 }}
+                                    key={`${item.type}-${item.id}`}
+                                    initial={{ opacity: 0, x: -16 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 0.4, delay: 0.05 * index }}
-                                    whileHover={{ scale: 1.01, x: 4 }}
+                                    transition={{ delay: 0.04 * index }}
                                     whileTap={{ scale: 0.99 }}
-                                    onClick={() => handleCollectionClick(location)}
+                                    onClick={() => router.push(item.navigateTo)}
                                 >
-                                    <Card className="overflow-hidden bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border-0">
+                                    <Card className="overflow-hidden bg-card border border-border cursor-pointer hover:shadow-md transition-shadow">
                                         <CardContent className="p-0">
                                             <div className="flex">
-                                                <div className="w-24 h-24 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 relative overflow-hidden">
-                                                    <Image
-                                                        height={96}
-                                                        width={96}
-                                                        alt={location.title}
-                                                        src={location.image_url || "/placeholder.svg"}
-                                                        className="w-full h-full object-cover"
-                                                    />
+                                                {/* Thumbnail */}
+                                                <div className="w-20 h-20 bg-muted relative overflow-hidden shrink-0">
+                                                    <Image fill alt={item.title} src={item.image ?? "/placeholder.svg"} className="object-cover" />
+                                                    {/* Colour strip indicating type */}
+                                                    <div className={`absolute bottom-0 left-0 right-0 h-1 ${item.type === 'post' ? 'bg-primary' : 'bg-secondary'}`} />
                                                 </div>
 
-                                                <div className="flex-1 p-4">
-                                                    <div className="flex items-start justify-between mb-2">
-                                                        <div className="flex-1 min-w-0">
-                                                            <h3 className="font-bold text-slate-900 dark:text-white text-sm line-clamp-1">
-                                                                {location.title}
-                                                            </h3>
-                                                            <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1">
-                                                                by {location.brand_name}
-                                                            </p>
+                                                <div className="flex-1 p-3 min-w-0">
+                                                    <div className="flex items-start justify-between gap-2 mb-1">
+                                                        <div className="min-w-0">
+                                                            <h3 className="font-semibold text-foreground text-sm line-clamp-1">{item.title}</h3>
+                                                            <p className="text-xs text-muted-foreground line-clamp-1">{item.subtitle}</p>
                                                         </div>
-
-                                                        <div className="flex flex-col gap-1 ml-2">
-                                                            {location.collected ? (
-                                                                <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs">
-                                                                    <Trophy className="w-3 h-3 mr-1" />
-                                                                    Collected
-                                                                </Badge>
-                                                            ) : location.collection_limit_remaining > 0 ? (
-                                                                <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs">
-                                                                    {location.collection_limit_remaining} left
+                                                        <div className="flex flex-col gap-1 items-end shrink-0">
+                                                            {item.type === 'post' ? (
+                                                                <Badge className="bg-primary/15 text-primary border border-primary/20 text-xs px-2 py-0.5 gap-1">
+                                                                    <Package className="w-2.5 h-2.5" /> Post
                                                                 </Badge>
                                                             ) : (
-                                                                <Badge className="bg-gradient-to-r from-slate-400 to-slate-500 text-white text-xs">
-                                                                    Expired
+                                                                <Badge className="bg-secondary/15 text-secondary border border-secondary/20 text-xs px-2 py-0.5 gap-1">
+                                                                    <MapPin className="w-2.5 h-2.5" /> Pin
                                                                 </Badge>
                                                             )}
-
-                                                            {userLocation && (
-                                                                <Badge className="bg-black/10 text-slate-600 dark:text-slate-400 text-xs">
-                                                                    {calculateDistance(userLocation.lat, userLocation.lng, location.lat, location.lng).toFixed(1)}km
+                                                            {(item.type === 'post' || item.collected) && (
+                                                                <Badge className="bg-emerald-500/15 text-emerald-500 border border-emerald-500/20 text-xs px-2 py-0.5 gap-1">
+                                                                    <Trophy className="w-2.5 h-2.5" /> Owned
                                                                 </Badge>
                                                             )}
                                                         </div>
                                                     </div>
 
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 line-clamp-2">
-                                                        {location.description}
-                                                    </p>
+                                                    <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{item.description}</p>
 
-                                                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="flex items-center gap-1">
-                                                                <MapPin className="w-3 h-3" />
-                                                                <span>ID: {addrShort(location.id.toString())}</span>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-3.5 h-3.5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                                                                <span className="text-primary font-bold" style={{ fontSize: 7 }}>{item.creatorName.charAt(0)}</span>
                                                             </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <Clock className="w-3 h-3" />
-                                                                <span>Active</span>
-                                                            </div>
+                                                            <span className="text-xs text-muted-foreground truncate max-w-[80px]">{item.creatorName}</span>
                                                         </div>
-
-                                                        {location.collected && (
-                                                            <div className="flex items-center gap-1 text-emerald-600">
-                                                                <Star className="w-3 h-3 fill-current" />
-                                                                <span className="font-medium">Owned</span>
-                                                            </div>
-                                                        )}
+                                                        <div className="flex items-center gap-2">
+                                                            {item.type === 'location' && userLocation && item.lat && item.lng && (
+                                                                <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                                                                    <Navigation className="w-3 h-3" />
+                                                                    {calculateDistance(userLocation.lat, userLocation.lng, item.lat, item.lng).toFixed(1)}km
+                                                                </span>
+                                                            )}
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {formatDistanceToNow(item.collectedAt, { addSuffix: true })}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -544,30 +397,23 @@ export default function CollectionsPage() {
                     )}
                 </AnimatePresence>
 
-                {filteredAndSortedLocations.length === 0 && (
-                    <motion.div
-                        className="text-center py-16"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.6 }}
-                    >
-                        <div className="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <Package className="w-10 h-10 text-slate-400" />
+                {/* Empty state */}
+                {filtered.length === 0 && (
+                    <motion.div className="text-center py-20" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                        <div className="w-16 h-16 bg-muted rounded-3xl flex items-center justify-center mx-auto mb-4">
+                            <Package className="w-8 h-8 text-muted-foreground" />
                         </div>
-                        <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">No collections found</h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-                            Try adjusting your search or filters to discover more AR experiences
+                        <h3 className="text-lg font-bold text-foreground mb-1">
+                            {searchQuery ? "No results found" : "Nothing collected yet"}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-6">
+                            {searchQuery ? "Try adjusting your search" : "Collect posts and location pins to see them here"}
                         </p>
-                        <Button
-                            onClick={() => {
-                                setSearchQuery("")
-                                setFilterBy('all')
-                                setSortBy('recent')
-                            }}
-                            className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white rounded-xl"
-                        >
-                            Reset Filters
-                        </Button>
+                        {searchQuery && (
+                            <Button variant="outline" onClick={() => setSearchQuery("")} className="rounded-xl">
+                                Clear Search
+                            </Button>
+                        )}
                     </motion.div>
                 )}
             </div>

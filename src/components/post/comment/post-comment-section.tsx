@@ -26,7 +26,7 @@ export function CommentSection({ postId, initialCommentCount }: CommentSectionPr
     const [isCommentsVisible, setIsCommentsVisible] = useState(true)
 
     const comments = api.fan.post.getComments.useQuery({
-        postId: postId,
+        postGroupId: postId,
         limit: 5,
     }, {
         enabled: isCommentsVisible
@@ -88,7 +88,7 @@ export function CommentSection({ postId, initialCommentCount }: CommentSectionPr
                         )}
 
                         <div className="mt-4 p-2">
-                            <AddPostComment postId={postId} />
+                            <AddPostComment postGroupId={postId} />
                         </div>
                     </motion.div>
                 )}
@@ -189,7 +189,7 @@ function CommentView({ comment, childrenComments }: CommentViewProps) {
                             >
                                 <AddReplyComment
                                     parentId={comment.id}
-                                    postId={comment.postId}
+                                    postGroupId={comment.postGroupId}
                                 />
                             </motion.div>
                         )}

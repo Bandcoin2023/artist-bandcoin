@@ -26,7 +26,7 @@ export function SinglePostCommentSection({ postId, initialCommentCount }: Commen
 
 
     const comments = api.fan.post.getComments.useQuery({
-        postId: postId,
+        postGroupId: postId,
     });
 
 
@@ -162,7 +162,7 @@ function CommentView({ comment, childrenComments }: CommentViewProps) {
                             >
                                 <AddReplyComment
                                     parentId={comment.id}
-                                    postId={comment.postId}
+                                    postGroupId={comment.postGroupId}
                                 />
                             </motion.div>
                         )}

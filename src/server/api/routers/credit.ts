@@ -232,7 +232,7 @@ export const creditRouter = createTRPCRouter({
         .input(
             z.object({
                 name: z.string().min(1),
-                description: z.string(),
+                description: z.string().optional(),
                 credits: z.number().min(1),
                 bonus: z.number().min(0).default(0),
                 priceBand: z.number().min(0),

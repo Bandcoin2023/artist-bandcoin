@@ -1,6 +1,5 @@
 import { NotificationType } from "@prisma/client";
 import { z } from "zod";
-import { StellarAccount } from "~/lib/stellar/stellar";
 
 import {
   createTRPCRouter,
@@ -10,13 +9,14 @@ import {
 import { MediaInfo } from "../bounty/bounty";
 import { PostSchema } from "~/components/modal/create-post-modal";
 import { CommentSchema } from "~/components/post/comment/add-post-comment";
+import { TRPCError } from "@trpc/server";
 
 export const postRouter = createTRPCRouter({
   create: protectedProcedure
     .input(PostSchema)
     .mutation(async ({ ctx, input }) => {
-
-      const post = await ctx.db.post.create({
+      const limit = 10;
+      const post = await ctx.db.postGroup.create({
         data: {
           heading: input.heading,
           content: input.content ?? "",
@@ -31,10 +31,18 @@ export const postRouter = createTRPCRouter({
               },
             }
             : undefined,
+          posts: {
+            createMany: {
+              //create limit number of post
+              data: Array.from({ length: limit }, (_, i) => ({
+                isCollected: false,
+              })),
+            },
+          }
         },
       });
 
-      const followers = await ctx.db.follow.findMany({
+      const followers = await ctx.db.temporalFollow.findMany({
         where: { creatorId: ctx.session.user.id },
         select: { userId: true },
       });
@@ -80,7 +88,7 @@ export const postRouter = createTRPCRouter({
     )
     .query(async ({ input, ctx }) => {
       const { limit, skip, cursor } = input;
-      const items = await ctx.db.post.findMany({
+      const items = await ctx.db.postGroup.findMany({
         take: limit + 1,
         skip: skip,
         cursor: cursor ? { id: cursor } : undefined,
@@ -95,6 +103,12 @@ export const postRouter = createTRPCRouter({
               },
               comments: true,
             },
+          },
+          // return one uncollected post slot
+          posts: {
+            where: { isCollected: false },
+            take: 1,
+            select: { id: true, isCollected: true },
           },
           medias: true,
           subscription: true,
@@ -130,7 +144,7 @@ export const postRouter = createTRPCRouter({
     .query(async ({ input, ctx }) => {
       const { limit, skip, cursor } = input;
 
-      const items = await ctx.db.post.findMany({
+      const items = await ctx.db.postGroup.findMany({
         take: limit + 1,
         skip: skip,
         cursor: cursor ? { id: cursor } : undefined,
@@ -150,7 +164,11 @@ export const postRouter = createTRPCRouter({
           _count: {
             select: { likes: true, comments: true },
           },
-
+          posts: {
+            where: { isCollected: false },
+            take: 1,
+            select: { id: true, isCollected: true },
+          },
           creator: {
             select: {
               name: true,
@@ -181,12 +199,57 @@ export const postRouter = createTRPCRouter({
       };
     }),
 
+
+  getAConsumedPost: protectedProcedure
+    .input(z.number())
+    .query(async ({ input, ctx }) => {
+      const userId = ctx.session.user.id;
+
+      const post = await ctx.db.postGroup.findUnique({
+        where: { id: input, collections: { some: { userId: userId } } },
+        include: {
+          subscription: {
+            select: {
+              id: true,
+              name: true,
+              price: true,
+              description: true,
+              creatorId: true,
+
+            }
+          },
+          _count: {
+            select: { likes: true, comments: true },
+          },
+
+          creator: {
+            select: {
+              name: true,
+              id: true,
+              pageAsset: { select: { code: true, issuer: true } },
+              profileUrl: true,
+              customPageAssetCodeIssuer: true,
+            },
+          },
+          medias: true,
+        },
+      });
+      if (!post) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Post not found or you don't have access to it",
+        })
+      }
+      return post;
+
+    }),
+
   getAPost: protectedProcedure
     .input(z.number())
     .query(async ({ input, ctx }) => {
       const userId = ctx.session.user.id;
 
-      const post = await ctx.db.post.findUnique({
+      const post = await ctx.db.postGroup.findUnique({
         where: { id: input },
         include: {
           subscription: {
@@ -224,12 +287,12 @@ export const postRouter = createTRPCRouter({
     .input(z.number())
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.session.user.id;
-      const post = await ctx.db.post.findUnique({
+      const post = await ctx.db.postGroup.findUnique({
         where: { id: input },
         select: { creatorId: true },
       });
       if (post?.creatorId === userId) {
-        await ctx.db.post.delete({ where: { id: input } });
+        await ctx.db.postGroup.delete({ where: { id: input } });
       }
     }),
 
@@ -239,13 +302,13 @@ export const postRouter = createTRPCRouter({
 
   likeApost: protectedProcedure
     .input(z.number())
-    .mutation(async ({ input: postId, ctx }) => {
+    .mutation(async ({ input: postGroupId, ctx }) => {
       const userId = ctx.session.user.id;
 
       const oldLike = await ctx.db.like.findUnique({
-        where: { postId_userId: { postId, userId } },
+        where: { postGroupId_userId: { postGroupId, userId } },
         include: {
-          post: {
+          postGroup: {
             select: {
               creatorId: true,
             },
@@ -257,33 +320,33 @@ export const postRouter = createTRPCRouter({
         await ctx.db.like.update({
           data: { status: true },
           where: {
-            postId_userId: { postId: postId, userId },
+            postGroupId_userId: { postGroupId: postGroupId, userId },
           },
         });
         return oldLike;
       } else {
         // first time.
         const like = await ctx.db.like.create({
-          data: { userId, postId },
+          data: { userId, postGroupId },
           include: {
-            post: {
+            postGroup: {
               select: {
                 creatorId: true,
               },
             },
           },
         });
-        if (like.post.creatorId === userId) return like;
+        if (like.postGroup?.creatorId === userId) return like;
         await ctx.db.notificationObject.create({
           data: {
             actorId: ctx.session.user.id,
             entityType: NotificationType.LIKE,
-            entityId: postId,
+            entityId: postGroupId,
             isUser: false,
             Notification: {
               create: [
                 {
-                  notifierId: like.post.creatorId,
+                  notifierId: like.postGroup?.creatorId ?? "",
                   isCreator: true,
                 },
               ],
@@ -315,38 +378,38 @@ export const postRouter = createTRPCRouter({
 
   unLike: protectedProcedure
     .input(z.number())
-    .mutation(async ({ input: postId, ctx }) => {
+    .mutation(async ({ input: postGroupId, ctx }) => {
       await ctx.db.like.update({
         data: { status: false },
         where: {
-          postId_userId: { postId: postId, userId: ctx.session.user.id },
+          postGroupId_userId: { postGroupId: postGroupId, userId: ctx.session.user.id },
         },
       });
     }),
 
   getLikes: publicProcedure
     .input(z.number())
-    .query(async ({ input: postId, ctx }) => {
+    .query(async ({ input: postGroupId, ctx }) => {
       return await ctx.db.like.count({
-        where: { postId },
+        where: { postGroupId },
       });
     }),
 
   isLiked: protectedProcedure
     .input(z.number())
-    .query(async ({ input: postId, ctx }) => {
+    .query(async ({ input: postGroupId, ctx }) => {
       return await ctx.db.like.findFirst({
-        where: { userId: ctx.session.user.id, postId, status: true },
+        where: { userId: ctx.session.user.id, postGroupId, status: true },
       });
     }),
 
   getComments: publicProcedure
-    .input(z.object({ postId: z.number(), limit: z.number().optional() }))
+    .input(z.object({ postGroupId: z.number(), limit: z.number().optional() }))
     .query(async ({ input, ctx }) => {
       if (input.limit) {
         return await ctx.db.comment.findMany({
           where: {
-            postId: input.postId,
+            postGroupId: input.postGroupId,
             parentCommentID: null, // Fetch only top-level comments (not replies)
           },
 
@@ -365,7 +428,7 @@ export const postRouter = createTRPCRouter({
       } else {
         return await ctx.db.comment.findMany({
           where: {
-            postId: input.postId,
+            postGroupId: input.postGroupId,
             parentCommentID: null, // Fetch only top-level comments (not replies)
           },
 
@@ -394,7 +457,7 @@ export const postRouter = createTRPCRouter({
         comment = await ctx.db.comment.create({
           data: {
             content: input.content,
-            postId: input.postId,
+            postGroupId: input.postGroupId,
             userId,
             parentCommentID: input.parentId,
           },
@@ -403,20 +466,20 @@ export const postRouter = createTRPCRouter({
         comment = await ctx.db.comment.create({
           data: {
             content: input.content,
-            postId: input.postId,
+            postGroupId: input.postGroupId,
             userId,
           },
         });
       }
 
-      const post = await ctx.db.post.findUnique({
-        where: { id: input.postId },
+      const post = await ctx.db.postGroup.findUnique({
+        where: { id: input.postGroupId },
         select: { creatorId: true },
       });
 
       const previousCommenters = await ctx.db.comment.findMany({
         where: {
-          postId: input.postId,
+          postGroupId: input.postGroupId,
           userId: { not: userId },
         },
         distinct: ["userId"],
@@ -438,7 +501,7 @@ export const postRouter = createTRPCRouter({
             entityType: input.parentId
               ? NotificationType.REPLY
               : NotificationType.COMMENT,
-            entityId: input.postId,
+            entityId: input.postGroupId,
             isUser: false,
             Notification: {
               create: Array.from(usersToNotify)
@@ -477,7 +540,7 @@ export const postRouter = createTRPCRouter({
     )
     .query(async ({ input, ctx }) => {
       const { limit, skip, cursor, searchInput } = input;
-      const items = await ctx.db.post.findMany({
+      const items = await ctx.db.postGroup.findMany({
         take: limit + 1,
         skip: skip,
         cursor: cursor ? { id: cursor } : undefined,

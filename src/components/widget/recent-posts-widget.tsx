@@ -142,6 +142,7 @@ export default function RecentPostsWidget({ editMode, creatorData, customizedMod
                                         locked={locked}
                                         show={hasAccess}
                                         media={post.medias}
+                                        unCollectedPostId={post.posts[0]?.id}
                                     />
 
                                 )

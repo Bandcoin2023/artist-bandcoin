@@ -173,7 +173,6 @@ export default function UserNewsFeedContent() {
 
                                         return (
                                             <PostCard
-                                                fullHeight={false}
                                                 key={post.id}
                                                 post={post}
                                                 creator={post.creator}
@@ -182,6 +181,8 @@ export default function UserNewsFeedContent() {
                                                 locked={locked}
                                                 show={hasAccess}
                                                 media={post.medias}
+                                                unCollectedPostId={post.posts[0]?.id}
+
                                             />
                                         )
                                     })}

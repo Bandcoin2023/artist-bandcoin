@@ -31,8 +31,7 @@ function loadImageFromUrl(url: string): Promise<LoadedImage> {
                 return url
             }
         }
-
-        const rawUrl = url ?? "https://bandcoin.io/images/logo.png"
+        const rawUrl = url ?? "https://app.beam-us.com/images/logo.png"
         const imageUrl = rawUrl.startsWith("/") || rawUrl.startsWith(window.location.origin)
             ? rawUrl // same-origin, no need to proxy
             : proxyImage(rawUrl);
@@ -120,36 +119,7 @@ function buildFrameGLB(
     });
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-function RangeRow({
-    label,
-    id,
-    min, max, step,
-    value,
-    onChange,
-}: {
-    label: string;
-    id: string;
-    min: number; max: number; step: number;
-    value: number;
-    onChange: (v: number) => void;
-}) {
-    return (
-        <label htmlFor={id} style={styles.label}>
-            <span style={styles.labelText}>{label}</span>
-            <div style={styles.row}>
-                <input
-                    type="range" id={id}
-                    min={min} max={max} step={step}
-                    value={value}
-                    onChange={(e) => onChange(parseFloat(e.target.value))}
-                    style={styles.range}
-                />
-                <span style={styles.valBadge}>{value.toFixed(2)}</span>
-            </div>
-        </label>
-    );
-}
+
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ARPhotoFrame({ imageUrl }: { imageUrl: string }) {
@@ -162,8 +132,6 @@ export default function ARPhotoFrame({ imageUrl }: { imageUrl: string }) {
     const [modelUrl, setModelUrl] = useState<string | null>(null);
     const currentBlobUrl = useRef<string | null>(null);
     const loadedImageRef = useRef<LoadedImage | null>(null);
-
-    // Pre-load the fixed image and auto-generate on mount
 
     useEffect(() => {
         if (!document.getElementById("ar-frame-keyframes")) {
@@ -179,7 +147,7 @@ export default function ARPhotoFrame({ imageUrl }: { imageUrl: string }) {
             document.head.appendChild(script);
         }
     }, []);
-
+    // Pre-load the fixed image and auto-generate on mount
     useEffect(() => {
         setStatusMsg("Loading photo…");
         setAppState("loading");
@@ -200,25 +168,9 @@ export default function ARPhotoFrame({ imageUrl }: { imageUrl: string }) {
                 setAppState("error");
                 setStatusMsg("Failed to load the photo. Please refresh.");
             });
-    }, []);
+    }, [imageUrl]);
 
-    const generate = async () => {
-        if (!loadedImageRef.current) return;
-        setAppState("loading");
-        setStatusMsg("Building 3D frame…");
-        try {
-            const { img, aspectRatio } = loadedImageRef.current;
-            const blob = await buildFrameGLB(img, aspectRatio, { thickness, depth, color });
-            if (currentBlobUrl.current) URL.revokeObjectURL(currentBlobUrl.current);
-            currentBlobUrl.current = URL.createObjectURL(blob);
-            setModelUrl(currentBlobUrl.current);
-            setAppState("ready");
-            setStatusMsg("Frame ready! Tap the AR button to place it in your room.");
-        } catch (err: any) {
-            setAppState("error");
-            setStatusMsg("Error: " + (err?.message ?? "unknown"));
-        }
-    };
+
 
     return (
         <div style={styles.page}>

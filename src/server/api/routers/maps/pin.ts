@@ -75,10 +75,17 @@ export const createPinFormSchema = z.object({
 export const PAGE_ASSET_NUM = -10
 export const NO_ASSET = -99
 export const PLATFORM_ASSET_NUM = -11
+// helper constants copied from API handlers to avoid cross-module imports
+// These values are used when returning location metadata for consumed pins
+// and mirror the ones previously defined in pages/api/game files.
+const AVATER_ICON_URL = "https://app.wadzzo.com/images/icons/avatar-icon.png";
+const WADZZO_ICON_URL = "https://app.beam-us.com/images/logo.png";
+
 export const pinRouter = createTRPCRouter({
   getSecretMessage: protectedProcedure.query(() => {
     return "you can now see this secret message!";
   }),
+
 
   createPinXDR: creatorProcedure.input(z.object({
     token: z.number(),
@@ -348,123 +355,297 @@ export const pinRouter = createTRPCRouter({
       };
     }),
 
-  consumePin: protectedProcedure
+  // fetch locations that the current user has already consumed/collected
+  getConsumedLocations: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
 
-    .input(z.object({ pinId: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      const { pinId } = input;
-      const userId = ctx.session.user.id;
-      const location = await ctx.db.location.findUnique({
-        include: {
-          _count: {
-            select: {
-              consumers: {
-                where: { userId: userId },
-              },
-            },
-          },
-          locationGroup: true,
-        },
-        where: { id: pinId },
-      });
-      if (!location?.locationGroup) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Could not find the location" });
-      }
-
-      if (location.locationGroup.multiPin) {
-        // user have not consumed this location
-        if (
-          location._count.consumers <= 0 &&
-          location.locationGroup.remaining > 0
-        ) {
-          // also check limit of the group
-
-          await ctx.db.locationConsumer.create({
-            data: { locationId: location.id, userId: userId },
-          });
-          await ctx.db.locationGroup.update({
-            where: { id: location.locationGroup.id },
-            data: { remaining: { decrement: 1 } },
-          });
-
-          return { success: true, data: "Location consumed" };
-        } else {
-          return { success: false, data: "You have already consumed this location or no remaining pins" };
-        }
-      } else {
-        const checkMeAsAConsumer = await ctx.db.locationGroup.findFirst({
-          where: {
+    const dbLocations = await ctx.db.location.findMany({
+      include: {
+        locationGroup: {
+          include: {
+            creator: true,
             locations: {
-              some: {
-                consumers: {
-                  some: {
-                    userId: userId,
+              include: {
+                _count: {
+                  select: {
+                    consumers: {
+                      where: { userId },
+                    },
                   },
                 },
               },
             },
-            id: location.locationGroup.id,
           },
-        });
-        const findActionLocation = await ctx.db.actionLocation.findFirst({
-          where: {
-            locationGroupId: location.locationGroup.id,
+        },
+        consumers: {
+          select: {
+            userId: true,
+            viewedAt: true,
           },
-        });
+        },
+      },
+      where: {
+        consumers: {
+          some: {
+            userId,
+            hidden: false,
+          },
+          none: {
+            userId,
+            hidden: true,
+          },
+        },
+      },
+    });
 
-        if (!checkMeAsAConsumer && findActionLocation) {
-          const bountyParticipant = await ctx.db.bountyParticipant.findUnique({
-            where: {
-              bountyId_userId: {
-                userId: userId,
-                bountyId: findActionLocation.bountyId,
+    const locations = dbLocations
+      .map((location) => {
+        if (!location.locationGroup) return null;
+        const totalGroupConsumers = location.locationGroup.locations.reduce(
+          (sum, loc) => sum + loc._count.consumers,
+          0,
+        );
+        const remaining = location.locationGroup.limit - totalGroupConsumers;
+
+        return {
+          id: location.id,
+          lat: location.latitude,
+          lng: location.longitude,
+          title: location.locationGroup.title,
+          description:
+            location.locationGroup.description ?? "No description provided",
+          viewed: location.consumers.some((el) => el.viewedAt != null),
+          auto_collect: location.autoCollect,
+          brand_image_url:
+            location.locationGroup.creator.profileUrl ??
+            AVATER_ICON_URL,
+          brand_id: location.locationGroup.creator.id,
+          modal_url: "https://vong.cong/",
+          collected: true,
+          collection_limit_remaining: remaining,
+          brand_name: location.locationGroup.creator.name,
+          image_url:
+            location.locationGroup.image ??
+            location.locationGroup.creator.profileUrl ??
+            WADZZO_ICON_URL,
+          url:
+            location.locationGroup.link ??
+            "https://app.beam-us.com/images/logo.png",
+        };
+      })
+      .filter((loc): loc is any => loc !== null);
+
+    return locations;
+  }),
+
+  getAllCollectedPosts: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+    const collectedPosts = await ctx.db.postCollection.findMany({
+      where: { userId },
+      include: {
+        postGroup: {
+          include: {
+            creator: {
+              select: {
+                id: true,
+                name: true,
+              }
+            },
+            subscription: {
+              select: {
+                id: true,
+                name: true,
+              }
+            },
+            medias: {
+              select: {
+                id: true,
+                url: true,
+                type: true,
+              }
+            },
+          }
+        },
+      },
+    });
+    return collectedPosts;
+  }),
+  consumePin: protectedProcedure
+
+    .input(z.object({
+      pinId: z.string().optional(),
+      postId: z.string().optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      if (input.pinId) {
+        const { pinId } = input;
+        const userId = ctx.session.user.id;
+        const location = await ctx.db.location.findUnique({
+          include: {
+            _count: {
+              select: {
+                consumers: {
+                  where: { userId: userId },
+                },
               },
+            },
+            locationGroup: true,
+          },
+          where: { id: pinId },
+        });
+        if (!location?.locationGroup) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Could not find the location" });
+        }
+
+        if (location.locationGroup.multiPin) {
+          // user have not consumed this location
+          if (
+            location._count.consumers <= 0 &&
+            location.locationGroup.remaining > 0
+          ) {
+            // also check limit of the group
+
+            await ctx.db.locationConsumer.create({
+              data: { locationId: location.id, userId: userId },
+            });
+            await ctx.db.locationGroup.update({
+              where: { id: location.locationGroup.id },
+              data: { remaining: { decrement: 1 } },
+            });
+
+            return { success: true, data: "Location consumed" };
+          } else {
+            return { success: false, data: "You have already consumed this location or no remaining pins" };
+          }
+        } else {
+          const checkMeAsAConsumer = await ctx.db.locationGroup.findFirst({
+            where: {
+              locations: {
+                some: {
+                  consumers: {
+                    some: {
+                      userId: userId,
+                    },
+                  },
+                },
+              },
+              id: location.locationGroup.id,
+            },
+          });
+          const findActionLocation = await ctx.db.actionLocation.findFirst({
+            where: {
+              locationGroupId: location.locationGroup.id,
             },
           });
 
-          if (bountyParticipant) {
-            await ctx.db.bountyParticipant.update({
+          if (!checkMeAsAConsumer && findActionLocation) {
+            const bountyParticipant = await ctx.db.bountyParticipant.findUnique({
               where: {
                 bountyId_userId: {
                   userId: userId,
                   bountyId: findActionLocation.bountyId,
                 },
               },
+            });
+
+            if (bountyParticipant) {
+              await ctx.db.bountyParticipant.update({
+                where: {
+                  bountyId_userId: {
+                    userId: userId,
+                    bountyId: findActionLocation.bountyId,
+                  },
+                },
+                data: {
+                  currentStep: {
+                    increment: 1,
+                  },
+                },
+              });
+            }
+
+            await ctx.db.locationConsumer.create({
+              data: { locationId: location.id, userId: userId },
+            });
+
+            await ctx.db.locationGroup.update({
+              where: { id: location.locationGroup.id },
+              data: { remaining: { decrement: 1 } },
+            });
+
+            return { success: true, data: "Location consumed" };
+          }
+          else if (!checkMeAsAConsumer && !findActionLocation) {
+            await ctx.db.locationConsumer.create({
+              data: { locationId: location.id, userId: userId },
+            });
+
+            await ctx.db.locationGroup.update({
+              where: { id: location.locationGroup.id },
+              data: { remaining: { decrement: 1 } },
+            });
+
+            return { success: true, data: "Location consumed" };
+
+          }
+          else {
+            return { success: false, data: "You have already consumed this location" };
+          }
+        }
+      }
+      else {
+        const userId = ctx.session.user.id;
+        if (!input.postId) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Post ID is required to consume a post" });
+        }
+        return await ctx.db.$transaction(async (tx) => {
+
+          // 1. Get the post and check if already collected
+          const post = await tx.post.findUnique({
+            where: { id: Number(input.postId) },
+          });
+          if (!post) throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Post not found",
+          });
+          if (post.isCollected) throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Post already collected",
+          });
+
+          // 2. Mark post as collected + create collection record in parallel
+          await Promise.all([
+            tx.post.update({
+              where: { id: Number(input.postId) },
+              data: { isCollected: true },
+            }),
+            tx.postCollection.create({
               data: {
-                currentStep: {
-                  increment: 1,
+                postId: Number(input.postId),
+                userId,
+                postGroupId: post.postGroupId,
+              },
+              include: {
+                post: true,
+                postGroup: {
+                  include: {
+                    medias: true,
+                    creator: {
+                      select: {
+                        name: true,
+                        id: true,
+                        profileUrl: true,
+                      },
+                    },
+                  },
                 },
               },
-            });
-          }
+            }),
+          ]);
 
-          await ctx.db.locationConsumer.create({
-            data: { locationId: location.id, userId: userId },
-          });
+          return ({ success: true, });
+        });
 
-          await ctx.db.locationGroup.update({
-            where: { id: location.locationGroup.id },
-            data: { remaining: { decrement: 1 } },
-          });
-
-          return { success: true, data: "Location consumed" };
-        }
-        else if (!checkMeAsAConsumer && !findActionLocation) {
-          await ctx.db.locationConsumer.create({
-            data: { locationId: location.id, userId: userId },
-          });
-
-          await ctx.db.locationGroup.update({
-            where: { id: location.locationGroup.id },
-            data: { remaining: { decrement: 1 } },
-          });
-
-          return { success: true, data: "Location consumed" };
-
-        }
-        else {
-          return { success: false, data: "You have already consumed this location" };
-        }
       }
     }),
 

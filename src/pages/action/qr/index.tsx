@@ -34,7 +34,7 @@ export default function QRScannerPage() {
                 setStatusMessage("Pin consumed successfully!")
                 toast.success("Pin consumed!")
                 return setTimeout(() => {
-                    router.replace(`/action/collections/${variables.pinId}`)
+                    router.replace(`/action/collections/${variables.postId ? `post/${variables.postId}` : `${variables.pinId}`}`)
                 }, 2500)
             } else {
                 setScanStatus("error")
@@ -115,9 +115,20 @@ export default function QRScannerPage() {
                                 scanStatusRef.current = "processing"
                                 setScanStatus("processing")
                                 setStatusMessage("Processing QR code…")
-                                consumePinRef.current.mutate({ pinId })
+                                consumePinRef.current.mutate({ pinId: pinId })
                             }
-                        } else {
+                        }
+                        else if (url.pathname === "/action/qr" && url.searchParams.has("postId")) {
+                            const postId = url.searchParams.get("postId")
+                            if (postId) {
+                                scanStatusRef.current = "processing"
+                                setScanStatus("processing")
+                                setStatusMessage("Processing QR code…")
+                                consumePinRef.current.mutate({ postId: postId })
+                            }
+                        }
+
+                        else {
                             toast("QR code not recognised — wrong format.")
                         }
                     } catch {

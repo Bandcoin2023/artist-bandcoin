@@ -46,7 +46,7 @@ export function CreditHistoryView() {
     <div className="space-y-4">
       {/* Filters and Actions */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
+        <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as "all" | "purchase" | "usage" | "bonus" | "refund")}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="Filter by type" />
           </SelectTrigger>

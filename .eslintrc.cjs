@@ -20,6 +20,7 @@ const config = {
     "src/components/fan/nav/profile-menu.tsx",
     "src/pages/api/file.ts",
     "src/lib/play/locar/*.js",
+    "src/lib/augmented-reality/locationbased-ar/*.js",
   ],
   rules: {
     // These opinionated rules are enabled in stylistic-type-checked above.

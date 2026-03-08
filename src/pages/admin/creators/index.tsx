@@ -681,7 +681,7 @@ function ViewCreatorButton({ creator }: { creator: { id: string; name: string; a
                                     className="flex gap-12 mb-8"
                                 >
                                     <div>
-                                        <div className="text-xl font-semibold text-neutral-900">{creatorDetails.data._count?.posts || 0}</div>
+                                        <div className="text-xl font-semibold text-neutral-900">{creatorDetails.data._count?.postGroups || 0}</div>
                                         <div className="text-xs text-neutral-500 font-medium uppercase tracking-wide mt-1">Posts</div>
                                     </div>
                                     <div>

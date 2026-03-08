@@ -19,7 +19,7 @@ import { PLATFORM_ASSET } from "~/lib/stellar/constant"
 type Package = {
     id: string
     name: string
-    description: string
+    description: string | null
     credits: number
     bonus: number
     priceBand: number
@@ -241,7 +241,7 @@ function PackageForm({
 }) {
     const [formData, setFormData] = useState<{
         name: string
-        description: string
+        description: string | null
         credits: string
         bonus: string
         priceBand: string
