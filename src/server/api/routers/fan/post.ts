@@ -15,7 +15,7 @@ export const postRouter = createTRPCRouter({
   create: protectedProcedure
     .input(PostSchema)
     .mutation(async ({ ctx, input }) => {
-      const limit = 10;
+      const limit = 100;
       const post = await ctx.db.postGroup.create({
         data: {
           heading: input.heading,
@@ -200,13 +200,25 @@ export const postRouter = createTRPCRouter({
     }),
 
 
+
   getAConsumedPost: protectedProcedure
     .input(z.number())
     .query(async ({ input, ctx }) => {
       const userId = ctx.session.user.id;
+      // First find the post slot to get its postGroupId
+      const post = await ctx.db.post.findUnique({
+        where: { id: input },
+        select: { postGroupId: true },
+      });
 
-      const post = await ctx.db.postGroup.findUnique({
-        where: { id: input, collections: { some: { userId: userId } } },
+      if (!post) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Post not found",
+        });
+      }
+      const postGroup = await ctx.db.postGroup.findUnique({
+        where: { id: post.postGroupId, collections: { some: { userId: userId } } },
         include: {
           subscription: {
             select: {
@@ -234,13 +246,13 @@ export const postRouter = createTRPCRouter({
           medias: true,
         },
       });
-      if (!post) {
+      if (!postGroup) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Post not found or you don't have access to it",
         })
       }
-      return post;
+      return postGroup;
 
     }),
 

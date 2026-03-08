@@ -79,7 +79,7 @@ export const PLATFORM_ASSET_NUM = -11
 // These values are used when returning location metadata for consumed pins
 // and mirror the ones previously defined in pages/api/game files.
 const AVATER_ICON_URL = "https://app.wadzzo.com/images/icons/avatar-icon.png";
-const WADZZO_ICON_URL = "https://bandcoin.io/images/logo.png";
+const WADZZO_ICON_URL = "https://app.beam-us.com/images/logo.png";
 
 export const pinRouter = createTRPCRouter({
   getSecretMessage: protectedProcedure.query(() => {
@@ -430,7 +430,7 @@ export const pinRouter = createTRPCRouter({
             WADZZO_ICON_URL,
           url:
             location.locationGroup.link ??
-            "https://bandcoin.io/images/logo.png",
+            "https://app.beam-us.com/images/logo.png",
         };
       })
       .filter((loc): loc is any => loc !== null);
@@ -611,6 +611,19 @@ export const pinRouter = createTRPCRouter({
           if (post.isCollected) throw new TRPCError({
             code: "BAD_REQUEST",
             message: "Post already collected",
+          });
+
+          const alreadyCollected = await tx.postCollection.findUnique({
+            where: {
+              postGroupId_userId: {
+                postGroupId: post.postGroupId,
+                userId,
+              },
+            },
+          });
+          if (alreadyCollected) throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "You already collected a post from this group",
           });
 
           // 2. Mark post as collected + create collection record in parallel
