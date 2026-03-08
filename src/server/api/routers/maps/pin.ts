@@ -79,7 +79,7 @@ export const PLATFORM_ASSET_NUM = -11
 // These values are used when returning location metadata for consumed pins
 // and mirror the ones previously defined in pages/api/game files.
 const AVATER_ICON_URL = "https://app.wadzzo.com/images/icons/avatar-icon.png";
-const WADZZO_ICON_URL = "https://app.beam-us.com/images/logo.png";
+const WADZZO_ICON_URL = "https://bandcoin.io/images/logo.png";
 
 export const pinRouter = createTRPCRouter({
   getSecretMessage: protectedProcedure.query(() => {
@@ -430,7 +430,7 @@ export const pinRouter = createTRPCRouter({
             WADZZO_ICON_URL,
           url:
             location.locationGroup.link ??
-            "https://app.beam-us.com/images/logo.png",
+            "https://bandcoin.io/images/logo.png",
         };
       })
       .filter((loc): loc is any => loc !== null);

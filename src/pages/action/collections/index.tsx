@@ -59,7 +59,7 @@ export default function CollectionsPage() {
         title: item.postGroup.heading,
         subtitle: item.postGroup.heading,
         description: item.postGroup.description ?? "",
-        image: item.postGroup.medias.find((m) => m.type === "IMAGE")?.url ?? "https://app.beam-us.com/images/logo.png",
+        image: item.postGroup.medias.find((m) => m.type === "IMAGE")?.url ?? "https://bandcoin.io/images/logo.png",
         creatorName: item.postGroup.creator.name,
         collectedAt: new Date(item.collectedAt),
         subscription: item.postGroup.subscription ?? null,

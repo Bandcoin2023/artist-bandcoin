@@ -31,7 +31,7 @@ function loadImageFromUrl(url: string): Promise<LoadedImage> {
                 return url
             }
         }
-        const rawUrl = url ?? "https://app.beam-us.com/images/logo.png"
+        const rawUrl = url ?? "https://bandcoin.io/images/logo.png"
         const imageUrl = rawUrl.startsWith("/") || rawUrl.startsWith(window.location.origin)
             ? rawUrl // same-origin, no need to proxy
             : proxyImage(rawUrl);

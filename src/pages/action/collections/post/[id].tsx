@@ -181,7 +181,7 @@ const SingleCollectionPostItem = () => {
                     className="relative overflow-hidden rounded-3xl aspect-[4/3]"
                     initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
                 >
-                    <Image src={imageMedia?.url ?? "https://app.beam-us.com/images/logo.png"} alt={postData.heading} fill className="object-cover" />
+                    <Image src={imageMedia?.url ?? "https://bandcoin.io/images/logo.png"} alt={postData.heading} fill className="object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
                     <div className="absolute bottom-5 left-5">
                         <div className="flex items-center gap-3 bg-background/80 backdrop-blur-xl border border-border rounded-2xl px-4 py-2.5">
@@ -325,7 +325,7 @@ const SingleCollectionPostItem = () => {
                 <ARDialog open={arAudioOpen} onClose={() => setArAudioOpen(false)}>
                     <ARAudioFrame
                         audioUrl={audioMedia.url}
-                        brandLogoUrl={"https://app.beam-us.com/images/logo.png"}
+                        brandLogoUrl={"https://bandcoin.io/images/logo.png"}
                         brandName={postData.creator.name ?? "Artist"}
                         trackTitle={postData.heading}
                         accentColor="#a855f7"

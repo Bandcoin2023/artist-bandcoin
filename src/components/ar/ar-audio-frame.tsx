@@ -3,24 +3,24 @@
 import { useEffect, useRef } from "react";
 
 interface ARAudioFrameProps {
-    audioUrl: string;
-    brandLogoUrl?: string;
-    brandName?: string;
-    trackTitle?: string;
-    accentColor?: string;
+  audioUrl: string;
+  brandLogoUrl?: string;
+  brandName?: string;
+  trackTitle?: string;
+  accentColor?: string;
 }
 
 function AR_AUDIO_HTML(
-    audioUrl: string,
-    brandLogoUrl: string,
-    brandName: string,
-    trackTitle: string,
-    accent: string,
+  audioUrl: string,
+  brandLogoUrl: string,
+  brandName: string,
+  trackTitle: string,
+  accent: string,
 ): string {
-    const accentDim = accent + "99";
-    const initial = brandName.charAt(0).toUpperCase();
+  const accentDim = accent + "99";
+  const initial = brandName.charAt(0).toUpperCase();
 
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8"/>
@@ -415,27 +415,27 @@ function AR_AUDIO_HTML(
 }
 
 export default function ARAudioFrame({
-    audioUrl,
-    brandLogoUrl = "https://app.beam-us.com/images/logo.png",
-    brandName = "Artist",
-    trackTitle = "Unknown Track",
-    accentColor = "#a855f7",
+  audioUrl,
+  brandLogoUrl = "https://bandcoin.io/images/logo.png",
+  brandName = "Artist",
+  trackTitle = "Unknown Track",
+  accentColor = "#a855f7",
 }: ARAudioFrameProps) {
-    const iframeRef = useRef<HTMLIFrameElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-    useEffect(() => {
-        const html = AR_AUDIO_HTML(audioUrl, brandLogoUrl, brandName, trackTitle, accentColor);
-        const blob = new Blob([html], { type: "text/html" });
-        const url = URL.createObjectURL(blob);
-        if (iframeRef.current) iframeRef.current.src = url;
-        return () => URL.revokeObjectURL(url);
-    }, [audioUrl, brandLogoUrl, brandName, trackTitle, accentColor]);
+  useEffect(() => {
+    const html = AR_AUDIO_HTML(audioUrl, brandLogoUrl, brandName, trackTitle, accentColor);
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    if (iframeRef.current) iframeRef.current.src = url;
+    return () => URL.revokeObjectURL(url);
+  }, [audioUrl, brandLogoUrl, brandName, trackTitle, accentColor]);
 
-    return (
-        <iframe
-            ref={iframeRef}
-            allow="camera; gyroscope; accelerometer; microphone"
-            style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-        />
-    );
+  return (
+    <iframe
+      ref={iframeRef}
+      allow="camera; gyroscope; accelerometer; microphone"
+      style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+    />
+  );
 }
