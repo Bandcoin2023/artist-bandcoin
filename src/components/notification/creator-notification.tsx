@@ -157,7 +157,7 @@ const Notifications = () => {
             case NotificationType.REPLY:
                 return `/fans/posts/${notificationObject.entityId}`
             case NotificationType.FOLLOW:
-                return `/fans/creator/${notificationObject.actor.id}`
+                return `/fans/artist/${notificationObject.actor.id}`
             case NotificationType.BOUNTY_PARTICIPANT:
             case NotificationType.BOUNTY_SUBMISSION:
             case NotificationType.BOUNTY_COMMENT:

@@ -33,7 +33,7 @@ export default function ReplyCommentView({
                     <CustomAvatar className="h-10 w-10" url={comment.user.image} />
                 </div>
                 <div className="flex flex-col items-start">
-                    <Link href={`/fans/creator/${comment.userId}`} className="font-bold">
+                    <Link href={`/artist/${comment.userId}`} className="font-bold">
                         {comment.user.name}
                     </Link>
                     <CommentFormatter content={comment.content} maxLength={150} />

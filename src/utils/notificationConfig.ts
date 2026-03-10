@@ -12,17 +12,17 @@ export function getNotificationMessage(
     case NotificationType.LIKE:
       return {
         message: `${actoId} liked your post`,
-        url: `/fans/posts/${notificationObject.entityId}`,
+        url: `/artist/post/${notificationObject.entityId}`,
       };
     case NotificationType.COMMENT:
       return {
         message: `${actoId} commented on your post ${notificationObject.entityId}`,
-        url: `/fans/posts/${notificationObject.entityId}`,
+        url: `/artist/post/${notificationObject.entityId}`,
       };
     case NotificationType.FOLLOW:
       return {
         message: `${actoId} follow to you`,
-        url: `/fans/creator/${notificationObject.entityId}`,
+        url: `/artist/${notificationObject.entityId}`,
       };
     default:
       return {

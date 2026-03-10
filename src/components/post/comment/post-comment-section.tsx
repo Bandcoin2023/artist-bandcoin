@@ -146,7 +146,7 @@ function CommentView({ comment, childrenComments }: CommentViewProps) {
                 </div>
                 <div className="flex w-full flex-col items-start">
                     <div className="flex items-center gap-2">
-                        <Link href={`/fans/creator/${comment.userId}`} className="font-bold hover:underline">
+                        <Link href={`/artist/${comment.userId}`} className="font-bold hover:underline">
                             {comment.user.name}
                         </Link>
                         <span className="text-xs text-gray-400">
