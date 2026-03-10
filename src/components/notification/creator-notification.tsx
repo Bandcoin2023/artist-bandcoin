@@ -375,8 +375,7 @@ const Notifications = () => {
                                                                 className="h-10 w-10 rounded-full object-cover border border-gray-200"
                                                                 src={
                                                                     notification.notificationObject.actor.image ??
-                                                                    "/images/icons/avatar-icon.png" ??
-                                                                    "/placeholder.svg"
+                                                                    "/images/icons/avatar-icon.png"
                                                                 }
                                                                 alt={notification.notificationObject.actor.name ?? "User"}
                                                             />
