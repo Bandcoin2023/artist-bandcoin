@@ -249,6 +249,7 @@ model Creator {
     temporalFollows     TemporalFollow[]
     creatorAssetIssuer  CreatorAssetIssuer?
     postGroups          PostGroup[]
+    hotspots            Hotspot[]
 
     @@index([bio, name])
 }
@@ -673,6 +674,31 @@ model Admin {
 
 // ------------------------Mapping SCHEMA-------------------------
 
+model Hotspot {
+    id        String  @id @default(cuid())
+    creatorId String
+    creator   Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+    dropEveryDays    Int
+    pinDurationDays  Int
+    hotspotStartDate DateTime
+    hotspotEndDate   DateTime
+
+    autoCollect Boolean @default(false)
+    multiPin    Boolean @default(false)
+
+    shape   String
+    geoJson Json
+
+    qstashScheduleId String?
+    isActive         Boolean @default(true)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    locationGroups LocationGroup[]
+}
+
 model LocationGroup {
     id String @id @default(cuid())
 
@@ -714,6 +740,8 @@ model LocationGroup {
 
     locations      Location[]
     ActionLocation ActionLocation[]
+    hotspot        Hotspot?   @relation(fields: [hotspotId], references: [id])
+    hotspotId      String?
 }
 
 model Location {

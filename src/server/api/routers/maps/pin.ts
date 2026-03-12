@@ -1,8 +1,11 @@
-import { ItemPrivacy } from "@prisma/client";
+import { ItemPrivacy, Prisma, PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createAdminPinFormSchema } from "~/components/modal/admin-create-pin-modal";
+import { createHotspotFormSchema } from "~/components/modal/create-hotspot-modal";
 import { updateMapFormSchema } from "~/components/modal/pin-detail-modal";
+import { BASE_URL } from "~/lib/common";
+import { qstash } from "~/lib/qstash";
 import { xdr_sendPlatformToStorage } from "~/lib/stellar/map/claim";
 import { SignUser, WithSing } from "~/lib/stellar/utils";
 
@@ -16,7 +19,11 @@ import {
 import { PinLocation } from "~/types/pin";
 import { BADWORDS } from "~/utils/banned-word";
 import { fetchUsersByPublicKeys } from "~/utils/get-pubkey";
-import { randomLocation as getLocationInLatLngRad } from "~/utils/map";
+import {
+  dropIntervalToCron,
+  generateRandomLocations,
+  randomLocation as getLocationInLatLngRad,
+} from "~/utils/map";
 export type LocationWithConsumers = {
   title: string;
   description?: string;
@@ -85,6 +92,208 @@ export const pinRouter = createTRPCRouter({
   getSecretMessage: protectedProcedure.query(() => {
     return "you can now see this secret message!";
   }),
+
+  createHotspot: creatorProcedure
+    .input(createHotspotFormSchema)
+    .mutation(async ({ ctx, input }) => {
+      const {
+        token,
+        tier,
+        pinCollectionLimit,
+        pinNumber,
+        autoCollect,
+        dropEveryDays,
+        pinDurationDays,
+        hotspotStartDate,
+        hotspotEndDate,
+        hotspotShape,
+        geoJson,
+      } = input;
+      if (!geoJson) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Hotspot geometry is required",
+        });
+      }
+
+      const creatorId = ctx.session.user.id;
+
+      let tierId: number | undefined;
+      let privacy: ItemPrivacy = ItemPrivacy.PUBLIC;
+      if (!tier || tier === "public") {
+        privacy = ItemPrivacy.PUBLIC;
+      } else if (tier === "follower") {
+        privacy = ItemPrivacy.FOLLOWER;
+      } else if (tier === "private") {
+        privacy = ItemPrivacy.PRIVATE;
+      } else {
+        tierId = Number(tier);
+        privacy = ItemPrivacy.TIER;
+      }
+
+      let assetId: number | undefined = token;
+      let pageAsset = false;
+      if (token === PAGE_ASSET_NUM) {
+        assetId = undefined;
+        pageAsset = true;
+      }
+
+      const now = new Date();
+      const firstDropEnd = new Date(now.getTime() + pinDurationDays * 86_400_000);
+
+      const hotspot = await ctx.db.hotspot.create({
+        data: {
+          creatorId,
+          autoCollect,
+          multiPin: input.multiPin,
+          dropEveryDays,
+          pinDurationDays,
+          hotspotStartDate,
+          hotspotEndDate,
+          shape: hotspotShape,
+          geoJson: geoJson as unknown as Prisma.InputJsonValue,
+          isActive: true,
+          locationGroups: {
+            create: {
+              creatorId,
+              title: input.title,
+              description: input.description,
+              image: input.image,
+              link: input.url,
+              type: input.type,
+              privacy,
+              multiPin: input.multiPin,
+              assetId,
+              pageAsset,
+              limit: pinCollectionLimit,
+              remaining: pinCollectionLimit,
+              subscriptionId: tierId,
+              startDate: now,
+              endDate: firstDropEnd,
+              approved: true,
+              locations: {
+                createMany: {
+                  data: generateRandomLocations(hotspotShape, geoJson, pinNumber).map((loc) => ({
+                    autoCollect,
+                    latitude: loc.latitude,
+                    longitude: loc.longitude,
+                  })),
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const daysRemaining = (hotspotEndDate.getTime() - now.getTime()) / 86_400_000;
+      if (daysRemaining > dropEveryDays) {
+        const schedule = await qstash.schedules.create({
+          destination: `${BASE_URL}/api/hotspot/drop`,
+          cron: dropIntervalToCron(dropEveryDays),
+          body: JSON.stringify({ hotspotId: hotspot.id }),
+          headers: { "Content-Type": "application/json" },
+        });
+        await ctx.db.hotspot.update({
+          where: { id: hotspot.id },
+          data: { qstashScheduleId: schedule.scheduleId },
+        });
+      }
+
+      return { hotspotId: hotspot.id };
+    }),
+
+  myHotspots: creatorProcedure.query(async ({ ctx }) => {
+    return ctx.db.hotspot.findMany({
+      where: { creatorId: ctx.session.user.id },
+      orderBy: { createdAt: "desc" },
+    });
+  }),
+
+  getHotspot: creatorProcedure
+    .input(z.object({ hotspotId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const hotspot = await ctx.db.hotspot.findFirst({
+        where: { id: input.hotspotId, creatorId: ctx.session.user.id },
+        include: {
+          locationGroups: {
+            orderBy: { startDate: "desc" },
+            include: {
+              locations: { include: { consumers: true } },
+            },
+          },
+        },
+      });
+
+      if (!hotspot) return null;
+
+      let qstashInfo: Awaited<ReturnType<typeof qstash.schedules.get>> | null = null;
+      if (hotspot.qstashScheduleId) {
+        qstashInfo = await qstash.schedules.get(hotspot.qstashScheduleId).catch(() => null);
+      }
+
+      return { ...hotspot, qstash: qstashInfo ?? undefined };
+    }),
+
+  pauseHotspotSchedule: creatorProcedure
+    .input(z.object({ hotspotId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const h = await ctx.db.hotspot.findFirst({
+        where: { id: input.hotspotId, creatorId: ctx.session.user.id },
+      });
+      if (!h) throw new TRPCError({ code: "NOT_FOUND" });
+
+      if (h.qstashScheduleId) {
+        await qstash.schedules.pause({ schedule: h.qstashScheduleId }).catch(() => null);
+      }
+      await ctx.db.hotspot.update({
+        where: { id: input.hotspotId },
+        data: { isActive: false },
+      });
+      return { ok: true };
+    }),
+
+  resumeHotspotSchedule: creatorProcedure
+    .input(z.object({ hotspotId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const h = await ctx.db.hotspot.findFirst({
+        where: { id: input.hotspotId, creatorId: ctx.session.user.id },
+      });
+      if (!h) throw new TRPCError({ code: "NOT_FOUND" });
+
+      if (h.qstashScheduleId) {
+        await qstash.schedules.resume({ schedule: h.qstashScheduleId }).catch(() => null);
+      }
+      await ctx.db.hotspot.update({
+        where: { id: input.hotspotId },
+        data: { isActive: true },
+      });
+      return { ok: true };
+    }),
+
+  deleteHotspotCascade: creatorProcedure
+    .input(z.object({ hotspotId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const h = await ctx.db.hotspot.findFirst({
+        where: { id: input.hotspotId, creatorId: ctx.session.user.id },
+      });
+      if (!h) throw new TRPCError({ code: "NOT_FOUND" });
+
+      if (h.qstashScheduleId) {
+        await qstash.schedules.pause({ schedule: h.qstashScheduleId }).catch(() => null);
+        await qstash.schedules.delete(h.qstashScheduleId).catch(() => null);
+      }
+
+      await ctx.db.locationGroup.updateMany({
+        where: { hotspotId: input.hotspotId },
+        data: { hidden: true },
+      });
+      await ctx.db.hotspot.update({
+        where: { id: input.hotspotId },
+        data: { isActive: false },
+      });
+
+      return { ok: true };
+    }),
 
 
   createPinXDR: creatorProcedure.input(z.object({
@@ -1564,3 +1773,78 @@ export const pinRouter = createTRPCRouter({
       };
     }),
 });
+
+export async function dropPinsForHotspot(db: PrismaClient, hotspotId: string) {
+  const hotspot = await db.hotspot.findUnique({
+    where: { id: hotspotId },
+    include: {
+      locationGroups: {
+        select: {
+          limit: true,
+        },
+      },
+    },
+  });
+  if (!hotspot || !hotspot.isActive) return { skipped: true };
+
+  const now = new Date();
+
+  if (now > new Date(hotspot.hotspotEndDate)) {
+    await db.hotspot.update({ where: { id: hotspotId }, data: { isActive: false } });
+    if (hotspot.qstashScheduleId) {
+      await qstash.schedules
+        .pause({
+          schedule: hotspot.qstashScheduleId,
+        })
+        .catch(() => null);
+
+      await qstash.schedules.delete(hotspot.qstashScheduleId).catch(() => null);
+    }
+    return { expired: true };
+  }
+
+  const lastGroup = await db.locationGroup.findFirst({
+    where: { hotspotId },
+    orderBy: { startDate: "desc" },
+  });
+  if (!lastGroup) return { skipped: true, reason: "no locationGroup found" };
+
+  const pinEndDate = new Date(now.getTime() + hotspot.pinDurationDays * 86_400_000);
+
+  const locations = generateRandomLocations(
+    hotspot.shape as "circle" | "rectangle" | "polygon",
+    hotspot.geoJson as GeoJSON.Feature | null,
+    lastGroup.limit ?? 0,
+  ).map((loc) => ({
+    latitude: loc.latitude,
+    longitude: loc.longitude,
+    autoCollect: hotspot.autoCollect,
+  }));
+
+  await db.locationGroup.create({
+    data: {
+      hotspotId: hotspot.id,
+      creatorId: lastGroup.creatorId,
+      title: lastGroup.title,
+      description: lastGroup.description,
+      image: lastGroup.image,
+      link: lastGroup.link,
+      type: lastGroup.type,
+      approved: true,
+      privacy: lastGroup.privacy,
+      multiPin: lastGroup.multiPin,
+      assetId: lastGroup.assetId,
+      pageAsset: lastGroup.pageAsset,
+      limit: lastGroup.limit,
+      remaining: lastGroup.limit,
+      subscriptionId: lastGroup.subscriptionId,
+      startDate: now,
+      endDate: pinEndDate,
+      locations: {
+        createMany: { data: locations },
+      },
+    },
+  });
+
+  return { droppedAt: now.toISOString(), count: locations.length };
+}

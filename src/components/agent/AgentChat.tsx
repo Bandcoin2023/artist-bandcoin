@@ -106,7 +106,7 @@ export default function AgentChat() {
                         setIsMinimized(false)
                         setIsOpen(true)
                     }}
-                    className="fixed bottom-12 left-1/2 -translate-x-1/2 translate-y-1/2 z-40 px-6 py-3 rounded-full bg-primary text-primary-foreground font-semibold shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 active:scale-95"
+                    className="fixed bottom-28 left-1/2 z-40 -translate-x-1/2 rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 md:bottom-32"
                 >
                     Bandcoin Assistant
                 </button>
@@ -114,7 +114,7 @@ export default function AgentChat() {
 
             {/* Neon Glowing Input Box - Hidden when minimized */}
             {!isMinimized && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-2xl px-4">
+                <div className="fixed bottom-24 left-1/2 z-40 w-full max-w-2xl -translate-x-1/2 px-4 md:bottom-28">
                     <style>{`
                         @keyframes neon-glow {
                             0%, 100% {
@@ -283,7 +283,7 @@ export default function AgentChat() {
                     /> */}
 
                     {/* Chat Drawer - Adjusted bottom position to prevent overlap with input box */}
-                    <div className="fixed inset-x-0 bottom-24 z-40 mx-auto flex max-w-2xl flex-col bg-background rounded-2xl border border-border overflow-hidden animate-in slide-in-from-bottom-5 duration-300 shadow-2xl h-[80vh] md:h-[70vh] sm:bottom-24">
+                    <div className="fixed inset-x-0 bottom-40 z-40 mx-auto flex h-[80vh] max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl animate-in slide-in-from-bottom-5 duration-300 md:bottom-44 md:h-[70vh]">
                         {/* Header */}
                         <div className="flex items-center justify-between bg-primary px-6 py-3 text-primary-foreground sm:rounded-t-2xl">
                             <div className="flex items-center gap-3">

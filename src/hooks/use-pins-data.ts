@@ -4,9 +4,9 @@ import { useEffect } from "react"
 import { useNearbyPinsStore } from "~/components/store/map-stores"
 import { api } from "~/utils/api"
 
-export function usePinsData(showExpired: boolean) {
+export function usePinsData(showExpired: boolean, enabled = true) {
     const { setAllPins } = useNearbyPinsStore()
-    const pinsQuery = api.maps.pin.getMyPins.useQuery({ showExpired })
+    const pinsQuery = api.maps.pin.getMyPins.useQuery({ showExpired }, { enabled })
 
     useEffect(() => {
         if (pinsQuery.data) {

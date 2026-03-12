@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { twMerge } from "tailwind-merge";
 
 import { ArrowRight, Bell, Coins, Menu, Plus, Settings, ShoppingBag, ShoppingCart, Sparkles, Zap } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Lottie from "lottie-react"
 
 import Link from "next/link";
@@ -31,10 +31,11 @@ import dynamic from "next/dynamic";
 
 function Header() {
     const { isSheetOpen, setIsSheetOpen } = useSidebar();
+    const session = useSession();
 
     return (
-        <header className="sticky w-full top-0 z-50 h-22  bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="relative h-22 px-2 py-4 ">
+        <header className="sticky top-0 z-50 h-16 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="relative h-full px-2 py-2">
                 <div
                     className="absolute inset-0 bg-cover bg-center"
                     style={{
@@ -44,13 +45,13 @@ function Header() {
                     <div className="absolute inset-0 bg-gradient-to-b from-accent/30 via-accent/15  to-accent/10" />
                 </div>
                 {/* <ChristmasWindChimeAnimation /> */}
-                <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                <div className="relative z-10 flex h-full items-center justify-between">
+                    <div className="flex items-center gap-2 md:gap-3">
                         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                             <SheetTrigger asChild>
                                 <Button
                                     variant="link"
-                                    className="md:hidden p-2"
+                                    className="p-1.5 md:hidden"
                                 >
                                     <Menu color="white" />
                                 </Button>
@@ -126,22 +127,33 @@ function Header() {
                             </SheetContent>
                         </Sheet>
                         <Link href="/" className="flex items-center gap-1">
-                            <div className="relative ml-2 hidden h-14 w-14 md:block">
+                            <div className="relative ml-1 hidden h-10 w-10 md:block">
                                 <Image
                                     fill
                                     alt="logo"
                                     src="/images/logo.png"
-                                    sizes="56px"
+                                    sizes="40px"
                                 />
                             </div>
-                            <h1 className="hidden md:block relative text-xl font-bold capitalize text-white md:text-4xl">
+                            <h1 className="relative hidden text-lg font-bold capitalize text-white md:block md:text-2xl">
                                 {PLATFORM_ASSET.code.toLocaleUpperCase()}
                                 {/* <ChristmasSleighAnimation /> */}
                                 <p className="absolute right-0 top-0 -mr-4 -mt-1 text-xs">TM</p>
                             </h1>
                         </Link>
                     </div>
-                    <HeaderButtons />
+                    <div className="flex items-center gap-2">
+                        <HeaderButtons />
+                        {session.status === "authenticated" ? (
+                            <Button
+                                onClick={() => void signOut({ callbackUrl: "/home" })}
+                                variant="outline"
+                                className="h-9 border-white/30 bg-black/30 px-3 text-xs font-medium text-white hover:bg-black/45"
+                            >
+                                Logout
+                            </Button>
+                        ) : null}
+                    </div>
                 </div>
             </div>
             {/* <div className="absolute top-[4rem] left-0 right-0 w-full z-50 flex overflow-hidden  pointer-events-none">
@@ -213,7 +225,7 @@ const HeaderButtons = () => {
         return <div className="skeleton h-10 w-48"></div>;
 
     return (
-        <div className=" flex items-center justify-center gap-1 ">
+        <div className="flex items-center justify-center gap-1">
 
             {
                 isAIRoute ? <>
@@ -221,7 +233,7 @@ const HeaderButtons = () => {
                         <Button
                             variant="destructive"
                             onClick={(e) => e.preventDefault()}
-                            className=" w-full shadow-sm shadow-foreground ">
+                            className="h-8 w-full px-2 text-xs shadow-sm shadow-foreground">
                             <div className="flex items-center justify-center gap-1">
 
                                 {balance.toFixed(2)} CREDITS
@@ -232,7 +244,7 @@ const HeaderButtons = () => {
                 </>
                     : <>
                         <Link href="/wallet-balance" className="">
-                            <Button className="flex gap-0" variant='default'>
+                            <Button className="h-8 gap-0 px-2 text-xs" variant='default'>
                                 <span className="hidden md:block">
                                     {PLATFORM_ASSET.code.toUpperCase()}
                                 </span>
@@ -244,7 +256,7 @@ const HeaderButtons = () => {
                         </Link>
                         {isFBorGoogle && (
                             <Link className=" " href={"/recharge"}>
-                                <Button className="">
+                                <Button className="h-8 px-2">
                                     <ShoppingCart />
                                 </Button>
                             </Link>
@@ -256,7 +268,7 @@ const HeaderButtons = () => {
                     </>
             }
             <Button
-                className=" relative "
+                className="relative h-8 px-2"
                 onClick={async () => {
                     await router.push("/notification");
                     updateNotification();
@@ -268,7 +280,7 @@ const HeaderButtons = () => {
                 <Bell />
             </Button>
             <Button
-                className=" relative "
+                className="relative h-8 px-2"
                 onClick={async () => {
                     await router.push("/settings");
                 }}
@@ -280,4 +292,3 @@ const HeaderButtons = () => {
 
     );
 };
-

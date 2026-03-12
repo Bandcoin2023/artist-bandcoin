@@ -16,7 +16,7 @@ import {
 import { StellarAccount } from "~/lib/stellar/stellar";
 import { SignUser } from "~/lib/stellar/utils";
 import { BLANK_KEYWORD } from "~/lib/utils";
-import { RequestBrandCreateFormSchema } from "~/pages/artist/create";
+import { RequestBrandCreateFormSchema } from "~/pages/create";
 
 import {
   createTRPCRouter,
