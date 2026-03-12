@@ -154,7 +154,7 @@ function GuestJoinOverlay() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.86, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute left-1 top-11 w-[12.5rem] overflow-hidden rounded-2xl border border-black/20 bg-white p-4 text-black shadow-[0_14px_34px_-22px_rgba(0,0,0,0.8)] md:left-10 md:top-14 md:w-[14rem]"
+              className="absolute left-2 top-2 w-[10.75rem] overflow-hidden rounded-2xl border border-black/20 bg-white p-3 text-black shadow-[0_14px_34px_-22px_rgba(0,0,0,0.8)] md:left-10 md:top-14 md:w-[14rem] md:p-4"
             >
               <div className="flex h-full flex-col">
                 <h3 className="text-lg font-semibold leading-tight md:text-xl">Join As User</h3>
@@ -169,7 +169,7 @@ function GuestJoinOverlay() {
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.94, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute -right-1 bottom-7 w-[12.5rem] overflow-hidden rounded-2xl border border-black/20 bg-white p-4 text-black shadow-[0_14px_34px_-22px_rgba(0,0,0,0.8)] md:-right-8 md:bottom-10 md:w-[14rem]"
+              className="absolute bottom-2 right-2 w-[10.75rem] overflow-hidden rounded-2xl border border-black/20 bg-white p-3 text-black shadow-[0_14px_34px_-22px_rgba(0,0,0,0.8)] md:-right-8 md:bottom-10 md:w-[14rem] md:p-4"
             >
               <div className="flex h-full flex-col">
                 <h3 className="text-lg font-semibold leading-tight md:text-xl">Join As Artist</h3>
