@@ -2,25 +2,22 @@ import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { twMerge } from "tailwind-merge";
 
-import { ArrowRight, Bell, Coins, Menu, Plus, Settings, ShoppingBag, ShoppingCart, Sparkles, Zap } from "lucide-react";
+import { Bell, Coins, Plus, Settings, ShoppingBag, ShoppingCart } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Lottie from "lottie-react"
 
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { WalletType } from "package/connect_wallet/src/lib/enums";
-import { Sheet, SheetContent, SheetHeader, SheetTrigger } from "~/components/shadcn/ui/sheet";
 import { Button } from "~/components/shadcn/ui/button";
 import { Mode, useMode } from "~/lib/state/fan/left-side-mode";
 import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances";
 import { PLATFORM_ASSET } from "~/lib/stellar/constant";
 import { api } from "~/utils/api";
-import { useSidebar } from "~/hooks/use-sidebar";
-import { DashboardNav } from "./Left-sidebar/dashboard-nav";
-import { LeftBottom, LeftNavigation } from "./Left-sidebar/sidebar";
 import { isRechargeAbleClient } from "~/utils/recharge/is-rechargeable-client";
 import { useCredits } from "~/hooks/use-credits";
 import dynamic from "next/dynamic";
+import { Glass } from "~/components/glass/glass";
 
 // const ChristmasSleighAnimation = dynamic(() => import('../christmas/ChristmasSleigh'), {
 //     ssr: false,
@@ -30,104 +27,25 @@ import dynamic from "next/dynamic";
 // });
 
 function Header() {
-    const { isSheetOpen, setIsSheetOpen } = useSidebar();
     const session = useSession();
 
     return (
-        <header className="sticky top-0 z-50 h-16 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="relative h-full px-2 py-2">
-                <div
-                    className="absolute inset-0 bg-cover bg-center"
-                    style={{
-                        backgroundImage: "url('/images/header.png')",
+        <header className="sticky top-0 z-50 h-11 w-full">
+            <div className="relative h-full overflow-hidden">
+                <Glass
+                    className={{
+                        root: "pointer-events-none absolute inset-0 z-0",
+                        tint: "bg-[#f3f1ea]/60 transition-colors",
+                        effect:
+                            "backdrop-blur-[8px] bg-[radial-gradient(circle_at_20%_20%,rgba(255,251,242,0.24),rgba(248,243,232,0.08)_55%,rgba(245,240,230,0.03)_100%)] transition-all",
+                        shine:
+                            "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.85),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.5)]",
                     }}
-                >
-                    <div className="absolute inset-0 bg-gradient-to-b from-accent/30 via-accent/15  to-accent/10" />
-                </div>
-                {/* <ChristmasWindChimeAnimation /> */}
-                <div className="relative z-10 flex h-full items-center justify-between">
+                />
+                <div className="relative z-10 flex h-full items-center justify-between px-2">
                     <div className="flex items-center gap-2 md:gap-3">
-                        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                            <SheetTrigger asChild>
-                                <Button
-                                    variant="link"
-                                    className="p-1.5 md:hidden"
-                                >
-                                    <Menu color="white" />
-                                </Button>
-                            </SheetTrigger>
-
-                            <SheetContent side="left" className="w-72 p-0">
-                                <SheetHeader className="flex items-center justify-between bg-primary p-2 rounded-md shadow-md">
-
-                                    <Link href="/" className="">
-                                        <div className="flex items-center gap-1 ">
-                                            <Image
-                                                alt="logo"
-                                                objectFit="cover"
-                                                src="/images/logo.png"
-                                                height={200}
-                                                width={200}
-                                                className=" h-10 w-10"
-                                            />
-                                            <h1 className="relative text-xl font-bold capitalize text-black md:text-4xl ">
-                                                <p className="">{PLATFORM_ASSET.code.toLocaleUpperCase()}</p>
-                                                <p className="absolute  right-0 top-0 -mr-4 -mt-1  text-xs">TM</p>
-                                            </h1>
-
-                                        </div>
-                                    </Link>
-                                </SheetHeader>
-                                <div className="flex h-full w-full flex-col items-center justify-between p-2 no-scrollbar">
-                                    <div className="flex w-full overflow-x-hidden flex-col py-2">
-                                        <DashboardNav items={LeftNavigation} />
-                                    </div>
-                                    <div className="relative">
-                                        <Button
-
-                                            className="
-              relative text-xl font-bold
-              bg-black
-              border-2 border-accent dark:border-primary
-              text-accent dark:text-primary
-              hover:text-white dark:hover:text-black
-              transition-all duration-300
-              overflow-hidden
-              group
-              neon-studio-button
-              backdrop-blur-sm
-              hover:px-6
-            "
-                                        >
-                                            {/* Always-Active Background Animations */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-accent/0 via-accent/20 to-accent/0 dark:from-primary/0 dark:via-primary/30 dark:to-primary/0 animate-neon-sweep"></div>
-                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent animate-shimmer-fast"></div>
-                                            <div className="absolute inset-0 bg-gradient-to-l from-purple-500/0 via-purple-500/15 to-purple-500/0 dark:from-purple-400/0 dark:via-purple-400/20 dark:to-purple-400/0 animate-reverse-sweep"></div>
-
-                                            {/* Button Text with Icons */}
-                                            <div className="relative z-10 flex items-center gap-3">
-                                                <Sparkles className="w-5 h-5 animate-spin-slow" />
-                                                <span className="tracking-wider font-semibold">TRY STUDIO</span>
-                                                <div className="flex items-center gap-1">
-                                                    <Zap className="w-4 h-4 animate-pulse" />
-                                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
-                                                </div>
-                                            </div>
-
-                                            {/* Hover Fill Effect */}
-                                            <div className="absolute inset-0 bg-accent dark:bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-center"></div>
-                                        </Button>
-
-
-                                    </div>
-                                    <div className="flex w-full flex-col items-center">
-                                        <LeftBottom />
-                                    </div>
-                                </div>
-                            </SheetContent>
-                        </Sheet>
                         <Link href="/" className="flex items-center gap-1">
-                            <div className="relative ml-1 hidden h-10 w-10 md:block">
+                            <div className="relative ml-1 h-7 w-7 md:h-8 md:w-8">
                                 <Image
                                     fill
                                     alt="logo"
@@ -135,7 +53,7 @@ function Header() {
                                     sizes="40px"
                                 />
                             </div>
-                            <h1 className="relative hidden text-lg font-bold capitalize text-white md:block md:text-2xl">
+                            <h1 className="relative hidden text-sm font-bold capitalize text-black md:block md:text-lg">
                                 {PLATFORM_ASSET.code.toLocaleUpperCase()}
                                 {/* <ChristmasSleighAnimation /> */}
                                 <p className="absolute right-0 top-0 -mr-4 -mt-1 text-xs">TM</p>
@@ -147,8 +65,7 @@ function Header() {
                         {session.status === "authenticated" ? (
                             <Button
                                 onClick={() => void signOut({ callbackUrl: "/home" })}
-                                variant="outline"
-                                className="h-9 border-white/30 bg-black/30 px-3 text-xs font-medium text-white hover:bg-black/45"
+                                className="h-8 px-2"
                             >
                                 Logout
                             </Button>
