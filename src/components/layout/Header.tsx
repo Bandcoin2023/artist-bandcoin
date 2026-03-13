@@ -17,7 +17,6 @@ import { api } from "~/utils/api";
 import { isRechargeAbleClient } from "~/utils/recharge/is-rechargeable-client";
 import { useCredits } from "~/hooks/use-credits";
 import dynamic from "next/dynamic";
-import { Glass } from "~/components/glass/glass";
 
 // const ChristmasSleighAnimation = dynamic(() => import('../christmas/ChristmasSleigh'), {
 //     ssr: false,
@@ -30,18 +29,9 @@ function Header() {
     const session = useSession();
 
     return (
-        <header className="sticky top-0 z-50 h-11 w-full">
-            <div className="relative h-full overflow-hidden">
-                <Glass
-                    className={{
-                        root: "pointer-events-none absolute inset-0 z-0",
-                        tint: "bg-[#f3f1ea]/60 transition-colors",
-                        effect:
-                            "backdrop-blur-[8px] bg-[radial-gradient(circle_at_20%_20%,rgba(255,251,242,0.24),rgba(248,243,232,0.08)_55%,rgba(245,240,230,0.03)_100%)] transition-all",
-                        shine:
-                            "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.85),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.5)]",
-                    }}
-                />
+        <header className="fixed left-0 right-0 top-0 z-50 h-10 w-full">
+            <div className="relative h-full overflow-hidden bg-[rgba(248,244,236,0.10)] backdrop-blur-xl">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,251,242,0.18),rgba(248,243,232,0.05)_55%,rgba(245,240,230,0.01)_100%)]" />
                 <div className="relative z-10 flex h-full items-center justify-between px-2">
                     <div className="flex items-center gap-2 md:gap-3">
                         <Link href="/" className="flex items-center gap-1">

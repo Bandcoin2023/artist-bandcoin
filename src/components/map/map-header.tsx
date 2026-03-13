@@ -32,7 +32,7 @@ export function MapHeader({
 
 }: MapHeaderProps) {
     return (
-        <div className="absolute top-2 left-0 right-0 z-50 p-4">
+        <div className="absolute top-8 left-0 right-0 z-50 p-4">
             <div className="mx-auto max-w-4xl">
                 <div className="flex items-center justify-between gap-4">
 
