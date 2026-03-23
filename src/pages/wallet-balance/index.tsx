@@ -215,7 +215,7 @@ const Wallets = () => {
     }
 
     return (
-        <div className=" p-2 space-y-6  w-full"  >
+        <div className=" p-2 space-y-6 mx-auto w-[80vw] pb-20"  >
             <Card className="bg-gradient-to-r  from-primary to-blue-400 text-white shadow-md">
                 <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row justify-between items-center">
