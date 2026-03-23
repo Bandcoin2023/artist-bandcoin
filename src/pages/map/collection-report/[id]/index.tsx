@@ -90,7 +90,7 @@ export default function SinglePinPage() {
                 initial="hidden"
                 animate="visible"
                 variants={containerVariants}
-                className="container mx-auto py-8 px-4 md:px-6 lg:px-8"
+                className="mx-auto w-[85vw] pb-20 py-8 px-4 md:px-6 lg:px-8"
             >
                 <motion.section variants={itemVariants} className="mb-12">
                     <Card className="overflow-hidden rounded-xl shadow-lg">

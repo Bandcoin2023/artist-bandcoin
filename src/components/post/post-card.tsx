@@ -59,7 +59,7 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
     const [deletePostId, setDeletePostId] = useState<number | null>(null)
     const [showFullscreenQR, setShowFullscreenQR] = useState(false)
 
-    const postUrl = `/artist/post/${post.id}`
+    const postUrl = `/post/${post.id}`
     const fullPostUrl = typeof window !== "undefined" ? `${window.location.origin}${postUrl}` : postUrl
 
     const { data: liked } = api.fan.post.isLiked.useQuery(post.id)
@@ -104,13 +104,13 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
             <CardHeader className="p-4 pb-0 ">
                 <div className="flex items-start justify-between ">
                     <div className="flex items-center gap-3 w-full">
-                        <Link href={`/artist/${creator.id}`}>
+                        <Link href={`/${creator.id}`}>
                             <CustomAvatar url={creator.profileUrl} />
                         </Link>
                         <div className="flex w-full justify-between">
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <Link href={`/artist/${creator.id}`}>
+                                    <Link href={`/${creator.id}`}>
                                         <span className="font-semibold">{creator.name}</span>
                                     </Link>
                                     <Badge variant={locked ? "outline" : "secondary"} className="text-xs">

@@ -164,7 +164,7 @@ const SingleAssetView = () => {
         }
     }
     return (
-        <div className="max-w-6xl mx-auto p-4 md:p-6">
+        <div className="mx-auto w-[85vw] pb-20 p-4 md:p-6">
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                     <span>/</span>

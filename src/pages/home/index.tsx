@@ -54,7 +54,7 @@ export default function UserNewsFeedContent() {
 
     return (
 
-        <div className="flex  ">
+        <div className="flex  pb-20 ">
 
             <div className="flex-1 max-w-5xl mx-auto px-4 py-6">
                 <motion.div

@@ -117,19 +117,19 @@ const SpotifyPage = () => {
         onSuccess: () => {
             refetchAccount()
             setIsDisconnecting(false)
-            router.push("/artist/spotify?status=disconnected")
+            router.push("/spotify?status=disconnected")
         },
         onError: (error) => {
             console.error("Failed to disconnect:", error)
             setIsDisconnecting(false)
-            router.push("/artist/spotify?status=disconnect_failed")
+            router.push("/spotify?status=disconnect_failed")
         },
     })
 
     useEffect(() => {
         if (router.query.status) {
             console.log("Spotify connection status:", router.query.status)
-            router.replace("/artist/spotify", undefined, { shallow: true })
+            router.replace("/spotify", undefined, { shallow: true })
         }
     }, [router.query.status])
 

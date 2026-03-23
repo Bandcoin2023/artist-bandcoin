@@ -112,7 +112,7 @@ export default function Album() {
 
     return (
 
-        <div className="w-full overflow-y-auto h-full">
+        <div className="mx-auto w-[85vw] pb-20 overflow-y-auto h-full">
             {/* Album Header Section */}
             <div className="relative h-auto min-h-[400px] w-full overflow-hidden rounded-t-md">
                 <Image

@@ -234,7 +234,7 @@ export default function ArtistOnboarding() {
         toast.success("Brand creation request submitted successfully");
         setShowConfetti(true);
         setTimeout(() => {
-          router.push("/artist/home");
+          router.push("/home");
         }, 2000);
       },
       onError: (error) => {
@@ -599,7 +599,7 @@ export default function ArtistOnboarding() {
   };
 
   return (
-    <div className="h-screen ">
+    <div className="h-screen">
       {showConfetti && (
         <div className="pointer-events-none fixed inset-0 z-50">
           <div className="absolute inset-0 flex items-center justify-center">
@@ -648,7 +648,7 @@ export default function ArtistOnboarding() {
         </div>
       )}
 
-      <div className="container mx-auto max-w-7xl px-4 py-8">
+      <div className="mx-auto w-[85vw] pb-20 px-4 py-8">
         <div className="flex flex-col items-start gap-8 lg:flex-row lg:gap-12">
           {/* Left Sidebar - Steps */}
           <div className="w-full space-y-6 lg:sticky lg:top-8 lg:w-1/4">

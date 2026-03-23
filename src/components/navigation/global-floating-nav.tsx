@@ -29,6 +29,43 @@ import { Popover, PopoverContent, PopoverTrigger } from "~/components/shadcn/ui/
 import { cn } from "~/lib/utils";
 import type { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
 
+// Hook to detect if any dialog is open 
+// This is used to hide the floating nav when a dialog is open, to prevent UI conflicts
+function useIsDialogOpen() {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const checkDialogOpen = () => {
+      const openDialogs = document.querySelectorAll('[data-state="open"]');
+      const dialogPortals = document.querySelectorAll('[role="dialog"]');
+
+      const hasOpenDialog = openDialogs.length > 0 || dialogPortals.length > 0;
+      setIsDialogOpen(hasOpenDialog);
+    };
+
+    checkDialogOpen();
+
+    const observer = new MutationObserver(() => {
+      setTimeout(checkDialogOpen, 0);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      subtree: true,
+      childList: true,
+    });
+
+    const pollInterval = setInterval(checkDialogOpen, 100);
+
+    return () => {
+      observer.disconnect();
+      clearInterval(pollInterval);
+    };
+  }, []);
+
+  return isDialogOpen;
+}
+
 type NavItem = {
   key: string;
   path: string;
@@ -446,6 +483,8 @@ export default function GlobalFloatingNav() {
   const [activeStemUrl, setActiveStemUrl] = useState<string | null>(null);
   const [stemPlayback, setStemPlayback] = useState<Record<string, StemPlaybackState>>({});
 
+  const isDialogOpen = useIsDialogOpen();
+
   const stemEntries = useMemo<StemEntry[]>(() => {
     return (currentTracks ?? [])
       .filter((stem) => typeof stem.steamUrl === "string" && stem.steamUrl.length > 0)
@@ -830,9 +869,9 @@ export default function GlobalFloatingNav() {
           <motion.div
             layout
             initial={{ y: 24, opacity: 0, scale: 0.98 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
+            animate={isDialogOpen ? { y: 200, opacity: 0 } : { y: 0, opacity: 1, scale: 1 }}
             transition={{ type: "spring", damping: 24, stiffness: 280 }}
-            className="pointer-events-auto w-full max-w-[920px]"
+            className={cn("pointer-events-auto w-full max-w-[920px]", isDialogOpen && "pointer-events-none")}
           >
             <FloatingPlayer
               isPlaying={isPlaying}
@@ -863,13 +902,14 @@ export default function GlobalFloatingNav() {
         <motion.div
           layout
           initial={{ y: 42, opacity: 0, scale: 0.97 }}
-          animate={{ y: 0, opacity: 1, scale: 1 }}
+          animate={isDialogOpen ? { y: 200, opacity: 0 } : { y: 0, opacity: 1, scale: 1 }}
           transition={{ type: "spring", damping: 22, stiffness: 280 }}
           className={cn(
-            "pointer-events-auto relative z-20 overflow-hidden rounded-2xl border border-black/20 p-1.5 md:max-w-[calc(100vw-2rem)] md:p-2",
+            "relative z-20 overflow-hidden rounded-2xl border border-black/20 p-1.5 md:max-w-[calc(100vw-2rem)] md:p-2",
             shouldShowPlayer && !isPlayerDetached
               ? "w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] md:w-fit"
               : "w-fit max-w-[calc(100vw-1rem)]",
+            isDialogOpen ? "pointer-events-none" : "pointer-events-auto"
           )}
         >
           <Glass

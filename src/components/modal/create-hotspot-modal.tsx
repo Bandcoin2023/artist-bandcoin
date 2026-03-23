@@ -234,8 +234,8 @@ export default function CreateHotspotModal({
         <Dialog open={isOpen} onOpenChange={handleClose}>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="text-2xl font-bold text-primary flex items-center gap-2">
-                        <Hexagon className="w-6 h-6 text-primary" />
+                    <DialogTitle className="text-2xl font-bold  flex items-center gap-2">
+                        <Hexagon className="w-6 h-6 " />
                         Create Hotspot
                     </DialogTitle>
                     {/* Step indicator */}
@@ -243,7 +243,7 @@ export default function CreateHotspotModal({
                         {[{ n: 1, label: "Configure" }, { n: 2, label: "Preview" }].map(({ n, label }, i, arr) => (
                             <div key={n} className="flex items-center">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-                                    ${currentStep >= n ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                                    ${currentStep >= n ? "bg-primary -foreground" : "bg-muted text-muted-foreground"}`}>
                                     {n}
                                 </div>
                                 <span className={`ml-2 text-sm ${currentStep >= n ? "text-foreground" : "text-muted-foreground"}`}>
@@ -269,7 +269,7 @@ export default function CreateHotspotModal({
                                     <Card>
                                         <CardHeader>
                                             <CardTitle className="flex items-center gap-2 text-lg">
-                                                <Settings className="w-5 h-5 text-primary" />
+                                                <Settings className="w-5 h-5 " />
                                                 Collection Mode
                                             </CardTitle>
                                         </CardHeader>
@@ -296,8 +296,8 @@ export default function CreateHotspotModal({
                                     {/* Hotspot Schedule — sits right below Collection Mode */}
                                     <Card className="border-primary/30 bg-primary/5">
                                         <CardHeader>
-                                            <CardTitle className="flex items-center gap-2 text-lg text-primary">
-                                                <CalendarClock className="w-5 h-5 text-primary" />
+                                            <CardTitle className="flex items-center gap-2 text-lg ">
+                                                <CalendarClock className="w-5 h-5 " />
                                                 Hotspot Schedule
                                             </CardTitle>
                                         </CardHeader>
@@ -348,7 +348,7 @@ export default function CreateHotspotModal({
                                                 {/* Drop frequency */}
                                                 <div className="space-y-2">
                                                     <Label className="text-sm font-medium flex items-center gap-1">
-                                                        <Repeat className="w-3.5 h-3.5 text-primary" />
+                                                        <Repeat className="w-3.5 h-3.5 " />
                                                         Drop New Pin Every
                                                     </Label>
                                                     <Controller
@@ -382,7 +382,7 @@ export default function CreateHotspotModal({
                                                 {/* Pin duration */}
                                                 <div className="space-y-2">
                                                     <Label className="text-sm font-medium flex items-center gap-1">
-                                                        <Timer className="w-3.5 h-3.5 text-primary" />
+                                                        <Timer className="w-3.5 h-3.5 " />
                                                         Each Pin Active For
                                                     </Label>
                                                     <Controller
@@ -423,7 +423,7 @@ export default function CreateHotspotModal({
                                         <Card>
                                             <CardHeader>
                                                 <CardTitle className="flex items-center gap-2 text-lg">
-                                                    <MapPin className="w-5 h-5 text-primary" />
+                                                    <MapPin className="w-5 h-5 " />
                                                     Pin Details
                                                 </CardTitle>
                                             </CardHeader>
@@ -503,7 +503,7 @@ export default function CreateHotspotModal({
                                         <Card>
                                             <CardHeader>
                                                 <CardTitle className="flex items-center gap-2 text-lg">
-                                                    <Settings className="w-5 h-5 text-primary" />
+                                                    <Settings className="w-5 h-5 " />
                                                     Collection &amp; Tier Settings
                                                 </CardTitle>
                                             </CardHeader>
@@ -531,7 +531,7 @@ export default function CreateHotspotModal({
                                     <Card>
                                         <CardHeader>
                                             <CardTitle className="flex items-center gap-2 text-lg">
-                                                <CheckCircle className="w-5 h-5 text-primary" />
+                                                <CheckCircle className="w-5 h-5 " />
                                                 Hotspot Preview
                                             </CardTitle>
                                         </CardHeader>
@@ -652,8 +652,8 @@ export default function CreateHotspotModal({
                                     {/* Schedule Summary Card in preview */}
                                     <Card className="border-primary/30 bg-primary/5">
                                         <CardHeader>
-                                            <CardTitle className="flex items-center gap-2 text-lg text-primary">
-                                                <CalendarClock className="w-5 h-5 text-primary" />
+                                            <CardTitle className="flex items-center gap-2 text-lg ">
+                                                <CalendarClock className="w-5 h-5 " />
                                                 Schedule Summary
                                             </CardTitle>
                                         </CardHeader>
@@ -719,7 +719,7 @@ export default function CreateHotspotModal({
                             <Button
                                 type="button"
                                 onClick={nextStep}
-                                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                                className="bg-primary hover:bg-primary/90 -foreground"
                             >
                                 Next: Preview <ChevronRight className="w-4 h-4 ml-1" />
                             </Button>
@@ -728,7 +728,7 @@ export default function CreateHotspotModal({
                                 type="button"
                                 onClick={() => onSubmit(getValues())}
                                 disabled={addHotspotM.isLoading || remainingBalance < 0}
-                                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                                className="bg-primary hover:bg-primary/90 -foreground"
                             >
                                 {addHotspotM.isLoading && <Loader className="animate-spin mr-2 w-4 h-4" />}
                                 {addHotspotM.isLoading ? "Creating Hotspot..." : "Create Hotspot"}

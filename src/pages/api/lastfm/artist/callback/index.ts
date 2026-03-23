@@ -66,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { token, state } = req.query
     console.log(" req.cookies", req.cookies)
     console.log("Last.fm callback received with token:", token, "and state:", state)
-    const redirectPath = '/artist/lastfm' // Default fallback path
+    const redirectPath = '/lastfm' // Default fallback path
 
     if (!token) {
         return res.redirect(`${redirectPath}?error=missing_parameters`)

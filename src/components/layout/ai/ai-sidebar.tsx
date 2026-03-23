@@ -20,7 +20,7 @@ export default function AISidebar() {
         { icon: Home, label: "Home", active: false, href: "/ai" },
         { icon: ImageIcon, label: "Image", active: false, href: "/ai-generation", mediaType: "image" as const }, // Add mediaType
         { icon: Video, label: "Video", active: false, href: "/ai-generation", mediaType: "video" as const }, // Add mediaType
-        { icon: Music, label: "Music", active: false, href: "/artist/studio" },
+        { icon: Music, label: "Music", active: false, href: "/studio" },
         { icon: Text, label: "SOCIAL", active: false, href: "/text-generation" },
     ]
 

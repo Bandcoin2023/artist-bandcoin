@@ -340,8 +340,8 @@ export default function StoredItemsView() {
     }
     return (
 
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between w-full">
+        <Card className="border-none mx-auto w-[85vw]">
+            <CardHeader className="flex flex-row items-center  justify-between ">
                 <div className="flex items-center justify-between w-full">
                     <h2 className="text-4xl font-semibold text-center">Stores</h2>
                     <div className="hidden md:flex items-center gap-2">
@@ -378,14 +378,14 @@ export default function StoredItemsView() {
                     </DropdownMenu>
                 </div>
             </CardHeader>
-            <CardContent className="overflow-y-auto  scrollbar-hide h-[calc(100vh-20vh)]">
+            <CardContent className="overflow-y-auto scrollbar-hide h-[calc(100vh-20vh)]">
                 <Tabs
                     defaultValue="STORED"
                     value={activeTab}
                     onValueChange={(value) => setActiveTab(value as MainCategory)}
                     className="w-full"
                 >
-                    <TabsList className="grid w-full grid-cols-5">
+                    <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="STORED" className="flex items-center gap-2">
                             <ImageIcon className="h-4 w-4  hidden md:block" />
                             Store

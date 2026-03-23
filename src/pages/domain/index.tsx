@@ -111,7 +111,7 @@ export default function DomainVanityManager({
     const { data: creator } = api.fan.creator.vanitySubscription.useQuery();
 
     return (
-        <div className="container mx-auto max-w-6xl py-8 px-4">
+        <div className="  mx-auto w-[85vw] pb-20 py-8 px-4">
             <Card className="shadow-lg">
                 <CardHeader className="border-b">
                     <div className="flex flex-col gap-2">

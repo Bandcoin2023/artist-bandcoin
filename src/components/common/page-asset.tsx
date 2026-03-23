@@ -31,7 +31,7 @@ function PageAssetComponent({ item }: { item: CreatorPageAssetType }) {
     return (
         <div onClick={async () => {
             setSelectedMode(Mode.USER);
-            await router.push(`/artist/${item.id}`);
+            await router.push(`/${item.id}`);
         }}>
             <AssetView
                 code={item.name}

@@ -94,7 +94,7 @@ export default function JoinArtistPage() {
               creative work today.
             </p>
             <Button size="lg" asChild className="rounded-full px-8">
-              <Link href="/artist/create" className="gap-2">
+              <Link href="/create" className="gap-2">
                 Join as Artist <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>

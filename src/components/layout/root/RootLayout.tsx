@@ -41,7 +41,7 @@ export default function Layout({
     const isArtistRoutes = router.pathname.startsWith("/artist");
     const publicRoutes = ["/about", "/privacy", "/support", "/"];
     const isPublicRoute = publicRoutes.includes(router.pathname);
-    const isStudioRoute = router.pathname.startsWith("/artist/studio") || router.pathname.startsWith("/ai-generation") || router.pathname.startsWith("/text-generation") || router.pathname.startsWith("/ai");
+    const isStudioRoute = router.pathname.startsWith("/studio") || router.pathname.startsWith("/ai-generation") || router.pathname.startsWith("/text-generation") || router.pathname.startsWith("/ai");
     const isMapRoute = router.pathname === "/" || router.pathname === "/map" || router.pathname.startsWith("/map/");
     // Check for AR camera/QR routes that should NOT get ARLayout wrapper
     const isAugmentedRealityRoute =
@@ -100,30 +100,24 @@ export default function Layout({
         >
             <MiniPlayerProvider>
                 <BottomPlayerProvider>
-                    <div className={clsx("flex h-screen w-full flex-col ")}>
+                    <div className={clsx("flex h-screen w-full flex-col", className)}>
                         <Header />
                         {isStudioRoute ? (
                             session.status === "authenticated" ? (
-                                <div className={clsx(isMapRoute ? "h-screen overflow-y-auto" : "mt-10 h-[calc(100vh-2.5rem)] overflow-y-auto")}>
+                                <div className={clsx(isMapRoute ? "h-screen overflow-y-auto" : "mt-12 h-[calc(100vh-2.5rem)] overflow-y-auto")}>
                                     {children}
                                     <ModalProvider />
                                 </div>
                             ) : (
-                                <div className={clsx(isMapRoute ? "flex h-screen w-full items-center justify-center" : "mt-10 flex h-[calc(100vh-2.5rem)] w-full items-center justify-center")}>
+                                <div className={clsx(isMapRoute ? "flex h-screen w-full items-center justify-center" : "mt-12 flex h-[calc(100vh-2.5rem)] w-full items-center justify-center")}>
                                     <ConnectWalletButton />
                                 </div>
                             )
                         ) : (
-                            <div className={clsx(isMapRoute ? "h-screen w-full overflow-hidden scrollbar-hide" : "mt-10 h-[calc(100vh-2.5rem)] w-full overflow-hidden scrollbar-hide")}>
+                            <div className={clsx(isMapRoute ? "h-screen w-full overflow-hidden scrollbar-hide" : "mt-12 h-[calc(100vh-2.5rem)] w-full overflow-hidden scrollbar-hide ")}>
                                 {session.status === "authenticated" ? (
                                     <div className="h-full w-full overflow-y-auto p-0 scrollbar-hide">
-                                        {isArtistRoutes ? (
-                                            <>
-                                                <CreatorLayout>{children}</CreatorLayout>
-                                            </>
-                                        ) : (
-                                            <>{children}</>
-                                        )}
+                                        <>{children}</>
                                         <ModalProvider />
                                         <Toaster />
                                     </div>

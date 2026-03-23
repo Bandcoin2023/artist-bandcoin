@@ -47,7 +47,7 @@ export function CommentSection({ postId, initialCommentCount }: CommentSectionPr
                 <MessageCircle className="h-4 w-4" />
                 {isCommentsVisible ? "Hide comments" : `View comments (${initialCommentCount})`}
             </Button>
-            <Link href={`/artist/post/${postId}`}>
+            <Link href={`/post/${postId}`}>
                 <Button
                     variant="ghost"
                     size="sm"
@@ -146,7 +146,7 @@ function CommentView({ comment, childrenComments }: CommentViewProps) {
                 </div>
                 <div className="flex w-full flex-col items-start">
                     <div className="flex items-center gap-2">
-                        <Link href={`/artist/${comment.userId}`} className="font-bold hover:underline">
+                        <Link href={`/${comment.userId}`} className="font-bold hover:underline">
                             {comment.user.name}
                         </Link>
                         <span className="text-xs text-gray-400">

@@ -101,7 +101,7 @@ const PostViewCheck = ({ postId }: { postId: string }) => {
                 <div className="text-5xl mb-4">{`(╯°□°)╯︵ ┻━┻`}</div>
                 <h2 className="text-xl font-bold mb-2">Post Not Found</h2>
                 <p className="text-muted-foreground text-sm mb-6">We couldn{"'"}t find a post with this URL.</p>
-                <Button variant="outline" onClick={() => router.push("/artist/home")}>Go to Feed</Button>
+                <Button variant="outline" onClick={() => router.push("/home")}>Go to Feed</Button>
             </div>
         </div>
     )
@@ -237,7 +237,7 @@ const SinglePostView = ({ post, creator, likeCount: initialLikeCount, commentCou
 
                     {/* Header */}
                     <div className="px-4 py-3 border-b flex items-center justify-between flex-shrink-0">
-                        <Link href={`/artist/${creator.id}`} className="flex items-center gap-2.5 group">
+                        <Link href={`/${creator.id}`} className="flex items-center gap-2.5 group">
                             <CustomAvatar url={creator.profileUrl} />
                             <div>
                                 <p className="font-semibold text-sm group-hover:underline leading-tight">{creator.name || "User"}</p>

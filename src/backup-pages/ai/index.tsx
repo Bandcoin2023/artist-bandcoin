@@ -76,7 +76,7 @@ export default function AIGenerationPage() {
             mediaType: "image" as const,
         },
         { icon: Video, label: "VIDEO", active: false, href: "/ai-generation", badge: "NEW", mediaType: "video" as const },
-        { icon: Music, label: "MUSIC", active: false, href: "/artist/studio" },
+        { icon: Music, label: "MUSIC", active: false, href: "/studio" },
         { icon: Text, label: "SOCIAL", active: false, href: "/text-generation", badge: "NEW" },
     ]
 

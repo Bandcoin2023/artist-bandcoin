@@ -173,7 +173,7 @@ const CreatorCollectionReport = ({
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="mx-auto w-[85vw] pb-20 px-4 py-8">
       {!isAdmin && (
         <>
           {/* <div className="mb-6">
@@ -1063,7 +1063,7 @@ export function TableData({
                   location.consumers.map((consumer, consumerIndex) => (
                     <TableRow
                       onClick={() => {
-                        router.push(`/artist/map/collection-report/${location.id}`);
+                        router.push(`/map/collection-report/${location.id}`);
                       }}
                       key={`${pin.id}-${location.id}-${consumer.user.id}-${consumerIndex}`}
                       className={cn(

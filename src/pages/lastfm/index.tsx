@@ -94,7 +94,7 @@ const LastFmTracksPage = () => {
             refetchAccount()
             setIsConnecting(false)
             toast.success("Last.fm account connected successfully!")
-            router.push("/artist/lastfm?status=connected")
+            router.push("/lastfm?status=connected")
         },
         onError: (error) => {
             console.error("Failed to save Last.fm account:", error)
@@ -108,13 +108,13 @@ const LastFmTracksPage = () => {
             try {
                 const lastfmData = JSON.parse(decodeURIComponent(router.query.lastfmData as string)) as { profileUrl: string; image: string | null; username: string; realName: string; sessionKey: string; playCount: number; country: string; }
                 saveAccountMutation.mutate(lastfmData)
-                router.replace("/artist/lastfm", undefined, { shallow: true })
+                router.replace("/lastfm", undefined, { shallow: true })
             } catch (error) {
                 console.error("Failed to parse Last.fm data:", error)
-                router.replace("/artist/lastfm", undefined, { shallow: true })
+                router.replace("/lastfm", undefined, { shallow: true })
             }
         } else if (router.query.status) {
-            router.replace("/artist/lastfm", undefined, { shallow: true })
+            router.replace("/lastfm", undefined, { shallow: true })
         }
     }, [router.query.success, router.query.lastfmData, router.query.status])
 
@@ -154,19 +154,19 @@ const LastFmTracksPage = () => {
         onSuccess: () => {
             refetchAccount()
             setIsDisconnecting(false)
-            router.push("/artist/lastfm?status=disconnected")
+            router.push("/lastfm?status=disconnected")
         },
         onError: (error) => {
             console.error("Failed to disconnect:", error)
             setIsDisconnecting(false)
-            router.push("/artist/lastfm?status=disconnect_failed")
+            router.push("/lastfm?status=disconnect_failed")
         },
     })
 
     useEffect(() => {
         if (router.query.status) {
             console.log("Last.fm connection status:", router.query.status)
-            router.replace("/artist/lastfm", undefined, { shallow: true })
+            router.replace("/lastfm", undefined, { shallow: true })
         }
     }, [router.query.status])
 
@@ -191,7 +191,7 @@ const LastFmTracksPage = () => {
     }
 
     return (
-        <div className="flex h-screen">
+        <div className="flex h-[calc(100vh-6vh)]">
             {/* Sidebar */}
             <div className="w-80 border-r bg-muted/30 p-6">
                 <div className="space-y-6">
@@ -287,7 +287,7 @@ const LastFmTracksPage = () => {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto pb-20">
                 {lastFmAccount ? (
                     <Tabs defaultValue="search" className="overflow-hidden flex flex-col ">
                         <div className="border-b px-6 py-4">

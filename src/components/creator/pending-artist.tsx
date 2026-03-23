@@ -73,7 +73,7 @@ export default function PendingPage({ createdAt }: {
                                 toggleSelectedMode();
                             }}
                         >
-                            <Link href="/artist/home" className="gap-2">
+                            <Link href="/home" className="gap-2">
                                 Return Home <ArrowRight className="h-4 w-4" />
                             </Link>
                         </Button>

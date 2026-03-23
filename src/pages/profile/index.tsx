@@ -1651,9 +1651,9 @@ export default function DashboardBuilder() {
     if (!creator.data) return <NotFound />
 
     return (
-        <div ref={dashboardContainerRef} className="flex flex-col h-full">
+        <div ref={dashboardContainerRef} className="flex flex-col h-full  mx-auto w-[85vw] pb-20">
             {/* Simplified Toolbar */}
-            <div className="border-b p-2 flex items-center justify-between">
+            <div className=" p-2 flex items-center justify-between">
                 <div className="flex items-center">
                     <h2 className="text-xl font-bold mr-4">{layoutName}</h2>
                     {isLayoutSaved && (

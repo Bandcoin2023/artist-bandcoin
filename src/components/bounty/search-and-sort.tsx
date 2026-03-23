@@ -60,10 +60,10 @@ export default function SearchAndSort({
             <div className="flex flex-col gap-5">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold hidden md:block">
-                        {router.pathname === "/artist/bounty" ? "Your Bounties" : "Discover Bounties"}
+                        {router.pathname === "/bounty" ? "Your Bounties" : "Discover Bounties"}
                     </h1>
 
-                    {router.pathname === "/artist/bounty" && (
+                    {router.pathname === "/bounty" && (
                         <Select value={selectValue} onValueChange={(value) => {
                             setSelectValue(value)
                             handleCreateBountySelect(value)

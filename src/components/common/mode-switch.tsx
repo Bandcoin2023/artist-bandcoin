@@ -23,7 +23,7 @@ export function ModeSwitch() {
                             onClick={() => {
                                 if (isCreator) {
                                     toggleSelectedMode()
-                                    router.push("/artist/home")
+                                    router.push("/home")
                                 }
                             }}
                             className={cn(
@@ -61,7 +61,7 @@ export function ModeSwitch() {
                             onClick={() => {
                                 if (!isCreator) {
                                     toggleSelectedMode()
-                                    router.push("/artist/profile")
+                                    router.push("/profile")
                                 }
                             }}
                             className={cn(

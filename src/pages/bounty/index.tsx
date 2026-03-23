@@ -38,7 +38,7 @@ const CreatorBounty = () => {
 
     return (
 
-        <div className="flex h-full w-full flex-col relative">
+        <div className="flex h-full  flex-col relative mx-auto w-[85vw] pb-20">
             {/* Fixed header with search and filters */}
             <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm pb-4">
                 <SearchAndSort

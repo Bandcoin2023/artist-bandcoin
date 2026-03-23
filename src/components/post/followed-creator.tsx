@@ -46,13 +46,13 @@ export default function CreatorSidebar() {
                 >
                     <div className="p-0">
                         <div className="flex items-center  gap-2">
-                            <Link href={`/artist/${creator.id}`}>
+                            <Link href={`/${creator.id}`}>
                                 <CustomAvatar url={creator.profileUrl} />
                             </Link>
 
 
                             <div className="flex items-center justify-between gap-2 w-full">
-                                <Link href={`/artist/${creator.id}`}>
+                                <Link href={`/${creator.id}`}>
                                     <p className="text-sm font-medium truncate">{creator.name}</p>
                                 </Link>
                                 <Button

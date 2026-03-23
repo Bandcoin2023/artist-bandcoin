@@ -560,7 +560,7 @@ const UserBountyPage = () => {
                       <div className="flex items-center justify-center gap-2">
                         <p className="text-sm text-white/90">Created by</p>
                         <Link
-                          href={`/artist/${data?.creator.id}`}
+                          href={`/${data?.creator.id}`}
                           className="hover: font-medium text-white transition-colors"
                         >
                           {data?.creator.name}
@@ -1501,7 +1501,7 @@ const AdminBountyPage = () => {
   const DeleteMutation = api.bounty.Bounty.deleteBounty.useMutation({
     onSuccess: async (data, variables) => {
       setLoadingBountyId(variables.BountyId);
-      await router.push("/artist/bounty");
+      await router.push("/bounty");
       toast.success("Bounty Deleted");
       setLoadingBountyId(null);
     },
@@ -1776,7 +1776,7 @@ const AdminBountyPage = () => {
                     <div className="flex items-center justify-center gap-2">
                       <p className="text-sm text-white/90">Created by</p>
                       <Link
-                        href={`/artist/${data?.creator.id}`}
+                        href={`/${data?.creator.id}`}
                         className="hover: font-medium text-white transition-colors"
                       >
                         {data?.creator.name}

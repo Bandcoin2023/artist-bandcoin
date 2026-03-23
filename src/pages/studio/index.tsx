@@ -345,7 +345,7 @@ function App() {
         }
         if (!creator.data?.id) {
             toast.error("You must be a creator to export your project.")
-            router.push("/artist/create")
+            router.push("/create")
             return
         }
         setShowExportOptionsModal(true)
@@ -434,7 +434,7 @@ function App() {
             {/* Modern Header */}
             <div className={`h-16 px-6 flex items-center justify-between border-b backdrop-blur-xl bg-background shadow-sm`}>
                 <div className="flex items-center space-x-4">
-                    <Button variant="outline" onClick={() => router.back()}>
+                    <Button variant="outline" onClick={() => router.replace("/")}>
                         <ArrowLeft /> Back
                     </Button>
                     <div>
@@ -746,7 +746,7 @@ const AccessDenied = ({ isDark }: { isDark: boolean }) => {
                     </div>
                     <div className="space-y-3">
                         <button
-                            onClick={() => (window.location.href = "/artist/create")}
+                            onClick={() => (window.location.href = "/create")}
                             className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                         >
                             Upgrade to Creator

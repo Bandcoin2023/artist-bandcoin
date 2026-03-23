@@ -134,17 +134,17 @@ export default function CreatorLayout({
   // Modified routing logic to allow navigation to organization/create
   useEffect(() => {
     // Skip redirection if user is trying to access the create page
-    if (path === "/artist/create") {
+    if (path === "/create") {
       return;
     }
 
-    if (path === "/artist/home" && selectedMode === Mode.ORG) {
-      router.push("/artist/profile");
+    if (path === "/home" && selectedMode === Mode.ORG) {
+      router.push("/profile");
     } else {
       CreatorNavigation.forEach((item) => {
         if (item.href === path && selectedMode === Mode.USER) {
           console.log("Redirecting to user page");
-          router.push("/artist/home");
+          router.push("/home");
         }
       });
     }
@@ -241,7 +241,7 @@ export default function CreatorLayout({
               transition={{ duration: 0.5 }}
             >
               {/* Special case for the create page */}
-              {path === "/artist/create" ? (
+              {path === "/create" ? (
                 <div className="flex h-screen w-full flex-col overflow-y-auto">
                   {children}
                 </div>
@@ -290,7 +290,7 @@ export default function CreatorLayout({
                         return (
                           <Link
                             key={index}
-                            href={item.disabled ? "/artist/wallet" : item.href}
+                            href={item.disabled ? "/wallet" : item.href}
                           >
                             <motion.div
                               initial={{
@@ -409,7 +409,7 @@ export const LeftNavigation: NavItem[] = [
   { href: "/music", icon: "music", title: "MUSIC" },
   { href: "/marketplace", icon: "store", title: "MARKETPLACE" },
   { href: "/bounty", icon: "bounty", title: "BOUNTY" },
-  { href: "/artist/home", icon: "creator", title: "ARTISTS" },
+  { href: "/home", icon: "creator", title: "ARTISTS" },
   { href: "/settings", icon: "setting", title: "SETTINGS" },
 ];
 
@@ -423,51 +423,51 @@ type DockerItem = {
 
 const CreatorNavigation: DockerItem[] = [
   {
-    href: "/artist/profile",
+    href: "/profile",
     icon: "wallet",
     label: "PROFILE",
     color: "bg-blue-500",
   },
 
-  { href: "/artist/store", icon: "pins", label: "STORE", color: "bg-pink-500" },
+  { href: "/store", icon: "pins", label: "STORE", color: "bg-pink-500" },
   {
-    href: "/artist/gift",
+    href: "/gift",
     icon: "creator",
     label: "GIFT",
     color: "bg-emerald-500",
   },
   {
-    href: "/artist/bounty",
+    href: "/bounty",
     icon: "users",
     label: "BOUNTY",
     color: "bg-blue-500",
   },
   // {
-  //   href: "/artist/settings",
+  //   href: "/settings",
   //   icon: "bounty",
   //   label: "SETTINGS",
   //   color: "bg-purple-500",
   // },
   {
-    href: "/artist/map",
+    href: "/map",
     icon: "map",
     label: "MAP",
     color: "bg-pink-500",
   },
   // {
-  //   href: "/artist/spotify",
+  //   href: "/spotify",
   //   icon: "spotify",
   //   label: "SPOTIFY",
   //   color: "bg-yellow-500",
   // },
   {
-    href: "/artist/lastfm",
+    href: "/lastfm",
     icon: "lastfm",
     label: "LASTFM",
     color: "bg-yellow-500",
   },
   {
-    href: "/artist/domain",
+    href: "/domain",
     icon: "link",
     label: "DOMAIN",
     color: "bg-pink-500",

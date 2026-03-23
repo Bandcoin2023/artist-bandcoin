@@ -567,10 +567,12 @@ export default function NftCreateModal() {
 
   return (
     <Dialog open={isNFTModalOpen} onOpenChange={handleClose}>
+
       <DialogContent
         onInteractOutside={(e) => {
           e.preventDefault();
         }}
+        showCloseButton
         className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-xl p-0"
       >
         <motion.div

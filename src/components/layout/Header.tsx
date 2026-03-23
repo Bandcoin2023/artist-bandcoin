@@ -29,9 +29,8 @@ function Header() {
     const session = useSession();
 
     return (
-        <header className="fixed left-0 right-0 top-0 z-50 h-10 w-full">
-            <div className="relative h-full overflow-hidden bg-[rgba(248,244,236,0.10)] backdrop-blur-xl">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,251,242,0.18),rgba(248,243,232,0.05)_55%,rgba(245,240,230,0.01)_100%)]" />
+        <header className="fixed left-0 right-0  top-0 z-50 h-11  shadow-sm shadow-foreground/20 backdrop-blur-sm bg-primary/30  ">
+            <div className="relative h-full overflow-hidden  mx-auto w-[85vw]">
                 <div className="relative z-10 flex h-full items-center justify-between px-2">
                     <div className="flex items-center gap-2 md:gap-3">
                         <Link href="/" className="flex items-center gap-1">
@@ -93,7 +92,7 @@ const HeaderButtons = () => {
     const session = useSession();
     const router = useRouter();
 
-    const isAIRoute = router.pathname.startsWith("/artist/studio") || router.pathname.startsWith("/ai-generation") || router.pathname.startsWith("/text-generation") || router.pathname.startsWith("/ai");
+    const isAIRoute = router.pathname.startsWith("/studio") || router.pathname.startsWith("/ai-generation") || router.pathname.startsWith("/text-generation") || router.pathname.startsWith("/ai");
 
     const bal = api.wallate.acc.getAccountBalance.useQuery(undefined, {
         onSuccess: (data) => {
@@ -132,7 +131,7 @@ const HeaderButtons = () => {
         return <div className="skeleton h-10 w-48"></div>;
 
     return (
-        <div className="flex items-center justify-center gap-1">
+        <div className="flex items-center justify-center gap-1 ">
 
             {
                 isAIRoute ? <>
@@ -182,18 +181,9 @@ const HeaderButtons = () => {
                 }}
             >
                 {notificationCount > 0 && (
-                    <div className="absolute -top-2 left-0 h-4 w-4  rounded-full bg-red-500"></div>
+                    <div className="absolute -top-0 right-0 h-2 w-2  rounded-full bg-red-500"></div>
                 )}
                 <Bell />
-            </Button>
-            <Button
-                className="relative h-8 px-2"
-                onClick={async () => {
-                    await router.push("/settings");
-                }}
-            >
-
-                <Settings />
             </Button>
         </div>
 

@@ -104,7 +104,7 @@ export function CreatePostModal() {
             setMedia([])
             setTimeout(() => {
                 handleClose()
-                router.push(`/artist/post/${data.id}`)
+                router.push(`/post/${data.id}`)
             }, 2000)
         },
     })
