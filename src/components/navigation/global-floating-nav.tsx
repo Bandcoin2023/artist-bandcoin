@@ -28,6 +28,7 @@ import { useBottomPlayer } from "~/components/player/context/bottom-player-conte
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/shadcn/ui/popover";
 import { cn } from "~/lib/utils";
 import type { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
+import { QrCodeIcon } from "lucide-react";
 
 // Hook to detect if any dialog is open 
 // This is used to hide the floating nav when a dialog is open, to prevent UI conflicts
@@ -89,8 +90,10 @@ const navItems: NavItem[] = [
   { key: "Gift", path: "/gift", text: "Gift", icon: GiftIcon },
   { key: "Bounty", path: "/bounty", text: "Bounty", icon: BookmarkSimpleIcon },
   { key: "Map", path: "/", text: "Map", icon: MapPinIcon },
+  { key: "Redeem", path: "/redeem", text: "Redeem", icon: QrCodeIcon },
   { key: "Lastfm", path: "/lastfm", text: "Lastfm", icon: MusicNotesIcon },
   { key: "Domain", path: "/domain", text: "Domain", icon: LinkIcon },
+
 ];
 
 function FloatingNavItem({

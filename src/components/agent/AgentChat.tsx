@@ -46,7 +46,7 @@ const INITIAL_STATE: AgentState = { step: "idle", task: null }
 const WELCOME: Message = {
     role: "assistant",
     content:
-        "Hi! I'm your Wadzzo assistant. I can help you create location pins for real events or landmarks. What would you like to do today?",
+        "Hi! I'm your Bandcoin assistant. I can help you create location pins for real events or landmarks. What would you like to do today?",
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -868,7 +868,7 @@ export default function AgentChat() {
                         setIsMinimized(false)
                         setIsOpen(true)
                     }}
-                    className="fixed bottom-12 left-1/2 z-40 -translate-x-1/2 translate-y-1/2 rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
+                    className="fixed bottom-32 left-1/2 z-40 -translate-x-1/2 translate-y-1/2 rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
                 >
                     Bandcoin Assistant
                 </button>
@@ -876,7 +876,7 @@ export default function AgentChat() {
 
             {/* Neon input bar */}
             {!isMinimized && (
-                <div className="fixed bottom-6 left-1/2 z-40 w-full max-w-2xl -translate-x-1/2 px-4">
+                <div className="fixed bottom-24 left-1/2 z-40 w-full max-w-2xl -translate-x-1/2 px-4">
                     <style>{`
             @keyframes neon-glow {
               0%, 100% { box-shadow: 0 0 5px rgba(34,197,94,.3), 0 0 10px rgba(34,197,94,.2); }
@@ -923,7 +923,7 @@ export default function AgentChat() {
 
             {/* Chat drawer */}
             {isOpen && !isMinimized && (
-                <div className="fixed inset-x-0 bottom-24 z-40 mx-auto flex h-[75vh] max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl animate-in slide-in-from-bottom-5 duration-300 md:h-[70vh]">
+                <div className="fixed inset-x-0 bottom-40 z-40 mx-auto flex h-[70vh]  md:h-[75vh] max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl animate-in slide-in-from-bottom-5 duration-300 ">
 
                     {/* Header */}
                     <div className="flex flex-shrink-0 items-center justify-between bg-primary px-5 py-3 text-primary-foreground">
@@ -932,7 +932,7 @@ export default function AgentChat() {
                                 <Sparkles className="h-4 w-4" />
                             </div>
                             <div>
-                                <p className="font-bold text-sm">Wadzzo Assistant</p>
+                                <p className="font-bold text-sm">Bandcoin Assistant</p>
                                 <p className="text-[11px] text-white/70">Pin Generation Agent</p>
                             </div>
                         </div>

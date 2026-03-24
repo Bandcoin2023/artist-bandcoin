@@ -1772,6 +1772,70 @@ export const pinRouter = createTRPCRouter({
         nextCursor,
       };
     }),
+  redeemCollection: publicProcedure // change to protectedProcedure if creator auth is required
+    .input(
+      z.object({
+        collectionId: z.string().min(1),
+        userId: z.string().min(1),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { collectionId, userId } = input
+
+      // Check if the location exists
+      const location = await ctx.db.location.findUnique({
+        where: { id: collectionId },
+      })
+
+      if (!location) {
+        return { status: "not_found" as const }
+      }
+
+      // Find the LocationConsumer record
+      const consumer = await ctx.db.locationConsumer.findFirst({
+        where: {
+          locationId: collectionId,
+          userId: userId,
+        },
+      })
+
+      // User never consumed this location
+      if (!consumer) {
+        return { status: "not_consumed" as const }
+      }
+
+      // Already redeemed
+      if (consumer.isRedeemed) {
+        return {
+          status: "already_redeemed" as const,
+          consumer: {
+            userId: consumer.userId,
+            locationId: consumer.locationId,
+            claimedAt: consumer.claimedAt?.toISOString() ?? null,
+            redeemedAt: consumer.redeemedAt?.toISOString() ?? null,
+          },
+        }
+      }
+
+      // Mark as redeemed
+      const updated = await ctx.db.locationConsumer.update({
+        where: { id: consumer.id },
+        data: {
+          isRedeemed: true,
+          redeemedAt: new Date(),
+        },
+      })
+
+      return {
+        status: "success" as const,
+        consumer: {
+          userId: updated.userId,
+          locationId: updated.locationId,
+          claimedAt: updated.claimedAt?.toISOString() ?? null,
+          redeemedAt: updated.redeemedAt?.toISOString() ?? null,
+        },
+      }
+    }),
 });
 
 export async function dropPinsForHotspot(db: PrismaClient, hotspotId: string) {

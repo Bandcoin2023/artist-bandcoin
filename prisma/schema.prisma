@@ -769,6 +769,9 @@ model LocationConsumer {
 
     claimedAt DateTime?
 
+    isRedeemed Boolean   @default(false)
+    redeemedAt DateTime?
+
     viewedAt DateTime?
 
     hidden Boolean @default(false)
