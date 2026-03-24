@@ -11,17 +11,12 @@ export enum filterEnum {
     NOT_JOINED = "NOT_JOINED",
     JOINED = "JOINED",
 }
-export enum BountyTypeFilter {
-    ALL = "ALL",
-    GENERAL = "GENERAL",
-    LOCATION_BASED = "LOCATION_BASED",
-}
+
 
 const CreatorBounty = () => {
     const [searchTerm, setSearchTerm] = useState("")
     const [sortOption, setSortOption] = useState<sortOptionEnum>(sortOptionEnum.DATE_DESC);
     const [filter, setFilter] = useState<filterEnum>(filterEnum.ALL)
-    const [typeFilter, setTypeFilter] = useState<BountyTypeFilter>(BountyTypeFilter.ALL)
 
     const debouncedSearchTerm = useDebounce(searchTerm, 500)
     const getAllBounty = api.bounty.Bounty.getAllBountyByUserId.useInfiniteQuery(
@@ -29,7 +24,6 @@ const CreatorBounty = () => {
             limit: 10,
             search: debouncedSearchTerm,
             sortBy: sortOption,
-            bountyType: typeFilter !== BountyTypeFilter.ALL ? typeFilter : undefined,
         },
         {
             getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -48,8 +42,7 @@ const CreatorBounty = () => {
                     setSortOption={setSortOption}
                     filter={filter}
                     setFilter={setFilter}
-                    typeFilter={typeFilter}
-                    setTypeFilter={setTypeFilter}
+
                 />
             </div>
 
