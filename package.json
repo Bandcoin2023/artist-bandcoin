@@ -16,7 +16,7 @@
     "run-script": "tsx ./script.ts"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^0.0.66",
+    "@ai-sdk/openai": "^1.0.0",
     "@albedo-link/intent": "^0.12.0",
     "@albedo-link/signature-verification": "^0.1.2",
     "@aws-sdk/client-amplify": "^3.890.0",
@@ -88,7 +88,7 @@
     "@web3modal/react": "^2.7.1",
     "@web3modal/standalone": "^2.4.3",
     "@web3modal/ui": "2.0.0-beta.7",
-    "ai": "^3.4.33",
+    "ai": "^4.3.0",
     "axios": "^1.7.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
