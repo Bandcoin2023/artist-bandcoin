@@ -769,6 +769,7 @@ model LocationConsumer {
 
     claimedAt DateTime?
 
+    redeemCode String    @unique
     isRedeemed Boolean   @default(false)
     redeemedAt DateTime?
 

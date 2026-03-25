@@ -56,6 +56,7 @@ export default async function handler(
                 select: {
                     userId: true,
                     viewedAt: true,
+                    redeemCode: true,
                 },
             },
         },
@@ -79,6 +80,7 @@ export default async function handler(
     );
 
     const remaining = dbLocation.locationGroup.limit - totalGroupConsumers;
+    const myConsumer = dbLocation.consumers[0] ?? null;
 
     const loc: ConsumedLocation = {
         id: dbLocation.id,
@@ -101,6 +103,7 @@ export default async function handler(
             dbLocation.locationGroup.creator.profileUrl ??
             WadzzoIconURL,
         url: dbLocation.locationGroup.link ?? "https://bandcoin.io/images/logo.png",
+        redeemCode: myConsumer?.redeemCode ?? null,
     };
 
 

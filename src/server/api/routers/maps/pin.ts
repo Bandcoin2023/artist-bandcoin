@@ -8,6 +8,7 @@ import { BASE_URL } from "~/lib/common";
 import { qstash } from "~/lib/qstash";
 import { xdr_sendPlatformToStorage } from "~/lib/stellar/map/claim";
 import { SignUser, WithSing } from "~/lib/stellar/utils";
+import { generateRedeemCode } from "~/lib/utils";
 
 import {
   adminProcedure,
@@ -590,6 +591,7 @@ export const pinRouter = createTRPCRouter({
           select: {
             userId: true,
             viewedAt: true,
+            redeemCode: true,
           },
         },
       },
@@ -640,6 +642,7 @@ export const pinRouter = createTRPCRouter({
           url:
             location.locationGroup.link ??
             "https://app.beam-us.com/images/logo.png",
+          redeemCode: location.consumers[0]?.redeemCode ?? null,
         };
       })
       .filter((loc): loc is any => loc !== null);
@@ -680,42 +683,53 @@ export const pinRouter = createTRPCRouter({
     return collectedPosts;
   }),
   consumePin: protectedProcedure
-
     .input(z.object({
       pinId: z.string().optional(),
       postId: z.string().optional()
     }))
     .mutation(async ({ ctx, input }) => {
+
+      // ── Helper: unique 6-char redeem code with collision retry ──────────────
+      const getUniqueRedeemCode = async (): Promise<string> => {
+        for (let i = 0; i < 10; i++) {
+          const code = generateRedeemCode();
+          const exists = await ctx.db.locationConsumer.findUnique({
+            where: { redeemCode: code },
+          });
+          if (!exists) return code;
+        }
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Could not generate a unique redeem code" });
+      };
+
       if (input.pinId) {
         const { pinId } = input;
         const userId = ctx.session.user.id;
+
         const location = await ctx.db.location.findUnique({
           include: {
             _count: {
               select: {
-                consumers: {
-                  where: { userId: userId },
-                },
+                consumers: { where: { userId } },
               },
             },
             locationGroup: true,
           },
           where: { id: pinId },
         });
+
         if (!location?.locationGroup) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Could not find the location" });
         }
 
         if (location.locationGroup.multiPin) {
-          // user have not consumed this location
           if (
             location._count.consumers <= 0 &&
             location.locationGroup.remaining > 0
           ) {
-            // also check limit of the group
+            const redeemCode = await getUniqueRedeemCode();
 
             await ctx.db.locationConsumer.create({
-              data: { locationId: location.id, userId: userId },
+              data: { locationId: location.id, userId, redeemCode },
             });
             await ctx.db.locationGroup.update({
               where: { id: location.locationGroup.id },
@@ -731,27 +745,22 @@ export const pinRouter = createTRPCRouter({
             where: {
               locations: {
                 some: {
-                  consumers: {
-                    some: {
-                      userId: userId,
-                    },
-                  },
+                  consumers: { some: { userId } },
                 },
               },
               id: location.locationGroup.id,
             },
           });
+
           const findActionLocation = await ctx.db.actionLocation.findFirst({
-            where: {
-              locationGroupId: location.locationGroup.id,
-            },
+            where: { locationGroupId: location.locationGroup.id },
           });
 
           if (!checkMeAsAConsumer && findActionLocation) {
             const bountyParticipant = await ctx.db.bountyParticipant.findUnique({
               where: {
                 bountyId_userId: {
-                  userId: userId,
+                  userId,
                   bountyId: findActionLocation.bountyId,
                 },
               },
@@ -761,34 +770,19 @@ export const pinRouter = createTRPCRouter({
               await ctx.db.bountyParticipant.update({
                 where: {
                   bountyId_userId: {
-                    userId: userId,
+                    userId,
                     bountyId: findActionLocation.bountyId,
                   },
                 },
-                data: {
-                  currentStep: {
-                    increment: 1,
-                  },
-                },
+                data: { currentStep: { increment: 1 } },
               });
             }
 
+            const redeemCode = await getUniqueRedeemCode();
+
             await ctx.db.locationConsumer.create({
-              data: { locationId: location.id, userId: userId },
+              data: { locationId: location.id, userId, redeemCode },
             });
-
-            await ctx.db.locationGroup.update({
-              where: { id: location.locationGroup.id },
-              data: { remaining: { decrement: 1 } },
-            });
-
-            return { success: true, data: "Location consumed" };
-          }
-          else if (!checkMeAsAConsumer && !findActionLocation) {
-            await ctx.db.locationConsumer.create({
-              data: { locationId: location.id, userId: userId },
-            });
-
             await ctx.db.locationGroup.update({
               where: { id: location.locationGroup.id },
               data: { remaining: { decrement: 1 } },
@@ -796,46 +790,44 @@ export const pinRouter = createTRPCRouter({
 
             return { success: true, data: "Location consumed" };
 
-          }
-          else {
+          } else if (!checkMeAsAConsumer && !findActionLocation) {
+            const redeemCode = await getUniqueRedeemCode();
+
+            await ctx.db.locationConsumer.create({
+              data: { locationId: location.id, userId, redeemCode },
+            });
+            await ctx.db.locationGroup.update({
+              where: { id: location.locationGroup.id },
+              data: { remaining: { decrement: 1 } },
+            });
+
+            return { success: true, data: "Location consumed" };
+
+          } else {
             return { success: false, data: "You have already consumed this location" };
           }
         }
-      }
-      else {
+      } else {
         const userId = ctx.session.user.id;
+
         if (!input.postId) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Post ID is required to consume a post" });
         }
-        return await ctx.db.$transaction(async (tx) => {
 
-          // 1. Get the post and check if already collected
+        return await ctx.db.$transaction(async (tx) => {
           const post = await tx.post.findUnique({
             where: { id: Number(input.postId) },
           });
-          if (!post) throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Post not found",
-          });
-          if (post.isCollected) throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Post already collected",
-          });
+          if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found" });
+          if (post.isCollected) throw new TRPCError({ code: "BAD_REQUEST", message: "Post already collected" });
 
           const alreadyCollected = await tx.postCollection.findUnique({
             where: {
-              postGroupId_userId: {
-                postGroupId: post.postGroupId,
-                userId,
-              },
+              postGroupId_userId: { postGroupId: post.postGroupId, userId },
             },
           });
-          if (alreadyCollected) throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "You already collected a post from this group",
-          });
+          if (alreadyCollected) throw new TRPCError({ code: "BAD_REQUEST", message: "You already collected a post from this group" });
 
-          // 2. Mark post as collected + create collection record in parallel
           await Promise.all([
             tx.post.update({
               where: { id: Number(input.postId) },
@@ -853,11 +845,7 @@ export const pinRouter = createTRPCRouter({
                   include: {
                     medias: true,
                     creator: {
-                      select: {
-                        name: true,
-                        id: true,
-                        profileUrl: true,
-                      },
+                      select: { name: true, id: true, profileUrl: true },
                     },
                   },
                 },
@@ -865,9 +853,8 @@ export const pinRouter = createTRPCRouter({
             }),
           ]);
 
-          return ({ success: true, });
+          return { success: true };
         });
-
       }
     }),
 
@@ -1772,69 +1759,117 @@ export const pinRouter = createTRPCRouter({
         nextCursor,
       };
     }),
-  redeemCollection: publicProcedure // change to protectedProcedure if creator auth is required
+  redeemByCode: publicProcedure // swap to protectedProcedure if creators must be logged in
     .input(
       z.object({
-        collectionId: z.string().min(1),
-        userId: z.string().min(1),
+        code: z
+          .string()
+          .trim()
+          .toUpperCase()
+          .length(6, "Code must be exactly 6 characters"),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { collectionId, userId } = input
-
-      // Check if the location exists
-      const location = await ctx.db.location.findUnique({
-        where: { id: collectionId },
-      })
-
-      if (!location) {
-        return { status: "not_found" as const }
-      }
-
-      // Find the LocationConsumer record
-      const consumer = await ctx.db.locationConsumer.findFirst({
-        where: {
-          locationId: collectionId,
-          userId: userId,
+      const consumer = await ctx.db.locationConsumer.findUnique({
+        where: { redeemCode: input.code },
+        include: {
+          user: { select: { name: true, image: true, email: true } },
+          location: {
+            include: {
+              locationGroup: {
+                select: {
+                  title: true,
+                  creator: { select: { name: true } },
+                },
+              }
+            }
+          },
         },
       })
 
-      // User never consumed this location
       if (!consumer) {
-        return { status: "not_consumed" as const }
+        return { status: "not_found" as const }
       }
 
-      // Already redeemed
       if (consumer.isRedeemed) {
         return {
           status: "already_redeemed" as const,
-          consumer: {
-            userId: consumer.userId,
-            locationId: consumer.locationId,
-            claimedAt: consumer.claimedAt?.toISOString() ?? null,
-            redeemedAt: consumer.redeemedAt?.toISOString() ?? null,
-          },
+          redeemedAt: consumer.redeemedAt?.toISOString() ?? null,
+          user: consumer.user,
+          location: consumer.location.locationGroup,
         }
       }
 
-      // Mark as redeemed
       const updated = await ctx.db.locationConsumer.update({
         where: { id: consumer.id },
-        data: {
-          isRedeemed: true,
-          redeemedAt: new Date(),
+        data: { isRedeemed: true, redeemedAt: new Date() },
+        include: {
+          user: { select: { name: true, image: true, email: true } },
+          location: {
+            include: {
+              locationGroup: {
+                select: {
+                  title: true,
+                  creator: { select: { name: true } },
+                },
+              }
+            }
+          },
         },
       })
 
       return {
         status: "success" as const,
-        consumer: {
-          userId: updated.userId,
-          locationId: updated.locationId,
-          claimedAt: updated.claimedAt?.toISOString() ?? null,
-          redeemedAt: updated.redeemedAt?.toISOString() ?? null,
-        },
+        redeemedAt: updated.redeemedAt?.toISOString() ?? null,
+        user: updated.user,
+        location: updated.location.locationGroup,
       }
+    }),
+  getRedeemedByCreator: protectedProcedure
+    .query(async ({ ctx }) => {
+      const creatorId = ctx.session.user.id
+
+      const redeemed = await ctx.db.locationConsumer.findMany({
+        where: {
+          isRedeemed: true,
+          location: {
+            locationGroup: {
+              creatorId: creatorId, // adjust field name to match your schema
+            },
+          },
+        },
+        include: {
+          user: { select: { id: true, name: true, image: true, email: true } },
+          location: {
+            include: {
+              locationGroup: {
+                select: {
+                  id: true,
+                  title: true,
+                  image: true,
+                  creator: {
+                    select: {
+                      name: true,
+                      id: true,
+                      profileUrl: true,
+                    }
+                  },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { redeemedAt: "desc" },
+      })
+
+      return redeemed.map((c) => ({
+        id: c.id,
+        redeemCode: c.redeemCode,
+        redeemedAt: c.redeemedAt?.toISOString() ?? null,
+        claimedAt: c.claimedAt?.toISOString() ?? null,
+        user: c.user,
+        location: c.location,
+      }))
     }),
 });
 
