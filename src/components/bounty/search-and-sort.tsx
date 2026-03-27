@@ -68,7 +68,7 @@ export default function SearchAndSort({
                             setSelectValue(value)
                             handleCreateBountySelect(value)
                         }}>
-                            <SelectTrigger className="w-auto gap-2 bg-primary text-primary-foreground hover:bg-primary/90 border-0 shadow-sm transition-colors">
+                            <SelectTrigger className="w-auto gap-2 bg-destructive text-primary hover:bg-destructive/90 border-0 shadow-sm transition-colors">
                                 <SelectValue className="" placeholder="Create Bounty" />
                             </SelectTrigger>
                             <SelectContent className="min-w-[220px]">

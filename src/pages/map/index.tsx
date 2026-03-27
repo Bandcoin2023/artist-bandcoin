@@ -410,9 +410,13 @@ function CreatorMapDashboardContent() {
       {isAuthenticated ? (
         <>
           <Link href="/map/collection-report">
-            <Button className="absolute bottom-40 md:bottom-32 right-6">
-              <ClipboardList className="mr-2 h-4 w-4" /> Collection Reports
-            </Button>
+            <button className="absolute bottom-40 md:bottom-32 right-6 z-20 inline-flex h-12 overflow-hidden rounded-full p-[1px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50">
+              <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
+              <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
+                <ClipboardList className="mr-2 h-4 w-4" /> Collection Reports
+              </span>
+            </button>
+
           </Link>
 
           {!isCreatingHotspot && (

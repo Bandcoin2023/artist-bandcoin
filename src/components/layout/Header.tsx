@@ -2,8 +2,9 @@ import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { twMerge } from "tailwind-merge";
 
-import { Bell, Coins, Plus, Settings, ShoppingBag, ShoppingCart } from "lucide-react";
+import { Bell, Coins, Plus, Settings, ShoppingBag, ShoppingCart, Sun, Moon } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
 import Lottie from "lottie-react"
 
 import Link from "next/link";
@@ -30,7 +31,7 @@ function Header() {
 
     return (
         <header className="fixed left-0 right-0  top-0 z-50 h-11  shadow-sm shadow-foreground/20 backdrop-blur-sm bg-primary/30  ">
-            <div className="relative h-full overflow-hidden  mx-auto w-[85vw]">
+            <div className="relative h-full overflow-hidden  mx-auto w-full md:w-[85vw] ">
                 <div className="relative z-10 flex h-full items-center justify-between px-2">
                     <div className="flex items-center gap-2 md:gap-3">
                         <Link href="/" className="flex items-center gap-1">
@@ -91,6 +92,7 @@ const HeaderButtons = () => {
     const { balance } = useCredits()
     const session = useSession();
     const router = useRouter();
+    const { theme, setTheme } = useTheme();
 
     const isAIRoute = router.pathname.startsWith("/studio") || router.pathname.startsWith("/ai-generation") || router.pathname.startsWith("/text-generation") || router.pathname.startsWith("/ai");
 
@@ -132,7 +134,25 @@ const HeaderButtons = () => {
 
     return (
         <div className="flex items-center justify-center gap-1 ">
+            <Button
+                className="h-8 px-2"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
 
+            >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            <Button
+                className="relative h-8 px-2"
+                onClick={async () => {
+                    await router.push("/notification");
+                    updateNotification();
+                }}
+            >
+                {notificationCount > 0 && (
+                    <div className="absolute -top-0 right-0 h-2 w-2  rounded-full bg-red-500"></div>
+                )}
+                <Bell />
+            </Button>
             {
                 isAIRoute ? <>
                     <Link href="/ai/credits" className="">
@@ -173,18 +193,7 @@ const HeaderButtons = () => {
 
                     </>
             }
-            <Button
-                className="relative h-8 px-2"
-                onClick={async () => {
-                    await router.push("/notification");
-                    updateNotification();
-                }}
-            >
-                {notificationCount > 0 && (
-                    <div className="absolute -top-0 right-0 h-2 w-2  rounded-full bg-red-500"></div>
-                )}
-                <Bell />
-            </Button>
+
         </div>
 
     );

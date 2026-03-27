@@ -28,7 +28,7 @@ import { useBottomPlayer } from "~/components/player/context/bottom-player-conte
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/shadcn/ui/popover";
 import { cn } from "~/lib/utils";
 import type { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
-import { QrCodeIcon } from "lucide-react";
+import { House, QrCodeIcon, Rss } from "lucide-react";
 
 // Hook to detect if any dialog is open 
 // This is used to hide the floating nav when a dialog is open, to prevent UI conflicts
@@ -84,12 +84,12 @@ type StemPlaybackState = {
 };
 
 const navItems: NavItem[] = [
-  { key: "Home", path: "/home", text: "Home", icon: HouseIcon },
+  { key: "Map", path: "/", text: "Map", icon: House },
+  { key: "Home", path: "/home", text: "Home", icon: Rss },
   { key: "Profile", path: "/profile", text: "Profile", icon: UserCircleIcon },
   { key: "Store", path: "/store", text: "Store", icon: StorefrontIcon },
   { key: "Gift", path: "/gift", text: "Gift", icon: GiftIcon },
   { key: "Bounty", path: "/bounty", text: "Bounty", icon: BookmarkSimpleIcon },
-  { key: "Map", path: "/", text: "Map", icon: MapPinIcon },
   { key: "Redeem", path: "/redeem", text: "Redeem", icon: QrCodeIcon },
   { key: "Lastfm", path: "/lastfm", text: "Lastfm", icon: MusicNotesIcon },
   { key: "Domain", path: "/domain", text: "Domain", icon: LinkIcon },
@@ -901,7 +901,7 @@ export default function GlobalFloatingNav() {
         </div>
       ) : null}
 
-      <div className="pointer-events-none fixed inset-0 z-[60] flex items-end justify-center px-2 pb-4 md:px-4 md:pb-6">
+      <div className="pointer-events-none fixed inset-0 z-[60] flex items-end justify-center px-2 pb-4 md:px-4 md:pb-6 ">
         <motion.div
           layout
           initial={{ y: 42, opacity: 0, scale: 0.97 }}
@@ -927,7 +927,7 @@ export default function GlobalFloatingNav() {
           />
           <motion.nav
             layout
-            className="relative z-10 flex items-center gap-1.5 overflow-x-auto pb-0.5 md:gap-2 md:overflow-x-hidden"
+            className="relative z-10 flex items-center gap-1.5 overflow-x-auto pb-0.5 md:gap-2 md:overflow-x-hidden scrollbar-hide"
           >
             {navItems.map((item) => {
               const isActive = activeKey === item.key;
