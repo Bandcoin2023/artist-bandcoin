@@ -1,30 +1,26 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import {
   EditorShellHeader,
-  type EditorViewportType,
 } from "~/components/profile-editor/editor-shell-header"
 import { IframePreview } from "~/components/profile-editor/iframe-preview"
 import type { PreviewToParentMessage } from "~/components/profile-editor/lib/communication"
+import { useProfileEditorStore } from "~/components/profile-editor/store/editor-store"
 
 export default function ProfileEditorPage() {
-  const [isSelectionMode, setIsSelectionMode] = useState(false)
-  const [isPreviewMode, setIsPreviewMode] = useState(false)
-  const [viewportType, setViewportType] = useState<EditorViewportType>("responsive")
+  const isSelectionMode = useProfileEditorStore((state) => state.isSelectionMode)
+  const isPreviewMode = useProfileEditorStore((state) => state.isPreviewMode)
+  const viewportType = useProfileEditorStore((state) => state.viewportType)
+  const setSelectionMode = useProfileEditorStore((state) => state.setSelectionMode)
+  const setPreviewMode = useProfileEditorStore((state) => state.setPreviewMode)
+  const setViewportType = useProfileEditorStore((state) => state.setViewportType)
   const [isPreviewReady, setIsPreviewReady] = useState(false)
   const [isPreviewDirty, setIsPreviewDirty] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveRequestId, setSaveRequestId] = useState(0)
 
-  const previewSrc = useMemo(() => {
-    const params = new URLSearchParams({
-      selection: isSelectionMode ? "1" : "0",
-      preview: isPreviewMode ? "1" : "0",
-    })
-
-    return `/profile/edit/preview?${params.toString()}`
-  }, [isSelectionMode, isPreviewMode])
+  const previewSrc = "/profile/edit/preview"
 
   const handlePreviewMessage = (message: PreviewToParentMessage) => {
     if (message.type === "READY") {
@@ -65,11 +61,11 @@ export default function ProfileEditorPage() {
     <main className="h-full min-h-0 flex flex-col bg-background overflow-hidden">
       <EditorShellHeader
         isSelectionMode={isSelectionMode}
-        onToggleSelectionMode={() => setIsSelectionMode((prev) => !prev)}
+        onToggleSelectionMode={() => setSelectionMode(!isSelectionMode)}
         viewportType={viewportType}
         onViewportTypeChange={setViewportType}
         isPreviewMode={isPreviewMode}
-        onTogglePreviewMode={() => setIsPreviewMode((prev) => !prev)}
+        onTogglePreviewMode={() => setPreviewMode(!isPreviewMode)}
         canSave={canSave}
         isSaving={isSaving}
         onSave={handleSave}
@@ -77,6 +73,8 @@ export default function ProfileEditorPage() {
 
       <IframePreview
         viewportType={viewportType}
+        isSelectionMode={isSelectionMode}
+        isPreviewMode={isPreviewMode}
         previewSrc={previewSrc}
         saveRequestId={saveRequestId}
         onPreviewMessage={handlePreviewMessage}

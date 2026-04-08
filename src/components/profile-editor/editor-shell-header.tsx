@@ -17,8 +17,7 @@ import {
   UnfoldHorizontalIcon,
 } from "lucide-react"
 import Link from "next/link"
-
-export type EditorViewportType = "responsive" | "desktop" | "mobile"
+import type { EditorViewportType } from "~/components/profile-editor/store/editor-store"
 
 type EditorShellHeaderProps = {
   isSelectionMode: boolean

@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react"
-import { CameraIcon, Loader2Icon, SlidersHorizontalIcon } from "lucide-react"
+import {
+  CameraIcon,
+  Loader2Icon,
+  MonitorIcon,
+  SlidersHorizontalIcon,
+  SmartphoneIcon,
+  UnfoldHorizontalIcon,
+} from "lucide-react"
 import { UploadS3Button } from "~/components/common/upload-button"
 import { Button } from "~/components/shadcn/ui/button"
 import { Textarea } from "~/components/shadcn/ui/textarea"
@@ -15,6 +22,7 @@ import {
   isParentToPreviewMessage,
   type PreviewToParentMessage,
 } from "~/components/profile-editor/lib/communication"
+import { useProfileEditorStore } from "~/components/profile-editor/store/editor-store"
 
 const COVER_INPUT_ID = "profile-editor-cover-upload-input"
 const PROFILE_INPUT_ID = "profile-editor-avatar-upload-input"
@@ -36,8 +44,6 @@ const DEFAULT_COVER_HEIGHTS: CoverHeights = {
   coverHeightMobile: 220,
 }
 
-type EditorViewportType = "responsive" | "desktop" | "mobile"
-
 export function ProfilePreviewEditor() {
   const utils = api.useUtils()
   const creatorQuery = api.fan.creator.meCreator.useQuery(undefined, {
@@ -52,7 +58,8 @@ export function ProfilePreviewEditor() {
   })
   const [coverHeights, setCoverHeights] = useState<CoverHeights>(DEFAULT_COVER_HEIGHTS)
   const [savedCoverHeights, setSavedCoverHeights] = useState<CoverHeights>(DEFAULT_COVER_HEIGHTS)
-  const [activeViewport, setActiveViewport] = useState<EditorViewportType>("responsive")
+  const activeViewport = useProfileEditorStore((state) => state.viewportType)
+  const setStateFromSync = useProfileEditorStore((state) => state.setStateFromSync)
 
   useEffect(() => {
     if (!creatorQuery.data) return
@@ -277,7 +284,20 @@ export function ProfilePreviewEditor() {
       }
 
       if (event.data.type === "SET_VIEWPORT") {
-        setActiveViewport(event.data.viewport)
+        setStateFromSync({
+          isSelectionMode: useProfileEditorStore.getState().isSelectionMode,
+          isPreviewMode: useProfileEditorStore.getState().isPreviewMode,
+          viewportType: event.data.viewport,
+        })
+        return
+      }
+
+      if (event.data.type === "SYNC_EDITOR_STATE") {
+        setStateFromSync({
+          isSelectionMode: event.data.state.isSelectionMode,
+          isPreviewMode: event.data.state.isPreviewMode,
+          viewportType: event.data.state.viewportType,
+        })
         return
       }
 
@@ -299,7 +319,7 @@ export function ProfilePreviewEditor() {
 
     window.addEventListener("message", handler)
     return () => window.removeEventListener("message", handler)
-  }, [handleSaveFromParent])
+  }, [handleSaveFromParent, setStateFromSync])
 
   const triggerUpload = (inputId: string) => {
     const input = document.getElementById(inputId) as HTMLInputElement | null
@@ -332,6 +352,12 @@ export function ProfilePreviewEditor() {
 
   const coverUrl = creatorQuery.data.coverUrl ?? "/images/header.jpg"
   const profileUrl = creatorQuery.data.profileUrl ?? "/images/icons/avatar-icon.png"
+  const ViewportIcon =
+    activeViewport === "desktop"
+      ? MonitorIcon
+      : activeViewport === "mobile"
+        ? SmartphoneIcon
+        : UnfoldHorizontalIcon
   const currentCoverHeight =
     activeViewport === "desktop"
       ? coverHeights.coverHeightDesktop
@@ -393,9 +419,12 @@ export function ProfilePreviewEditor() {
               className="w-[320px] rounded-[28px] border border-[#d9d9db] bg-white px-6 py-4 shadow-[0_16px_28px_rgba(0,0,0,0.08)]"
             >
               <div className="space-y-4">
-                <p className="text-[16px] font-semibold text-[#25262b]">
-                  Height
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[16px] font-semibold text-[#25262b]">Height</p>
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-foreground">
+                    <ViewportIcon className="h-4 w-4" />
+                  </span>
+                </div>
                 <div className="flex items-center gap-3">
                   <input
                     type="range"

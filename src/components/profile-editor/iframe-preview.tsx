@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import type { EditorViewportType } from "~/components/profile-editor/editor-shell-header"
+import type { EditorViewportType } from "~/components/profile-editor/store/editor-store"
 import {
   PROFILE_EDITOR_MESSAGE_SOURCE,
   type PreviewToParentMessage,
@@ -10,6 +10,8 @@ import {
 
 type IframePreviewProps = {
   viewportType: EditorViewportType
+  isSelectionMode: boolean
+  isPreviewMode: boolean
   previewSrc: string
   saveRequestId: number
   onPreviewMessage?: (message: PreviewToParentMessage) => void
@@ -17,6 +19,8 @@ type IframePreviewProps = {
 
 export function IframePreview({
   viewportType,
+  isSelectionMode,
+  isPreviewMode,
   previewSrc,
   saveRequestId,
   onPreviewMessage,
@@ -104,12 +108,16 @@ export function IframePreview({
     targetWindow.postMessage(
       {
         source: PROFILE_EDITOR_MESSAGE_SOURCE,
-        type: "SET_VIEWPORT",
-        viewport: viewportType,
+        type: "SYNC_EDITOR_STATE",
+        state: {
+          isSelectionMode,
+          isPreviewMode,
+          viewportType,
+        },
       },
       window.location.origin,
     )
-  }, [viewportType])
+  }, [isPreviewMode, isSelectionMode, viewportType])
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -120,8 +128,12 @@ export function IframePreview({
         iframeRef.current.contentWindow.postMessage(
           {
             source: PROFILE_EDITOR_MESSAGE_SOURCE,
-            type: "SET_VIEWPORT",
-            viewport: viewportType,
+            type: "SYNC_EDITOR_STATE",
+            state: {
+              isSelectionMode,
+              isPreviewMode,
+              viewportType,
+            },
           },
           window.location.origin,
         )
@@ -132,7 +144,7 @@ export function IframePreview({
 
     window.addEventListener("message", handler)
     return () => window.removeEventListener("message", handler)
-  }, [onPreviewMessage, viewportType])
+  }, [isPreviewMode, isSelectionMode, onPreviewMessage, viewportType])
 
   return (
     <div className="flex-1 overflow-hidden size-full">

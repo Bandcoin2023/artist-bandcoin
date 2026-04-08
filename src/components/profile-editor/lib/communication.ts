@@ -12,6 +12,14 @@ export type ParentToPreviewMessage = {
       viewport: "responsive" | "desktop" | "mobile"
     }
   | {
+      type: "SYNC_EDITOR_STATE"
+      state: {
+        isSelectionMode: boolean
+        isPreviewMode: boolean
+        viewportType: "responsive" | "desktop" | "mobile"
+      }
+    }
+  | {
       type: "SET_COVER_HEIGHT"
       viewport: "responsive" | "desktop" | "mobile"
       height: number
@@ -56,6 +64,14 @@ export function isParentToPreviewMessage(data: unknown): data is ParentToPreview
         (value.viewport === "responsive" ||
           value.viewport === "desktop" ||
           value.viewport === "mobile")) ||
+      (value.type === "SYNC_EDITOR_STATE" &&
+        typeof value.state === "object" &&
+        value.state !== null &&
+        typeof (value.state as Record<string, unknown>).isSelectionMode === "boolean" &&
+        typeof (value.state as Record<string, unknown>).isPreviewMode === "boolean" &&
+        ((value.state as Record<string, unknown>).viewportType === "responsive" ||
+          (value.state as Record<string, unknown>).viewportType === "desktop" ||
+          (value.state as Record<string, unknown>).viewportType === "mobile")) ||
       (value.type === "SET_COVER_HEIGHT" &&
         (value.viewport === "responsive" ||
           value.viewport === "desktop" ||
