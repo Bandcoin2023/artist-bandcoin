@@ -27,6 +27,9 @@ type EditorShellHeaderProps = {
   onViewportTypeChange: (viewportType: EditorViewportType) => void
   isPreviewMode: boolean
   onTogglePreviewMode: () => void
+  canSave: boolean
+  isSaving: boolean
+  onSave: () => void
 }
 
 export function EditorShellHeader({
@@ -36,6 +39,9 @@ export function EditorShellHeader({
   onViewportTypeChange,
   isPreviewMode,
   onTogglePreviewMode,
+  canSave,
+  isSaving,
+  onSave,
 }: EditorShellHeaderProps) {
   return (
     <header className="sticky top-0 z-30 h-12 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 flex items-center px-2 md:px-4">
@@ -133,6 +139,7 @@ export function EditorShellHeader({
                 </Tooltip>
               </div>
             </div>
+
           </div>
 
           <div className="flex items-center gap-2">
@@ -153,8 +160,12 @@ export function EditorShellHeader({
               <TooltipContent side="bottom">Preview Site</TooltipContent>
             </Tooltip>
 
-            <Button className="h-8 bg-black text-white hover:bg-black/85" disabled>
-              Save
+            <Button
+              className="h-8 bg-black text-white hover:bg-black/85"
+              disabled={!canSave || isSaving}
+              onClick={onSave}
+            >
+              {isSaving ? "Saving..." : "Save"}
             </Button>
           </div>
         </div>

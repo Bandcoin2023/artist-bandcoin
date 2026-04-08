@@ -205,6 +205,9 @@ model Creator {
     joinedAt   DateTime @default(now())
     profileUrl String?
     coverUrl   String?
+    coverHeightDefault Int @default(240)
+    coverHeightDesktop Int @default(240)
+    coverHeightMobile  Int @default(220)
     bio        String?
     name       String
 

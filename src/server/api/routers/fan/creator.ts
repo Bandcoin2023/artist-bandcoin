@@ -40,6 +40,12 @@ export const CreatorAboutShema = z.object({
   instagram: z.string().optional(),
 });
 
+const CreatorCoverHeightsSchema = z.object({
+  coverHeightDefault: z.number().int().min(120).max(720),
+  coverHeightDesktop: z.number().int().min(120).max(720),
+  coverHeightMobile: z.number().int().min(120).max(720),
+});
+
 export const creatorRouter = createTRPCRouter({
   requestForBrandCreation: protectedProcedure
     .input(RequestBrandCreateFormSchema)
@@ -349,6 +355,19 @@ export const creatorRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       await ctx.db.creator.update({
         data: { coverUrl: input },
+        where: { id: ctx.session.user.id },
+      });
+    }),
+
+  updateCreatorCoverHeights: protectedProcedure
+    .input(CreatorCoverHeightsSchema)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.creator.update({
+        data: {
+          coverHeightDefault: input.coverHeightDefault,
+          coverHeightDesktop: input.coverHeightDesktop,
+          coverHeightMobile: input.coverHeightMobile,
+        },
         where: { id: ctx.session.user.id },
       });
     }),

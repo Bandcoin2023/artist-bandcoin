@@ -2,13 +2,25 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { EditorViewportType } from "~/components/profile-editor/editor-shell-header"
+import {
+  PROFILE_EDITOR_MESSAGE_SOURCE,
+  type PreviewToParentMessage,
+  isPreviewToParentMessage,
+} from "~/components/profile-editor/lib/communication"
 
 type IframePreviewProps = {
   viewportType: EditorViewportType
   previewSrc: string
+  saveRequestId: number
+  onPreviewMessage?: (message: PreviewToParentMessage) => void
 }
 
-export function IframePreview({ viewportType, previewSrc }: IframePreviewProps) {
+export function IframePreview({
+  viewportType,
+  previewSrc,
+  saveRequestId,
+  onPreviewMessage,
+}: IframePreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const [wrapperDimensions, setWrapperDimensions] = useState({
@@ -68,6 +80,59 @@ export function IframePreview({ viewportType, previewSrc }: IframePreviewProps) 
       height: `${wrapperHeight}px`,
     }
   }, [iframeWidth, wrapperDimensions])
+
+  useEffect(() => {
+    if (saveRequestId <= 0) return
+
+    const targetWindow = iframeRef.current?.contentWindow
+    if (!targetWindow) return
+
+    targetWindow.postMessage(
+      {
+        source: PROFILE_EDITOR_MESSAGE_SOURCE,
+        type: "REQUEST_SAVE",
+        requestId: saveRequestId,
+      },
+      window.location.origin,
+    )
+  }, [saveRequestId])
+
+  useEffect(() => {
+    const targetWindow = iframeRef.current?.contentWindow
+    if (!targetWindow) return
+
+    targetWindow.postMessage(
+      {
+        source: PROFILE_EDITOR_MESSAGE_SOURCE,
+        type: "SET_VIEWPORT",
+        viewport: viewportType,
+      },
+      window.location.origin,
+    )
+  }, [viewportType])
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return
+      if (!isPreviewToParentMessage(event.data)) return
+
+      if (event.data.type === "READY" && iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage(
+          {
+            source: PROFILE_EDITOR_MESSAGE_SOURCE,
+            type: "SET_VIEWPORT",
+            viewport: viewportType,
+          },
+          window.location.origin,
+        )
+      }
+
+      onPreviewMessage?.(event.data)
+    }
+
+    window.addEventListener("message", handler)
+    return () => window.removeEventListener("message", handler)
+  }, [onPreviewMessage, viewportType])
 
   return (
     <div className="flex-1 overflow-hidden size-full">
