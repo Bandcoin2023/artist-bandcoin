@@ -43,6 +43,30 @@ export default function Layout({
     const isPublicRoute = publicRoutes.includes(router.pathname);
     const isStudioRoute = router.pathname.startsWith("/studio") || router.pathname.startsWith("/ai-generation") || router.pathname.startsWith("/text-generation") || router.pathname.startsWith("/ai");
     const isMapRoute = router.pathname === "/" || router.pathname === "/map" || router.pathname.startsWith("/map/");
+    const isProfileEditorPreviewRoute = router.pathname === "/profile/edit/preview";
+    const shouldShowAppHeader = !isProfileEditorPreviewRoute;
+    const shouldShowFloatingNav = !isProfileEditorPreviewRoute;
+    const contentContainerClass = clsx(
+        isMapRoute
+            ? "h-screen w-full overflow-hidden scrollbar-hide"
+            : shouldShowAppHeader
+                ? "mt-12 h-[calc(100vh-2.5rem)] w-full overflow-hidden scrollbar-hide"
+                : "h-screen w-full overflow-hidden scrollbar-hide",
+    );
+    const studioContainerClass = clsx(
+        isMapRoute
+            ? "h-screen overflow-y-auto"
+            : shouldShowAppHeader
+                ? "mt-12 h-[calc(100vh-2.5rem)] overflow-y-auto"
+                : "h-screen overflow-y-auto",
+    );
+    const studioGuestContainerClass = clsx(
+        isMapRoute
+            ? "flex h-screen w-full items-center justify-center"
+            : shouldShowAppHeader
+                ? "mt-12 flex h-[calc(100vh-2.5rem)] w-full items-center justify-center"
+                : "flex h-screen w-full items-center justify-center",
+    );
     // Check for AR camera/QR routes that should NOT get ARLayout wrapper
     const isAugmentedRealityRoute =
         router.pathname.startsWith("/action/ar/") ||
@@ -101,20 +125,20 @@ export default function Layout({
             <MiniPlayerProvider>
                 <BottomPlayerProvider>
                     <div className={clsx("flex h-screen w-full flex-col", className)}>
-                        <Header />
+                        {shouldShowAppHeader ? <Header /> : null}
                         {isStudioRoute ? (
                             session.status === "authenticated" ? (
-                                <div className={clsx(isMapRoute ? "h-screen overflow-y-auto" : "mt-12 h-[calc(100vh-2.5rem)] overflow-y-auto")}>
+                                <div className={studioContainerClass}>
                                     {children}
                                     <ModalProvider />
                                 </div>
                             ) : (
-                                <div className={clsx(isMapRoute ? "flex h-screen w-full items-center justify-center" : "mt-12 flex h-[calc(100vh-2.5rem)] w-full items-center justify-center")}>
+                                <div className={studioGuestContainerClass}>
                                     <ConnectWalletButton />
                                 </div>
                             )
                         ) : (
-                            <div className={clsx(isMapRoute ? "h-screen w-full overflow-hidden scrollbar-hide" : "mt-12 h-[calc(100vh-2.5rem)] w-full overflow-hidden scrollbar-hide ")}>
+                            <div className={contentContainerClass}>
                                 {session.status === "authenticated" ? (
                                     <div className="h-full w-full overflow-y-auto p-0 scrollbar-hide">
                                         <>{children}</>
@@ -134,7 +158,7 @@ export default function Layout({
                             </div>
                         )}
                     </div>
-                    <GlobalFloatingNav />
+                    {shouldShowFloatingNav ? <GlobalFloatingNav /> : null}
                     {/* <FallingSnowflakes /> */}
                 </BottomPlayerProvider>
             </MiniPlayerProvider>
