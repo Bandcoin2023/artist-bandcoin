@@ -309,7 +309,7 @@ export function ProfilePreviewEditor() {
   if (creatorQuery.isLoading) {
     return (
       <main className="min-h-screen flex items-center justify-center p-8">
-        <div className="inline-flex items-center gap-2 text-[#334155]">
+        <div className="inline-flex items-center gap-2 text-muted-foreground">
           <Loader2Icon className="h-4 w-4 animate-spin" />
           Loading profile editor...
         </div>
@@ -321,8 +321,8 @@ export function ProfilePreviewEditor() {
     return (
       <main className="min-h-screen flex items-center justify-center p-8">
         <div className="w-full max-w-xl p-8 text-center">
-          <h2 className="text-xl font-semibold text-[#0f172a]">Creator profile not found</h2>
-          <p className="mt-2 text-sm text-[#64748b]">
+          <h2 className="text-xl font-semibold text-foreground">Creator profile not found</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
             You need a creator profile before editing this preview.
           </p>
         </div>
@@ -368,7 +368,7 @@ export function ProfilePreviewEditor() {
             type="button"
             variant="secondary"
             size="sm"
-            className="absolute right-4 top-4 border border-white/70 bg-white/90 text-[#0f172a] hover:bg-white"
+            className="absolute right-4 top-4 border border-border bg-background/90 text-foreground hover:bg-background"
             onClick={() => triggerUpload(COVER_INPUT_ID)}
             disabled={isSaving}
           >
@@ -381,7 +381,7 @@ export function ProfilePreviewEditor() {
                 type="button"
                 variant="secondary"
                 size="icon"
-                className="absolute right-4 bottom-4 h-9 w-9 border border-white/70 bg-white/90 text-[#0f172a] hover:bg-white"
+                className="absolute right-4 bottom-4 h-9 w-9 border border-border bg-background/90 text-foreground hover:bg-background"
               >
                 <SlidersHorizontalIcon className="h-4 w-4" />
                 <span className="sr-only">Adjust cover height</span>
@@ -390,7 +390,7 @@ export function ProfilePreviewEditor() {
             <PopoverContent
               side="top"
               align="end"
-              className="w-[320px] rounded-[28px] border border-[#d9d9db] bg-[#ededee] p-6 shadow-[0_16px_28px_rgba(0,0,0,0.08)]"
+              className="w-[320px] rounded-[28px] border border-[#d9d9db] bg-white px-6 py-4 shadow-[0_16px_28px_rgba(0,0,0,0.08)]"
             >
               <div className="space-y-4">
                 <p className="text-[16px] font-semibold text-[#25262b]">
@@ -449,7 +449,7 @@ export function ProfilePreviewEditor() {
               type="button"
               size="icon"
               variant="secondary"
-              className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full border border-[#cfd8e3] bg-white text-[#0f172a] hover:bg-[#f8fafc]"
+              className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full border border-border bg-background text-foreground hover:bg-muted"
               onClick={() => triggerUpload(PROFILE_INPUT_ID)}
               disabled={isSaving}
             >
@@ -463,7 +463,7 @@ export function ProfilePreviewEditor() {
               id="profile-editor-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="mt-2 block w-full min-w-0 whitespace-nowrap overflow-x-hidden overflow-y-hidden text-ellipsis border-0 bg-transparent p-0 !py-0 text-3xl font-semibold leading-[1.1] text-[#0f172a] outline-none focus:outline-none"
+              className="mt-2 block w-full min-w-0 whitespace-nowrap overflow-x-hidden overflow-y-hidden text-ellipsis border-0 bg-transparent p-0 !py-0 text-3xl font-semibold leading-[1.1] text-foreground outline-none focus:outline-none"
               placeholder="Artist name"
             />
 
@@ -471,12 +471,12 @@ export function ProfilePreviewEditor() {
               id="profile-editor-description"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              className="min-h-[88px] resize-none border-0 bg-transparent p-0 text-base leading-relaxed text-[#334155] shadow-none outline-none focus-visible:ring-0"
+              className="min-h-[88px] resize-none border-0 bg-transparent p-0 text-base leading-relaxed text-foreground/80 shadow-none outline-none focus-visible:ring-0"
               placeholder="Tell visitors about this profile."
             />
 
             <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-              <p className="text-sm text-[#64748b]">
+              <p className="text-sm text-muted-foreground">
                 Joined{" "}
                 {new Date(creatorQuery.data.createdAt).toLocaleDateString(undefined, {
                   year: "numeric",
@@ -501,7 +501,7 @@ export function ProfilePreviewEditor() {
             #dfdfe1 var(--cover-progress),
             #dfdfe1 100%
           );
-          padding: 0 4px;
+          padding: 0;
           outline: none;
         }
 
