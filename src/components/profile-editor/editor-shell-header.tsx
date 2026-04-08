@@ -50,7 +50,7 @@ export function EditorShellHeader({
           <Button
             asChild
             variant="ghost"
-            className="h-8 rounded-lg border border-black/10 bg-[#f8f6f1]/80 text-black/85 hover:bg-[#f8f6f1]"
+            className="h-8 rounded-lg border border-border bg-background/85 text-foreground hover:bg-muted"
           >
             <Link href="/profile">Discard</Link>
           </Button>
@@ -61,9 +61,9 @@ export function EditorShellHeader({
                 <Button
                   variant="ghost"
                   className={cn(
-                    "h-9 w-9 rounded-lg border border-black/10 bg-[#f8f6f1]/65 text-black/65 hover:bg-[#f8f6f1]/85 hover:text-black/85",
+                    "h-9 w-9 rounded-lg border border-border bg-background/75 text-foreground/70 hover:bg-muted hover:text-foreground",
                     isSelectionMode &&
-                      "border-black/35 bg-white text-foreground ring-1 ring-black/20",
+                      "border-ring bg-background text-foreground ring-1 ring-ring/40",
                   )}
                   onClick={onToggleSelectionMode}
                 >
@@ -74,15 +74,15 @@ export function EditorShellHeader({
               <TooltipContent side="bottom">Enable selection</TooltipContent>
             </Tooltip>
 
-            <div className="relative overflow-hidden rounded-xl border border-black/10">
+            <div className="relative overflow-hidden rounded-xl border border-border">
               <Glass
                 className={{
                   root: "pointer-events-none absolute inset-0 z-0 rounded-xl *:rounded-xl",
-                  tint: "bg-[#f8f6f1]/78",
+                  tint: "bg-white/70 dark:bg-slate-900/70",
                   effect:
-                    "backdrop-blur-[3px] bg-[radial-gradient(circle_at_15%_20%,rgba(255,255,255,0.45),transparent_45%)]",
+                    "backdrop-blur-[3px] bg-[radial-gradient(circle_at_15%_20%,rgba(255,255,255,0.35),transparent_45%)] dark:bg-[radial-gradient(circle_at_15%_20%,rgba(255,255,255,0.08),transparent_45%)]",
                   shine:
-                    "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.9),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.65)]",
+                    "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.85),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.55)] dark:shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.18),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.08)]",
                 }}
               />
               <div className="relative z-20 flex items-center gap-0.5 p-[3px]">
@@ -91,9 +91,9 @@ export function EditorShellHeader({
                     <Button
                       variant="ghost"
                       className={cn(
-                        "h-7 w-7 rounded-md text-black/80 hover:bg-[#f8f6f1]",
+                        "h-7 w-7 rounded-md text-foreground/75 hover:bg-background/80 hover:text-foreground dark:hover:bg-muted/60",
                         viewportType === "responsive" &&
-                          "text-foreground bg-[#f8f6f1]",
+                          "text-foreground bg-background dark:bg-background",
                       )}
                       onClick={() => onViewportTypeChange("responsive")}
                     >
@@ -109,8 +109,8 @@ export function EditorShellHeader({
                     <Button
                       variant="ghost"
                       className={cn(
-                        "h-7 w-7 rounded-md text-black/80 hover:bg-[#f8f6f1]",
-                        viewportType === "desktop" && "text-foreground bg-[#f8f6f1]",
+                        "h-7 w-7 rounded-md text-foreground/75 hover:bg-background/80 hover:text-foreground dark:hover:bg-muted/60",
+                        viewportType === "desktop" && "text-foreground bg-background dark:bg-background",
                       )}
                       onClick={() => onViewportTypeChange("desktop")}
                     >
@@ -126,8 +126,8 @@ export function EditorShellHeader({
                     <Button
                       variant="ghost"
                       className={cn(
-                        "h-7 w-7 rounded-md text-black/80 hover:bg-[#f8f6f1]",
-                        viewportType === "mobile" && "text-foreground bg-[#f8f6f1]",
+                        "h-7 w-7 rounded-md text-foreground/75 hover:bg-background/80 hover:text-foreground dark:hover:bg-muted/60",
+                        viewportType === "mobile" && "text-foreground bg-background dark:bg-background",
                       )}
                       onClick={() => onViewportTypeChange("mobile")}
                     >
@@ -148,8 +148,8 @@ export function EditorShellHeader({
                 <Button
                   variant="ghost"
                   className={cn(
-                    "h-8 w-8 rounded-lg border border-black/10 bg-[#f8f6f1]/80 text-black/85 hover:bg-[#f8f6f1]",
-                    isPreviewMode && "text-foreground bg-[#f8f6f1]",
+                    "h-8 w-8 rounded-lg border border-border bg-background/85 text-foreground/80 hover:bg-muted hover:text-foreground",
+                    isPreviewMode && "text-foreground bg-background dark:bg-background",
                   )}
                   onClick={onTogglePreviewMode}
                 >
@@ -161,7 +161,7 @@ export function EditorShellHeader({
             </Tooltip>
 
             <Button
-              className="h-8 bg-black text-white hover:bg-black/85"
+              className="h-8 bg-primary text-primary-foreground hover:bg-primary/90"
               disabled={!canSave || isSaving}
               onClick={onSave}
             >
