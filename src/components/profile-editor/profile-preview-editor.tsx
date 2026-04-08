@@ -18,6 +18,12 @@ import {
   PopoverTrigger,
 } from "~/components/shadcn/ui/popover"
 import {
+  ProfileSectionBuilder,
+  type SectionLayout,
+  type SectionLayoutItem,
+  type SectionLayoutSection,
+} from "~/components/profile-editor/profile-section-builder"
+import {
   PROFILE_EDITOR_MESSAGE_SOURCE,
   isParentToPreviewMessage,
   type PreviewToParentMessage,
@@ -44,6 +50,125 @@ const DEFAULT_COVER_HEIGHTS: CoverHeights = {
   coverHeightMobile: 220,
 }
 
+type BreakpointLayoutMap = {
+  responsive: SectionLayout
+  desktop: SectionLayout
+  mobile: SectionLayout
+}
+
+function createDefaultSectionLayout(): SectionLayout {
+  return {
+    version: 2,
+    sections: [],
+  }
+}
+
+function normalizeLayout(layout: SectionLayout): SectionLayout {
+  const sortedSections = [...layout.sections].sort((a, b) => a.order - b.order)
+  return {
+    version: 2,
+    sections: sortedSections.map((section, sectionIndex) => {
+      const sortedItems = [...section.items].sort((a, b) => a.order - b.order).slice(0, 4)
+      return {
+        id: section.id,
+        order: sectionIndex,
+        items: sortedItems.map((item, itemIndex) => ({
+          id: item.id,
+          widthPct: Math.max(5, Math.min(95, item.widthPct)),
+          order: itemIndex,
+          kind: "container",
+        })),
+      }
+    }),
+  }
+}
+
+function isSectionLayout(value: unknown): value is SectionLayout {
+  if (!value || typeof value !== "object") return false
+  const input = value as { version?: unknown; sections?: unknown }
+  if (input.version !== 2 || !Array.isArray(input.sections)) return false
+
+  return input.sections.every((section) => {
+    if (!section || typeof section !== "object") return false
+    const entry = section as Partial<SectionLayoutSection>
+    return (
+      typeof entry.id === "string" &&
+      typeof entry.order === "number" &&
+      Array.isArray(entry.items) &&
+      entry.items.every((item) => {
+        if (!item || typeof item !== "object") return false
+        const rowItem = item as Partial<SectionLayoutItem>
+        return (
+          typeof rowItem.id === "string" &&
+          typeof rowItem.widthPct === "number" &&
+          typeof rowItem.order === "number" &&
+          rowItem.kind === "container"
+        )
+      })
+    )
+  })
+}
+
+function isLegacySectionLayout(
+  value: unknown,
+): value is { version: 1; items: SectionLayoutItem[] } {
+  if (!value || typeof value !== "object") return false
+  const input = value as { version?: unknown; items?: unknown }
+  if (input.version !== 1 || !Array.isArray(input.items)) return false
+
+  return input.items.every((item) => {
+    if (!item || typeof item !== "object") return false
+    const entry = item as Partial<SectionLayoutItem>
+    return (
+      typeof entry.id === "string" &&
+      typeof entry.widthPct === "number" &&
+      typeof entry.order === "number" &&
+      entry.kind === "container"
+    )
+  })
+}
+
+function parseSectionLayout(value: unknown): SectionLayout {
+  if (isSectionLayout(value)) {
+    return normalizeLayout(value)
+  }
+
+  if (isLegacySectionLayout(value)) {
+    return normalizeLayout({
+      version: 2,
+      sections: [
+        {
+          id: "section-legacy-1",
+          order: 0,
+          items: value.items,
+        },
+      ],
+    })
+  }
+
+  return createDefaultSectionLayout()
+}
+
+function serializeLayout(layout: SectionLayout) {
+  return JSON.stringify(normalizeLayout(layout))
+}
+
+function createDefaultLayoutMap(): BreakpointLayoutMap {
+  return {
+    responsive: createDefaultSectionLayout(),
+    desktop: createDefaultSectionLayout(),
+    mobile: createDefaultSectionLayout(),
+  }
+}
+
+function areLayoutMapsEqual(a: BreakpointLayoutMap, b: BreakpointLayoutMap) {
+  return (
+    serializeLayout(a.responsive) === serializeLayout(b.responsive) &&
+    serializeLayout(a.desktop) === serializeLayout(b.desktop) &&
+    serializeLayout(a.mobile) === serializeLayout(b.mobile)
+  )
+}
+
 export function ProfilePreviewEditor() {
   const utils = api.useUtils()
   const creatorQuery = api.fan.creator.meCreator.useQuery(undefined, {
@@ -58,6 +183,9 @@ export function ProfilePreviewEditor() {
   })
   const [coverHeights, setCoverHeights] = useState<CoverHeights>(DEFAULT_COVER_HEIGHTS)
   const [savedCoverHeights, setSavedCoverHeights] = useState<CoverHeights>(DEFAULT_COVER_HEIGHTS)
+  const [sectionLayouts, setSectionLayouts] = useState<BreakpointLayoutMap>(createDefaultLayoutMap)
+  const [savedSectionLayouts, setSavedSectionLayouts] =
+    useState<BreakpointLayoutMap>(createDefaultLayoutMap)
   const activeViewport = useProfileEditorStore((state) => state.viewportType)
   const setStateFromSync = useProfileEditorStore((state) => state.setStateFromSync)
 
@@ -85,10 +213,19 @@ export function ProfilePreviewEditor() {
     setSavedProfile({ name: initialName, description: initialDescription })
     setCoverHeights(loadedCoverHeights)
     setSavedCoverHeights(loadedCoverHeights)
+
+    const loadedSectionLayouts: BreakpointLayoutMap = {
+      responsive: parseSectionLayout(creatorQuery.data.sectionLayoutDefault),
+      desktop: parseSectionLayout(creatorQuery.data.sectionLayoutDesktop),
+      mobile: parseSectionLayout(creatorQuery.data.sectionLayoutMobile),
+    }
+    setSectionLayouts(loadedSectionLayouts)
+    setSavedSectionLayouts(loadedSectionLayouts)
   }, [creatorQuery.data])
 
   const updateProfileInfo = api.fan.creator.updateCreatorProfileInfo.useMutation()
   const updateCoverHeights = api.fan.creator.updateCreatorCoverHeights.useMutation()
+  const updateSectionLayouts = api.fan.creator.updateCreatorSectionLayouts.useMutation()
 
   const updateProfileImage = api.fan.creator.changeCreatorProfilePicture.useMutation({
     onSuccess: async () => {
@@ -127,6 +264,7 @@ export function ProfilePreviewEditor() {
   const isSaving =
     updateProfileInfo.isLoading ||
     updateCoverHeights.isLoading ||
+    updateSectionLayouts.isLoading ||
     updateProfileImage.isLoading ||
     updateCoverImage.isLoading
 
@@ -136,9 +274,19 @@ export function ProfilePreviewEditor() {
       coverHeights.coverHeightDefault !== savedCoverHeights.coverHeightDefault ||
       coverHeights.coverHeightDesktop !== savedCoverHeights.coverHeightDesktop ||
       coverHeights.coverHeightMobile !== savedCoverHeights.coverHeightMobile
+    const isSectionLayoutDirty = !areLayoutMapsEqual(sectionLayouts, savedSectionLayouts)
 
-    return isProfileDirty || isCoverHeightDirty
-  }, [coverHeights, description, name, savedCoverHeights, savedProfile.description, savedProfile.name])
+    return isProfileDirty || isCoverHeightDirty || isSectionLayoutDirty
+  }, [
+    coverHeights,
+    description,
+    name,
+    savedCoverHeights,
+    savedProfile.description,
+    savedProfile.name,
+    savedSectionLayouts,
+    sectionLayouts,
+  ])
 
   const postToParent = useCallback((message: PreviewToParentMessage) => {
     window.parent.postMessage(message, window.location.origin)
@@ -209,6 +357,12 @@ export function ProfilePreviewEditor() {
       })
 
       try {
+        const normalizedSectionLayouts: BreakpointLayoutMap = {
+          responsive: normalizeLayout(sectionLayouts.responsive),
+          desktop: normalizeLayout(sectionLayouts.desktop),
+          mobile: normalizeLayout(sectionLayouts.mobile),
+        }
+
         await Promise.all([
           updateProfileInfo.mutateAsync({
             name: trimmedName,
@@ -222,6 +376,11 @@ export function ProfilePreviewEditor() {
             coverHeightDesktop: coverHeights.coverHeightDesktop,
             coverHeightMobile: coverHeights.coverHeightMobile,
           }),
+          updateSectionLayouts.mutateAsync({
+            sectionLayoutDefault: normalizedSectionLayouts.responsive,
+            sectionLayoutDesktop: normalizedSectionLayouts.desktop,
+            sectionLayoutMobile: normalizedSectionLayouts.mobile,
+          }),
         ])
 
         setName(trimmedName)
@@ -231,6 +390,8 @@ export function ProfilePreviewEditor() {
           description: trimmedDescription,
         })
         setSavedCoverHeights(coverHeights)
+        setSectionLayouts(normalizedSectionLayouts)
+        setSavedSectionLayouts(normalizedSectionLayouts)
 
         await utils.fan.creator.meCreator.invalidate()
 
@@ -267,7 +428,9 @@ export function ProfilePreviewEditor() {
       description,
       name,
       postToParent,
+      sectionLayouts,
       updateCoverHeights,
+      updateSectionLayouts,
       updateProfileInfo,
       utils.fan.creator.meCreator,
     ],
@@ -365,6 +528,27 @@ export function ProfilePreviewEditor() {
         ? coverHeights.coverHeightMobile
         : coverHeights.coverHeightDefault
   const coverHeightProgress = Math.round(((currentCoverHeight - 120) / (720 - 120)) * 100)
+  const activeSectionLayout =
+    activeViewport === "desktop"
+      ? sectionLayouts.desktop
+      : activeViewport === "mobile"
+        ? sectionLayouts.mobile
+        : sectionLayouts.responsive
+
+  const handleSectionLayoutChange = (nextLayout: SectionLayout) => {
+    const normalized = normalizeLayout(nextLayout)
+    if (activeViewport === "desktop") {
+      setSectionLayouts((prev) => ({ ...prev, desktop: normalized }))
+      return
+    }
+
+    if (activeViewport === "mobile") {
+      setSectionLayouts((prev) => ({ ...prev, mobile: normalized }))
+      return
+    }
+
+    setSectionLayouts((prev) => ({ ...prev, responsive: normalized }))
+  }
 
   return (
     <main className="light min-h-screen overflow-x-hidden">
@@ -421,7 +605,7 @@ export function ProfilePreviewEditor() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <p className="text-[16px] font-semibold text-[#25262b]">Height</p>
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-foreground">
+                  <span className="inline-flex items-center justify-center text-foreground">
                     <ViewportIcon className="h-4 w-4" />
                   </span>
                 </div>
@@ -468,7 +652,7 @@ export function ProfilePreviewEditor() {
           </Popover>
         </div>
 
-        <div className="relative mx-auto w-full md:w-[85vw] min-w-0 pt-14 px-2 md:px-0">
+        <div className="relative mx-auto w-full md:w-[85vw] min-w-0 pt-14 pb-32 px-2 md:px-0">
           <div className="absolute -top-12 left-2 md:left-0">
             <div className="relative h-24 w-24 overflow-hidden rounded-full border-4 border-white bg-[#e2e8f0] shadow-md">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -514,6 +698,11 @@ export function ProfilePreviewEditor() {
                 })}
               </p>
             </div>
+
+            <ProfileSectionBuilder
+              layout={activeSectionLayout}
+              onLayoutChange={handleSectionLayoutChange}
+            />
           </div>
         </div>
       </section>

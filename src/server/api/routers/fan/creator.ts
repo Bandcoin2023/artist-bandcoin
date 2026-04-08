@@ -46,6 +46,30 @@ const CreatorCoverHeightsSchema = z.object({
   coverHeightMobile: z.number().int().min(120).max(720),
 });
 
+const CreatorSectionLayoutItemSchema = z.object({
+  id: z.string().min(1),
+  widthPct: z.number().min(5).max(95),
+  order: z.number().int().min(0),
+  kind: z.literal("container"),
+});
+
+const CreatorSectionLayoutSectionSchema = z.object({
+  id: z.string().min(1),
+  order: z.number().int().min(0),
+  items: z.array(CreatorSectionLayoutItemSchema).max(4),
+});
+
+const CreatorSectionLayoutSchema = z.object({
+  version: z.literal(2),
+  sections: z.array(CreatorSectionLayoutSectionSchema),
+});
+
+const CreatorSectionLayoutsSchema = z.object({
+  sectionLayoutDefault: CreatorSectionLayoutSchema,
+  sectionLayoutDesktop: CreatorSectionLayoutSchema,
+  sectionLayoutMobile: CreatorSectionLayoutSchema,
+});
+
 export const creatorRouter = createTRPCRouter({
   requestForBrandCreation: protectedProcedure
     .input(RequestBrandCreateFormSchema)
@@ -367,6 +391,19 @@ export const creatorRouter = createTRPCRouter({
           coverHeightDefault: input.coverHeightDefault,
           coverHeightDesktop: input.coverHeightDesktop,
           coverHeightMobile: input.coverHeightMobile,
+        },
+        where: { id: ctx.session.user.id },
+      });
+    }),
+
+  updateCreatorSectionLayouts: protectedProcedure
+    .input(CreatorSectionLayoutsSchema)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.creator.update({
+        data: {
+          sectionLayoutDefault: input.sectionLayoutDefault,
+          sectionLayoutDesktop: input.sectionLayoutDesktop,
+          sectionLayoutMobile: input.sectionLayoutMobile,
         },
         where: { id: ctx.session.user.id },
       });

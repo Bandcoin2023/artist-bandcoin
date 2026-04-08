@@ -208,6 +208,9 @@ model Creator {
     coverHeightDefault Int @default(240)
     coverHeightDesktop Int @default(240)
     coverHeightMobile  Int @default(220)
+    sectionLayoutDefault Json?
+    sectionLayoutDesktop Json?
+    sectionLayoutMobile  Json?
     bio        String?
     name       String
 
