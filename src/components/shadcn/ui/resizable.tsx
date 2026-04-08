@@ -11,12 +11,17 @@ const ResizablePanelGroup = ({
   ...props
 }: React.ComponentProps<typeof ResizablePrimitive.Group>) => (
   <ResizablePrimitive.Group
-    className={cn("flex h-full w-full", className)}
+    className={cn("flex h-full w-full overflow-visible", className)}
     {...props}
   />
 )
 
-const ResizablePanel = ResizablePrimitive.Panel
+const ResizablePanel = ({
+  className,
+  ...props
+}: React.ComponentProps<typeof ResizablePrimitive.Panel>) => (
+  <ResizablePrimitive.Panel className={cn("overflow-visible", className)} {...props} />
+)
 
 const ResizableHandle = ({
   withHandle,

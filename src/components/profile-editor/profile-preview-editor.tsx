@@ -188,6 +188,7 @@ export function ProfilePreviewEditor() {
     useState<BreakpointLayoutMap>(createDefaultLayoutMap)
   const activeViewport = useProfileEditorStore((state) => state.viewportType)
   const setStateFromSync = useProfileEditorStore((state) => state.setStateFromSync)
+  const setSelectedOverlay = useProfileEditorStore((state) => state.setSelectedOverlay)
 
   useEffect(() => {
     if (!creatorQuery.data) return
@@ -551,7 +552,12 @@ export function ProfilePreviewEditor() {
   }
 
   return (
-    <main className="light min-h-screen overflow-x-hidden">
+    <main
+      className="light min-h-screen overflow-x-hidden"
+      onClick={() => {
+        setSelectedOverlay(null)
+      }}
+    >
       <UploadS3Button
         endpoint="coverUploader"
         id={COVER_INPUT_ID}
