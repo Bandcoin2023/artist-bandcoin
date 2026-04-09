@@ -111,9 +111,18 @@ const CreatorStatsContainerContentSchema = z.object({
   showIcons: z.boolean().optional(),
 });
 
+const CreatorNftCollectionContainerContentSchema = z.object({
+  type: z.literal("nft_collection"),
+  nftOrder: z.array(z.number().int().positive()),
+  showCreator: z.boolean().optional(),
+  showPrice: z.boolean().optional(),
+  maxItems: z.number().int().min(1).max(12).optional(),
+});
+
 const CreatorSectionContainerContentAnySchema = z.union([
   CreatorSectionContainerContentSchema,
   CreatorStatsContainerContentSchema,
+  CreatorNftCollectionContainerContentSchema,
 ]);
 
 const CreatorResponsiveContainerContentValueSchema = z.object({

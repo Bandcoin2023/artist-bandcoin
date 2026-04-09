@@ -18,6 +18,7 @@ import {
   PopoverTrigger,
 } from "~/components/shadcn/ui/popover"
 import {
+  type BuilderNftCard,
   type BuilderSubscriptionPackage,
   type SectionContainerContent,
   ProfileSectionBuilder,
@@ -63,6 +64,10 @@ function isSectionContainerContent(
     gradientMode?: unknown
     metricOrder?: unknown
     showIcons?: unknown
+    nftOrder?: unknown
+    showCreator?: unknown
+    showPrice?: unknown
+    maxItems?: unknown
   }
   if (input.type === "subscription") {
     return (
@@ -79,6 +84,15 @@ function isSectionContainerContent(
           entry === "followers" || entry === "posts" || entry === "nfts" || entry === "revenue",
       ) &&
       (input.showIcons === undefined || typeof input.showIcons === "boolean")
+    )
+  }
+  if (input.type === "nft_collection") {
+    return (
+      Array.isArray(input.nftOrder) &&
+      input.nftOrder.every((entry) => typeof entry === "number" && Number.isInteger(entry)) &&
+      (input.showCreator === undefined || typeof input.showCreator === "boolean") &&
+      (input.showPrice === undefined || typeof input.showPrice === "boolean") &&
+      (input.maxItems === undefined || typeof input.maxItems === "number")
     )
   }
   return false
@@ -173,6 +187,10 @@ function normalizeContainerContent(content: unknown): SectionContainerContent | 
     gradientMode?: unknown
     metricOrder?: unknown
     showIcons?: unknown
+    nftOrder?: unknown
+    showCreator?: unknown
+    showPrice?: unknown
+    maxItems?: unknown
   }
   if (value.type === "subscription") {
     if (!Array.isArray(value.packageOrder)) {
@@ -217,6 +235,28 @@ function normalizeContainerContent(content: unknown): SectionContainerContent | 
       type: "stats",
       metricOrder: deduped,
       showIcons: typeof value.showIcons === "boolean" ? value.showIcons : true,
+    }
+  }
+  if (value.type === "nft_collection") {
+    const deduped: number[] = []
+    if (Array.isArray(value.nftOrder)) {
+      for (const id of value.nftOrder) {
+        if (typeof id !== "number" || !Number.isInteger(id)) continue
+        if (deduped.includes(id)) continue
+        deduped.push(id)
+      }
+    }
+    const maxItemsRaw =
+      typeof value.maxItems === "number" && Number.isFinite(value.maxItems)
+        ? Math.round(value.maxItems)
+        : 6
+    const maxItems = Math.max(1, Math.min(12, maxItemsRaw))
+    return {
+      type: "nft_collection",
+      nftOrder: deduped,
+      showCreator: typeof value.showCreator === "boolean" ? value.showCreator : true,
+      showPrice: typeof value.showPrice === "boolean" ? value.showPrice : true,
+      maxItems,
     }
   }
   return null
@@ -728,6 +768,14 @@ export function ProfilePreviewEditor() {
       refetchOnWindowFocus: false,
     },
   )
+  const creatorNftsQuery = api.marketplace.market.getCreatorNftsByCreatorID.useInfiniteQuery(
+    { limit: 24, creatorId },
+    {
+      enabled: Boolean(creatorId),
+      refetchOnWindowFocus: false,
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+    },
+  )
 
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -1065,6 +1113,23 @@ export function ProfilePreviewEditor() {
     }),
     [creatorQuery.data?._count?.assets, creatorQuery.data?._count?.followers, creatorQuery.data?._count?.postGroups],
   )
+  const nftCards: BuilderNftCard[] = useMemo(() => {
+    const pages = creatorNftsQuery.data?.pages ?? []
+    const mapped = pages.flatMap((page) =>
+      page.nfts.map((entry) => ({
+        id: entry.id,
+        assetId: entry.asset.id,
+        name: entry.asset.name,
+        thumbnail: entry.asset.thumbnail,
+        creatorId: entry.asset.creatorId,
+        price: entry.price ?? null,
+        priceUSD: entry.priceUSD ?? null,
+        percentage: entry.asset.percentage ?? null,
+        mediaType: entry.asset.mediaType ?? null,
+      })),
+    )
+    return mapped
+  }, [creatorNftsQuery.data?.pages])
   const handleCreatePackage = useCallback(() => {
     if (!creatorQuery.data) return
     openForCreate({
@@ -1277,6 +1342,7 @@ export function ProfilePreviewEditor() {
               onLayoutChange={handleSectionLayoutChange}
               subscriptions={subscriptionPackages}
               statsData={statsData}
+              nftCards={nftCards}
               onCreatePackage={handleCreatePackage}
             />
           </div>

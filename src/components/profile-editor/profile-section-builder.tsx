@@ -45,6 +45,8 @@ import {
   ResizablePanelGroup,
 } from "~/components/shadcn/ui/resizable"
 import { cn } from "~/lib/utils"
+import { PLATFORM_ASSET } from "~/lib/stellar/constant"
+import { addrShort } from "~/utils/utils"
 
 export type SectionLayoutItem = {
   id: string
@@ -80,6 +82,13 @@ export type SectionContainerContent =
       metricOrder: StatsMetricKey[]
       showIcons?: boolean
     }
+  | {
+      type: "nft_collection"
+      nftOrder: number[]
+      showCreator?: boolean
+      showPrice?: boolean
+      maxItems?: number
+    }
 
 export type BuilderSubscriptionPackage = {
   id: number
@@ -99,15 +108,29 @@ export type BuilderStatsData = {
   revenue: number
 }
 
+export type BuilderNftCard = {
+  id: number
+  assetId: number
+  name: string
+  thumbnail: string | null
+  creatorId: string | null
+  price: number | null
+  priceUSD: number | null
+  percentage: number | null
+  mediaType: string | null
+}
+
 type StatsMetricKey = "followers" | "posts" | "nfts" | "revenue"
 
 const STATS_ITEM_TYPE = "PROFILE_STATS_ITEM"
+const NFT_COLLECTION_ITEM_TYPE = "PROFILE_NFT_COLLECTION_ITEM"
 const DEFAULT_STATS_METRIC_ORDER: StatsMetricKey[] = [
   "followers",
   "posts",
   "nfts",
   "revenue",
 ]
+const DEFAULT_NFT_MAX_ITEMS = 6
 
 const SECTION_ITEM_TYPE = "PROFILE_SECTION"
 const CONTAINER_ITEM_TYPE = "PROFILE_SECTION_CONTAINER"
@@ -165,6 +188,11 @@ function normalizeStatsMetricOrder(order: StatsMetricKey[] | null | undefined): 
     if (!deduped.includes(key)) deduped.push(key)
   }
   return deduped
+}
+
+function normalizeNftMaxItems(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_NFT_MAX_ITEMS
+  return Math.max(1, Math.min(12, Math.round(value)))
 }
 
 function clampWidth(width: number) {
@@ -613,17 +641,71 @@ function StatsMetricOrderRow({
   )
 }
 
+function NftOrderRow({
+  nft,
+  sectionId,
+  containerId,
+  onMove,
+}: {
+  nft: BuilderNftCard
+  sectionId: string
+  containerId: string
+  onMove: (sectionId: string, containerId: string, dragNftId: number, hoverNftId: number) => void
+}) {
+  const [{ isDragging }, dragRef] = useDrag(
+    () => ({
+      type: NFT_COLLECTION_ITEM_TYPE,
+      item: { id: nft.id },
+      collect: (monitor) => ({
+        isDragging: monitor.isDragging(),
+      }),
+    }),
+    [nft.id],
+  )
+
+  const [, dropRef] = useDrop(
+    () => ({
+      accept: NFT_COLLECTION_ITEM_TYPE,
+      hover: (item: { id: number }) => {
+        if (item.id === nft.id) return
+        onMove(sectionId, containerId, item.id, nft.id)
+      },
+    }),
+    [containerId, nft.id, onMove, sectionId],
+  )
+
+  return (
+    <div
+      ref={(node) => {
+        dragRef(node)
+        dropRef(node)
+      }}
+      className={`flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1.5 ${
+        isDragging ? "opacity-60" : "opacity-100"
+      }`}
+    >
+      <div className="inline-flex min-w-0 items-center gap-2">
+        <GripVerticalIcon className="h-4 w-4 text-muted-foreground" />
+        <span className="truncate text-sm font-medium">{nft.name}</span>
+      </div>
+      <span className="text-xs text-muted-foreground">#{nft.id}</span>
+    </div>
+  )
+}
+
 export function ProfileSectionBuilder({
   layout,
   onLayoutChange,
   subscriptions,
   statsData,
+  nftCards,
   onCreatePackage,
 }: {
   layout: SectionLayout
   onLayoutChange: (layout: SectionLayout) => void
   subscriptions: BuilderSubscriptionPackage[]
   statsData: BuilderStatsData
+  nftCards: BuilderNftCard[]
   onCreatePackage: () => void
 }) {
   const isSelectionMode = useProfileEditorStore((state) => state.isSelectionMode)
@@ -653,6 +735,8 @@ export function ProfileSectionBuilder({
     selectedContainer?.content?.type === "subscription" ? selectedContainer.content : null
   const selectedStatsContent =
     selectedContainer?.content?.type === "stats" ? selectedContainer.content : null
+  const selectedNftContent =
+    selectedContainer?.content?.type === "nft_collection" ? selectedContainer.content : null
 
   useEffect(() => {
     if (!selectedSectionId) return
@@ -968,6 +1052,28 @@ export function ProfileSectionBuilder({
     })
   }
 
+  const moveNftCard = (
+    sectionId: string,
+    containerId: string,
+    dragNftId: number,
+    hoverNftId: number,
+  ) => {
+    const order = selectedNftCards.map((nft) => nft.id)
+    const dragIndex = order.findIndex((id) => id === dragNftId)
+    const hoverIndex = order.findIndex((id) => id === hoverNftId)
+    if (dragIndex === -1 || hoverIndex === -1 || dragIndex === hoverIndex) return
+    const [dragged] = order.splice(dragIndex, 1)
+    if (dragged === undefined) return
+    order.splice(hoverIndex, 0, dragged)
+    setContainerContent(sectionId, containerId, {
+      type: "nft_collection",
+      nftOrder: order,
+      showCreator: selectedNftContent ? selectedNftContent.showCreator !== false : true,
+      showPrice: selectedNftContent ? selectedNftContent.showPrice !== false : true,
+      maxItems: normalizeNftMaxItems(selectedNftContent?.maxItems),
+    })
+  }
+
   const subscriptionPackageMap = useMemo(
     () => new Map(subscriptions.map((pkg) => [pkg.id, pkg])),
     [subscriptions],
@@ -985,6 +1091,15 @@ export function ProfileSectionBuilder({
     if (!selectedStatsContent) return []
     return normalizeStatsMetricOrder(selectedStatsContent.metricOrder)
   }, [selectedStatsContent])
+  const nftMap = useMemo(() => new Map(nftCards.map((card) => [card.id, card])), [nftCards])
+  const selectedNftCards = useMemo(() => {
+    if (!selectedNftContent) return []
+    const ordered = selectedNftContent.nftOrder
+      .map((id) => nftMap.get(id))
+      .filter((card): card is BuilderNftCard => Boolean(card))
+    const remaining = nftCards.filter((card) => !selectedNftContent.nftOrder.includes(card.id))
+    return [...ordered, ...remaining]
+  }, [nftCards, nftMap, selectedNftContent])
   const usedItemTypes = useMemo(() => {
     const used = new Set<string>()
     for (const section of orderedSections) {
@@ -998,6 +1113,7 @@ export function ProfileSectionBuilder({
   }, [orderedSections])
   const canAddSubscriptionItem = !usedItemTypes.has("subscription")
   const canAddStatsItem = !usedItemTypes.has("stats")
+  const canAddNftCollectionItem = !usedItemTypes.has("nft_collection")
 
   const renderContainerBody = (sectionId: string, item: SectionLayoutItem) => {
     if (item.content?.type === "subscription") {
@@ -1109,6 +1225,85 @@ export function ProfileSectionBuilder({
               )
             })}
           </div>
+        </div>
+      )
+    }
+
+    if (item.content?.type === "nft_collection") {
+      const content = item.content
+      const maxItems = normalizeNftMaxItems(content.maxItems)
+      const ordered = content.nftOrder
+        .map((id) => nftMap.get(id))
+        .filter((card): card is BuilderNftCard => Boolean(card))
+      const remaining = nftCards.filter((card) => !content.nftOrder.includes(card.id))
+      const visible = [...ordered, ...remaining].slice(0, maxItems)
+
+      return (
+        <div className="w-full">
+          {visible.length === 0 ? (
+            <div className="flex min-h-[180px] items-center justify-center border border-dashed border-muted-foreground/30 text-sm text-muted-foreground">
+              No NFTs available
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {visible.map((card) => {
+                const creatorLabel = card.creatorId ? addrShort(card.creatorId, 5) : "Admin"
+                const typeLabel = card.mediaType === "THREE_D" ? "3D Model" : card.mediaType || "Collectible"
+                return (
+                  <div
+                    key={`${sectionId}-${item.id}-${card.id}`}
+                    className="group h-full overflow-hidden rounded-[0.95rem] border border-[#ddd9d0] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-none"
+                  >
+                    <div className="relative flex h-full flex-col overflow-hidden p-0">
+                      <div className="relative aspect-[0.96] overflow-hidden rounded-t-[0.95rem] bg-[#d8c7bb] dark:bg-zinc-800">
+                        <img
+                          src={card.thumbnail ?? "/images/logo.png"}
+                          alt={card.name}
+                          className="h-full min-h-[240px] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        />
+                      </div>
+
+                      <div className="flex flex-1 flex-col gap-2 px-4 pb-3.5 pt-3">
+                        <div className="inline-flex w-fit rounded-[2px] bg-[#f3f1ee] px-2 py-0.5 text-[0.64rem] font-medium text-black/60 dark:bg-zinc-800 dark:text-zinc-300">
+                          {typeLabel}
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h2 className="line-clamp-1 text-[0.98rem] font-semibold leading-tight text-black/90 dark:text-zinc-100">
+                              {card.name}
+                            </h2>
+                          </div>
+                          {content.showCreator !== false ? (
+                            <p className="shrink-0 truncate font-mono text-sm text-foreground/70 dark:text-zinc-400">
+                              {creatorLabel}
+                            </p>
+                          ) : null}
+                        </div>
+
+                        <div className="relative overflow-hidden rounded-none border-0">
+                          <div className="relative z-10 space-y-0">
+                            {content.showPrice !== false && card.price ? (
+                              <div className="flex items-center gap-2 text-sm font-medium text-black/88 dark:text-zinc-100">
+                                <span>{card.price}</span>
+                                <span className="text-black/55 dark:text-zinc-400">
+                                  {PLATFORM_ASSET.code.toUpperCase()}
+                                </span>
+                              </div>
+                            ) : null}
+                            {content.showPrice !== false && card.priceUSD ? (
+                              <p className="text-sm text-black/52 dark:text-zinc-400">
+                                {`Approx. $${card.priceUSD}`}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )
     }
@@ -1413,7 +1608,7 @@ export function ProfileSectionBuilder({
               <DialogDescription>Select what to place in this container.</DialogDescription>
             </DialogHeader>
             <div className="pt-2">
-              {canAddSubscriptionItem || canAddStatsItem ? (
+              {canAddSubscriptionItem || canAddStatsItem || canAddNftCollectionItem ? (
                 <div className="space-y-2">
                   {canAddSubscriptionItem ? (
                     <Button
@@ -1449,6 +1644,26 @@ export function ProfileSectionBuilder({
                       }}
                     >
                       Stats
+                    </Button>
+                  ) : null}
+                  {canAddNftCollectionItem ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-10 w-full justify-start"
+                      onClick={() => {
+                        if (!addItemTarget) return
+                        setContainerContent(addItemTarget.sectionId, addItemTarget.containerId, {
+                          type: "nft_collection",
+                          nftOrder: nftCards.map((card) => card.id),
+                          showCreator: true,
+                          showPrice: true,
+                          maxItems: DEFAULT_NFT_MAX_ITEMS,
+                        })
+                        setAddItemTarget(null)
+                      }}
+                    >
+                      Creator&apos;s NFT Collection
                     </Button>
                   ) : null}
                 </div>
@@ -1559,6 +1774,109 @@ export function ProfileSectionBuilder({
                         metricOrder: normalizeStatsMetricOrder(selectedStatsContent?.metricOrder),
                         showIcons: checked,
                       })
+                    }
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-9 w-full border border-black/20 bg-white/80 text-red-600 hover:bg-white"
+                  onClick={() => deleteContainer(selectedContainerSectionId, selectedContainer.id)}
+                >
+                  Delete container
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        {isSelectionMode &&
+        selectedOverlay?.kind === "container" &&
+        selectedContainerSectionId &&
+        selectedContainer?.content?.type === "nft_collection" ? (
+          <div className="pointer-events-none fixed right-3 top-1/2 z-[85] -translate-y-1/2">
+            <div className="pointer-events-auto relative w-[300px] overflow-hidden rounded-2xl border border-black/20 p-3">
+              <Glass
+                className={{
+                  root: "pointer-events-none absolute inset-0 z-0 rounded-2xl *:rounded-2xl",
+                  tint: "bg-[#f3f1ea]/90",
+                  effect: "backdrop-blur-[10px]",
+                  shine:
+                    "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.85),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.5)]",
+                }}
+              />
+              <div className="relative z-10 space-y-3">
+                <p className="text-sm font-semibold">NFT collection container</p>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Reorder NFTs</p>
+                  <div className="max-h-[220px] space-y-1 overflow-y-auto pr-1">
+                    {selectedNftCards.map((nft) => (
+                      <NftOrderRow
+                        key={`${selectedContainer.id}-${nft.id}`}
+                        nft={nft}
+                        sectionId={selectedContainerSectionId}
+                        containerId={selectedContainer.id}
+                        onMove={moveNftCard}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white/80 px-3">
+                  <span className="text-xs font-medium text-foreground">Show creator</span>
+                  <Switch
+                    checked={selectedNftContent?.showCreator !== false}
+                    onCheckedChange={(checked) =>
+                      setContainerContent(selectedContainerSectionId, selectedContainer.id, {
+                        type: "nft_collection",
+                        nftOrder: selectedNftContent?.nftOrder ?? [],
+                        showCreator: checked,
+                        showPrice: selectedNftContent?.showPrice !== false,
+                        maxItems: normalizeNftMaxItems(selectedNftContent?.maxItems),
+                      })
+                    }
+                  />
+                </div>
+                <div className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white/80 px-3">
+                  <span className="text-xs font-medium text-foreground">Show price</span>
+                  <Switch
+                    checked={selectedNftContent?.showPrice !== false}
+                    onCheckedChange={(checked) =>
+                      setContainerContent(selectedContainerSectionId, selectedContainer.id, {
+                        type: "nft_collection",
+                        nftOrder: selectedNftContent?.nftOrder ?? [],
+                        showCreator: selectedNftContent?.showCreator !== false,
+                        showPrice: checked,
+                        maxItems: normalizeNftMaxItems(selectedNftContent?.maxItems),
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-foreground">Max items</span>
+                    <span className="text-xs text-muted-foreground">
+                      {normalizeNftMaxItems(selectedNftContent?.maxItems)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={12}
+                    step={1}
+                    value={normalizeNftMaxItems(selectedNftContent?.maxItems)}
+                    onChange={(event) =>
+                      setContainerContent(selectedContainerSectionId, selectedContainer.id, {
+                        type: "nft_collection",
+                        nftOrder: selectedNftContent?.nftOrder ?? [],
+                        showCreator: selectedNftContent?.showCreator !== false,
+                        showPrice: selectedNftContent?.showPrice !== false,
+                        maxItems: Number.parseInt(event.target.value, 10),
+                      })
+                    }
+                    className="cover-height-slider w-full"
+                    style={
+                      {
+                        "--cover-progress": `${Math.round((normalizeNftMaxItems(selectedNftContent?.maxItems) / 12) * 100)}%`,
+                      } as CSSProperties
                     }
                   />
                 </div>
