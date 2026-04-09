@@ -63,6 +63,7 @@ export type SectionLayoutSection = {
   hideSectionFrame?: boolean
   marginTop?: number
   marginBottom?: number
+  containerGap?: number
   items: SectionLayoutItem[]
 }
 
@@ -201,6 +202,10 @@ function clampWidth(width: number) {
 
 function clampSectionMargin(value: number) {
   return Math.max(0, Math.min(240, Math.round(value)))
+}
+
+function clampSectionContainerGap(value: number) {
+  return Math.max(0, Math.min(64, Math.round(value)))
 }
 
 function createContainer(seed: number): SectionLayoutItem {
@@ -840,6 +845,7 @@ export function ProfileSectionBuilder({
       hideSectionFrame: false,
       marginTop: 0,
       marginBottom: 0,
+      containerGap: 0,
       items: [],
     }
 
@@ -901,6 +907,20 @@ export function ProfileSectionBuilder({
                 nextMargins.marginBottom === undefined
                   ? section.marginBottom ?? 0
                   : clampSectionMargin(nextMargins.marginBottom),
+            }
+          : section,
+      ),
+    })
+  }
+
+  const setSectionContainerGap = (sectionId: string, gap: number) => {
+    onLayoutChange({
+      version: 2,
+      sections: orderedSections.map((section) =>
+        section.id === sectionId
+          ? {
+              ...section,
+              containerGap: clampSectionContainerGap(gap),
             }
           : section,
       ),
@@ -1347,6 +1367,7 @@ export function ProfileSectionBuilder({
 
         {orderedSections.map((section) => {
           const orderedItems = [...section.items].sort((a, b) => a.order - b.order)
+          const sectionGap = clampSectionContainerGap(section.containerGap ?? 0)
           return (
             <SectionShell
               key={section.id}
@@ -1409,7 +1430,10 @@ export function ProfileSectionBuilder({
                         </SectionContainerCard>
                       </ResizablePanel>
                       {index < orderedItems.length - 1 ? (
-                        <ResizableHandle className="h-px w-full bg-border/45 hover:bg-border/70" />
+                        <ResizableHandle
+                          className="w-full bg-transparent hover:bg-border/30"
+                          style={{ height: `${Math.max(1, sectionGap)}px` }}
+                        />
                       ) : null}
                     </Fragment>
                   ))}
@@ -1453,7 +1477,10 @@ export function ProfileSectionBuilder({
                         </SectionContainerCard>
                       </ResizablePanel>
                       {index < orderedItems.length - 1 ? (
-                        <ResizableHandle className="w-px bg-border/45 hover:bg-border/70" />
+                        <ResizableHandle
+                          className="bg-transparent hover:bg-border/30"
+                          style={{ width: `${Math.max(1, sectionGap)}px` }}
+                        />
                       ) : null}
                     </Fragment>
                   ))}
@@ -1567,6 +1594,31 @@ export function ProfileSectionBuilder({
                           }
                           className="cover-height-slider w-full"
                           style={{ "--cover-progress": `${Math.round(((selectedSection.marginBottom ?? 0) / 240) * 100)}%` } as CSSProperties}
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[16px] font-semibold text-[#25262b]">Container Gap</p>
+                          <span className="text-sm text-[#4e4f55]">{selectedSection.containerGap ?? 0}px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={64}
+                          step={1}
+                          value={selectedSection.containerGap ?? 0}
+                          onChange={(event) =>
+                            setSectionContainerGap(
+                              selectedSection.id,
+                              Number.parseInt(event.target.value, 10),
+                            )
+                          }
+                          className="cover-height-slider w-full"
+                          style={
+                            {
+                              "--cover-progress": `${Math.round(((selectedSection.containerGap ?? 0) / 64) * 100)}%`,
+                            } as CSSProperties
+                          }
                         />
                       </div>
                     </div>

@@ -127,6 +127,7 @@ type SectionLayoutConfigSection = {
   hideSectionFrame: ResponsiveValue<boolean>
   marginTop: ResponsiveValue<number>
   marginBottom: ResponsiveValue<number>
+  containerGap: ResponsiveValue<number>
   items: SectionLayoutConfigItem[]
 }
 
@@ -162,6 +163,7 @@ function normalizeLayout(layout: SectionLayout): SectionLayout {
         hideSectionFrame: Boolean(section.hideSectionFrame),
         marginTop: normalizeSectionMargin(section.marginTop),
         marginBottom: normalizeSectionMargin(section.marginBottom),
+        containerGap: normalizeSectionContainerGap(section.containerGap),
         items: sortedItems.map((item, itemIndex) => ({
           id: item.id,
           widthPct: Math.max(5, Math.min(95, item.widthPct)),
@@ -177,6 +179,11 @@ function normalizeLayout(layout: SectionLayout): SectionLayout {
 function normalizeSectionMargin(value: number | null | undefined): number {
   if (typeof value !== "number" || !Number.isFinite(value)) return 0
   return Math.max(0, Math.min(240, Math.round(value)))
+}
+
+function normalizeSectionContainerGap(value: number | null | undefined): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0
+  return Math.max(0, Math.min(64, Math.round(value)))
 }
 
 function normalizeContainerContent(content: unknown): SectionContainerContent | null {
@@ -276,6 +283,7 @@ function isSectionLayout(value: unknown): value is SectionLayout {
       (entry.direction === "row" || entry.direction === "column") &&
       (entry.marginTop === undefined || typeof entry.marginTop === "number") &&
       (entry.marginBottom === undefined || typeof entry.marginBottom === "number") &&
+      (entry.containerGap === undefined || typeof entry.containerGap === "number") &&
       Array.isArray(entry.items) &&
       entry.items.every((item) => {
         if (!item || typeof item !== "object") return false
@@ -317,6 +325,7 @@ function isSectionLayoutConfig(value: unknown): value is SectionLayoutConfig {
       hideSectionFrame?: unknown
       marginTop?: unknown
       marginBottom?: unknown
+      containerGap?: unknown
       items?: unknown
     }
     if (typeof item.id !== "string" || typeof item.order !== "number") return false
@@ -345,6 +354,12 @@ function isSectionLayoutConfig(value: unknown): value is SectionLayoutConfig {
     if (
       item.marginBottom !== undefined &&
       !isResponsiveValue(item.marginBottom, (candidate): candidate is number => typeof candidate === "number")
+    ) {
+      return false
+    }
+    if (
+      item.containerGap !== undefined &&
+      !isResponsiveValue(item.containerGap, (candidate): candidate is number => typeof candidate === "number")
     ) {
       return false
     }
@@ -469,6 +484,17 @@ function normalizeLayoutConfig(layoutConfig: SectionLayoutConfig): SectionLayout
             ? null
             : normalizeSectionMargin(section.marginBottom.mobile),
       }
+      const normalizedContainerGap: ResponsiveValue<number> = {
+        default: normalizeSectionContainerGap(section.containerGap?.default),
+        desktop:
+          section.containerGap?.desktop === null || section.containerGap?.desktop === undefined
+            ? null
+            : normalizeSectionContainerGap(section.containerGap.desktop),
+        mobile:
+          section.containerGap?.mobile === null || section.containerGap?.mobile === undefined
+            ? null
+            : normalizeSectionContainerGap(section.containerGap.mobile),
+      }
 
       return {
         id: section.id,
@@ -477,6 +503,7 @@ function normalizeLayoutConfig(layoutConfig: SectionLayoutConfig): SectionLayout
         hideSectionFrame: normalizedHideSectionFrame,
         marginTop: normalizedMarginTop,
         marginBottom: normalizedMarginBottom,
+        containerGap: normalizedContainerGap,
         items: sortedItems.map((item, itemIndex) => ({
           id: item.id,
           order: itemIndex,
@@ -522,6 +549,7 @@ function resolveLayoutForViewport(
       hideSectionFrame: resolveResponsiveValue(section.hideSectionFrame, viewport),
       marginTop: resolveResponsiveValue(section.marginTop, viewport),
       marginBottom: resolveResponsiveValue(section.marginBottom, viewport),
+      containerGap: resolveResponsiveValue(section.containerGap, viewport),
       items: section.items.map((item) => ({
         id: item.id,
         order: item.order,
@@ -612,6 +640,21 @@ function createSectionLayoutConfigFromLegacyLayouts(layouts: BreakpointLayoutMap
             mobileSection &&
             normalizeSectionMargin(mobileSection.marginBottom) !== normalizeSectionMargin(section.marginBottom)
               ? normalizeSectionMargin(mobileSection.marginBottom)
+              : null,
+        },
+        containerGap: {
+          default: normalizeSectionContainerGap(section.containerGap),
+          desktop:
+            desktopSection &&
+            normalizeSectionContainerGap(desktopSection.containerGap) !==
+              normalizeSectionContainerGap(section.containerGap)
+              ? normalizeSectionContainerGap(desktopSection.containerGap)
+              : null,
+          mobile:
+            mobileSection &&
+            normalizeSectionContainerGap(mobileSection.containerGap) !==
+              normalizeSectionContainerGap(section.containerGap)
+              ? normalizeSectionContainerGap(mobileSection.containerGap)
               : null,
         },
         items: section.items.map((item) => {
@@ -718,6 +761,15 @@ function updateLayoutConfigForViewport(
         },
         viewport,
         normalizeSectionMargin(section.marginBottom),
+      ),
+      containerGap: withResponsiveValue(
+        currentSection?.containerGap ?? {
+          default: normalizeSectionContainerGap(section.containerGap),
+          desktop: null,
+          mobile: null,
+        },
+        viewport,
+        normalizeSectionContainerGap(section.containerGap),
       ),
       items: section.items.map((item) => {
         const currentItem = currentItems.get(item.id)

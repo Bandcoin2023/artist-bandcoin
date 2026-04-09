@@ -60,6 +60,7 @@ const CreatorSectionLayoutSectionSchema = z.object({
   hideSectionFrame: z.boolean().optional(),
   marginTop: z.number().int().min(0).max(240).optional(),
   marginBottom: z.number().int().min(0).max(240).optional(),
+  containerGap: z.number().int().min(0).max(64).optional(),
   items: z.array(CreatorSectionLayoutItemSchema).max(4),
 });
 
@@ -146,6 +147,11 @@ const CreatorSectionLayoutConfigSectionSchema = z.object({
   hideSectionFrame: CreatorResponsiveBooleanValueSchema,
   marginTop: CreatorResponsiveSectionMarginValueSchema,
   marginBottom: CreatorResponsiveSectionMarginValueSchema,
+  containerGap: z.object({
+    default: z.number().int().min(0).max(64),
+    desktop: z.number().int().min(0).max(64).nullable(),
+    mobile: z.number().int().min(0).max(64).nullable(),
+  }),
   items: z.array(CreatorSectionLayoutConfigItemSchema).max(4),
 });
 
