@@ -6,7 +6,7 @@ import { create } from 'zustand'
 // Define the data type
 type SubscriptionData = {
     customPageAsset?: string | null
-    pageAsset?: CreatorPageAsset | null | undefined
+    pageAsset?: Pick<CreatorPageAsset, "code" | "issuer"> | CreatorPageAsset | null | undefined
 }
 
 // Define the store type

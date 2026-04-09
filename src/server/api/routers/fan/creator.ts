@@ -56,6 +56,8 @@ const CreatorSectionLayoutItemSchema = z.object({
 const CreatorSectionLayoutSectionSchema = z.object({
   id: z.string().min(1),
   order: z.number().int().min(0),
+  direction: z.enum(["row", "column"]).default("row"),
+  hideSectionFrame: z.boolean().optional(),
   items: z.array(CreatorSectionLayoutItemSchema).max(4),
 });
 
@@ -64,10 +66,66 @@ const CreatorSectionLayoutSchema = z.object({
   sections: z.array(CreatorSectionLayoutSectionSchema),
 });
 
+const CreatorResponsiveDirectionValueSchema = z.object({
+  default: z.enum(["row", "column"]),
+  desktop: z.enum(["row", "column"]).nullable(),
+  mobile: z.enum(["row", "column"]).nullable(),
+});
+
+const CreatorResponsiveNumberValueSchema = z.object({
+  default: z.number().min(5).max(95),
+  desktop: z.number().min(5).max(95).nullable(),
+  mobile: z.number().min(5).max(95).nullable(),
+});
+
+const CreatorResponsiveBooleanValueSchema = z.object({
+  default: z.boolean(),
+  desktop: z.boolean().nullable(),
+  mobile: z.boolean().nullable(),
+});
+
+const CreatorSectionContainerContentSchema = z.object({
+  type: z.literal("subscription"),
+  packageOrder: z.array(z.number().int().positive()),
+  gradientMode: z.boolean().optional(),
+});
+
+const CreatorResponsiveContainerContentValueSchema = z.object({
+  default: CreatorSectionContainerContentSchema.nullable(),
+  desktop: CreatorSectionContainerContentSchema.nullable(),
+  mobile: CreatorSectionContainerContentSchema.nullable(),
+});
+
+const CreatorSectionLayoutConfigItemSchema = z.object({
+  id: z.string().min(1),
+  order: z.number().int().min(0),
+  kind: z.literal("container"),
+  widthPct: CreatorResponsiveNumberValueSchema,
+  content: CreatorResponsiveContainerContentValueSchema.optional(),
+});
+
+const CreatorSectionLayoutConfigSectionSchema = z.object({
+  id: z.string().min(1),
+  order: z.number().int().min(0),
+  direction: CreatorResponsiveDirectionValueSchema,
+  hideSectionFrame: CreatorResponsiveBooleanValueSchema,
+  items: z.array(CreatorSectionLayoutConfigItemSchema).max(4),
+});
+
+const CreatorSectionLayoutConfigSchema = z.object({
+  version: z.literal(3),
+  sections: z.array(CreatorSectionLayoutConfigSectionSchema),
+});
+
+const CreatorSectionLayoutPersistSchema = z.union([
+  CreatorSectionLayoutSchema,
+  CreatorSectionLayoutConfigSchema,
+]);
+
 const CreatorSectionLayoutsSchema = z.object({
-  sectionLayoutDefault: CreatorSectionLayoutSchema,
-  sectionLayoutDesktop: CreatorSectionLayoutSchema,
-  sectionLayoutMobile: CreatorSectionLayoutSchema,
+  sectionLayoutDefault: CreatorSectionLayoutPersistSchema,
+  sectionLayoutDesktop: CreatorSectionLayoutPersistSchema.nullable(),
+  sectionLayoutMobile: CreatorSectionLayoutPersistSchema.nullable(),
 });
 
 export const creatorRouter = createTRPCRouter({
@@ -399,11 +457,16 @@ export const creatorRouter = createTRPCRouter({
   updateCreatorSectionLayouts: protectedProcedure
     .input(CreatorSectionLayoutsSchema)
     .mutation(async ({ ctx, input }) => {
+      const emptyLayout = {
+        version: 2 as const,
+        sections: [],
+      };
+
       await ctx.db.creator.update({
         data: {
           sectionLayoutDefault: input.sectionLayoutDefault,
-          sectionLayoutDesktop: input.sectionLayoutDesktop,
-          sectionLayoutMobile: input.sectionLayoutMobile,
+          sectionLayoutDesktop: input.sectionLayoutDesktop ?? emptyLayout,
+          sectionLayoutMobile: input.sectionLayoutMobile ?? emptyLayout,
         },
         where: { id: ctx.session.user.id },
       });

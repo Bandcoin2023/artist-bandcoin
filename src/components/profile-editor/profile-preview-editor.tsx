@@ -18,6 +18,8 @@ import {
   PopoverTrigger,
 } from "~/components/shadcn/ui/popover"
 import {
+  type BuilderSubscriptionPackage,
+  type SectionContainerContent,
   ProfileSectionBuilder,
   type SectionLayout,
   type SectionLayoutItem,
@@ -29,6 +31,7 @@ import {
   type PreviewToParentMessage,
 } from "~/components/profile-editor/lib/communication"
 import { useProfileEditorStore } from "~/components/profile-editor/store/editor-store"
+import { useAddSubsciptionModalStore } from "~/components/store/add-subscription-modal-store"
 
 const COVER_INPUT_ID = "profile-editor-cover-upload-input"
 const PROFILE_INPUT_ID = "profile-editor-avatar-upload-input"
@@ -50,15 +53,64 @@ const DEFAULT_COVER_HEIGHTS: CoverHeights = {
   coverHeightMobile: 220,
 }
 
+function isSectionContainerContent(
+  value: unknown,
+): value is SectionContainerContent {
+  if (!value || typeof value !== "object") return false
+  const input = value as { type?: unknown; packageOrder?: unknown; gradientMode?: unknown }
+  return (
+    input.type === "subscription" &&
+    Array.isArray(input.packageOrder) &&
+    input.packageOrder.every((entry) => typeof entry === "number" && Number.isInteger(entry)) &&
+    (input.gradientMode === undefined || typeof input.gradientMode === "boolean")
+  )
+}
+
 type BreakpointLayoutMap = {
   responsive: SectionLayout
   desktop: SectionLayout
   mobile: SectionLayout
 }
 
+type ViewportKey = "responsive" | "desktop" | "mobile"
+
+type ResponsiveValue<T> = {
+  default: T
+  desktop: T | null
+  mobile: T | null
+}
+
+type SectionLayoutConfigItem = {
+  id: string
+  order: number
+  kind: "container"
+  widthPct: ResponsiveValue<number>
+  content: ResponsiveValue<SectionContainerContent | null>
+}
+
+type SectionLayoutConfigSection = {
+  id: string
+  order: number
+  direction: ResponsiveValue<"row" | "column">
+  hideSectionFrame: ResponsiveValue<boolean>
+  items: SectionLayoutConfigItem[]
+}
+
+type SectionLayoutConfig = {
+  version: 3
+  sections: SectionLayoutConfigSection[]
+}
+
 function createDefaultSectionLayout(): SectionLayout {
   return {
     version: 2,
+    sections: [],
+  }
+}
+
+function createDefaultSectionLayoutConfig(): SectionLayoutConfig {
+  return {
+    version: 3,
     sections: [],
   }
 }
@@ -72,14 +124,43 @@ function normalizeLayout(layout: SectionLayout): SectionLayout {
       return {
         id: section.id,
         order: sectionIndex,
+        direction: section.direction === "column" ? "column" : "row",
+        hideSectionFrame: Boolean(section.hideSectionFrame),
         items: sortedItems.map((item, itemIndex) => ({
           id: item.id,
           widthPct: Math.max(5, Math.min(95, item.widthPct)),
           order: itemIndex,
           kind: "container",
+          content: normalizeContainerContent(item.content),
         })),
       }
     }),
+  }
+}
+
+function normalizeContainerContent(content: unknown): SectionContainerContent | null {
+  if (!content || typeof content !== "object") return null
+  const value = content as { type?: unknown; packageOrder?: unknown; gradientMode?: unknown }
+  if (value.type !== "subscription") return null
+  if (!Array.isArray(value.packageOrder)) {
+    return {
+      type: "subscription",
+      packageOrder: [],
+      gradientMode: false,
+    }
+  }
+
+  const deduped: number[] = []
+  for (const id of value.packageOrder) {
+    if (typeof id !== "number" || !Number.isInteger(id)) continue
+    if (deduped.includes(id)) continue
+    deduped.push(id)
+  }
+
+  return {
+    type: "subscription",
+    packageOrder: deduped,
+    gradientMode: typeof value.gradientMode === "boolean" ? value.gradientMode : false,
   }
 }
 
@@ -94,6 +175,7 @@ function isSectionLayout(value: unknown): value is SectionLayout {
     return (
       typeof entry.id === "string" &&
       typeof entry.order === "number" &&
+      (entry.direction === "row" || entry.direction === "column") &&
       Array.isArray(entry.items) &&
       entry.items.every((item) => {
         if (!item || typeof item !== "object") return false
@@ -102,29 +184,77 @@ function isSectionLayout(value: unknown): value is SectionLayout {
           typeof rowItem.id === "string" &&
           typeof rowItem.widthPct === "number" &&
           typeof rowItem.order === "number" &&
-          rowItem.kind === "container"
+          rowItem.kind === "container" &&
+          (rowItem.content === undefined || rowItem.content === null || Boolean(normalizeContainerContent(rowItem.content)))
         )
       })
     )
   })
 }
 
-function isLegacySectionLayout(
+function isResponsiveValue<T>(
   value: unknown,
-): value is { version: 1; items: SectionLayoutItem[] } {
+  validate: (candidate: unknown) => candidate is T,
+): value is ResponsiveValue<T> {
   if (!value || typeof value !== "object") return false
-  const input = value as { version?: unknown; items?: unknown }
-  if (input.version !== 1 || !Array.isArray(input.items)) return false
+  const input = value as { default?: unknown; desktop?: unknown; mobile?: unknown }
+  const desktopValid = input.desktop === null || validate(input.desktop)
+  const mobileValid = input.mobile === null || validate(input.mobile)
+  return validate(input.default) && desktopValid && mobileValid
+}
 
-  return input.items.every((item) => {
-    if (!item || typeof item !== "object") return false
-    const entry = item as Partial<SectionLayoutItem>
-    return (
-      typeof entry.id === "string" &&
-      typeof entry.widthPct === "number" &&
-      typeof entry.order === "number" &&
-      entry.kind === "container"
-    )
+function isSectionLayoutConfig(value: unknown): value is SectionLayoutConfig {
+  if (!value || typeof value !== "object") return false
+  const input = value as { version?: unknown; sections?: unknown }
+  if (input.version !== 3 || !Array.isArray(input.sections)) return false
+
+  return input.sections.every((section) => {
+    if (!section || typeof section !== "object") return false
+    const item = section as {
+      id?: unknown
+      order?: unknown
+      direction?: unknown
+      hideSectionFrame?: unknown
+      items?: unknown
+    }
+    if (typeof item.id !== "string" || typeof item.order !== "number") return false
+    if (
+      !isResponsiveValue(item.direction, (candidate): candidate is "row" | "column" =>
+        candidate === "row" || candidate === "column",
+      )
+    ) {
+      return false
+    }
+    if (
+      item.hideSectionFrame !== undefined &&
+      !isResponsiveValue(
+        item.hideSectionFrame,
+        (candidate): candidate is boolean => typeof candidate === "boolean",
+      )
+    ) {
+      return false
+    }
+    if (!Array.isArray(item.items)) return false
+    return item.items.every((container) => {
+      if (!container || typeof container !== "object") return false
+      const c = container as {
+        id?: unknown
+        order?: unknown
+        kind?: unknown
+        widthPct?: unknown
+        content?: unknown
+      }
+      return (
+        typeof c.id === "string" &&
+        typeof c.order === "number" &&
+        c.kind === "container" &&
+        isResponsiveValue(c.widthPct, (candidate): candidate is number => typeof candidate === "number") &&
+        (c.content === undefined ||
+          isResponsiveValue(c.content, (candidate): candidate is SectionContainerContent | null =>
+            candidate === null || isSectionContainerContent(candidate),
+          ))
+      )
+    })
   })
 }
 
@@ -133,47 +263,326 @@ function parseSectionLayout(value: unknown): SectionLayout {
     return normalizeLayout(value)
   }
 
-  if (isLegacySectionLayout(value)) {
-    return normalizeLayout({
-      version: 2,
-      sections: [
-        {
-          id: "section-legacy-1",
-          order: 0,
-          items: value.items,
-        },
-      ],
-    })
-  }
-
   return createDefaultSectionLayout()
 }
 
-function serializeLayout(layout: SectionLayout) {
-  return JSON.stringify(normalizeLayout(layout))
+function normalizeResponsiveNumber(value: number): number {
+  return Math.max(5, Math.min(95, value))
 }
 
-function createDefaultLayoutMap(): BreakpointLayoutMap {
+function resolveResponsiveValue<T>(value: ResponsiveValue<T>, viewport: ViewportKey): T {
+  if (viewport === "desktop" && value.desktop !== null) return value.desktop
+  if (viewport === "mobile" && value.mobile !== null) return value.mobile
+  return value.default
+}
+
+function withResponsiveValue<T>(
+  current: ResponsiveValue<T>,
+  viewport: ViewportKey,
+  nextValue: T,
+): ResponsiveValue<T> {
+  if (viewport === "responsive") {
+    return {
+      ...current,
+      default: nextValue,
+    }
+  }
+
+  if (viewport === "desktop") {
+    return {
+      ...current,
+      desktop: nextValue,
+    }
+  }
+
   return {
-    responsive: createDefaultSectionLayout(),
-    desktop: createDefaultSectionLayout(),
-    mobile: createDefaultSectionLayout(),
+    ...current,
+    mobile: nextValue,
   }
 }
 
-function areLayoutMapsEqual(a: BreakpointLayoutMap, b: BreakpointLayoutMap) {
-  return (
-    serializeLayout(a.responsive) === serializeLayout(b.responsive) &&
-    serializeLayout(a.desktop) === serializeLayout(b.desktop) &&
-    serializeLayout(a.mobile) === serializeLayout(b.mobile)
+function normalizeLayoutConfig(layoutConfig: SectionLayoutConfig): SectionLayoutConfig {
+  const sortedSections = [...layoutConfig.sections].sort((a, b) => a.order - b.order)
+  return {
+    version: 3,
+    sections: sortedSections.map((section, sectionIndex) => {
+      const sortedItems = [...section.items].sort((a, b) => a.order - b.order).slice(0, 4)
+      const normalizedDirection: ResponsiveValue<"row" | "column"> = {
+        default: section.direction.default === "column" ? "column" : "row",
+        desktop:
+          section.direction.desktop === null
+            ? null
+            : section.direction.desktop === "column"
+              ? "column"
+              : "row",
+        mobile:
+          section.direction.mobile === null
+            ? null
+            : section.direction.mobile === "column"
+              ? "column"
+              : "row",
+      }
+      const normalizedHideSectionFrame: ResponsiveValue<boolean> = {
+        default: Boolean(section.hideSectionFrame?.default),
+        desktop:
+          section.hideSectionFrame?.desktop === null || section.hideSectionFrame?.desktop === undefined
+            ? null
+            : Boolean(section.hideSectionFrame.desktop),
+        mobile:
+          section.hideSectionFrame?.mobile === null || section.hideSectionFrame?.mobile === undefined
+            ? null
+            : Boolean(section.hideSectionFrame.mobile),
+      }
+
+      return {
+        id: section.id,
+        order: sectionIndex,
+        direction: normalizedDirection,
+        hideSectionFrame: normalizedHideSectionFrame,
+        items: sortedItems.map((item, itemIndex) => ({
+          id: item.id,
+          order: itemIndex,
+          kind: "container" as const,
+          widthPct: {
+            default: normalizeResponsiveNumber(item.widthPct.default),
+            desktop:
+              item.widthPct.desktop === null ? null : normalizeResponsiveNumber(item.widthPct.desktop),
+            mobile: item.widthPct.mobile === null ? null : normalizeResponsiveNumber(item.widthPct.mobile),
+          },
+          // Backward-safe: v3 configs created before container content support may omit `content`.
+          ...(item.content
+            ? {
+                content: {
+                  default: normalizeContainerContent(item.content.default),
+                  desktop: normalizeContainerContent(item.content.desktop),
+                  mobile: normalizeContainerContent(item.content.mobile),
+                },
+              }
+            : {
+                content: {
+                  default: null,
+                  desktop: null,
+                  mobile: null,
+                },
+              }),
+        })),
+      }
+    }),
+  }
+}
+
+function resolveLayoutForViewport(
+  layoutConfig: SectionLayoutConfig,
+  viewport: ViewportKey,
+): SectionLayout {
+  return normalizeLayout({
+    version: 2,
+    sections: layoutConfig.sections.map((section) => ({
+      id: section.id,
+      order: section.order,
+      direction: resolveResponsiveValue(section.direction, viewport),
+      hideSectionFrame: resolveResponsiveValue(section.hideSectionFrame, viewport),
+      items: section.items.map((item) => ({
+        id: item.id,
+        order: item.order,
+        kind: "container" as const,
+        widthPct: resolveResponsiveValue(item.widthPct, viewport),
+        content: resolveResponsiveValue(item.content, viewport),
+      })),
+    })),
+  })
+}
+
+function serializeLayoutConfig(layoutConfig: SectionLayoutConfig) {
+  return JSON.stringify(normalizeLayoutConfig(layoutConfig))
+}
+
+function createSectionLayoutConfigFromLegacyLayouts(layouts: BreakpointLayoutMap): SectionLayoutConfig {
+  const defaultLayout =
+    layouts.responsive.sections.length > 0
+      ? layouts.responsive
+      : layouts.desktop.sections.length > 0
+        ? layouts.desktop
+        : layouts.mobile
+
+  const desktopSections = new Map<string, SectionLayoutSection>(
+    layouts.desktop.sections.map((section) => [section.id, section]),
   )
+  const mobileSections = new Map<string, SectionLayoutSection>(
+    layouts.mobile.sections.map((section) => [section.id, section]),
+  )
+
+  return normalizeLayoutConfig({
+    version: 3,
+    sections: defaultLayout.sections.map((section) => {
+      const desktopSection = desktopSections.get(section.id)
+      const mobileSection = mobileSections.get(section.id)
+      const desktopItems = new Map<string, SectionLayoutItem>(
+        (desktopSection?.items ?? []).map((item) => [item.id, item]),
+      )
+      const mobileItems = new Map<string, SectionLayoutItem>(
+        (mobileSection?.items ?? []).map((item) => [item.id, item]),
+      )
+
+      return {
+        id: section.id,
+        order: section.order,
+        direction: {
+          default: section.direction,
+          desktop:
+            desktopSection && desktopSection.direction !== section.direction
+              ? desktopSection.direction
+              : null,
+          mobile:
+            mobileSection && mobileSection.direction !== section.direction ? mobileSection.direction : null,
+        },
+        hideSectionFrame: {
+          default: Boolean(section.hideSectionFrame),
+          desktop:
+            desktopSection && Boolean(desktopSection.hideSectionFrame) !== Boolean(section.hideSectionFrame)
+              ? Boolean(desktopSection.hideSectionFrame)
+              : null,
+          mobile:
+            mobileSection && Boolean(mobileSection.hideSectionFrame) !== Boolean(section.hideSectionFrame)
+              ? Boolean(mobileSection.hideSectionFrame)
+              : null,
+        },
+        items: section.items.map((item) => {
+          const desktopItem = desktopItems.get(item.id)
+          const mobileItem = mobileItems.get(item.id)
+          return {
+            id: item.id,
+            order: item.order,
+            kind: "container" as const,
+            widthPct: {
+              default: item.widthPct,
+              desktop:
+                desktopItem && Math.abs(desktopItem.widthPct - item.widthPct) > 0.01
+                  ? desktopItem.widthPct
+                  : null,
+              mobile:
+                mobileItem && Math.abs(mobileItem.widthPct - item.widthPct) > 0.01
+                  ? mobileItem.widthPct
+                  : null,
+            },
+            content: {
+              default: normalizeContainerContent(item.content),
+              desktop:
+                desktopItem && JSON.stringify(normalizeContainerContent(desktopItem.content)) !== JSON.stringify(normalizeContainerContent(item.content))
+                  ? normalizeContainerContent(desktopItem.content)
+                  : null,
+              mobile:
+                mobileItem && JSON.stringify(normalizeContainerContent(mobileItem.content)) !== JSON.stringify(normalizeContainerContent(item.content))
+                  ? normalizeContainerContent(mobileItem.content)
+                  : null,
+            },
+          }
+        }),
+      }
+    }),
+  })
+}
+
+function parseSectionLayoutConfig(
+  defaultLayoutValue: unknown,
+  desktopLayoutValue: unknown,
+  mobileLayoutValue: unknown,
+): SectionLayoutConfig {
+  if (isSectionLayoutConfig(defaultLayoutValue)) {
+    return normalizeLayoutConfig(defaultLayoutValue)
+  }
+
+  const legacyLayouts: BreakpointLayoutMap = {
+    responsive: parseSectionLayout(defaultLayoutValue),
+    desktop: parseSectionLayout(desktopLayoutValue),
+    mobile: parseSectionLayout(mobileLayoutValue),
+  }
+
+  return createSectionLayoutConfigFromLegacyLayouts(legacyLayouts)
+}
+
+function updateLayoutConfigForViewport(
+  current: SectionLayoutConfig,
+  nextLayout: SectionLayout,
+  viewport: ViewportKey,
+): SectionLayoutConfig {
+  const normalizedNext = normalizeLayout(nextLayout)
+  const currentSections = new Map(current.sections.map((section) => [section.id, section]))
+
+  const nextSections: SectionLayoutConfigSection[] = normalizedNext.sections.map((section) => {
+    const currentSection = currentSections.get(section.id)
+    const currentItems = new Map((currentSection?.items ?? []).map((item) => [item.id, item]))
+
+    return {
+      id: section.id,
+      order: section.order,
+      direction: withResponsiveValue(
+        currentSection?.direction ?? {
+          default: section.direction,
+          desktop: null,
+          mobile: null,
+        },
+        viewport,
+        section.direction,
+      ),
+      hideSectionFrame: withResponsiveValue(
+        currentSection?.hideSectionFrame ?? {
+          default: Boolean(section.hideSectionFrame),
+          desktop: null,
+          mobile: null,
+        },
+        viewport,
+        Boolean(section.hideSectionFrame),
+      ),
+      items: section.items.map((item) => {
+        const currentItem = currentItems.get(item.id)
+        return {
+          id: item.id,
+          order: item.order,
+          kind: "container" as const,
+          widthPct: withResponsiveValue(
+            currentItem?.widthPct ?? {
+              default: item.widthPct,
+              desktop: null,
+              mobile: null,
+            },
+            viewport,
+            item.widthPct,
+          ),
+          content: withResponsiveValue(
+            currentItem?.content ?? {
+              default: normalizeContainerContent(item.content),
+              desktop: null,
+              mobile: null,
+            },
+            viewport,
+            normalizeContainerContent(item.content),
+          ),
+        }
+      }),
+    }
+  })
+
+  return normalizeLayoutConfig({
+    version: 3,
+    sections: nextSections,
+  })
 }
 
 export function ProfilePreviewEditor() {
   const utils = api.useUtils()
+  const { openForCreate } = useAddSubsciptionModalStore()
   const creatorQuery = api.fan.creator.meCreator.useQuery(undefined, {
     refetchOnWindowFocus: false,
   })
+  const creatorId = creatorQuery.data?.id ?? ""
+  const subscriptionsQuery = api.fan.creator.getCreatorPackages.useQuery(
+    { id: creatorId },
+    {
+      enabled: Boolean(creatorId),
+      refetchOnWindowFocus: false,
+    },
+  )
 
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -183,9 +592,10 @@ export function ProfilePreviewEditor() {
   })
   const [coverHeights, setCoverHeights] = useState<CoverHeights>(DEFAULT_COVER_HEIGHTS)
   const [savedCoverHeights, setSavedCoverHeights] = useState<CoverHeights>(DEFAULT_COVER_HEIGHTS)
-  const [sectionLayouts, setSectionLayouts] = useState<BreakpointLayoutMap>(createDefaultLayoutMap)
-  const [savedSectionLayouts, setSavedSectionLayouts] =
-    useState<BreakpointLayoutMap>(createDefaultLayoutMap)
+  const [sectionLayoutConfig, setSectionLayoutConfig] =
+    useState<SectionLayoutConfig>(createDefaultSectionLayoutConfig)
+  const [savedSectionLayoutConfig, setSavedSectionLayoutConfig] =
+    useState<SectionLayoutConfig>(createDefaultSectionLayoutConfig)
   const activeViewport = useProfileEditorStore((state) => state.viewportType)
   const setStateFromSync = useProfileEditorStore((state) => state.setStateFromSync)
   const setSelectedOverlay = useProfileEditorStore((state) => state.setSelectedOverlay)
@@ -215,13 +625,13 @@ export function ProfilePreviewEditor() {
     setCoverHeights(loadedCoverHeights)
     setSavedCoverHeights(loadedCoverHeights)
 
-    const loadedSectionLayouts: BreakpointLayoutMap = {
-      responsive: parseSectionLayout(creatorQuery.data.sectionLayoutDefault),
-      desktop: parseSectionLayout(creatorQuery.data.sectionLayoutDesktop),
-      mobile: parseSectionLayout(creatorQuery.data.sectionLayoutMobile),
-    }
-    setSectionLayouts(loadedSectionLayouts)
-    setSavedSectionLayouts(loadedSectionLayouts)
+    const loadedLayoutConfig = parseSectionLayoutConfig(
+      creatorQuery.data.sectionLayoutDefault,
+      creatorQuery.data.sectionLayoutDesktop,
+      creatorQuery.data.sectionLayoutMobile,
+    )
+    setSectionLayoutConfig(loadedLayoutConfig)
+    setSavedSectionLayoutConfig(loadedLayoutConfig)
   }, [creatorQuery.data])
 
   const updateProfileInfo = api.fan.creator.updateCreatorProfileInfo.useMutation()
@@ -275,7 +685,8 @@ export function ProfilePreviewEditor() {
       coverHeights.coverHeightDefault !== savedCoverHeights.coverHeightDefault ||
       coverHeights.coverHeightDesktop !== savedCoverHeights.coverHeightDesktop ||
       coverHeights.coverHeightMobile !== savedCoverHeights.coverHeightMobile
-    const isSectionLayoutDirty = !areLayoutMapsEqual(sectionLayouts, savedSectionLayouts)
+    const isSectionLayoutDirty =
+      serializeLayoutConfig(sectionLayoutConfig) !== serializeLayoutConfig(savedSectionLayoutConfig)
 
     return isProfileDirty || isCoverHeightDirty || isSectionLayoutDirty
   }, [
@@ -285,8 +696,8 @@ export function ProfilePreviewEditor() {
     savedCoverHeights,
     savedProfile.description,
     savedProfile.name,
-    savedSectionLayouts,
-    sectionLayouts,
+    savedSectionLayoutConfig,
+    sectionLayoutConfig,
   ])
 
   const postToParent = useCallback((message: PreviewToParentMessage) => {
@@ -358,11 +769,7 @@ export function ProfilePreviewEditor() {
       })
 
       try {
-        const normalizedSectionLayouts: BreakpointLayoutMap = {
-          responsive: normalizeLayout(sectionLayouts.responsive),
-          desktop: normalizeLayout(sectionLayouts.desktop),
-          mobile: normalizeLayout(sectionLayouts.mobile),
-        }
+        const normalizedLayoutConfig = normalizeLayoutConfig(sectionLayoutConfig)
 
         await Promise.all([
           updateProfileInfo.mutateAsync({
@@ -378,9 +785,9 @@ export function ProfilePreviewEditor() {
             coverHeightMobile: coverHeights.coverHeightMobile,
           }),
           updateSectionLayouts.mutateAsync({
-            sectionLayoutDefault: normalizedSectionLayouts.responsive,
-            sectionLayoutDesktop: normalizedSectionLayouts.desktop,
-            sectionLayoutMobile: normalizedSectionLayouts.mobile,
+            sectionLayoutDefault: normalizedLayoutConfig,
+            sectionLayoutDesktop: null,
+            sectionLayoutMobile: null,
           }),
         ])
 
@@ -391,8 +798,8 @@ export function ProfilePreviewEditor() {
           description: trimmedDescription,
         })
         setSavedCoverHeights(coverHeights)
-        setSectionLayouts(normalizedSectionLayouts)
-        setSavedSectionLayouts(normalizedSectionLayouts)
+        setSectionLayoutConfig(normalizedLayoutConfig)
+        setSavedSectionLayoutConfig(normalizedLayoutConfig)
 
         await utils.fan.creator.meCreator.invalidate()
 
@@ -429,7 +836,7 @@ export function ProfilePreviewEditor() {
       description,
       name,
       postToParent,
-      sectionLayouts,
+      sectionLayoutConfig,
       updateCoverHeights,
       updateSectionLayouts,
       updateProfileInfo,
@@ -490,6 +897,28 @@ export function ProfilePreviewEditor() {
     input?.click()
   }
 
+  const subscriptionPackages: BuilderSubscriptionPackage[] = useMemo(
+    () =>
+      (subscriptionsQuery.data ?? []).map((pkg) => ({
+        id: pkg.id,
+        name: pkg.name,
+        price: pkg.price,
+        description: pkg.description,
+        features: pkg.features,
+        color: pkg.color,
+        popular: pkg.popular,
+        isActive: pkg.isActive,
+      })),
+    [subscriptionsQuery.data],
+  )
+  const handleCreatePackage = useCallback(() => {
+    if (!creatorQuery.data) return
+    openForCreate({
+      customPageAsset: creatorQuery.data.customPageAssetCodeIssuer,
+      pageAsset: creatorQuery.data.pageAsset,
+    })
+  }, [creatorQuery.data, openForCreate])
+
   if (creatorQuery.isLoading) {
     return (
       <main className="min-h-screen flex items-center justify-center p-8">
@@ -529,26 +958,10 @@ export function ProfilePreviewEditor() {
         ? coverHeights.coverHeightMobile
         : coverHeights.coverHeightDefault
   const coverHeightProgress = Math.round(((currentCoverHeight - 120) / (720 - 120)) * 100)
-  const activeSectionLayout =
-    activeViewport === "desktop"
-      ? sectionLayouts.desktop
-      : activeViewport === "mobile"
-        ? sectionLayouts.mobile
-        : sectionLayouts.responsive
+  const activeSectionLayout = resolveLayoutForViewport(sectionLayoutConfig, activeViewport)
 
   const handleSectionLayoutChange = (nextLayout: SectionLayout) => {
-    const normalized = normalizeLayout(nextLayout)
-    if (activeViewport === "desktop") {
-      setSectionLayouts((prev) => ({ ...prev, desktop: normalized }))
-      return
-    }
-
-    if (activeViewport === "mobile") {
-      setSectionLayouts((prev) => ({ ...prev, mobile: normalized }))
-      return
-    }
-
-    setSectionLayouts((prev) => ({ ...prev, responsive: normalized }))
+    setSectionLayoutConfig((prev) => updateLayoutConfigForViewport(prev, nextLayout, activeViewport))
   }
 
   return (
@@ -708,6 +1121,8 @@ export function ProfilePreviewEditor() {
             <ProfileSectionBuilder
               layout={activeSectionLayout}
               onLayoutChange={handleSectionLayoutChange}
+              subscriptions={subscriptionPackages}
+              onCreatePackage={handleCreatePackage}
             />
           </div>
         </div>
