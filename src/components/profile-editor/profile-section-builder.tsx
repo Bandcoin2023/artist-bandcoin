@@ -54,6 +54,7 @@ export type SectionLayoutItem = {
   widthPct: number
   order: number
   kind: "container"
+  hideContainerFrame?: boolean
   content?: SectionContainerContent | null
 }
 
@@ -270,6 +271,7 @@ function createContainer(seed: number): SectionLayoutItem {
     widthPct: 100,
     order: 0,
     kind: "container",
+    hideContainerFrame: true,
     content: null,
   }
 }
@@ -319,6 +321,7 @@ function SectionContainerCard({
   index,
   direction,
   isSubscription,
+  hideContainerFrame,
   onMove,
   canInsert,
   onAddBefore,
@@ -330,6 +333,7 @@ function SectionContainerCard({
   index: number
   direction: "row" | "column"
   isSubscription?: boolean
+  hideContainerFrame?: boolean
   onMove: (sectionId: string, dragId: string, hoverId: string) => void
   canInsert: boolean
   onAddBefore: () => void
@@ -471,7 +475,7 @@ function SectionContainerCard({
           </Button>
         </>
       ) : null}
-      {children}
+      <div className={hideContainerFrame ? "p-0" : "border border-border/45 p-2"}>{children}</div>
     </div>
   )
 }
@@ -815,6 +819,8 @@ export function ProfileSectionBuilder({
   nftCards,
   socialPosts,
   onCreatePackage,
+  onCreateNft,
+  onCreatePost,
 }: {
   layout: SectionLayout
   onLayoutChange: (layout: SectionLayout) => void
@@ -823,6 +829,8 @@ export function ProfileSectionBuilder({
   nftCards: BuilderNftCard[]
   socialPosts: BuilderSocialPost[]
   onCreatePackage: () => void
+  onCreateNft: () => void
+  onCreatePost: () => void
 }) {
   const isSelectionMode = useProfileEditorStore((state) => state.isSelectionMode)
   const [addItemTarget, setAddItemTarget] = useState<{ sectionId: string; containerId: string } | null>(
@@ -1138,6 +1146,25 @@ export function ProfileSectionBuilder({
     onLayoutChange({ version: 2, sections: nextSections })
   }
 
+  const setContainerFrameVisibility = (sectionId: string, containerId: string, hidden: boolean) => {
+    const nextSections = orderedSections.map((section) => {
+      if (section.id !== sectionId) return section
+      return {
+        ...section,
+        items: section.items.map((item) =>
+          item.id === containerId
+            ? {
+                ...item,
+                hideContainerFrame: hidden,
+              }
+            : item,
+        ),
+      }
+    })
+
+    onLayoutChange({ version: 2, sections: nextSections })
+  }
+
   const moveSubscriptionPackage = (
     sectionId: string,
     containerId: string,
@@ -1406,6 +1433,13 @@ export function ProfileSectionBuilder({
 
       return (
         <div className="w-full">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xl font-bold">Creator&apos;s NFT Collection</h2>
+            <Button type="button" size="sm" onClick={onCreateNft}>
+              <PlusIcon className="mr-2 h-4 w-4" />
+              Create New NFT
+            </Button>
+          </div>
           {visible.length === 0 ? (
             <div className="flex min-h-[180px] items-center justify-center border border-dashed border-muted-foreground/30 text-sm text-muted-foreground">
               No NFTs available
@@ -1492,6 +1526,13 @@ export function ProfileSectionBuilder({
 
       return (
         <div className="w-full">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xl font-bold">Social Posts</h2>
+            <Button type="button" size="sm" onClick={onCreatePost}>
+              <PlusIcon className="mr-2 h-4 w-4" />
+              Create New Post
+            </Button>
+          </div>
           {visible.length === 0 ? (
             <div className="flex min-h-[180px] items-center justify-center border border-dashed border-muted-foreground/30 text-sm text-muted-foreground">
               No posts available
@@ -1612,6 +1653,8 @@ export function ProfileSectionBuilder({
         {orderedSections.map((section) => {
           const orderedItems = [...section.items].sort((a, b) => a.order - b.order)
           const sectionGap = clampSectionContainerGap(section.containerGap ?? 0)
+          const verticalSectionMinHeight =
+            orderedItems.length * 180 + Math.max(0, orderedItems.length - 1) * Math.max(1, sectionGap)
           return (
             <SectionShell
               key={section.id}
@@ -1636,18 +1679,20 @@ export function ProfileSectionBuilder({
                   </Button>
                 </div>
               ) : section.direction === "column" ? (
-                <ResizablePanelGroup
-                  orientation="vertical"
-                  onLayoutChange={(sizes) => handleSectionResize(section.id, sizes)}
-                  className="w-full min-h-[220px]"
+                <div
+                  className="flex w-full flex-col"
+                  style={{
+                    minHeight: `${verticalSectionMinHeight}px`,
+                    gap: `${Math.max(1, sectionGap)}px`,
+                  }}
                 >
                   {orderedItems.map((item, index) => (
-                    <Fragment key={item.id}>
-                      <ResizablePanel
-                        id={item.id}
-                        defaultSize={item.widthPct}
-                        minSize={10}
-                        className="min-h-[180px] overflow-visible"
+                    <div key={item.id} className="min-h-[180px] overflow-visible">
+                      <div
+                        className="h-full"
+                        style={{
+                          flexGrow: Math.max(10, Math.min(95, item.widthPct)),
+                        }}
                       >
                         <SectionContainerCard
                           sectionId={section.id}
@@ -1655,6 +1700,7 @@ export function ProfileSectionBuilder({
                           index={index}
                           direction={section.direction}
                           isSubscription={item.content?.type === "subscription"}
+                          hideContainerFrame={item.hideContainerFrame !== false}
                           onMove={moveContainer}
                           canInsert={orderedItems.length < MAX_CONTAINERS_PER_SECTION}
                           onAddBefore={() =>
@@ -1672,16 +1718,10 @@ export function ProfileSectionBuilder({
                         >
                           {renderContainerBody(section.id, item)}
                         </SectionContainerCard>
-                      </ResizablePanel>
-                      {index < orderedItems.length - 1 ? (
-                        <ResizableHandle
-                          className="w-full bg-transparent hover:bg-border/30"
-                          style={{ height: `${Math.max(1, sectionGap)}px` }}
-                        />
-                      ) : null}
-                    </Fragment>
+                      </div>
+                    </div>
                   ))}
-                </ResizablePanelGroup>
+                </div>
               ) : (
                 <ResizablePanelGroup
                   orientation="horizontal"
@@ -1702,6 +1742,7 @@ export function ProfileSectionBuilder({
                           index={index}
                           direction={section.direction}
                           isSubscription={item.content?.type === "subscription"}
+                          hideContainerFrame={item.hideContainerFrame !== false}
                           onMove={moveContainer}
                           canInsert={orderedItems.length < MAX_CONTAINERS_PER_SECTION}
                           onAddBefore={() =>
@@ -1750,7 +1791,7 @@ export function ProfileSectionBuilder({
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: 28, opacity: 0, scale: 0.98 }}
               transition={{ type: "spring", damping: 22, stiffness: 280 }}
-              className="pointer-events-auto relative w-fit overflow-hidden rounded-2xl border border-black/20 p-2"
+              className="pointer-events-auto relative w-full max-w-[720px] overflow-hidden rounded-2xl border border-black/20 p-2 sm:w-fit"
               onPointerDown={(event) => {
                 event.stopPropagation()
               }}
@@ -1767,14 +1808,14 @@ export function ProfileSectionBuilder({
                     "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.85),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.5)]",
                 }}
               />
-              <div className="relative z-10 flex items-center gap-2">
+              <div className="relative z-10 flex flex-wrap items-center gap-2 sm:flex-nowrap">
                 <Select
                   value={selectedSection.direction}
                   onValueChange={(value) =>
                     setSectionDirection(selectedSection.id, value as "row" | "column")
                   }
                 >
-                  <SelectTrigger className="h-9 w-40 shrink-0 border-black/20 bg-white/80">
+                  <SelectTrigger className="h-9 w-full shrink-0 border-black/20 bg-white/80 sm:w-40">
                     <SelectValue placeholder="Direction" />
                   </SelectTrigger>
                   <SelectContent side="top" align="start">
@@ -1788,7 +1829,7 @@ export function ProfileSectionBuilder({
                       type="button"
                       variant="secondary"
                       size="icon"
-                      className="h-9 w-9 border border-black/20 bg-white/80 hover:bg-white"
+                      className="h-9 w-9 shrink-0 border border-black/20 bg-white/80 hover:bg-white"
                     >
                       <SlidersHorizontalIcon className="h-4 w-4" />
                       <span className="sr-only">Adjust section margins</span>
@@ -1872,13 +1913,13 @@ export function ProfileSectionBuilder({
                 <Button
                   type="button"
                   variant="secondary"
-                  className="h-9 border border-black/20 bg-white/80 text-red-600 hover:bg-white"
+                  className="h-9 flex-1 border border-black/20 bg-white/80 text-red-600 hover:bg-white sm:flex-none"
                   onClick={() => deleteSection(selectedSection.id)}
                 >
                   <Trash2Icon className="h-4 w-4" />
                   Delete
                 </Button>
-                <div className="inline-flex h-9 items-center gap-2 rounded-lg border border-black/20 bg-white/80 px-3">
+                <div className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white/80 px-3 sm:w-auto sm:justify-start">
                   <span className="text-xs font-medium text-foreground">Hide frame</span>
                   <Switch
                     checked={Boolean(selectedSection.hideSectionFrame)}
@@ -1996,7 +2037,15 @@ export function ProfileSectionBuilder({
         selectedContainerSectionId &&
         selectedContainer?.content?.type === "subscription" ? (
           <div className="pointer-events-none fixed right-3 top-1/2 z-[85] -translate-y-1/2">
-            <div className="pointer-events-auto relative w-[280px] overflow-hidden rounded-2xl border border-black/20 p-3">
+            <div
+              className="pointer-events-auto relative w-[280px] overflow-hidden rounded-2xl border border-black/20 p-3"
+              onPointerDown={(event) => {
+                event.stopPropagation()
+              }}
+              onClick={(event) => {
+                event.stopPropagation()
+              }}
+            >
               <Glass
                 className={{
                   root: "pointer-events-none absolute inset-0 z-0 rounded-2xl *:rounded-2xl",
@@ -2035,6 +2084,19 @@ export function ProfileSectionBuilder({
                     }
                   />
                 </div>
+                <div className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white/80 px-3">
+                  <span className="text-xs font-medium text-foreground">Show frame</span>
+                  <Switch
+                    checked={!selectedContainer.hideContainerFrame}
+                    onCheckedChange={(checked) =>
+                      setContainerFrameVisibility(
+                        selectedContainerSectionId,
+                        selectedContainer.id,
+                        !checked,
+                      )
+                    }
+                  />
+                </div>
                 <Button type="button" variant="secondary" className="h-9 w-full" onClick={onCreatePackage}>
                   Create new package
                 </Button>
@@ -2055,7 +2117,15 @@ export function ProfileSectionBuilder({
         selectedContainerSectionId &&
         selectedContainer?.content?.type === "stats" ? (
           <div className="pointer-events-none fixed right-3 top-1/2 z-[85] -translate-y-1/2">
-            <div className="pointer-events-auto relative w-[280px] overflow-hidden rounded-2xl border border-black/20 p-3">
+            <div
+              className="pointer-events-auto relative w-[280px] overflow-hidden rounded-2xl border border-black/20 p-3"
+              onPointerDown={(event) => {
+                event.stopPropagation()
+              }}
+              onClick={(event) => {
+                event.stopPropagation()
+              }}
+            >
               <Glass
                 className={{
                   root: "pointer-events-none absolute inset-0 z-0 rounded-2xl *:rounded-2xl",
@@ -2094,6 +2164,19 @@ export function ProfileSectionBuilder({
                     }
                   />
                 </div>
+                <div className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white/80 px-3">
+                  <span className="text-xs font-medium text-foreground">Show frame</span>
+                  <Switch
+                    checked={!selectedContainer.hideContainerFrame}
+                    onCheckedChange={(checked) =>
+                      setContainerFrameVisibility(
+                        selectedContainerSectionId,
+                        selectedContainer.id,
+                        !checked,
+                      )
+                    }
+                  />
+                </div>
                 <Button
                   type="button"
                   variant="secondary"
@@ -2111,7 +2194,15 @@ export function ProfileSectionBuilder({
         selectedContainerSectionId &&
         selectedContainer?.content?.type === "nft_collection" ? (
           <div className="pointer-events-none fixed right-3 top-1/2 z-[85] -translate-y-1/2">
-            <div className="pointer-events-auto relative w-[300px] overflow-hidden rounded-2xl border border-black/20 p-3">
+            <div
+              className="pointer-events-auto relative w-[300px] overflow-hidden rounded-2xl border border-black/20 p-3"
+              onPointerDown={(event) => {
+                event.stopPropagation()
+              }}
+              onClick={(event) => {
+                event.stopPropagation()
+              }}
+            >
               <Glass
                 className={{
                   root: "pointer-events-none absolute inset-0 z-0 rounded-2xl *:rounded-2xl",
@@ -2167,6 +2258,19 @@ export function ProfileSectionBuilder({
                     }
                   />
                 </div>
+                <div className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white/80 px-3">
+                  <span className="text-xs font-medium text-foreground">Show frame</span>
+                  <Switch
+                    checked={!selectedContainer.hideContainerFrame}
+                    onCheckedChange={(checked) =>
+                      setContainerFrameVisibility(
+                        selectedContainerSectionId,
+                        selectedContainer.id,
+                        !checked,
+                      )
+                    }
+                  />
+                </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-foreground">Max items</span>
@@ -2214,7 +2318,15 @@ export function ProfileSectionBuilder({
         selectedContainerSectionId &&
         selectedContainer?.content?.type === "social_posts" ? (
           <div className="pointer-events-none fixed right-3 top-1/2 z-[85] -translate-y-1/2">
-            <div className="pointer-events-auto relative w-[300px] overflow-hidden rounded-2xl border border-black/20 p-3">
+            <div
+              className="pointer-events-auto relative w-[300px] overflow-hidden rounded-2xl border border-black/20 p-3"
+              onPointerDown={(event) => {
+                event.stopPropagation()
+              }}
+              onClick={(event) => {
+                event.stopPropagation()
+              }}
+            >
               <Glass
                 className={{
                   root: "pointer-events-none absolute inset-0 z-0 rounded-2xl *:rounded-2xl",
@@ -2291,6 +2403,19 @@ export function ProfileSectionBuilder({
                         showEngagement: checked,
                         maxItems: normalizeSocialPostMaxItems(selectedSocialPostsContent?.maxItems),
                       })
+                    }
+                  />
+                </div>
+                <div className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white/80 px-3">
+                  <span className="text-xs font-medium text-foreground">Show frame</span>
+                  <Switch
+                    checked={!selectedContainer.hideContainerFrame}
+                    onCheckedChange={(checked) =>
+                      setContainerFrameVisibility(
+                        selectedContainerSectionId,
+                        selectedContainer.id,
+                        !checked,
+                      )
                     }
                   />
                 </div>

@@ -34,6 +34,8 @@ import {
 } from "~/components/profile-editor/lib/communication"
 import { useProfileEditorStore } from "~/components/profile-editor/store/editor-store"
 import { useAddSubsciptionModalStore } from "~/components/store/add-subscription-modal-store"
+import { useNFTCreateModalStore } from "~/components/store/nft-create-modal-store"
+import { useCreatePostModalStore } from "~/components/store/create-post-modal-store"
 
 const COVER_INPUT_ID = "profile-editor-cover-upload-input"
 const PROFILE_INPUT_ID = "profile-editor-avatar-upload-input"
@@ -135,6 +137,7 @@ type SectionLayoutConfigItem = {
   order: number
   kind: "container"
   widthPct: ResponsiveValue<number>
+  hideContainerFrame: ResponsiveValue<boolean>
   content: ResponsiveValue<SectionContainerContent | null>
 }
 
@@ -187,6 +190,7 @@ function normalizeLayout(layout: SectionLayout): SectionLayout {
           widthPct: Math.max(5, Math.min(95, item.widthPct)),
           order: itemIndex,
           kind: "container",
+          hideContainerFrame: item.hideContainerFrame !== false,
           content: normalizeContainerContent(item.content),
         })),
       }
@@ -341,6 +345,8 @@ function isSectionLayout(value: unknown): value is SectionLayout {
           typeof rowItem.widthPct === "number" &&
           typeof rowItem.order === "number" &&
           rowItem.kind === "container" &&
+          (rowItem.hideContainerFrame === undefined ||
+            typeof rowItem.hideContainerFrame === "boolean") &&
           (rowItem.content === undefined || rowItem.content === null || Boolean(normalizeContainerContent(rowItem.content)))
         )
       })
@@ -419,6 +425,7 @@ function isSectionLayoutConfig(value: unknown): value is SectionLayoutConfig {
         order?: unknown
         kind?: unknown
         widthPct?: unknown
+        hideContainerFrame?: unknown
         content?: unknown
       }
       return (
@@ -426,6 +433,11 @@ function isSectionLayoutConfig(value: unknown): value is SectionLayoutConfig {
         typeof c.order === "number" &&
         c.kind === "container" &&
         isResponsiveValue(c.widthPct, (candidate): candidate is number => typeof candidate === "number") &&
+        (c.hideContainerFrame === undefined ||
+          isResponsiveValue(
+            c.hideContainerFrame,
+            (candidate): candidate is boolean => typeof candidate === "boolean",
+          )) &&
         (c.content === undefined ||
           isResponsiveValue(c.content, (candidate): candidate is SectionContainerContent | null =>
             candidate === null || isSectionContainerContent(candidate),
@@ -562,6 +574,25 @@ function normalizeLayoutConfig(layoutConfig: SectionLayoutConfig): SectionLayout
               item.widthPct.desktop === null ? null : normalizeResponsiveNumber(item.widthPct.desktop),
             mobile: item.widthPct.mobile === null ? null : normalizeResponsiveNumber(item.widthPct.mobile),
           },
+          hideContainerFrame: item.hideContainerFrame
+            ? {
+                default: Boolean(item.hideContainerFrame.default),
+                desktop:
+                  item.hideContainerFrame.desktop === null ||
+                  item.hideContainerFrame.desktop === undefined
+                    ? null
+                    : Boolean(item.hideContainerFrame.desktop),
+                mobile:
+                  item.hideContainerFrame.mobile === null ||
+                  item.hideContainerFrame.mobile === undefined
+                    ? null
+                    : Boolean(item.hideContainerFrame.mobile),
+              }
+            : {
+                default: true,
+                desktop: null,
+                mobile: null,
+              },
           // Backward-safe: v3 configs created before container content support may omit `content`.
           ...(item.content
             ? {
@@ -603,6 +634,7 @@ function resolveLayoutForViewport(
         order: item.order,
         kind: "container" as const,
         widthPct: resolveResponsiveValue(item.widthPct, viewport),
+        hideContainerFrame: resolveResponsiveValue(item.hideContainerFrame, viewport),
         content: resolveResponsiveValue(item.content, viewport),
       })),
     })),
@@ -723,6 +755,19 @@ function createSectionLayoutConfigFromLegacyLayouts(layouts: BreakpointLayoutMap
                   ? mobileItem.widthPct
                   : null,
             },
+            hideContainerFrame: {
+              default: item.hideContainerFrame !== false,
+              desktop:
+                desktopItem &&
+                Boolean(desktopItem.hideContainerFrame !== false) !== Boolean(item.hideContainerFrame !== false)
+                  ? Boolean(desktopItem.hideContainerFrame !== false)
+                  : null,
+              mobile:
+                mobileItem &&
+                Boolean(mobileItem.hideContainerFrame !== false) !== Boolean(item.hideContainerFrame !== false)
+                  ? Boolean(mobileItem.hideContainerFrame !== false)
+                  : null,
+            },
             content: {
               default: normalizeContainerContent(item.content),
               desktop:
@@ -834,6 +879,15 @@ function updateLayoutConfigForViewport(
             viewport,
             item.widthPct,
           ),
+          hideContainerFrame: withResponsiveValue(
+            currentItem?.hideContainerFrame ?? {
+              default: item.hideContainerFrame !== false,
+              desktop: null,
+              mobile: null,
+            },
+            viewport,
+            item.hideContainerFrame !== false,
+          ),
           content: withResponsiveValue(
             currentItem?.content ?? {
               default: normalizeContainerContent(item.content),
@@ -857,6 +911,8 @@ function updateLayoutConfigForViewport(
 export function ProfilePreviewEditor() {
   const utils = api.useUtils()
   const { openForCreate } = useAddSubsciptionModalStore()
+  const { setIsOpen: setIsNftModalOpen } = useNFTCreateModalStore()
+  const { setIsOpen: setIsPostModalOpen } = useCreatePostModalStore()
   const creatorQuery = api.fan.creator.meCreator.useQuery(undefined, {
     refetchOnWindowFocus: false,
   })
@@ -1268,6 +1324,12 @@ export function ProfilePreviewEditor() {
       pageAsset: creatorQuery.data.pageAsset,
     })
   }, [creatorQuery.data, openForCreate])
+  const handleCreateNft = useCallback(() => {
+    setIsNftModalOpen(true)
+  }, [setIsNftModalOpen])
+  const handleCreatePost = useCallback(() => {
+    setIsPostModalOpen(true)
+  }, [setIsPostModalOpen])
 
   if (creatorQuery.isLoading) {
     return (
@@ -1476,6 +1538,8 @@ export function ProfilePreviewEditor() {
               nftCards={nftCards}
               socialPosts={socialPosts}
               onCreatePackage={handleCreatePackage}
+              onCreateNft={handleCreateNft}
+              onCreatePost={handleCreatePost}
             />
           </div>
         </div>

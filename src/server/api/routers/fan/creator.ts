@@ -51,6 +51,7 @@ const CreatorSectionLayoutItemSchema = z.object({
   widthPct: z.number().min(5).max(95),
   order: z.number().int().min(0),
   kind: z.literal("container"),
+  hideContainerFrame: z.boolean().optional(),
 });
 
 const CreatorSectionLayoutSectionSchema = z.object({
@@ -147,6 +148,7 @@ const CreatorSectionLayoutConfigItemSchema = z.object({
   order: z.number().int().min(0),
   kind: z.literal("container"),
   widthPct: CreatorResponsiveNumberValueSchema,
+  hideContainerFrame: CreatorResponsiveBooleanValueSchema.optional(),
   content: CreatorResponsiveContainerContentValueSchema.optional(),
 });
 
