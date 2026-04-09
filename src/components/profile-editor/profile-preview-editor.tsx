@@ -18,6 +18,7 @@ import {
   PopoverTrigger,
 } from "~/components/shadcn/ui/popover"
 import {
+  type BuilderSocialPost,
   type BuilderNftCard,
   type BuilderSubscriptionPackage,
   type SectionContainerContent,
@@ -67,6 +68,10 @@ function isSectionContainerContent(
     nftOrder?: unknown
     showCreator?: unknown
     showPrice?: unknown
+    postOrder?: unknown
+    filter?: unknown
+    showMedia?: unknown
+    showEngagement?: unknown
     maxItems?: unknown
   }
   if (input.type === "subscription") {
@@ -92,6 +97,19 @@ function isSectionContainerContent(
       input.nftOrder.every((entry) => typeof entry === "number" && Number.isInteger(entry)) &&
       (input.showCreator === undefined || typeof input.showCreator === "boolean") &&
       (input.showPrice === undefined || typeof input.showPrice === "boolean") &&
+      (input.maxItems === undefined || typeof input.maxItems === "number")
+    )
+  }
+  if (input.type === "social_posts") {
+    return (
+      Array.isArray(input.postOrder) &&
+      input.postOrder.every((entry) => typeof entry === "number" && Number.isInteger(entry)) &&
+      (input.filter === undefined ||
+        input.filter === "all" ||
+        input.filter === "public" ||
+        input.filter === "locked") &&
+      (input.showMedia === undefined || typeof input.showMedia === "boolean") &&
+      (input.showEngagement === undefined || typeof input.showEngagement === "boolean") &&
       (input.maxItems === undefined || typeof input.maxItems === "number")
     )
   }
@@ -197,6 +215,10 @@ function normalizeContainerContent(content: unknown): SectionContainerContent | 
     nftOrder?: unknown
     showCreator?: unknown
     showPrice?: unknown
+    postOrder?: unknown
+    filter?: unknown
+    showMedia?: unknown
+    showEngagement?: unknown
     maxItems?: unknown
   }
   if (value.type === "subscription") {
@@ -263,6 +285,32 @@ function normalizeContainerContent(content: unknown): SectionContainerContent | 
       nftOrder: deduped,
       showCreator: typeof value.showCreator === "boolean" ? value.showCreator : true,
       showPrice: typeof value.showPrice === "boolean" ? value.showPrice : true,
+      maxItems,
+    }
+  }
+  if (value.type === "social_posts") {
+    const deduped: number[] = []
+    if (Array.isArray(value.postOrder)) {
+      for (const id of value.postOrder) {
+        if (typeof id !== "number" || !Number.isInteger(id)) continue
+        if (deduped.includes(id)) continue
+        deduped.push(id)
+      }
+    }
+    const maxItemsRaw =
+      typeof value.maxItems === "number" && Number.isFinite(value.maxItems)
+        ? Math.round(value.maxItems)
+        : 6
+    const maxItems = Math.max(1, Math.min(12, maxItemsRaw))
+    return {
+      type: "social_posts",
+      postOrder: deduped,
+      filter:
+        value.filter === "public" || value.filter === "locked" || value.filter === "all"
+          ? value.filter
+          : "all",
+      showMedia: typeof value.showMedia === "boolean" ? value.showMedia : true,
+      showEngagement: typeof value.showEngagement === "boolean" ? value.showEngagement : true,
       maxItems,
     }
   }
@@ -828,6 +876,14 @@ export function ProfilePreviewEditor() {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
     },
   )
+  const postsQuery = api.fan.post.getPosts.useInfiniteQuery(
+    { pubkey: creatorId, limit: 24 },
+    {
+      enabled: Boolean(creatorId),
+      refetchOnWindowFocus: false,
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+    },
+  )
 
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -1182,6 +1238,29 @@ export function ProfilePreviewEditor() {
     )
     return mapped
   }, [creatorNftsQuery.data?.pages])
+  const socialPosts: BuilderSocialPost[] = useMemo(() => {
+    const pages = postsQuery.data?.pages ?? []
+    const mapped = pages.flatMap((page) =>
+      page.posts.map((entry) => ({
+        id: entry.id,
+        heading: entry.heading ?? null,
+        content: entry.content ?? "",
+        createdAt: entry.createdAt.toISOString(),
+        creatorId: entry.creator.id,
+        creatorName: entry.creator.name,
+        creatorProfileUrl: entry.creator.profileUrl ?? null,
+        locked: Boolean(entry.subscriptionId),
+        likeCount: entry._count.likes,
+        commentCount: entry._count.comments,
+        medias: (entry.medias ?? []).map((media) => ({
+          id: media.id,
+          url: media.url,
+          type: media.type,
+        })),
+      })),
+    )
+    return mapped
+  }, [postsQuery.data?.pages])
   const handleCreatePackage = useCallback(() => {
     if (!creatorQuery.data) return
     openForCreate({
@@ -1395,6 +1474,7 @@ export function ProfilePreviewEditor() {
               subscriptions={subscriptionPackages}
               statsData={statsData}
               nftCards={nftCards}
+              socialPosts={socialPosts}
               onCreatePackage={handleCreatePackage}
             />
           </div>

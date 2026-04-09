@@ -120,10 +120,20 @@ const CreatorNftCollectionContainerContentSchema = z.object({
   maxItems: z.number().int().min(1).max(12).optional(),
 });
 
+const CreatorSocialPostsContainerContentSchema = z.object({
+  type: z.literal("social_posts"),
+  postOrder: z.array(z.number().int().positive()),
+  filter: z.enum(["all", "public", "locked"]).optional(),
+  showMedia: z.boolean().optional(),
+  showEngagement: z.boolean().optional(),
+  maxItems: z.number().int().min(1).max(12).optional(),
+});
+
 const CreatorSectionContainerContentAnySchema = z.union([
   CreatorSectionContainerContentSchema,
   CreatorStatsContainerContentSchema,
   CreatorNftCollectionContainerContentSchema,
+  CreatorSocialPostsContainerContentSchema,
 ]);
 
 const CreatorResponsiveContainerContentValueSchema = z.object({

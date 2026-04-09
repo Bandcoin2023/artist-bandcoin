@@ -47,6 +47,7 @@ import {
 import { cn } from "~/lib/utils"
 import { PLATFORM_ASSET } from "~/lib/stellar/constant"
 import { addrShort } from "~/utils/utils"
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/shadcn/ui/avatar"
 
 export type SectionLayoutItem = {
   id: string
@@ -90,6 +91,14 @@ export type SectionContainerContent =
       showPrice?: boolean
       maxItems?: number
     }
+  | {
+      type: "social_posts"
+      postOrder: number[]
+      filter?: "all" | "public" | "locked"
+      showMedia?: boolean
+      showEngagement?: boolean
+      maxItems?: number
+    }
 
 export type BuilderSubscriptionPackage = {
   id: number
@@ -121,10 +130,29 @@ export type BuilderNftCard = {
   mediaType: string | null
 }
 
+export type BuilderSocialPost = {
+  id: number
+  heading: string | null
+  content: string
+  createdAt: string
+  creatorId: string
+  creatorName: string
+  creatorProfileUrl: string | null
+  locked: boolean
+  likeCount: number
+  commentCount: number
+  medias: Array<{
+    id: number
+    url: string
+    type: string
+  }>
+}
+
 type StatsMetricKey = "followers" | "posts" | "nfts" | "revenue"
 
 const STATS_ITEM_TYPE = "PROFILE_STATS_ITEM"
 const NFT_COLLECTION_ITEM_TYPE = "PROFILE_NFT_COLLECTION_ITEM"
+const SOCIAL_POST_ITEM_TYPE = "PROFILE_SOCIAL_POST_ITEM"
 const DEFAULT_STATS_METRIC_ORDER: StatsMetricKey[] = [
   "followers",
   "posts",
@@ -132,6 +160,7 @@ const DEFAULT_STATS_METRIC_ORDER: StatsMetricKey[] = [
   "revenue",
 ]
 const DEFAULT_NFT_MAX_ITEMS = 6
+const DEFAULT_SOCIAL_POST_MAX_ITEMS = 6
 
 const SECTION_ITEM_TYPE = "PROFILE_SECTION"
 const CONTAINER_ITEM_TYPE = "PROFILE_SECTION_CONTAINER"
@@ -196,6 +225,33 @@ function normalizeNftMaxItems(value: number | null | undefined) {
   return Math.max(1, Math.min(12, Math.round(value)))
 }
 
+function normalizeSocialPostMaxItems(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_SOCIAL_POST_MAX_ITEMS
+  return Math.max(1, Math.min(12, Math.round(value)))
+}
+
+function formatRelativePostTime(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ""
+  const now = new Date()
+  const diffTime = Math.max(0, now.getTime() - date.getTime())
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) {
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
+    if (diffHours === 0) {
+      const diffMinutes = Math.floor(diffTime / (1000 * 60))
+      return `${diffMinutes}m ago`
+    }
+    return `${diffHours}h ago`
+  }
+  if (diffDays < 7) return `${diffDays}d ago`
+  return date.toLocaleDateString()
+}
+
+function stripHtml(input: string) {
+  return input.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
+}
+
 function clampWidth(width: number) {
   return Math.max(5, Math.min(95, width))
 }
@@ -234,7 +290,8 @@ function readPanelSize(
   fallback: number,
 ): number {
   if (Array.isArray(sizes)) {
-    const value = sizes[index]
+    const sizeList = sizes as Array<number | undefined>
+    const value = sizeList[index]
     return typeof value === "number" && Number.isFinite(value) ? value : fallback
   }
 
@@ -698,12 +755,65 @@ function NftOrderRow({
   )
 }
 
+function SocialPostOrderRow({
+  post,
+  sectionId,
+  containerId,
+  onMove,
+}: {
+  post: BuilderSocialPost
+  sectionId: string
+  containerId: string
+  onMove: (sectionId: string, containerId: string, dragPostId: number, hoverPostId: number) => void
+}) {
+  const [{ isDragging }, dragRef] = useDrag(
+    () => ({
+      type: SOCIAL_POST_ITEM_TYPE,
+      item: { id: post.id },
+      collect: (monitor) => ({
+        isDragging: monitor.isDragging(),
+      }),
+    }),
+    [post.id],
+  )
+
+  const [, dropRef] = useDrop(
+    () => ({
+      accept: SOCIAL_POST_ITEM_TYPE,
+      hover: (item: { id: number }) => {
+        if (item.id === post.id) return
+        onMove(sectionId, containerId, item.id, post.id)
+      },
+    }),
+    [containerId, onMove, post.id, sectionId],
+  )
+
+  return (
+    <div
+      ref={(node) => {
+        dragRef(node)
+        dropRef(node)
+      }}
+      className={`flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1.5 ${
+        isDragging ? "opacity-60" : "opacity-100"
+      }`}
+    >
+      <div className="inline-flex min-w-0 items-center gap-2">
+        <GripVerticalIcon className="h-4 w-4 text-muted-foreground" />
+        <span className="truncate text-sm font-medium">{post.heading ?? "Untitled post"}</span>
+      </div>
+      <span className="text-xs text-muted-foreground">#{post.id}</span>
+    </div>
+  )
+}
+
 export function ProfileSectionBuilder({
   layout,
   onLayoutChange,
   subscriptions,
   statsData,
   nftCards,
+  socialPosts,
   onCreatePackage,
 }: {
   layout: SectionLayout
@@ -711,6 +821,7 @@ export function ProfileSectionBuilder({
   subscriptions: BuilderSubscriptionPackage[]
   statsData: BuilderStatsData
   nftCards: BuilderNftCard[]
+  socialPosts: BuilderSocialPost[]
   onCreatePackage: () => void
 }) {
   const isSelectionMode = useProfileEditorStore((state) => state.isSelectionMode)
@@ -742,6 +853,8 @@ export function ProfileSectionBuilder({
     selectedContainer?.content?.type === "stats" ? selectedContainer.content : null
   const selectedNftContent =
     selectedContainer?.content?.type === "nft_collection" ? selectedContainer.content : null
+  const selectedSocialPostsContent =
+    selectedContainer?.content?.type === "social_posts" ? selectedContainer.content : null
 
   useEffect(() => {
     if (!selectedSectionId) return
@@ -953,7 +1066,7 @@ export function ProfileSectionBuilder({
 
       const seed = Date.now()
       const nextContainer = createContainer(seed)
-      let nextList = [...current]
+      const nextList = [...current]
 
       if (options?.aroundId) {
         const anchorIndex = nextList.findIndex((item) => item.id === options.aroundId)
@@ -1094,6 +1207,29 @@ export function ProfileSectionBuilder({
     })
   }
 
+  const moveSocialPost = (
+    sectionId: string,
+    containerId: string,
+    dragPostId: number,
+    hoverPostId: number,
+  ) => {
+    const order = selectedSocialPosts.map((post) => post.id)
+    const dragIndex = order.findIndex((id) => id === dragPostId)
+    const hoverIndex = order.findIndex((id) => id === hoverPostId)
+    if (dragIndex === -1 || hoverIndex === -1 || dragIndex === hoverIndex) return
+    const [dragged] = order.splice(dragIndex, 1)
+    if (dragged === undefined) return
+    order.splice(hoverIndex, 0, dragged)
+    setContainerContent(sectionId, containerId, {
+      type: "social_posts",
+      postOrder: order,
+      filter: selectedSocialPostsContent?.filter ?? "all",
+      showMedia: selectedSocialPostsContent?.showMedia !== false,
+      showEngagement: selectedSocialPostsContent?.showEngagement !== false,
+      maxItems: normalizeSocialPostMaxItems(selectedSocialPostsContent?.maxItems),
+    })
+  }
+
   const subscriptionPackageMap = useMemo(
     () => new Map(subscriptions.map((pkg) => [pkg.id, pkg])),
     [subscriptions],
@@ -1120,6 +1256,15 @@ export function ProfileSectionBuilder({
     const remaining = nftCards.filter((card) => !selectedNftContent.nftOrder.includes(card.id))
     return [...ordered, ...remaining]
   }, [nftCards, nftMap, selectedNftContent])
+  const socialPostMap = useMemo(() => new Map(socialPosts.map((post) => [post.id, post])), [socialPosts])
+  const selectedSocialPosts = useMemo(() => {
+    if (!selectedSocialPostsContent) return []
+    const ordered = selectedSocialPostsContent.postOrder
+      .map((id) => socialPostMap.get(id))
+      .filter((post): post is BuilderSocialPost => Boolean(post))
+    const remaining = socialPosts.filter((post) => !selectedSocialPostsContent.postOrder.includes(post.id))
+    return [...ordered, ...remaining]
+  }, [selectedSocialPostsContent, socialPostMap, socialPosts])
   const usedItemTypes = useMemo(() => {
     const used = new Set<string>()
     for (const section of orderedSections) {
@@ -1134,6 +1279,7 @@ export function ProfileSectionBuilder({
   const canAddSubscriptionItem = !usedItemTypes.has("subscription")
   const canAddStatsItem = !usedItemTypes.has("stats")
   const canAddNftCollectionItem = !usedItemTypes.has("nft_collection")
+  const canAddSocialPostsItem = !usedItemTypes.has("social_posts")
 
   const renderContainerBody = (sectionId: string, item: SectionLayoutItem) => {
     if (item.content?.type === "subscription") {
@@ -1268,7 +1414,8 @@ export function ProfileSectionBuilder({
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {visible.map((card) => {
                 const creatorLabel = card.creatorId ? addrShort(card.creatorId, 5) : "Admin"
-                const typeLabel = card.mediaType === "THREE_D" ? "3D Model" : card.mediaType || "Collectible"
+                const typeLabel =
+                  card.mediaType === "THREE_D" ? "3D Model" : (card.mediaType ?? "Collectible")
                 return (
                   <div
                     key={`${sectionId}-${item.id}-${card.id}`}
@@ -1319,6 +1466,103 @@ export function ProfileSectionBuilder({
                         </div>
                       </div>
                     </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    if (item.content?.type === "social_posts") {
+      const content = item.content
+      const filter = content.filter ?? "all"
+      const maxItems = normalizeSocialPostMaxItems(content.maxItems)
+      const ordered = content.postOrder
+        .map((id) => socialPostMap.get(id))
+        .filter((post): post is BuilderSocialPost => Boolean(post))
+      const remaining = socialPosts.filter((post) => !content.postOrder.includes(post.id))
+      const filtered = [...ordered, ...remaining].filter((post) => {
+        if (filter === "public") return !post.locked
+        if (filter === "locked") return post.locked
+        return true
+      })
+      const visible = filtered.slice(0, maxItems)
+
+      return (
+        <div className="w-full">
+          {visible.length === 0 ? (
+            <div className="flex min-h-[180px] items-center justify-center border border-dashed border-muted-foreground/30 text-sm text-muted-foreground">
+              No posts available
+            </div>
+          ) : (
+            <div className="space-y-0">
+              {visible.map((post) => {
+                const firstMedia = post.medias[0]
+                return (
+                  <div
+                    key={`${sectionId}-${item.id}-${post.id}`}
+                    className="overflow-hidden rounded-none border-b border-zinc-200 bg-white shadow-none transition-colors dark:border-zinc-800 dark:bg-zinc-950"
+                  >
+                    <div className="p-4 pb-2">
+                      <div className="flex items-start justify-between">
+                        <div className="flex w-full items-start gap-3">
+                          <Avatar className="h-11 w-11 border border-zinc-200 dark:border-zinc-700">
+                            <AvatarImage src={post.creatorProfileUrl ?? undefined} alt={post.creatorName} />
+                            <AvatarFallback>{post.creatorName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1 pt-0.5">
+                            <div className="flex items-center gap-2 leading-none">
+                              <span className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                                {post.creatorName}
+                              </span>
+                              <span className="inline-flex h-5 items-center rounded px-1 text-[11px] text-zinc-700 ring-1 ring-zinc-300 dark:text-zinc-200 dark:ring-zinc-700">
+                                {post.locked ? "Locked" : "Public"}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+                              {formatRelativePostTime(post.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 overflow-hidden px-4 pb-3 pt-1">
+                      <div className="space-y-3">
+                        {post.heading ? (
+                          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{post.heading}</h2>
+                        ) : null}
+                        <p className="text-sm text-zinc-700 dark:text-zinc-300">{stripHtml(post.content)}</p>
+                        {content.showMedia !== false && firstMedia ? (
+                          <div className="overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-800">
+                            {firstMedia.type === "IMAGE" ? (
+                              <img src={firstMedia.url} alt={post.heading ?? "Post media"} className="h-56 w-full object-cover" />
+                            ) : (
+                              <div className="flex h-40 items-center justify-center bg-zinc-100 text-sm text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
+                                {firstMedia.type}
+                              </div>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {content.showEngagement !== false ? (
+                      <div className="border-t border-zinc-200 px-3 py-2 dark:border-zinc-800">
+                        <div className="flex w-full items-center gap-2">
+                          <div className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-zinc-600 dark:text-zinc-300">
+                            <span className="text-xs">{post.likeCount}</span>
+                            <span className="text-xs">Likes</span>
+                          </div>
+                          <div className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-zinc-600 dark:text-zinc-300">
+                            <span className="text-xs">{post.commentCount}</span>
+                            <span className="text-xs">Comments</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 )
               })}
@@ -1660,7 +1904,7 @@ export function ProfileSectionBuilder({
               <DialogDescription>Select what to place in this container.</DialogDescription>
             </DialogHeader>
             <div className="pt-2">
-              {canAddSubscriptionItem || canAddStatsItem || canAddNftCollectionItem ? (
+              {canAddSubscriptionItem || canAddStatsItem || canAddNftCollectionItem || canAddSocialPostsItem ? (
                 <div className="space-y-2">
                   {canAddSubscriptionItem ? (
                     <Button
@@ -1716,6 +1960,27 @@ export function ProfileSectionBuilder({
                       }}
                     >
                       Creator&apos;s NFT Collection
+                    </Button>
+                  ) : null}
+                  {canAddSocialPostsItem ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-10 w-full justify-start"
+                      onClick={() => {
+                        if (!addItemTarget) return
+                        setContainerContent(addItemTarget.sectionId, addItemTarget.containerId, {
+                          type: "social_posts",
+                          postOrder: socialPosts.map((post) => post.id),
+                          filter: "all",
+                          showMedia: true,
+                          showEngagement: true,
+                          maxItems: DEFAULT_SOCIAL_POST_MAX_ITEMS,
+                        })
+                        setAddItemTarget(null)
+                      }}
+                    >
+                      Social Posts
                     </Button>
                   ) : null}
                 </div>
@@ -1928,6 +2193,134 @@ export function ProfileSectionBuilder({
                     style={
                       {
                         "--cover-progress": `${Math.round((normalizeNftMaxItems(selectedNftContent?.maxItems) / 12) * 100)}%`,
+                      } as CSSProperties
+                    }
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-9 w-full border border-black/20 bg-white/80 text-red-600 hover:bg-white"
+                  onClick={() => deleteContainer(selectedContainerSectionId, selectedContainer.id)}
+                >
+                  Delete container
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        {isSelectionMode &&
+        selectedOverlay?.kind === "container" &&
+        selectedContainerSectionId &&
+        selectedContainer?.content?.type === "social_posts" ? (
+          <div className="pointer-events-none fixed right-3 top-1/2 z-[85] -translate-y-1/2">
+            <div className="pointer-events-auto relative w-[300px] overflow-hidden rounded-2xl border border-black/20 p-3">
+              <Glass
+                className={{
+                  root: "pointer-events-none absolute inset-0 z-0 rounded-2xl *:rounded-2xl",
+                  tint: "bg-[#f3f1ea]/90",
+                  effect: "backdrop-blur-[10px]",
+                  shine:
+                    "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.85),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.5)]",
+                }}
+              />
+              <div className="relative z-10 space-y-3">
+                <p className="text-sm font-semibold">Social posts container</p>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Reorder posts</p>
+                  <div className="max-h-[220px] space-y-1 overflow-y-auto pr-1">
+                    {selectedSocialPosts.map((post) => (
+                      <SocialPostOrderRow
+                        key={`${selectedContainer.id}-${post.id}`}
+                        post={post}
+                        sectionId={selectedContainerSectionId}
+                        containerId={selectedContainer.id}
+                        onMove={moveSocialPost}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <Select
+                  value={selectedSocialPostsContent?.filter ?? "all"}
+                  onValueChange={(value) =>
+                    setContainerContent(selectedContainerSectionId, selectedContainer.id, {
+                      type: "social_posts",
+                      postOrder: selectedSocialPostsContent?.postOrder ?? [],
+                      filter: value as "all" | "public" | "locked",
+                      showMedia: selectedSocialPostsContent?.showMedia !== false,
+                      showEngagement: selectedSocialPostsContent?.showEngagement !== false,
+                      maxItems: normalizeSocialPostMaxItems(selectedSocialPostsContent?.maxItems),
+                    })
+                  }
+                >
+                  <SelectTrigger className="h-9 w-full border-black/20 bg-white/80">
+                    <SelectValue placeholder="Filter" />
+                  </SelectTrigger>
+                  <SelectContent side="left" align="start">
+                    <SelectItem value="all">All Posts</SelectItem>
+                    <SelectItem value="public">Public Only</SelectItem>
+                    <SelectItem value="locked">Locked Only</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white/80 px-3">
+                  <span className="text-xs font-medium text-foreground">Show media</span>
+                  <Switch
+                    checked={selectedSocialPostsContent?.showMedia !== false}
+                    onCheckedChange={(checked) =>
+                      setContainerContent(selectedContainerSectionId, selectedContainer.id, {
+                        type: "social_posts",
+                        postOrder: selectedSocialPostsContent?.postOrder ?? [],
+                        filter: selectedSocialPostsContent?.filter ?? "all",
+                        showMedia: checked,
+                        showEngagement: selectedSocialPostsContent?.showEngagement !== false,
+                        maxItems: normalizeSocialPostMaxItems(selectedSocialPostsContent?.maxItems),
+                      })
+                    }
+                  />
+                </div>
+                <div className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white/80 px-3">
+                  <span className="text-xs font-medium text-foreground">Show engagement</span>
+                  <Switch
+                    checked={selectedSocialPostsContent?.showEngagement !== false}
+                    onCheckedChange={(checked) =>
+                      setContainerContent(selectedContainerSectionId, selectedContainer.id, {
+                        type: "social_posts",
+                        postOrder: selectedSocialPostsContent?.postOrder ?? [],
+                        filter: selectedSocialPostsContent?.filter ?? "all",
+                        showMedia: selectedSocialPostsContent?.showMedia !== false,
+                        showEngagement: checked,
+                        maxItems: normalizeSocialPostMaxItems(selectedSocialPostsContent?.maxItems),
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-foreground">Max items</span>
+                    <span className="text-xs text-muted-foreground">
+                      {normalizeSocialPostMaxItems(selectedSocialPostsContent?.maxItems)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={12}
+                    step={1}
+                    value={normalizeSocialPostMaxItems(selectedSocialPostsContent?.maxItems)}
+                    onChange={(event) =>
+                      setContainerContent(selectedContainerSectionId, selectedContainer.id, {
+                        type: "social_posts",
+                        postOrder: selectedSocialPostsContent?.postOrder ?? [],
+                        filter: selectedSocialPostsContent?.filter ?? "all",
+                        showMedia: selectedSocialPostsContent?.showMedia !== false,
+                        showEngagement: selectedSocialPostsContent?.showEngagement !== false,
+                        maxItems: Number.parseInt(event.target.value, 10),
+                      })
+                    }
+                    className="cover-height-slider w-full"
+                    style={
+                      {
+                        "--cover-progress": `${Math.round((normalizeSocialPostMaxItems(selectedSocialPostsContent?.maxItems) / 12) * 100)}%`,
                       } as CSSProperties
                     }
                   />
