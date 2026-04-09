@@ -57,13 +57,31 @@ function isSectionContainerContent(
   value: unknown,
 ): value is SectionContainerContent {
   if (!value || typeof value !== "object") return false
-  const input = value as { type?: unknown; packageOrder?: unknown; gradientMode?: unknown }
-  return (
-    input.type === "subscription" &&
-    Array.isArray(input.packageOrder) &&
-    input.packageOrder.every((entry) => typeof entry === "number" && Number.isInteger(entry)) &&
-    (input.gradientMode === undefined || typeof input.gradientMode === "boolean")
-  )
+  const input = value as {
+    type?: unknown
+    packageOrder?: unknown
+    gradientMode?: unknown
+    metricOrder?: unknown
+    showIcons?: unknown
+  }
+  if (input.type === "subscription") {
+    return (
+      Array.isArray(input.packageOrder) &&
+      input.packageOrder.every((entry) => typeof entry === "number" && Number.isInteger(entry)) &&
+      (input.gradientMode === undefined || typeof input.gradientMode === "boolean")
+    )
+  }
+  if (input.type === "stats") {
+    return (
+      Array.isArray(input.metricOrder) &&
+      input.metricOrder.every(
+        (entry) =>
+          entry === "followers" || entry === "posts" || entry === "nfts" || entry === "revenue",
+      ) &&
+      (input.showIcons === undefined || typeof input.showIcons === "boolean")
+    )
+  }
+  return false
 }
 
 type BreakpointLayoutMap = {
@@ -93,6 +111,8 @@ type SectionLayoutConfigSection = {
   order: number
   direction: ResponsiveValue<"row" | "column">
   hideSectionFrame: ResponsiveValue<boolean>
+  marginTop: ResponsiveValue<number>
+  marginBottom: ResponsiveValue<number>
   items: SectionLayoutConfigItem[]
 }
 
@@ -126,6 +146,8 @@ function normalizeLayout(layout: SectionLayout): SectionLayout {
         order: sectionIndex,
         direction: section.direction === "column" ? "column" : "row",
         hideSectionFrame: Boolean(section.hideSectionFrame),
+        marginTop: normalizeSectionMargin(section.marginTop),
+        marginBottom: normalizeSectionMargin(section.marginBottom),
         items: sortedItems.map((item, itemIndex) => ({
           id: item.id,
           widthPct: Math.max(5, Math.min(95, item.widthPct)),
@@ -138,30 +160,66 @@ function normalizeLayout(layout: SectionLayout): SectionLayout {
   }
 }
 
+function normalizeSectionMargin(value: number | null | undefined): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0
+  return Math.max(0, Math.min(240, Math.round(value)))
+}
+
 function normalizeContainerContent(content: unknown): SectionContainerContent | null {
   if (!content || typeof content !== "object") return null
-  const value = content as { type?: unknown; packageOrder?: unknown; gradientMode?: unknown }
-  if (value.type !== "subscription") return null
-  if (!Array.isArray(value.packageOrder)) {
+  const value = content as {
+    type?: unknown
+    packageOrder?: unknown
+    gradientMode?: unknown
+    metricOrder?: unknown
+    showIcons?: unknown
+  }
+  if (value.type === "subscription") {
+    if (!Array.isArray(value.packageOrder)) {
+      return {
+        type: "subscription",
+        packageOrder: [],
+        gradientMode: false,
+      }
+    }
+
+    const deduped: number[] = []
+    for (const id of value.packageOrder) {
+      if (typeof id !== "number" || !Number.isInteger(id)) continue
+      if (deduped.includes(id)) continue
+      deduped.push(id)
+    }
+
     return {
       type: "subscription",
-      packageOrder: [],
-      gradientMode: false,
+      packageOrder: deduped,
+      gradientMode: typeof value.gradientMode === "boolean" ? value.gradientMode : false,
     }
   }
-
-  const deduped: number[] = []
-  for (const id of value.packageOrder) {
-    if (typeof id !== "number" || !Number.isInteger(id)) continue
-    if (deduped.includes(id)) continue
-    deduped.push(id)
+  if (value.type === "stats") {
+    const safeOrder = Array.isArray(value.metricOrder)
+      ? value.metricOrder.filter(
+          (entry): entry is "followers" | "posts" | "nfts" | "revenue" =>
+            entry === "followers" ||
+            entry === "posts" ||
+            entry === "nfts" ||
+            entry === "revenue",
+        )
+      : []
+    const defaultOrder: Array<"followers" | "posts" | "nfts" | "revenue"> = [
+      "followers",
+      "posts",
+      "nfts",
+      "revenue",
+    ]
+    const deduped = [...new Set([...safeOrder, ...defaultOrder])]
+    return {
+      type: "stats",
+      metricOrder: deduped,
+      showIcons: typeof value.showIcons === "boolean" ? value.showIcons : true,
+    }
   }
-
-  return {
-    type: "subscription",
-    packageOrder: deduped,
-    gradientMode: typeof value.gradientMode === "boolean" ? value.gradientMode : false,
-  }
+  return null
 }
 
 function isSectionLayout(value: unknown): value is SectionLayout {
@@ -176,6 +234,8 @@ function isSectionLayout(value: unknown): value is SectionLayout {
       typeof entry.id === "string" &&
       typeof entry.order === "number" &&
       (entry.direction === "row" || entry.direction === "column") &&
+      (entry.marginTop === undefined || typeof entry.marginTop === "number") &&
+      (entry.marginBottom === undefined || typeof entry.marginBottom === "number") &&
       Array.isArray(entry.items) &&
       entry.items.every((item) => {
         if (!item || typeof item !== "object") return false
@@ -215,6 +275,8 @@ function isSectionLayoutConfig(value: unknown): value is SectionLayoutConfig {
       order?: unknown
       direction?: unknown
       hideSectionFrame?: unknown
+      marginTop?: unknown
+      marginBottom?: unknown
       items?: unknown
     }
     if (typeof item.id !== "string" || typeof item.order !== "number") return false
@@ -231,6 +293,18 @@ function isSectionLayoutConfig(value: unknown): value is SectionLayoutConfig {
         item.hideSectionFrame,
         (candidate): candidate is boolean => typeof candidate === "boolean",
       )
+    ) {
+      return false
+    }
+    if (
+      item.marginTop !== undefined &&
+      !isResponsiveValue(item.marginTop, (candidate): candidate is number => typeof candidate === "number")
+    ) {
+      return false
+    }
+    if (
+      item.marginBottom !== undefined &&
+      !isResponsiveValue(item.marginBottom, (candidate): candidate is number => typeof candidate === "number")
     ) {
       return false
     }
@@ -333,12 +407,36 @@ function normalizeLayoutConfig(layoutConfig: SectionLayoutConfig): SectionLayout
             ? null
             : Boolean(section.hideSectionFrame.mobile),
       }
+      const normalizedMarginTop: ResponsiveValue<number> = {
+        default: normalizeSectionMargin(section.marginTop?.default),
+        desktop:
+          section.marginTop?.desktop === null || section.marginTop?.desktop === undefined
+            ? null
+            : normalizeSectionMargin(section.marginTop.desktop),
+        mobile:
+          section.marginTop?.mobile === null || section.marginTop?.mobile === undefined
+            ? null
+            : normalizeSectionMargin(section.marginTop.mobile),
+      }
+      const normalizedMarginBottom: ResponsiveValue<number> = {
+        default: normalizeSectionMargin(section.marginBottom?.default),
+        desktop:
+          section.marginBottom?.desktop === null || section.marginBottom?.desktop === undefined
+            ? null
+            : normalizeSectionMargin(section.marginBottom.desktop),
+        mobile:
+          section.marginBottom?.mobile === null || section.marginBottom?.mobile === undefined
+            ? null
+            : normalizeSectionMargin(section.marginBottom.mobile),
+      }
 
       return {
         id: section.id,
         order: sectionIndex,
         direction: normalizedDirection,
         hideSectionFrame: normalizedHideSectionFrame,
+        marginTop: normalizedMarginTop,
+        marginBottom: normalizedMarginBottom,
         items: sortedItems.map((item, itemIndex) => ({
           id: item.id,
           order: itemIndex,
@@ -382,6 +480,8 @@ function resolveLayoutForViewport(
       order: section.order,
       direction: resolveResponsiveValue(section.direction, viewport),
       hideSectionFrame: resolveResponsiveValue(section.hideSectionFrame, viewport),
+      marginTop: resolveResponsiveValue(section.marginTop, viewport),
+      marginBottom: resolveResponsiveValue(section.marginBottom, viewport),
       items: section.items.map((item) => ({
         id: item.id,
         order: item.order,
@@ -445,6 +545,33 @@ function createSectionLayoutConfigFromLegacyLayouts(layouts: BreakpointLayoutMap
           mobile:
             mobileSection && Boolean(mobileSection.hideSectionFrame) !== Boolean(section.hideSectionFrame)
               ? Boolean(mobileSection.hideSectionFrame)
+              : null,
+        },
+        marginTop: {
+          default: normalizeSectionMargin(section.marginTop),
+          desktop:
+            desktopSection &&
+            normalizeSectionMargin(desktopSection.marginTop) !== normalizeSectionMargin(section.marginTop)
+              ? normalizeSectionMargin(desktopSection.marginTop)
+              : null,
+          mobile:
+            mobileSection &&
+            normalizeSectionMargin(mobileSection.marginTop) !== normalizeSectionMargin(section.marginTop)
+              ? normalizeSectionMargin(mobileSection.marginTop)
+              : null,
+        },
+        marginBottom: {
+          default: normalizeSectionMargin(section.marginBottom),
+          desktop:
+            desktopSection &&
+            normalizeSectionMargin(desktopSection.marginBottom) !==
+              normalizeSectionMargin(section.marginBottom)
+              ? normalizeSectionMargin(desktopSection.marginBottom)
+              : null,
+          mobile:
+            mobileSection &&
+            normalizeSectionMargin(mobileSection.marginBottom) !== normalizeSectionMargin(section.marginBottom)
+              ? normalizeSectionMargin(mobileSection.marginBottom)
               : null,
         },
         items: section.items.map((item) => {
@@ -533,6 +660,24 @@ function updateLayoutConfigForViewport(
         },
         viewport,
         Boolean(section.hideSectionFrame),
+      ),
+      marginTop: withResponsiveValue(
+        currentSection?.marginTop ?? {
+          default: normalizeSectionMargin(section.marginTop),
+          desktop: null,
+          mobile: null,
+        },
+        viewport,
+        normalizeSectionMargin(section.marginTop),
+      ),
+      marginBottom: withResponsiveValue(
+        currentSection?.marginBottom ?? {
+          default: normalizeSectionMargin(section.marginBottom),
+          desktop: null,
+          mobile: null,
+        },
+        viewport,
+        normalizeSectionMargin(section.marginBottom),
       ),
       items: section.items.map((item) => {
         const currentItem = currentItems.get(item.id)
@@ -911,6 +1056,15 @@ export function ProfilePreviewEditor() {
       })),
     [subscriptionsQuery.data],
   )
+  const statsData = useMemo(
+    () => ({
+      followers: creatorQuery.data?._count?.followers ?? 0,
+      posts: creatorQuery.data?._count?.postGroups ?? 0,
+      nfts: creatorQuery.data?._count?.assets ?? 0,
+      revenue: 0,
+    }),
+    [creatorQuery.data?._count?.assets, creatorQuery.data?._count?.followers, creatorQuery.data?._count?.postGroups],
+  )
   const handleCreatePackage = useCallback(() => {
     if (!creatorQuery.data) return
     openForCreate({
@@ -1122,6 +1276,7 @@ export function ProfilePreviewEditor() {
               layout={activeSectionLayout}
               onLayoutChange={handleSectionLayoutChange}
               subscriptions={subscriptionPackages}
+              statsData={statsData}
               onCreatePackage={handleCreatePackage}
             />
           </div>

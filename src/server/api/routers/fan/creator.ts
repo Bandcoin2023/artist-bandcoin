@@ -58,6 +58,8 @@ const CreatorSectionLayoutSectionSchema = z.object({
   order: z.number().int().min(0),
   direction: z.enum(["row", "column"]).default("row"),
   hideSectionFrame: z.boolean().optional(),
+  marginTop: z.number().int().min(0).max(240).optional(),
+  marginBottom: z.number().int().min(0).max(240).optional(),
   items: z.array(CreatorSectionLayoutItemSchema).max(4),
 });
 
@@ -78,6 +80,12 @@ const CreatorResponsiveNumberValueSchema = z.object({
   mobile: z.number().min(5).max(95).nullable(),
 });
 
+const CreatorResponsiveSectionMarginValueSchema = z.object({
+  default: z.number().int().min(0).max(240),
+  desktop: z.number().int().min(0).max(240).nullable(),
+  mobile: z.number().int().min(0).max(240).nullable(),
+});
+
 const CreatorResponsiveBooleanValueSchema = z.object({
   default: z.boolean(),
   desktop: z.boolean().nullable(),
@@ -90,10 +98,28 @@ const CreatorSectionContainerContentSchema = z.object({
   gradientMode: z.boolean().optional(),
 });
 
+const CreatorStatsMetricSchema = z.enum([
+  "followers",
+  "posts",
+  "nfts",
+  "revenue",
+]);
+
+const CreatorStatsContainerContentSchema = z.object({
+  type: z.literal("stats"),
+  metricOrder: z.array(CreatorStatsMetricSchema),
+  showIcons: z.boolean().optional(),
+});
+
+const CreatorSectionContainerContentAnySchema = z.union([
+  CreatorSectionContainerContentSchema,
+  CreatorStatsContainerContentSchema,
+]);
+
 const CreatorResponsiveContainerContentValueSchema = z.object({
-  default: CreatorSectionContainerContentSchema.nullable(),
-  desktop: CreatorSectionContainerContentSchema.nullable(),
-  mobile: CreatorSectionContainerContentSchema.nullable(),
+  default: CreatorSectionContainerContentAnySchema.nullable(),
+  desktop: CreatorSectionContainerContentAnySchema.nullable(),
+  mobile: CreatorSectionContainerContentAnySchema.nullable(),
 });
 
 const CreatorSectionLayoutConfigItemSchema = z.object({
@@ -109,6 +135,8 @@ const CreatorSectionLayoutConfigSectionSchema = z.object({
   order: z.number().int().min(0),
   direction: CreatorResponsiveDirectionValueSchema,
   hideSectionFrame: CreatorResponsiveBooleanValueSchema,
+  marginTop: CreatorResponsiveSectionMarginValueSchema,
+  marginBottom: CreatorResponsiveSectionMarginValueSchema,
   items: z.array(CreatorSectionLayoutConfigItemSchema).max(4),
 });
 

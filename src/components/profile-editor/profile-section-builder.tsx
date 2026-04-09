@@ -1,8 +1,18 @@
 "use client"
 
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react"
+import { Fragment, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react"
 import { motion } from "motion/react"
-import { CheckCircle2Icon, GripVerticalIcon, PlusIcon, Trash2Icon } from "lucide-react"
+import {
+  CheckCircle2Icon,
+  DollarSignIcon,
+  GripVerticalIcon,
+  Grid3X3Icon,
+  ImageIcon,
+  PlusIcon,
+  SlidersHorizontalIcon,
+  Trash2Icon,
+  UsersIcon,
+} from "lucide-react"
 import { useDrag, useDrop, DndProvider } from "react-dnd"
 import { HTML5Backend } from "react-dnd-html5-backend"
 import type { Layout } from "react-resizable-panels"
@@ -25,6 +35,11 @@ import {
 } from "~/components/shadcn/ui/select"
 import { Switch } from "~/components/shadcn/ui/switch"
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/shadcn/ui/popover"
+import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
@@ -44,6 +59,8 @@ export type SectionLayoutSection = {
   order: number
   direction: "row" | "column"
   hideSectionFrame?: boolean
+  marginTop?: number
+  marginBottom?: number
   items: SectionLayoutItem[]
 }
 
@@ -52,11 +69,17 @@ export type SectionLayout = {
   sections: SectionLayoutSection[]
 }
 
-export type SectionContainerContent = {
-  type: "subscription"
-  packageOrder: number[]
-  gradientMode?: boolean
-}
+export type SectionContainerContent =
+  | {
+      type: "subscription"
+      packageOrder: number[]
+      gradientMode?: boolean
+    }
+  | {
+      type: "stats"
+      metricOrder: StatsMetricKey[]
+      showIcons?: boolean
+    }
 
 export type BuilderSubscriptionPackage = {
   id: number
@@ -68,6 +91,23 @@ export type BuilderSubscriptionPackage = {
   popular: boolean
   isActive: boolean
 }
+
+export type BuilderStatsData = {
+  followers: number
+  posts: number
+  nfts: number
+  revenue: number
+}
+
+type StatsMetricKey = "followers" | "posts" | "nfts" | "revenue"
+
+const STATS_ITEM_TYPE = "PROFILE_STATS_ITEM"
+const DEFAULT_STATS_METRIC_ORDER: StatsMetricKey[] = [
+  "followers",
+  "posts",
+  "nfts",
+  "revenue",
+]
 
 const SECTION_ITEM_TYPE = "PROFILE_SECTION"
 const CONTAINER_ITEM_TYPE = "PROFILE_SECTION_CONTAINER"
@@ -90,8 +130,49 @@ function getSubscriptionColorClass(input: string | null | undefined) {
   return bgToken ?? "bg-muted"
 }
 
+function formatStatsValue(value: number) {
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value)
+}
+
+function getStatsMeta(key: StatsMetricKey): {
+  label: string
+  valueLabel: string
+  icon: typeof UsersIcon
+} {
+  switch (key) {
+    case "followers":
+      return { label: "Total Followers", valueLabel: "Followers", icon: UsersIcon }
+    case "posts":
+      return { label: "Total Posts", valueLabel: "Posts", icon: Grid3X3Icon }
+    case "nfts":
+      return { label: "Total NFTs", valueLabel: "NFTs", icon: ImageIcon }
+    case "revenue":
+      return { label: "Total Revenue", valueLabel: "Revenue", icon: DollarSignIcon }
+    default:
+      return { label: "Stat", valueLabel: "Stat", icon: UsersIcon }
+  }
+}
+
+function normalizeStatsMetricOrder(order: StatsMetricKey[] | null | undefined): StatsMetricKey[] {
+  const base = Array.isArray(order) ? order : []
+  const deduped: StatsMetricKey[] = []
+  for (const key of base) {
+    if (!DEFAULT_STATS_METRIC_ORDER.includes(key)) continue
+    if (deduped.includes(key)) continue
+    deduped.push(key)
+  }
+  for (const key of DEFAULT_STATS_METRIC_ORDER) {
+    if (!deduped.includes(key)) deduped.push(key)
+  }
+  return deduped
+}
+
 function clampWidth(width: number) {
   return Math.max(5, Math.min(95, width))
+}
+
+function clampSectionMargin(value: number) {
+  return Math.max(0, Math.min(240, Math.round(value)))
 }
 
 function createContainer(seed: number): SectionLayoutItem {
@@ -310,6 +391,8 @@ function SectionShell({
   index,
   hasContainers,
   hideSectionFrame,
+  marginTop,
+  marginBottom,
   onMove,
   children,
 }: {
@@ -317,6 +400,8 @@ function SectionShell({
   index: number
   hasContainers: boolean
   hideSectionFrame: boolean
+  marginTop: number
+  marginBottom: number
   onMove: (dragId: string, hoverId: string) => void
   children: ReactNode
 }) {
@@ -383,6 +468,10 @@ function SectionShell({
       className={`relative isolate bg-background/20 transition-opacity ${
         isDragging ? "opacity-60" : "opacity-100"
       }`}
+      style={{
+        marginTop: `${clampSectionMargin(marginTop)}px`,
+        marginBottom: `${clampSectionMargin(marginBottom)}px`,
+      }}
     >
       <div
         className={`pointer-events-none absolute inset-0 z-[1] border-2 ${overlayColorClass} transition-opacity ${
@@ -472,15 +561,69 @@ function SubscriptionPackageOrderRow({
   )
 }
 
+function StatsMetricOrderRow({
+  metric,
+  sectionId,
+  containerId,
+  onMove,
+}: {
+  metric: StatsMetricKey
+  sectionId: string
+  containerId: string
+  onMove: (sectionId: string, containerId: string, dragMetric: StatsMetricKey, hoverMetric: StatsMetricKey) => void
+}) {
+  const meta = getStatsMeta(metric)
+  const [{ isDragging }, dragRef] = useDrag(
+    () => ({
+      type: STATS_ITEM_TYPE,
+      item: { metric },
+      collect: (monitor) => ({
+        isDragging: monitor.isDragging(),
+      }),
+    }),
+    [metric],
+  )
+
+  const [, dropRef] = useDrop(
+    () => ({
+      accept: STATS_ITEM_TYPE,
+      hover: (item: { metric: StatsMetricKey }) => {
+        if (item.metric === metric) return
+        onMove(sectionId, containerId, item.metric, metric)
+      },
+    }),
+    [containerId, metric, onMove, sectionId],
+  )
+
+  return (
+    <div
+      ref={(node) => {
+        dragRef(node)
+        dropRef(node)
+      }}
+      className={`flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1.5 ${
+        isDragging ? "opacity-60" : "opacity-100"
+      }`}
+    >
+      <div className="inline-flex min-w-0 items-center gap-2">
+        <GripVerticalIcon className="h-4 w-4 text-muted-foreground" />
+        <span className="truncate text-sm font-medium">{meta.label}</span>
+      </div>
+    </div>
+  )
+}
+
 export function ProfileSectionBuilder({
   layout,
   onLayoutChange,
   subscriptions,
+  statsData,
   onCreatePackage,
 }: {
   layout: SectionLayout
   onLayoutChange: (layout: SectionLayout) => void
   subscriptions: BuilderSubscriptionPackage[]
+  statsData: BuilderStatsData
   onCreatePackage: () => void
 }) {
   const isSelectionMode = useProfileEditorStore((state) => state.isSelectionMode)
@@ -506,6 +649,10 @@ export function ProfileSectionBuilder({
       : null
   const selectedContainerSectionId =
     selectedOverlay?.kind === "container" ? selectedOverlay.sectionId : null
+  const selectedSubscriptionContent =
+    selectedContainer?.content?.type === "subscription" ? selectedContainer.content : null
+  const selectedStatsContent =
+    selectedContainer?.content?.type === "stats" ? selectedContainer.content : null
 
   useEffect(() => {
     if (!selectedSectionId) return
@@ -607,6 +754,8 @@ export function ProfileSectionBuilder({
       order: 0,
       direction: "row",
       hideSectionFrame: false,
+      marginTop: 0,
+      marginBottom: 0,
       items: [],
     }
 
@@ -641,6 +790,33 @@ export function ProfileSectionBuilder({
           ? {
               ...section,
               hideSectionFrame: hidden,
+            }
+          : section,
+      ),
+    })
+  }
+
+  const setSectionMargins = (
+    sectionId: string,
+    nextMargins: {
+      marginTop?: number
+      marginBottom?: number
+    },
+  ) => {
+    onLayoutChange({
+      version: 2,
+      sections: orderedSections.map((section) =>
+        section.id === sectionId
+          ? {
+              ...section,
+              marginTop:
+                nextMargins.marginTop === undefined
+                  ? section.marginTop ?? 0
+                  : clampSectionMargin(nextMargins.marginTop),
+              marginBottom:
+                nextMargins.marginBottom === undefined
+                  ? section.marginBottom ?? 0
+                  : clampSectionMargin(nextMargins.marginBottom),
             }
           : section,
       ),
@@ -763,7 +939,32 @@ export function ProfileSectionBuilder({
     setContainerContent(sectionId, containerId, {
       type: "subscription",
       packageOrder,
-      gradientMode: Boolean(selectedContainer?.content?.gradientMode),
+      gradientMode: Boolean(selectedSubscriptionContent?.gradientMode),
+    })
+  }
+
+  const moveStatsMetric = (
+    sectionId: string,
+    containerId: string,
+    dragMetric: StatsMetricKey,
+    hoverMetric: StatsMetricKey,
+  ) => {
+    const currentOrder =
+      selectedStatsContent
+        ? normalizeStatsMetricOrder(selectedStatsContent.metricOrder)
+        : [...DEFAULT_STATS_METRIC_ORDER]
+    const dragIndex = currentOrder.findIndex((key) => key === dragMetric)
+    const hoverIndex = currentOrder.findIndex((key) => key === hoverMetric)
+    if (dragIndex === -1 || hoverIndex === -1 || dragIndex === hoverIndex) return
+
+    const [dragged] = currentOrder.splice(dragIndex, 1)
+    if (!dragged) return
+    currentOrder.splice(hoverIndex, 0, dragged)
+
+    setContainerContent(sectionId, containerId, {
+      type: "stats",
+      metricOrder: currentOrder,
+      showIcons: selectedStatsContent ? Boolean(selectedStatsContent.showIcons) : true,
     })
   }
 
@@ -772,13 +973,18 @@ export function ProfileSectionBuilder({
     [subscriptions],
   )
   const selectedSubscriptionPackages = useMemo(() => {
-    if (selectedContainer?.content?.type !== "subscription") return []
-    const ordered = selectedContainer.content.packageOrder
+    if (!selectedSubscriptionContent) return []
+    const orderedIds = selectedSubscriptionContent.packageOrder
+    const ordered = orderedIds
       .map((id) => subscriptionPackageMap.get(id))
       .filter((pkg): pkg is BuilderSubscriptionPackage => Boolean(pkg))
-    const remaining = subscriptions.filter((pkg) => !selectedContainer.content?.packageOrder.includes(pkg.id))
+    const remaining = subscriptions.filter((pkg) => !orderedIds.includes(pkg.id))
     return [...ordered, ...remaining]
-  }, [selectedContainer, subscriptionPackageMap, subscriptions])
+  }, [selectedSubscriptionContent, subscriptionPackageMap, subscriptions])
+  const selectedStatsMetricOrder = useMemo(() => {
+    if (!selectedStatsContent) return []
+    return normalizeStatsMetricOrder(selectedStatsContent.metricOrder)
+  }, [selectedStatsContent])
   const usedItemTypes = useMemo(() => {
     const used = new Set<string>()
     for (const section of orderedSections) {
@@ -791,14 +997,16 @@ export function ProfileSectionBuilder({
     return used
   }, [orderedSections])
   const canAddSubscriptionItem = !usedItemTypes.has("subscription")
+  const canAddStatsItem = !usedItemTypes.has("stats")
 
   const renderContainerBody = (sectionId: string, item: SectionLayoutItem) => {
     if (item.content?.type === "subscription") {
-      const isGradientMode = Boolean(item.content.gradientMode)
-      const orderedPackages = item.content.packageOrder
+      const subscriptionContent = item.content
+      const isGradientMode = Boolean(subscriptionContent.gradientMode)
+      const orderedPackages = subscriptionContent.packageOrder
         .map((id) => subscriptionPackageMap.get(id))
         .filter((pkg): pkg is BuilderSubscriptionPackage => Boolean(pkg))
-      const remainingPackages = subscriptions.filter((pkg) => !item.content?.packageOrder.includes(pkg.id))
+      const remainingPackages = subscriptions.filter((pkg) => !subscriptionContent.packageOrder.includes(pkg.id))
       const visiblePackages = [...orderedPackages, ...remainingPackages]
 
       return (
@@ -868,6 +1076,43 @@ export function ProfileSectionBuilder({
       )
     }
 
+    if (item.content?.type === "stats") {
+      const metricOrder = normalizeStatsMetricOrder(item.content.metricOrder)
+      const showIcons = item.content.showIcons !== false
+      return (
+        <div className="w-full border border-solid border-muted-foreground/30">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
+            {metricOrder.map((metric) => {
+              const meta = getStatsMeta(metric)
+              const value =
+                metric === "followers"
+                  ? statsData.followers
+                  : metric === "posts"
+                    ? statsData.posts
+                    : metric === "nfts"
+                      ? statsData.nfts
+                      : statsData.revenue
+              const Icon = meta.icon
+              return (
+                <div
+                  key={`${sectionId}-${item.id}-${metric}`}
+                  className="border-b border-r border-[#ececec] p-4 last:border-r-0 md:[&:nth-child(2n)]:border-r-0 xl:[&:nth-child(2n)]:border-r xl:[&:nth-child(4n)]:border-r-0 [&:nth-last-child(-n+1)]:border-b-0 md:[&:nth-last-child(-n+2)]:border-b-0 xl:[&:nth-last-child(-n+4)]:border-b-0 dark:border-white/10"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+                    {meta.label}
+                  </p>
+                  <div className="mt-3 flex items-center gap-2">
+                    {showIcons ? <Icon className="h-4 w-4 text-muted-foreground" /> : null}
+                    <p className="text-3xl font-semibold leading-none">{formatStatsValue(value)}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="min-h-[180px] w-full border border-dashed border-muted-foreground/30 bg-muted/30 p-6">
         <div className="flex min-h-[140px] items-center justify-center">
@@ -914,6 +1159,8 @@ export function ProfileSectionBuilder({
               index={section.order}
               hasContainers={orderedItems.length > 0}
               hideSectionFrame={Boolean(section.hideSectionFrame)}
+              marginTop={section.marginTop ?? 0}
+              marginBottom={section.marginBottom ?? 0}
               onMove={moveSection}
             >
               {orderedItems.length === 0 ? (
@@ -1069,6 +1316,67 @@ export function ProfileSectionBuilder({
                     <SelectItem value="column">Column</SelectItem>
                   </SelectContent>
                 </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      className="h-9 w-9 border border-black/20 bg-white/80 hover:bg-white"
+                    >
+                      <SlidersHorizontalIcon className="h-4 w-4" />
+                      <span className="sr-only">Adjust section margins</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    side="top"
+                    align="start"
+                    className="w-[320px] rounded-[28px] border border-[#d9d9db] bg-white px-6 py-4 shadow-[0_16px_28px_rgba(0,0,0,0.08)]"
+                  >
+                    <div className="space-y-5">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[16px] font-semibold text-[#25262b]">Top Margin</p>
+                          <span className="text-sm text-[#4e4f55]">{selectedSection.marginTop ?? 0}px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={240}
+                          step={1}
+                          value={selectedSection.marginTop ?? 0}
+                          onChange={(event) =>
+                            setSectionMargins(selectedSection.id, {
+                              marginTop: Number.parseInt(event.target.value, 10),
+                            })
+                          }
+                          className="cover-height-slider w-full"
+                          style={{ "--cover-progress": `${Math.round(((selectedSection.marginTop ?? 0) / 240) * 100)}%` } as CSSProperties}
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[16px] font-semibold text-[#25262b]">Bottom Margin</p>
+                          <span className="text-sm text-[#4e4f55]">{selectedSection.marginBottom ?? 0}px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={240}
+                          step={1}
+                          value={selectedSection.marginBottom ?? 0}
+                          onChange={(event) =>
+                            setSectionMargins(selectedSection.id, {
+                              marginBottom: Number.parseInt(event.target.value, 10),
+                            })
+                          }
+                          className="cover-height-slider w-full"
+                          style={{ "--cover-progress": `${Math.round(((selectedSection.marginBottom ?? 0) / 240) * 100)}%` } as CSSProperties}
+                        />
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
 
                 <Button
                   type="button"
@@ -1105,23 +1413,45 @@ export function ProfileSectionBuilder({
               <DialogDescription>Select what to place in this container.</DialogDescription>
             </DialogHeader>
             <div className="pt-2">
-              {canAddSubscriptionItem ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-10 w-full justify-start"
-                  onClick={() => {
-                    if (!addItemTarget) return
-                    setContainerContent(addItemTarget.sectionId, addItemTarget.containerId, {
-                      type: "subscription",
-                      packageOrder: subscriptions.map((pkg) => pkg.id),
-                      gradientMode: false,
-                    })
-                    setAddItemTarget(null)
-                  }}
-                >
-                  Subscription
-                </Button>
+              {canAddSubscriptionItem || canAddStatsItem ? (
+                <div className="space-y-2">
+                  {canAddSubscriptionItem ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-10 w-full justify-start"
+                      onClick={() => {
+                        if (!addItemTarget) return
+                        setContainerContent(addItemTarget.sectionId, addItemTarget.containerId, {
+                          type: "subscription",
+                          packageOrder: subscriptions.map((pkg) => pkg.id),
+                          gradientMode: false,
+                        })
+                        setAddItemTarget(null)
+                      }}
+                    >
+                      Subscription
+                    </Button>
+                  ) : null}
+                  {canAddStatsItem ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-10 w-full justify-start"
+                      onClick={() => {
+                        if (!addItemTarget) return
+                        setContainerContent(addItemTarget.sectionId, addItemTarget.containerId, {
+                          type: "stats",
+                          metricOrder: [...DEFAULT_STATS_METRIC_ORDER],
+                          showIcons: true,
+                        })
+                        setAddItemTarget(null)
+                      }}
+                    >
+                      Stats
+                    </Button>
+                  ) : null}
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">No items available to add.</p>
               )}
@@ -1163,11 +1493,11 @@ export function ProfileSectionBuilder({
                 <div className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white/80 px-3">
                   <span className="text-xs font-medium text-foreground">Gradient mode</span>
                   <Switch
-                    checked={Boolean(selectedContainer.content.gradientMode)}
+                    checked={Boolean(selectedSubscriptionContent?.gradientMode)}
                     onCheckedChange={(checked) =>
                       setContainerContent(selectedContainerSectionId, selectedContainer.id, {
                         type: "subscription",
-                        packageOrder: selectedContainer.content?.packageOrder ?? [],
+                        packageOrder: selectedSubscriptionContent?.packageOrder ?? [],
                         gradientMode: checked,
                       })
                     }
@@ -1176,6 +1506,62 @@ export function ProfileSectionBuilder({
                 <Button type="button" variant="secondary" className="h-9 w-full" onClick={onCreatePackage}>
                   Create new package
                 </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-9 w-full border border-black/20 bg-white/80 text-red-600 hover:bg-white"
+                  onClick={() => deleteContainer(selectedContainerSectionId, selectedContainer.id)}
+                >
+                  Delete container
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        {isSelectionMode &&
+        selectedOverlay?.kind === "container" &&
+        selectedContainerSectionId &&
+        selectedContainer?.content?.type === "stats" ? (
+          <div className="pointer-events-none fixed right-3 top-1/2 z-[85] -translate-y-1/2">
+            <div className="pointer-events-auto relative w-[280px] overflow-hidden rounded-2xl border border-black/20 p-3">
+              <Glass
+                className={{
+                  root: "pointer-events-none absolute inset-0 z-0 rounded-2xl *:rounded-2xl",
+                  tint: "bg-[#f3f1ea]/90",
+                  effect: "backdrop-blur-[10px]",
+                  shine:
+                    "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.85),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.5)]",
+                }}
+              />
+              <div className="relative z-10 space-y-3">
+                <p className="text-sm font-semibold">Stats container</p>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Reorder stats</p>
+                  <div className="space-y-1">
+                    {selectedStatsMetricOrder.map((metric) => (
+                      <StatsMetricOrderRow
+                        key={`${selectedContainer.id}-${metric}`}
+                        metric={metric}
+                        sectionId={selectedContainerSectionId}
+                        containerId={selectedContainer.id}
+                        onMove={moveStatsMetric}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white/80 px-3">
+                  <span className="text-xs font-medium text-foreground">Show icons</span>
+                  <Switch
+                    checked={selectedStatsContent?.showIcons !== false}
+                    onCheckedChange={(checked) =>
+                      setContainerContent(selectedContainerSectionId, selectedContainer.id, {
+                        type: "stats",
+                        metricOrder: normalizeStatsMetricOrder(selectedStatsContent?.metricOrder),
+                        showIcons: checked,
+                      })
+                    }
+                  />
+                </div>
                 <Button
                   type="button"
                   variant="secondary"
