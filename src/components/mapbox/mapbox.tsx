@@ -212,7 +212,20 @@ export default function MapboxMap({
       map.current?.remove();
       map.current = null;
     };
-  }, [centerLat, centerLng, initialBearing, initialPitch, initialZoom, onMapLoad, onMapClick, onDragEnd]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
+
+  // Update map center when initialCenter changes (after initial load)
+  useEffect(() => {
+    if (!map.current || !isMapLoaded) return;
+    map.current.panTo([centerLng, centerLat]);
+  }, [centerLat, centerLng, isMapLoaded]);
+
+  // Update map zoom when initialZoom changes (after initial load)
+  useEffect(() => {
+    if (!map.current || !isMapLoaded) return;
+    map.current.setZoom(initialZoom);
+  }, [initialZoom, isMapLoaded]);
 
   if (!MAPBOX_TOKEN) {
     return (

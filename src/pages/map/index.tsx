@@ -1,6 +1,6 @@
 "use client"
 
-import { memo, useEffect, useRef, useState, type MouseEvent } from "react"
+import { memo, useEffect, useRef, useState, useCallback, type MouseEvent } from "react"
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react"
 import { useSession } from "next-auth/react"
 import { useCreatorStorageAcc } from "~/lib/state/wallete/stellar-balances"
@@ -305,33 +305,33 @@ function CreatorMapDashboardContent() {
     openCreatePinModal()
   }
 
-  const handleMapLoad = (map: mapboxgl.Map) => {
+  const handleMapLoad = useCallback((map: mapboxgl.Map) => {
     mapRef.current = map
     setIsMapReady(true)
-  }
+  }, [])
 
-  const handleMapClickInternal = (e: mapboxgl.MapMouseEvent & mapboxgl.EventData) => {
+  const handleMapClickInternal = useCallback((e: mapboxgl.MapMouseEvent & mapboxgl.EventData) => {
     if (!mapRef.current) return
 
     const center = mapRef.current.getCenter()
     const bounds = mapRef.current.getBounds()
 
     setMapCenter({ lat: center.lat, lng: center.lng })
-    setCenterChanged(bounds)
+    setCenterChanged(bounds as any)
 
     handleMapClick(e as unknown as MouseEvent)
-  }
+  }, [handleMapClick, setMapCenter, setCenterChanged])
 
-  const handleDragEndInternal = () => {
+  const handleDragEndInternal = useCallback(() => {
     if (!mapRef.current) return
 
     const center = mapRef.current.getCenter()
     const bounds = mapRef.current.getBounds()
 
     setMapCenter({ lat: center.lat, lng: center.lng })
-    setCenterChanged(bounds)
+    setCenterChanged(bounds as any)
     handleDragEnd()
-  }
+  }, [handleDragEnd, setMapCenter, setCenterChanged])
 
   // Update user location marker
   useEffect(() => {
@@ -448,7 +448,7 @@ function CreatorMapDashboardContent() {
 
         <MapboxMap
           initialCenter={[mapCenter.lng, mapCenter.lat]}
-          initialZoom={mapZoom}
+          initialZoom={15.3}
           initialBearing={-18}
           initialPitch={42}
           height="100vh"
