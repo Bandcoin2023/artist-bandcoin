@@ -22,9 +22,9 @@ interface MapProps {
 }
 
 const DEFAULT_CENTER: [number, number] = [0, 22.54992];
-const DEFAULT_ZOOM = 3;
+const DEFAULT_ZOOM = 15.3;
 const DEFAULT_BEARING = -18;
-const DEFAULT_PITCH = 45;
+const DEFAULT_PITCH = 42;
 
 function applyReferenceStyle(mapInstance: mapboxgl.Map) {
   const style = mapInstance.getStyle();

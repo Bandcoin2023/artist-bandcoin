@@ -420,7 +420,7 @@ function CreatorMapDashboardContent() {
           initialCenter={[mapCenter.lng, mapCenter.lat]}
           initialZoom={mapZoom}
           initialBearing={-18}
-          initialPitch={45}
+          initialPitch={42}
           height="100vh"
           onMapLoad={handleMapLoad}
           onMapClick={handleMapClickInternal}
