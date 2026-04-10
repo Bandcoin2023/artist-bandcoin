@@ -36,24 +36,21 @@ export default function AlbumView({ name, creatorId, coverImgUrl, albumId, isAlb
                 onClick={() =>
                     router.push(creatorView ? `/music/album/${albumId}` : `/music/album/${albumId}`)
                 }
-                className="group relative overflow-hidden rounded-xl transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer"
+                className="group relative h-full cursor-pointer overflow-hidden rounded-[0.95rem] border border-[#ddd9d0] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-none"
             >
-                <CardContent className="p-0 h-[211px] md:h-[270px] lg:h-[300px] w-full">
-                    <div className="relative h-full w-full overflow-hidden">
-                        {/* Subtle gradient overlay that enhances on hover */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
-
-                        {/* Album cover image */}
+                <CardContent className="relative flex h-[211px] flex-col p-0 md:h-[270px] lg:h-[300px]">
+                    <div className="relative h-52 w-full overflow-hidden rounded-t-[0.95rem] bg-[#d8c7bb] dark:bg-zinc-800">
                         <Image
                             fill
                             alt={name ?? "album"}
                             src={coverImgUrl ?? "/images/logo.png"}
-                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                         />
+                        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/55 to-transparent" />
 
                         {/* NFT Badge with animation */}
                         {isAlbum && (
-                            <div className="absolute top-2 right-2 z-20">
+                            <div className="absolute top-3 right-3 z-20">
                                 <motion.div
                                     animate={{
                                         boxShadow: ["0 0 0 rgba(255, 215, 0, 0)", "0 0 15px rgba(255, 215, 0, 0.7)", "0 0 0 rgba(255, 215, 0, 0)"]
@@ -70,42 +67,21 @@ export default function AlbumView({ name, creatorId, coverImgUrl, albumId, isAlb
                                 </motion.div>
                             </div>
                         )}
+                    </div>
 
+                    <div className="flex flex-1 flex-col gap-2 px-4 pb-3.5 pt-3">
+                        <div className="flex items-start justify-between gap-3">
+                            <h3 className="line-clamp-1 text-[0.98rem] font-semibold leading-tight text-black/90 dark:text-zinc-100">
+                                {name ?? "Untitled Album"}
+                            </h3>
+                            <p className="shrink-0 truncate font-mono text-sm text-foreground/70 dark:text-zinc-400">
+                                {creatorId ? addrShort(creatorId, 4) : "Admin"}
+                            </p>
+                        </div>
 
-
-                        {/* Album info with gradient background */}
-                        <div className="absolute inset-x-0 bottom-0 p-0">
-                            <div className="rounded-b-xl bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 backdrop-blur-sm">
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <p className="truncate text-lg font-bold text-white">{name ?? "Untitled Album"}</p>
-                                        <div className="flex items-center text-sm text-white/80">
-                                            {creatorId ? addrShort(creatorId, 5) : "ADMIN"}
-                                            <motion.div
-                                                animate={{ rotate: [0, 15, 0, -15, 0] }}
-                                                transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }}
-                                                className="ml-1"
-                                            >
-                                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                            </motion.div>
-                                        </div>
-                                    </div>
-
-                                    {/* Music icon with subtle animation */}
-                                    <motion.div
-                                        animate={{ scale: [1, 1.1, 1] }}
-                                        transition={{ duration: 2, repeat: Infinity }}
-                                        className="bg-primary p-1.5 rounded-full backdrop-blur-sm"
-                                    >
-                                        <Music className="w-4 h-4 " />
-                                    </motion.div>
-                                </div>
-
-                                {/* Shimmer effect line */}
-                                <div className="mt-2 h-0.5 w-full bg-white/20 rounded-full relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent -translate-x-full group-hover:animate-shimmer"></div>
-                                </div>
-                            </div>
+                        <div className="inline-flex w-fit rounded-[2px] bg-[#f3f1ee] px-2 py-0.5 text-sm font-medium text-black/60 dark:bg-zinc-800 dark:text-zinc-300">
+                            <Music className="mr-1 h-3 w-3" />
+                            Music
                         </div>
                     </div>
                 </CardContent>

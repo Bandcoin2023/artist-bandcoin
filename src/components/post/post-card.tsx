@@ -20,6 +20,7 @@ import { CommentSection } from "./comment/post-comment-section"
 import { Preview } from "../common/quill-preview"
 import { PostContextMenu } from "../common/post-context-menu"
 import Link from "next/link"
+import { Avatar, AvatarFallback, AvatarImage } from "../shadcn/ui/avatar"
 
 interface PostCardProps {
     post: PostGroup & {
@@ -97,23 +98,26 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
     return (
         <Card
             className={cn(
-                "overflow-hidden border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow",
+                "overflow-hidden rounded-none border-x-0 border-t-0 border-b border-zinc-200 bg-white shadow-none transition-colors dark:border-zinc-800 dark:bg-zinc-950",
                 deletePostId === post.id && "animate-pulse border-red-300"
             )}
         >
-            <CardHeader className="p-4 pb-0 ">
-                <div className="flex items-start justify-between ">
-                    <div className="flex items-center gap-3 w-full">
+            <CardHeader className="p-4 pb-2">
+                <div className="flex items-start justify-between">
+                    <div className="flex w-full items-start gap-3">
                         <Link href={`/${creator.id}`}>
-                            <CustomAvatar url={creator.profileUrl} />
+                            <Avatar className="h-11 w-11 border border-zinc-200 dark:border-zinc-700">
+                                <AvatarImage src={creator.profileUrl ?? undefined} alt={creator.name} />
+                                <AvatarFallback>{creator.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
                         </Link>
-                        <div className="flex w-full justify-between">
-                            <div>
-                                <div className="flex items-center gap-2">
+                        <div className="flex w-full justify-between gap-2 pt-0.5">
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2 leading-none">
                                     <Link href={`/${creator.id}`}>
-                                        <span className="font-semibold">{creator.name}</span>
+                                        <span className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100">{creator.name}</span>
                                     </Link>
-                                    <Badge variant={locked ? "outline" : "secondary"} className="text-xs">
+                                    <Badge variant={locked ? "outline" : "secondary"} className={cn("h-5 rounded px-1 text-[11px]")}>
                                         {locked
                                             ? show
                                                 ? <LockOpen className="w-3 h-3 mr-1" />
@@ -122,31 +126,29 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
                                         {locked ? (show ? "Unlocked" : "Locked") : "Public"}
                                     </Badge>
                                 </div>
-                                <p className="text-xs text-gray-400 flex items-center gap-2">
+                                <p className="mt-1 flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
                                     {formatDate(post.createdAt.toString())}
-
                                 </p>
-
                             </div>
                             {
                                 post.medias && post.medias.length > 0 && (
                                     <button
                                         onClick={() => setShowFullscreenQR(true)}
-                                        className="cursor-pointer hover:opacity-80 transition-opacity flex flex-col items-center gap-1"
-                                        aria-label="View QR code fullscreen"
-                                    >
+                                    className="flex cursor-pointer flex-col items-center gap-1 transition-opacity hover:opacity-80"
+                                    aria-label="View QR code fullscreen"
+                                >
                                         <QRCode
                                             value={`${window.location.origin}/action/qr?postId=${unCollectedPostId}`}
                                             size={60}
                                             bgColor="#ffffff"
                                             fgColor="#000000"
                                             level="H"
-                                            className="border-4 border-white"
-                                        />
-                                        <span className="text-xs text-center text-gray-500 hover:text-gray-700">
-                                            Scan to Collect
-                                        </span>
-                                    </button>
+                                        className="rounded-sm border-2 border-white"
+                                    />
+                                    <span className="text-center text-[11px] text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
+                                        Scan to Collect
+                                    </span>
+                                </button>
                                 )
                             }
                         </div>
@@ -155,8 +157,8 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
                 </div>
             </CardHeader>
 
-            <CardContent className="p-1 md:p-4 overflow-hidden">
-                <div className="space-y-4">
+            <CardContent className="space-y-4 px-4 pb-3 pt-1 overflow-hidden">
+                <div className="space-y-3">
                     {!show ? (
                         <LockedContent
                             price={post.subscription?.price ?? 0}
@@ -166,10 +168,10 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
                         <>
                             {post.heading && post.heading !== "Heading" && (
                                 <Link href={postUrl}>
-                                    <h2 className="text-xl font-bold">{post.heading}</h2>
+                                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{post.heading}</h2>
                                 </Link>
                             )}
-                            <div>
+                            <div className="text-zinc-700 dark:text-zinc-300">
                                 {post.content && post.content.length > 400 && !expanded ? (
                                     <>
                                         <Link href={postUrl}>
@@ -194,8 +196,8 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
                             </div>
 
                             {media && media.length > 0 && (
-                                <div className="space-y-2 min-h-[300px]">
-                                    <MediaGallery media={displayMedia} />
+                                <div className="space-y-2">
+                                    <MediaGallery media={displayMedia} hideTypeBadge hideCounter autoHeightImage />
                                     {hasLotsOfMedia && (
                                         <Button
                                             variant="outline"
@@ -215,17 +217,15 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
                 </div>
             </CardContent>
 
-            <CardFooter className="p-4 pt-0 flex flex-col " >
-                <div className="flex items-center justify-between w-full text-gray-500 dark:text-gray-400 text-sm mb-2">
-                    <div>{likeCount} likes</div>
-                    <div>{commentCount} comments</div>
-                </div>
-
-                <div className="flex items-center justify-between w-full border-t border-gray-100 dark:border-gray-800 py-1">
+            <CardFooter className="border-t border-zinc-200 px-3 py-2 dark:border-zinc-800">
+                <div className="flex w-full items-center gap-2">
                     <Button
                         variant="ghost"
                         size="sm"
-                        className={cn("flex-1 gap-2", liked && "text-red-500 dark:text-red-400 font-medium")}
+                        className={cn(
+                            "h-8 w-auto justify-start gap-1.5 rounded-md px-2.5 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900",
+                            liked && "text-red-500 dark:text-red-400 font-medium",
+                        )}
                         onClick={toggleLike}
                         disabled={deleteLike.isLoading ?? likeMutation.isLoading}
                     >
@@ -234,27 +234,27 @@ export default function PostCard({ post, creator, likeCount, commentCount, locke
                         ) : (
                             <Heart className={cn("h-4 w-4", liked && "fill-current")} />
                         )}
-                        Like
+                        <span className="text-xs">{likeCount}</span>
                     </Button>
 
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="flex-1 gap-2"
+                        className="h-8 w-auto justify-start gap-1.5 rounded-md px-2.5 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
                         onClick={() => setShowComments(!showComments)}
                     >
                         <MessageCircle className="h-4 w-4" />
-                        Comment
+                        <span className="text-xs">{commentCount}</span>
                     </Button>
 
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="flex-1 gap-2"
+                        className="h-8 w-auto justify-start gap-1.5 rounded-md px-2.5 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
                         onClick={() => { setShareModalOpen(true); setData(postUrl) }}
                     >
                         <Share2 className="h-4 w-4" />
-                        Share
+                        <span className="text-xs">Share</span>
                     </Button>
 
                 </div>

@@ -881,17 +881,17 @@ export default function StoredItemsView() {
                                                     className={royaltyViewMode === "list" ? "w-full" : ""}
                                                 >
                                                     {royaltyViewMode === "grid" ? (
-                                                        <Card className="overflow-hidden group h-full">
+                                                        <Card className="group relative h-full cursor-pointer overflow-hidden rounded-[0.95rem] border border-[#ddd9d0] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-none">
                                                             <CardHeader className="p-0">
-                                                                <div className="relative aspect-square">
+                                                                <div className="relative h-52 w-full overflow-hidden rounded-t-[0.95rem] bg-[#d8c7bb] dark:bg-zinc-800">
                                                                     <Image
                                                                         src={item.image ?? "/placeholder.svg"}
                                                                         alt={item.title}
                                                                         fill
-                                                                        className="object-cover transition-transform group-hover:scale-105"
+                                                                        className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                                                                     />
-                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                                                                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                                                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/55 to-transparent" />
+                                                                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                                                                         {item.type && (
                                                                             <Badge variant="secondary" className="bg-black/50 hover:bg-black/50">
                                                                                 <Crown className="h-3 w-3 mr-1" />
@@ -906,15 +906,14 @@ export default function StoredItemsView() {
                                                                     </div>
                                                                 </div>
                                                             </CardHeader>
-                                                            <CardContent className="p-4">
-                                                                <h3 className="font-semibold truncate">{item.title}</h3>
-
+                                                            <CardContent className="flex flex-1 flex-col gap-2 px-4 pb-3.5 pt-3">
+                                                                <h3 className="line-clamp-1 text-[0.98rem] font-semibold leading-tight text-black/90 dark:text-zinc-100">{item.title}</h3>
                                                             </CardContent>
                                                         </Card>
                                                     ) : (
-                                                        <Card className="overflow-hidden">
+                                                        <Card className="overflow-hidden rounded-[0.95rem] border border-[#ddd9d0] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-none">
                                                             <div className="flex">
-                                                                <div className="relative w-24 h-24">
+                                                                <div className="relative w-24 h-24 overflow-hidden">
                                                                     <Image
                                                                         src={item.image ?? "/placeholder.svg"}
                                                                         alt={item.title}
@@ -925,17 +924,16 @@ export default function StoredItemsView() {
                                                                 <CardContent className="flex-1 p-4">
                                                                     <div className="flex justify-between items-start">
                                                                         <div>
-                                                                            <h3 className="font-semibold">{item.title}</h3>
-
+                                                                            <h3 className="font-semibold text-black/90 dark:text-zinc-100">{item.title}</h3>
                                                                         </div>
                                                                         <div className="flex flex-col items-end gap-1">
                                                                             {item.royaltyPercentage && (
-                                                                                <Badge>
+                                                                                <Badge className="bg-[#1f86ee] text-white hover:bg-[#1877da]">
                                                                                     {item.royaltyPercentage}%
                                                                                 </Badge>
                                                                             )}
                                                                             {item.type && (
-                                                                                <Badge variant="outline" className="text-xs">
+                                                                                <Badge variant="outline" className="rounded-[2px] bg-[#f3f1ee] border-0 text-xs text-black/60 dark:bg-zinc-800 dark:text-zinc-300">
                                                                                     <Crown className="h-3 w-3 mr-1" />
                                                                                     <span className="ml-1">{item.type}</span>
                                                                                 </Badge>

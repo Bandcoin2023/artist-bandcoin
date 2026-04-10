@@ -56,8 +56,8 @@ export default function SearchAndSort({
     }
 
     return (
-        <div className="bg-card rounded-lg shadow-sm p-5 m-4">
-            <div className="flex flex-col gap-5">
+        <>
+            <div className="flex flex-col gap-5 pt-4">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold hidden md:block">
                         {router.pathname === "/bounty" ? "Your Bounties" : "Discover Bounties"}
@@ -125,11 +125,7 @@ export default function SearchAndSort({
                             </TabsList>
                         </Tabs>
                     )}
-
-
                 </div>
-
-
             </div>
 
             <CreateBountyModal open={createBountyOpen} onOpenChange={(open) => {
@@ -140,7 +136,7 @@ export default function SearchAndSort({
                 setLocationBasedOpen(open)
                 if (!open) setSelectValue("")
             }} />
-        </div >
+        </>
     )
 }
 
