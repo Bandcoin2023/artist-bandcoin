@@ -322,6 +322,7 @@ function SectionContainerCard({
   direction,
   isSubscription,
   hideContainerFrame,
+  interactive,
   onMove,
   canInsert,
   onAddBefore,
@@ -334,6 +335,7 @@ function SectionContainerCard({
   direction: "row" | "column"
   isSubscription?: boolean
   hideContainerFrame?: boolean
+  interactive: boolean
   onMove: (sectionId: string, dragId: string, hoverId: string) => void
   canInsert: boolean
   onAddBefore: () => void
@@ -345,11 +347,12 @@ function SectionContainerCard({
   const selectedOverlay = useProfileEditorStore((state) => state.selectedOverlay)
   const setSelectedOverlay = useProfileEditorStore((state) => state.setSelectedOverlay)
 
+  const effectiveSelectionMode = interactive && isSelectionMode
   const isSelected =
     selectedOverlay?.kind === "container" &&
     selectedOverlay.sectionId === sectionId &&
     selectedOverlay.containerId === id
-  const showOverlay = isSelectionMode && (isHovered || isSelected)
+  const showOverlay = effectiveSelectionMode && (isHovered || isSelected)
   const showInsertButtons = canInsert && (isHovered || isSelected)
   const overlayColorClass = isSelected ? "border-[#f97316]" : "border-[#2b5cff]"
   const labelBgClass = isSelected ? "bg-[#f97316]" : "bg-[#2b5cff]"
@@ -388,7 +391,7 @@ function SectionContainerCard({
       onMouseLeave={() => setIsHovered(false)}
       onClick={(event) => {
         event.stopPropagation()
-        if (!isSelectionMode) return
+        if (!effectiveSelectionMode) return
         setSelectedOverlay({
           kind: "container",
           sectionId,
@@ -485,6 +488,7 @@ function SectionShell({
   index,
   hasContainers,
   hideSectionFrame,
+  interactive,
   marginTop,
   marginBottom,
   onMove,
@@ -494,6 +498,7 @@ function SectionShell({
   index: number
   hasContainers: boolean
   hideSectionFrame: boolean
+  interactive: boolean
   marginTop: number
   marginBottom: number
   onMove: (dragId: string, hoverId: string) => void
@@ -505,9 +510,10 @@ function SectionShell({
   const selectedOverlay = useProfileEditorStore((state) => state.selectedOverlay)
   const setSelectedOverlay = useProfileEditorStore((state) => state.setSelectedOverlay)
 
+  const effectiveSelectionMode = interactive && isSelectionMode
   const isSelected = selectedOverlay?.kind === "section" && selectedOverlay.sectionId === id
-  const showOverlay = isSelectionMode && (isSelected || (isHovered && !isHoveringContainer))
-  const showChip = isSelectionMode && (hasContainers || showOverlay)
+  const showOverlay = effectiveSelectionMode && (isSelected || (isHovered && !isHoveringContainer))
+  const showChip = effectiveSelectionMode && (hasContainers || showOverlay)
   const overlayColorClass = isSelected ? "border-[#f97316]" : "border-[#2b5cff]"
   const labelBgClass = isSelected ? "bg-[#f97316]" : "bg-[#2b5cff]"
 
@@ -553,7 +559,7 @@ function SectionShell({
       }}
       onClick={(event) => {
         event.stopPropagation()
-        if (!isSelectionMode) return
+        if (!effectiveSelectionMode) return
         setSelectedOverlay({
           kind: "section",
           sectionId: id,
@@ -577,7 +583,7 @@ function SectionShell({
           className={`pointer-events-auto absolute left-0 -top-5 z-[2] inline-flex cursor-pointer items-center gap-1 px-2 py-0.5 text-xs font-medium text-white ${labelBgClass}`}
           onClick={(event) => {
             event.stopPropagation()
-            if (!isSelectionMode) return
+            if (!effectiveSelectionMode) return
             setSelectedOverlay({
               kind: "section",
               sectionId: id,
@@ -821,6 +827,7 @@ export function ProfileSectionBuilder({
   onCreatePackage,
   onCreateNft,
   onCreatePost,
+  interactive = true,
 }: {
   layout: SectionLayout
   onLayoutChange: (layout: SectionLayout) => void
@@ -831,8 +838,10 @@ export function ProfileSectionBuilder({
   onCreatePackage: () => void
   onCreateNft: () => void
   onCreatePost: () => void
+  interactive?: boolean
 }) {
   const isSelectionMode = useProfileEditorStore((state) => state.isSelectionMode)
+  const effectiveSelectionMode = interactive && isSelectionMode
   const [addItemTarget, setAddItemTarget] = useState<{ sectionId: string; containerId: string } | null>(
     null,
   )
@@ -1435,10 +1444,12 @@ export function ProfileSectionBuilder({
         <div className="w-full">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xl font-bold">Creator&apos;s NFT Collection</h2>
-            <Button type="button" size="sm" onClick={onCreateNft}>
-              <PlusIcon className="mr-2 h-4 w-4" />
-              Create New NFT
-            </Button>
+            {interactive ? (
+              <Button type="button" size="sm" onClick={onCreateNft}>
+                <PlusIcon className="mr-2 h-4 w-4" />
+                Create New NFT
+              </Button>
+            ) : null}
           </div>
           {visible.length === 0 ? (
             <div className="flex min-h-[180px] items-center justify-center border border-dashed border-muted-foreground/30 text-sm text-muted-foreground">
@@ -1453,7 +1464,7 @@ export function ProfileSectionBuilder({
                 return (
                   <div
                     key={`${sectionId}-${item.id}-${card.id}`}
-                    className="group h-full overflow-hidden rounded-[0.95rem] border border-[#ddd9d0] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-none"
+                    className="group/nftcard h-full overflow-hidden rounded-[0.95rem] border border-[#ddd9d0] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-none"
                   >
                     <div className="relative flex h-full flex-col overflow-hidden p-0">
                       <div className="relative aspect-[0.96] overflow-hidden rounded-t-[0.95rem] bg-[#d8c7bb] dark:bg-zinc-800">
@@ -1498,6 +1509,17 @@ export function ProfileSectionBuilder({
                             ) : null}
                           </div>
                         </div>
+                        {card.price ? (
+                          <div className="relative z-20 mt-3 md:pointer-events-none md:absolute md:inset-x-0 md:bottom-0 md:mt-0 md:translate-y-full md:opacity-0 md:transition-all md:duration-300 md:group-hover/nftcard:pointer-events-auto md:group-hover/nftcard:translate-y-0 md:group-hover/nftcard:opacity-100">
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="h-12 w-full rounded-none border-0 bg-[#1f86ee] px-4 text-base font-semibold text-white shadow-none hover:bg-[#1877da] dark:bg-[#1f86ee] dark:text-white dark:hover:bg-[#1877da]"
+                            >
+                              Buy Now
+                            </Button>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -1528,10 +1550,12 @@ export function ProfileSectionBuilder({
         <div className="w-full">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xl font-bold">Social Posts</h2>
-            <Button type="button" size="sm" onClick={onCreatePost}>
-              <PlusIcon className="mr-2 h-4 w-4" />
-              Create New Post
-            </Button>
+            {interactive ? (
+              <Button type="button" size="sm" onClick={onCreatePost}>
+                <PlusIcon className="mr-2 h-4 w-4" />
+                Create New Post
+              </Button>
+            ) : null}
           </div>
           {visible.length === 0 ? (
             <div className="flex min-h-[180px] items-center justify-center border border-dashed border-muted-foreground/30 text-sm text-muted-foreground">
@@ -1616,18 +1640,22 @@ export function ProfileSectionBuilder({
     return (
       <div className="min-h-[180px] w-full border border-dashed border-muted-foreground/30 bg-muted/30 p-6">
         <div className="flex min-h-[140px] items-center justify-center">
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 gap-2"
-            onClick={(event) => {
-              event.stopPropagation()
-              setAddItemTarget({ sectionId, containerId: item.id })
-            }}
-          >
-            <PlusIcon className="h-4 w-4" />
-            Add item
-          </Button>
+          {interactive ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 gap-2"
+              onClick={(event) => {
+                event.stopPropagation()
+                setAddItemTarget({ sectionId, containerId: item.id })
+              }}
+            >
+              <PlusIcon className="h-4 w-4" />
+              Add item
+            </Button>
+          ) : (
+            <p className="text-sm text-muted-foreground">No items in this container.</p>
+          )}
         </div>
       </div>
     )
@@ -1636,7 +1664,7 @@ export function ProfileSectionBuilder({
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="mt-8">
-        {isSelectionMode && orderedSections.length === 0 ? (
+        {effectiveSelectionMode && orderedSections.length === 0 ? (
           <div className="flex justify-center">
             <Button
               type="button"
@@ -1662,6 +1690,7 @@ export function ProfileSectionBuilder({
               index={section.order}
               hasContainers={orderedItems.length > 0}
               hideSectionFrame={Boolean(section.hideSectionFrame)}
+              interactive={interactive}
               marginTop={section.marginTop ?? 0}
               marginBottom={section.marginBottom ?? 0}
               onMove={moveSection}
@@ -1701,6 +1730,7 @@ export function ProfileSectionBuilder({
                           direction={section.direction}
                           isSubscription={item.content?.type === "subscription"}
                           hideContainerFrame={item.hideContainerFrame !== false}
+                          interactive={interactive}
                           onMove={moveContainer}
                           canInsert={orderedItems.length < MAX_CONTAINERS_PER_SECTION}
                           onAddBefore={() =>
@@ -1722,7 +1752,7 @@ export function ProfileSectionBuilder({
                     </div>
                   ))}
                 </div>
-              ) : (
+              ) : interactive ? (
                 <ResizablePanelGroup
                   orientation="horizontal"
                   onLayoutChange={(sizes) => handleSectionResize(section.id, sizes)}
@@ -1743,6 +1773,7 @@ export function ProfileSectionBuilder({
                           direction={section.direction}
                           isSubscription={item.content?.type === "subscription"}
                           hideContainerFrame={item.hideContainerFrame !== false}
+                          interactive={interactive}
                           onMove={moveContainer}
                           canInsert={orderedItems.length < MAX_CONTAINERS_PER_SECTION}
                           onAddBefore={() =>
@@ -1761,7 +1792,7 @@ export function ProfileSectionBuilder({
                           {renderContainerBody(section.id, item)}
                         </SectionContainerCard>
                       </ResizablePanel>
-                      {index < orderedItems.length - 1 ? (
+                      {interactive && index < orderedItems.length - 1 ? (
                         <ResizableHandle
                           className="bg-transparent hover:bg-border/30"
                           style={{ width: `${Math.max(1, sectionGap)}px` }}
@@ -1770,12 +1801,52 @@ export function ProfileSectionBuilder({
                     </Fragment>
                   ))}
                 </ResizablePanelGroup>
+              ) : (
+                <div className="flex w-full" style={{ gap: `${Math.max(1, sectionGap)}px` }}>
+                  {orderedItems.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className="overflow-visible"
+                      style={{
+                        flexGrow: Math.max(10, Math.min(95, item.widthPct)),
+                        flexBasis: 0,
+                        minWidth: 0,
+                      }}
+                    >
+                      <SectionContainerCard
+                        sectionId={section.id}
+                        id={item.id}
+                        index={index}
+                        direction={section.direction}
+                        isSubscription={item.content?.type === "subscription"}
+                        hideContainerFrame={item.hideContainerFrame !== false}
+                        interactive={interactive}
+                        onMove={moveContainer}
+                        canInsert={orderedItems.length < MAX_CONTAINERS_PER_SECTION}
+                        onAddBefore={() =>
+                          addContainer(section.id, {
+                            aroundId: item.id,
+                            position: "before",
+                          })
+                        }
+                        onAddAfter={() =>
+                          addContainer(section.id, {
+                            aroundId: item.id,
+                            position: "after",
+                          })
+                        }
+                      >
+                        {renderContainerBody(section.id, item)}
+                      </SectionContainerCard>
+                    </div>
+                  ))}
+                </div>
               )}
             </SectionShell>
           )
         })}
 
-        {isSelectionMode && orderedSections.length > 0 ? (
+        {effectiveSelectionMode && orderedSections.length > 0 ? (
           <div className="pt-6 flex justify-center">
             <Button type="button" variant="outline" className="h-9 gap-2" onClick={() => addSection()}>
               <PlusIcon className="h-4 w-4" />
@@ -1784,7 +1855,7 @@ export function ProfileSectionBuilder({
           </div>
         ) : null}
 
-        {isSelectionMode && selectedSection ? (
+        {effectiveSelectionMode && selectedSection ? (
           <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[80] flex justify-center px-3">
             <motion.div
               initial={{ y: 28, opacity: 0, scale: 0.98 }}
@@ -2032,7 +2103,7 @@ export function ProfileSectionBuilder({
           </DialogContent>
         </Dialog>
 
-        {isSelectionMode &&
+        {effectiveSelectionMode &&
         selectedOverlay?.kind === "container" &&
         selectedContainerSectionId &&
         selectedContainer?.content?.type === "subscription" ? (
@@ -2112,7 +2183,7 @@ export function ProfileSectionBuilder({
             </div>
           </div>
         ) : null}
-        {isSelectionMode &&
+        {effectiveSelectionMode &&
         selectedOverlay?.kind === "container" &&
         selectedContainerSectionId &&
         selectedContainer?.content?.type === "stats" ? (
@@ -2189,7 +2260,7 @@ export function ProfileSectionBuilder({
             </div>
           </div>
         ) : null}
-        {isSelectionMode &&
+        {effectiveSelectionMode &&
         selectedOverlay?.kind === "container" &&
         selectedContainerSectionId &&
         selectedContainer?.content?.type === "nft_collection" ? (
@@ -2313,7 +2384,7 @@ export function ProfileSectionBuilder({
             </div>
           </div>
         ) : null}
-        {isSelectionMode &&
+        {effectiveSelectionMode &&
         selectedOverlay?.kind === "container" &&
         selectedContainerSectionId &&
         selectedContainer?.content?.type === "social_posts" ? (

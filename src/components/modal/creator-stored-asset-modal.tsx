@@ -67,14 +67,57 @@ export default function CreatorStoredAssetModal() {
         return (
             <>
                 <Dialog open={isOpen} onOpenChange={handleClose}>
-                    <DialogContent className="max-w-3xl overflow-hidden p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-black [&>button]:bg-white [&>button]:text-black ">
+                    <DialogContent className="max-w-3xl overflow-hidden rounded-none border-0 bg-transparent shadow-none [&>button]:rounded-full [&>button]:border [&>button]:border-black [&>button]:bg-white [&>button]:text-black ">
                         {step === 1 && (
-                            <div className="grid grid-cols-2 md:grid-cols-7">
-                                {/* Left Column - Product Image */}
-                                <Card className="  max-h-[800px]  overflow-y-auto   bg-[#1e1f22] md:col-span-3 ">
+                            <div className="grid grid-cols-1 md:grid-cols-2">
+                                {/* Left Column - Media Preview */}
+                                <div className="rounded-[0.95rem] border border-[#ddd9d0] bg-[#fcfcfb] p-1 shadow-[0_6px_18px_rgba(15,23,42,0.05)] md:col-span-1 dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-none">
+                                    {data.asset.mediaType === "IMAGE" ? (
+                                        <Image
+                                            src={data.asset.mediaUrl}
+                                            alt={data.asset.name}
+                                            width={1000}
+                                            height={1000}
+                                            className={clsx(
+                                                "h-full max-h-[800px] w-full overflow-y-auto object-cover rounded-lg ",
+                                                data.asset.tierId ? " blur-md" : "",
+                                            )}
+                                        />
+                                    ) : data.asset.mediaType === "VIDEO" ? (
+                                        <Image
+                                            src={data.asset.thumbnail}
+                                            alt={data.asset.name}
+                                            width={1000}
+                                            height={1000}
+                                            className={clsx(
+                                                "h-full max-h-[800px] w-full overflow-y-auto object-cover rounded-lg ",
+                                                data.asset.tierId ? " blur-md" : "",
+                                                data.asset.tierId ? " blur-md" : "",
+                                            )}
+                                        />
+                                    ) : data.asset.mediaType === "MUSIC" ? (
+                                        <Image
+                                            src={data.asset.thumbnail}
+                                            alt={data.asset.name}
+                                            width={1000}
+                                            height={1000}
+                                            className={clsx(
+                                                "h-full max-h-[800px] w-full overflow-y-auto object-cover rounded-lg ",
+                                                data.asset.tierId ? " blur-md" : "",
+                                            )}
+                                        />
+                                    ) : (
+                                        data.asset.mediaType === "THREE_D" && (
+                                            <ShowThreeDModel url={data.asset.mediaUrl} />
+                                        )
+                                    )}
+                                </div>
+
+                                {/* Right Column - Product Image */}
+                                <Card className="max-h-[800px] overflow-y-auto rounded-[0.95rem] border border-[#ddd9d0] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.05)] dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-none">
                                     <CardContent className="p-0">
                                         {/* Image Container */}
-                                        <div className="relative aspect-square bg-[#1e1f22]">
+                                        <div className="relative aspect-square bg-[#d8c7bb] dark:bg-zinc-800">
 
                                             <Image
                                                 src={data.asset.thumbnail}
@@ -87,23 +130,23 @@ export default function CreatorStoredAssetModal() {
 
                                         {/* Content */}
                                         <div className="space-y-3 p-4">
-                                            <h2 className="text-xl font-bold text-white">
+                                            <h2 className="text-xl font-bold text-black/90 dark:text-white">
                                                 {data.asset.name}
                                             </h2>
 
-                                            <p className="max-h-[100px] min-h-[100px]  overflow-y-auto text-sm text-gray-400">
+                                            <p className="max-h-[100px] min-h-[100px] overflow-y-auto text-sm text-black/60 dark:text-gray-400">
                                                 {data.asset.description}
                                             </p>
 
-                                            <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                <span className="h-auto p-0 text-xs text-[#00a8fc]">
+                                            <div className="flex items-center gap-2 text-sm text-black/60 dark:text-gray-400">
+                                                <span className="h-auto p-0 text-xs text-[#1f86ee] dark:text-[#00a8fc]">
                                                     {addrShort(data.asset.issuer, 5)}
                                                 </span>
-                                                <Badge variant="destructive" className=" rounded-lg">
+                                                <Badge variant="secondary" className="rounded-lg bg-[#f3f1ee] text-black/70 dark:bg-zinc-800 dark:text-zinc-300">
                                                     #{data.asset.code}
                                                 </Badge>
                                             </div>
-                                            <p className="font-semibold text-white">
+                                            <p className="font-semibold text-black/90 dark:text-white">
                                                 <span className="">Available:</span>{" "}
                                                 {copy.data === 0
                                                     ? "Sold out"
@@ -113,11 +156,11 @@ export default function CreatorStoredAssetModal() {
                                                             ? `${copy.data} copies`
                                                             : "..."}
                                             </p>
-                                            <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                <span className="h-auto p-0 text-xs text-[#00a8fc]">
+                                            <div className="flex items-center gap-2 text-sm text-black/60 dark:text-gray-400">
+                                                <span className="h-auto p-0 text-xs text-[#1f86ee] dark:text-[#00a8fc]">
                                                     Media Type:
                                                 </span>
-                                                <Badge variant="destructive" className=" rounded-lg">
+                                                <Badge variant="secondary" className="rounded-lg bg-[#f3f1ee] text-black/70 dark:bg-zinc-800 dark:text-zinc-300">
                                                     {data.asset.mediaType === "THREE_D"
                                                         ? "3D Model"
                                                         : data.asset.mediaType}
@@ -146,53 +189,10 @@ export default function CreatorStoredAssetModal() {
                                         }
                                     </CardFooter>
                                 </Card>
-
-                                {/* Right Column - Bundle Info */}
-                                <div className=" rounded-sm bg-gray-300 p-1   md:col-span-4">
-                                    {data.asset.mediaType === "IMAGE" ? (
-                                        <Image
-                                            src={data.asset.mediaUrl}
-                                            alt={data.asset.name}
-                                            width={1000}
-                                            height={1000}
-                                            className={clsx(
-                                                "h-full max-h-[800px] w-full overflow-y-auto object-cover ",
-                                                data.asset.tierId ? " blur-md" : "",
-                                            )}
-                                        />
-                                    ) : data.asset.mediaType === "VIDEO" ? (
-                                        <Image
-                                            src={data.asset.thumbnail}
-                                            alt={data.asset.name}
-                                            width={1000}
-                                            height={1000}
-                                            className={clsx(
-                                                "h-full max-h-[800px] w-full overflow-y-auto object-cover ",
-                                                data.asset.tierId ? " blur-md" : "",
-                                                data.asset.tierId ? " blur-md" : "",
-                                            )}
-                                        />
-                                    ) : data.asset.mediaType === "MUSIC" ? (
-                                        <Image
-                                            src={data.asset.thumbnail}
-                                            alt={data.asset.name}
-                                            width={1000}
-                                            height={1000}
-                                            className={clsx(
-                                                "h-full max-h-[800px] w-full overflow-y-auto object-cover ",
-                                                data.asset.tierId ? " blur-md" : "",
-                                            )}
-                                        />
-                                    ) : (
-                                        data.asset.mediaType === "THREE_D" && (
-                                            <ShowThreeDModel url={data.asset.mediaUrl} />
-                                        )
-                                    )}
-                                </div>
                             </div>
                         )}
                         {step === 2 ? (
-                            <Card>
+                            <Card className="rounded-[0.95rem] border border-[#ddd9d0] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.05)] dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-none">
                                 <CardContent className="p-0">
                                     <EditForm
                                         item={data}
@@ -215,7 +215,7 @@ export default function CreatorStoredAssetModal() {
                         )
                             :
                             step === 3 ? (
-                                <Card>
+                                <Card className="rounded-[0.95rem] border border-[#ddd9d0] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.05)] dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-none">
                                     <CardContent className="">
                                         {data.asset.mediaType === "MUSIC" && (
                                             <>

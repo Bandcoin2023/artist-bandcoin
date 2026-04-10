@@ -3,10 +3,12 @@ import {
   CameraIcon,
   Loader2Icon,
   MonitorIcon,
+  PencilIcon,
   SlidersHorizontalIcon,
   SmartphoneIcon,
   UnfoldHorizontalIcon,
 } from "lucide-react"
+import Link from "next/link"
 import { UploadS3Button } from "~/components/common/upload-button"
 import { Button } from "~/components/shadcn/ui/button"
 import { Textarea } from "~/components/shadcn/ui/textarea"
@@ -908,7 +910,7 @@ function updateLayoutConfigForViewport(
   })
 }
 
-export function ProfilePreviewEditor() {
+export function ProfilePreviewEditor({ readOnly = false }: { readOnly?: boolean }) {
   const utils = api.useUtils()
   const { openForCreate } = useAddSubsciptionModalStore()
   const { setIsOpen: setIsNftModalOpen } = useNFTCreateModalStore()
@@ -953,9 +955,21 @@ export function ProfilePreviewEditor() {
     useState<SectionLayoutConfig>(createDefaultSectionLayoutConfig)
   const [savedSectionLayoutConfig, setSavedSectionLayoutConfig] =
     useState<SectionLayoutConfig>(createDefaultSectionLayoutConfig)
-  const activeViewport = useProfileEditorStore((state) => state.viewportType)
+  const editorViewport = useProfileEditorStore((state) => state.viewportType)
   const setStateFromSync = useProfileEditorStore((state) => state.setStateFromSync)
   const setSelectedOverlay = useProfileEditorStore((state) => state.setSelectedOverlay)
+  const [runtimeViewport, setRuntimeViewport] = useState<ViewportKey>("desktop")
+  const activeViewport: ViewportKey = readOnly ? runtimeViewport : editorViewport
+
+  useEffect(() => {
+    if (!readOnly) return
+    const updateViewport = () => {
+      setRuntimeViewport(window.innerWidth <= 768 ? "mobile" : "desktop")
+    }
+    updateViewport()
+    window.addEventListener("resize", updateViewport)
+    return () => window.removeEventListener("resize", updateViewport)
+  }, [readOnly])
 
   useEffect(() => {
     if (!creatorQuery.data) return
@@ -1058,25 +1072,29 @@ export function ProfilePreviewEditor() {
   ])
 
   const postToParent = useCallback((message: PreviewToParentMessage) => {
+    if (readOnly) return
     window.parent.postMessage(message, window.location.origin)
-  }, [])
+  }, [readOnly])
 
   useEffect(() => {
+    if (readOnly) return
     postToParent({
       source: PROFILE_EDITOR_MESSAGE_SOURCE,
       type: "READY",
     })
-  }, [postToParent])
+  }, [postToParent, readOnly])
 
   useEffect(() => {
+    if (readOnly) return
     postToParent({
       source: PROFILE_EDITOR_MESSAGE_SOURCE,
       type: "DIRTY_STATE",
       dirty: isDirty,
     })
-  }, [isDirty, postToParent])
+  }, [isDirty, postToParent, readOnly])
 
   useEffect(() => {
+    if (readOnly) return
     postToParent({
       source: PROFILE_EDITOR_MESSAGE_SOURCE,
       type: "COVER_HEIGHT_STATE",
@@ -1084,7 +1102,7 @@ export function ProfilePreviewEditor() {
       coverHeightDesktop: coverHeights.coverHeightDesktop,
       coverHeightMobile: coverHeights.coverHeightMobile,
     })
-  }, [coverHeights, postToParent])
+  }, [coverHeights, postToParent, readOnly])
 
   const handleSaveFromParent = useCallback(
     async (requestId: number) => {
@@ -1202,6 +1220,7 @@ export function ProfilePreviewEditor() {
   )
 
   useEffect(() => {
+    if (readOnly) return
     const handler = (event: MessageEvent) => {
       if (event.source !== window.parent) return
       if (!isParentToPreviewMessage(event.data)) return
@@ -1247,7 +1266,7 @@ export function ProfilePreviewEditor() {
 
     window.addEventListener("message", handler)
     return () => window.removeEventListener("message", handler)
-  }, [handleSaveFromParent, setStateFromSync])
+  }, [handleSaveFromParent, setStateFromSync, readOnly])
 
   const triggerUpload = (inputId: string) => {
     const input = document.getElementById(inputId) as HTMLInputElement | null
@@ -1332,6 +1351,25 @@ export function ProfilePreviewEditor() {
   }, [setIsPostModalOpen])
 
   if (creatorQuery.isLoading) {
+    if (readOnly) {
+      return (
+        <main className="min-h-screen overflow-x-hidden">
+          <section className="w-full">
+            <div className="h-[240px] w-full animate-pulse bg-muted/50" />
+            <div className="relative mx-auto w-full md:w-[85vw] min-w-0 pt-14 pb-24 px-2 md:px-0">
+              <div className="absolute -top-12 left-2 md:left-0 h-24 w-24 rounded-full border-4 border-white bg-muted animate-pulse" />
+              <div className="space-y-3">
+                <div className="h-10 w-64 max-w-[80%] rounded-md bg-muted animate-pulse" />
+                <div className="h-20 w-full rounded-md bg-muted/70 animate-pulse" />
+                <div className="h-5 w-36 rounded bg-muted/70 animate-pulse" />
+                <div className="mt-6 h-[260px] w-full rounded-md bg-muted/60 animate-pulse" />
+              </div>
+            </div>
+          </section>
+        </main>
+      )
+    }
+
     return (
       <main className="min-h-screen flex items-center justify-center p-8">
         <div className="inline-flex items-center gap-2 text-muted-foreground">
@@ -1373,6 +1411,7 @@ export function ProfilePreviewEditor() {
   const activeSectionLayout = resolveLayoutForViewport(sectionLayoutConfig, activeViewport)
 
   const handleSectionLayoutChange = (nextLayout: SectionLayout) => {
+    if (readOnly) return
     setSectionLayoutConfig((prev) => updateLayoutConfigForViewport(prev, nextLayout, activeViewport))
   }
 
@@ -1383,104 +1422,125 @@ export function ProfilePreviewEditor() {
         setSelectedOverlay(null)
       }}
     >
-      <UploadS3Button
-        endpoint="coverUploader"
-        id={COVER_INPUT_ID}
-        variant="hidden"
-        onClientUploadComplete={(file) => {
-          updateCoverImage.mutate(file.url)
-        }}
-      />
-      <UploadS3Button
-        endpoint="profileUploader"
-        id={PROFILE_INPUT_ID}
-        variant="hidden"
-        onClientUploadComplete={(file) => {
-          updateProfileImage.mutate(file.url)
-        }}
-      />
+      {!readOnly ? (
+        <>
+          <UploadS3Button
+            endpoint="coverUploader"
+            id={COVER_INPUT_ID}
+            variant="hidden"
+            onClientUploadComplete={(file) => {
+              updateCoverImage.mutate(file.url)
+            }}
+          />
+          <UploadS3Button
+            endpoint="profileUploader"
+            id={PROFILE_INPUT_ID}
+            variant="hidden"
+            onClientUploadComplete={(file) => {
+              updateProfileImage.mutate(file.url)
+            }}
+          />
+        </>
+      ) : null}
 
       <section className="w-full">
         <div className="relative w-full" style={{ height: `${currentCoverHeight}px` }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={coverUrl} alt="Cover" className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="absolute right-4 top-4 border border-border bg-background/90 text-foreground hover:bg-background"
-            onClick={() => triggerUpload(COVER_INPUT_ID)}
-            disabled={isSaving}
-          >
-            <CameraIcon className="h-4 w-4" />
-            Change cover
-          </Button>
-          <Popover>
-            <PopoverTrigger asChild>
+          {!readOnly ? (
+            <>
               <Button
                 type="button"
                 variant="secondary"
-                size="icon"
-                className="absolute right-4 bottom-4 h-9 w-9 border border-border bg-background/90 text-foreground hover:bg-background"
+                size="sm"
+                className="absolute right-4 top-4 border border-border bg-background/90 text-foreground hover:bg-background"
+                onClick={() => triggerUpload(COVER_INPUT_ID)}
+                disabled={isSaving}
               >
-                <SlidersHorizontalIcon className="h-4 w-4" />
-                <span className="sr-only">Adjust cover height</span>
+                <CameraIcon className="h-4 w-4" />
+                Change cover
               </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              side="top"
-              align="end"
-              className="w-[320px] rounded-[28px] border border-[#d9d9db] bg-white px-6 py-4 shadow-[0_16px_28px_rgba(0,0,0,0.08)]"
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    className="absolute right-4 bottom-4 h-9 w-9 border border-border bg-background/90 text-foreground hover:bg-background"
+                  >
+                    <SlidersHorizontalIcon className="h-4 w-4" />
+                    <span className="sr-only">Adjust cover height</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  side="top"
+                  align="end"
+                  className="w-[320px] rounded-[28px] border border-[#d9d9db] bg-white px-6 py-4 shadow-[0_16px_28px_rgba(0,0,0,0.08)]"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[16px] font-semibold text-[#25262b]">Height</p>
+                      <span className="inline-flex items-center justify-center text-foreground">
+                        <ViewportIcon className="h-4 w-4" />
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={120}
+                        max={720}
+                        step={1}
+                        value={currentCoverHeight}
+                        onChange={(event) => {
+                          const nextHeight = Number(event.target.value)
+
+                          if (activeViewport === "desktop") {
+                            setCoverHeights((prev) => ({ ...prev, coverHeightDesktop: nextHeight }))
+                            return
+                          }
+
+                          if (activeViewport === "mobile") {
+                            setCoverHeights((prev) => ({ ...prev, coverHeightMobile: nextHeight }))
+                            return
+                          }
+
+                          setCoverHeights((prev) => ({ ...prev, coverHeightDefault: nextHeight }))
+                        }}
+                        className="cover-height-slider flex-1"
+                        style={
+                          {
+                            "--cover-progress": `${coverHeightProgress}%`,
+                          } as CSSProperties
+                        }
+                      />
+                      <span className="w-12 text-right text-xs font-semibold text-[#5f6168]">
+                        {currentCoverHeight}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] font-medium text-[#8f9094]">
+                      <span>Low</span>
+                      <div className="mx-2 flex-1 h-[10px] bg-[repeating-linear-gradient(to_right,transparent_0px,transparent_9px,#cfeaf8_9px,#cfeaf8_11px)] rounded-sm" />
+                      <span>High</span>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </>
+          ) : (
+            <Button
+              asChild
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="absolute right-4 top-4 border border-border bg-background/90 text-foreground hover:bg-background"
             >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-[16px] font-semibold text-[#25262b]">Height</p>
-                  <span className="inline-flex items-center justify-center text-foreground">
-                    <ViewportIcon className="h-4 w-4" />
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="range"
-                    min={120}
-                    max={720}
-                    step={1}
-                    value={currentCoverHeight}
-                    onChange={(event) => {
-                      const nextHeight = Number(event.target.value)
-
-                      if (activeViewport === "desktop") {
-                        setCoverHeights((prev) => ({ ...prev, coverHeightDesktop: nextHeight }))
-                        return
-                      }
-
-                      if (activeViewport === "mobile") {
-                        setCoverHeights((prev) => ({ ...prev, coverHeightMobile: nextHeight }))
-                        return
-                      }
-
-                      setCoverHeights((prev) => ({ ...prev, coverHeightDefault: nextHeight }))
-                    }}
-                    className="cover-height-slider flex-1"
-                    style={
-                      {
-                        "--cover-progress": `${coverHeightProgress}%`,
-                      } as CSSProperties
-                    }
-                  />
-                  <span className="w-12 text-right text-xs font-semibold text-[#5f6168]">
-                    {currentCoverHeight}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-[10px] font-medium text-[#8f9094]">
-                  <span>Low</span>
-                  <div className="mx-2 flex-1 h-[10px] bg-[repeating-linear-gradient(to_right,transparent_0px,transparent_9px,#cfeaf8_9px,#cfeaf8_11px)] rounded-sm" />
-                  <span>High</span>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+              <Link href="/profile/edit">
+                <PencilIcon className="h-4 w-4" />
+                Edit Profile
+              </Link>
+            </Button>
+          )}
         </div>
 
         <div className="relative mx-auto w-full md:w-[85vw] min-w-0 pt-14 pb-32 px-2 md:px-0">
@@ -1489,35 +1549,50 @@ export function ProfilePreviewEditor() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={profileUrl} alt="Profile" className="h-full w-full object-cover" />
             </div>
-            <Button
-              type="button"
-              size="icon"
-              variant="secondary"
-              className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full border border-border bg-background text-foreground hover:bg-muted"
-              onClick={() => triggerUpload(PROFILE_INPUT_ID)}
-              disabled={isSaving}
-            >
-              <CameraIcon className="h-4 w-4" />
-              <span className="sr-only">Change profile photo</span>
-            </Button>
+            {!readOnly ? (
+              <Button
+                type="button"
+                size="icon"
+                variant="secondary"
+                className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full border border-border bg-background text-foreground hover:bg-muted"
+                onClick={() => triggerUpload(PROFILE_INPUT_ID)}
+                disabled={isSaving}
+              >
+                <CameraIcon className="h-4 w-4" />
+                <span className="sr-only">Change profile photo</span>
+              </Button>
+            ) : null}
           </div>
 
           <div className="space-y-2">
-            <input
-              id="profile-editor-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="mt-2 block w-full min-w-0 whitespace-nowrap overflow-x-hidden overflow-y-hidden text-ellipsis border-0 bg-transparent p-0 !py-0 text-3xl font-semibold leading-[1.1] text-foreground outline-none focus:outline-none"
-              placeholder="Artist name"
-            />
+            {readOnly ? (
+              <>
+                <h1 className="mt-2 block w-full min-w-0 whitespace-nowrap overflow-x-hidden overflow-y-hidden text-ellipsis p-0 !py-0 text-3xl font-semibold leading-[1.1] text-foreground">
+                  {name || "Artist name"}
+                </h1>
+                <p className="min-h-[88px] whitespace-pre-wrap p-0 text-base leading-relaxed text-foreground/80">
+                  {description || "Tell visitors about this profile."}
+                </p>
+              </>
+            ) : (
+              <>
+                <input
+                  id="profile-editor-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="mt-2 block w-full min-w-0 whitespace-nowrap overflow-x-hidden overflow-y-hidden text-ellipsis border-0 bg-transparent p-0 !py-0 text-3xl font-semibold leading-[1.1] text-foreground outline-none focus:outline-none"
+                  placeholder="Artist name"
+                />
 
-            <Textarea
-              id="profile-editor-description"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              className="min-h-[88px] resize-none border-0 bg-transparent p-0 text-base leading-relaxed text-foreground/80 shadow-none outline-none focus-visible:ring-0"
-              placeholder="Tell visitors about this profile."
-            />
+                <Textarea
+                  id="profile-editor-description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  className="min-h-[88px] resize-none border-0 bg-transparent p-0 text-base leading-relaxed text-foreground/80 shadow-none outline-none focus-visible:ring-0"
+                  placeholder="Tell visitors about this profile."
+                />
+              </>
+            )}
 
             <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
               <p className="text-sm text-muted-foreground">
@@ -1540,6 +1615,7 @@ export function ProfilePreviewEditor() {
               onCreatePackage={handleCreatePackage}
               onCreateNft={handleCreateNft}
               onCreatePost={handleCreatePost}
+              interactive={!readOnly}
             />
           </div>
         </div>

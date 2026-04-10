@@ -1,15 +1,13 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useRouter } from "next/router"
 import {
-    ArrowLeft, CheckCircle2, XCircle, AlertCircle,
+    CheckCircle2, XCircle, AlertCircle,
     ShieldCheck, RefreshCw, Ticket, Clock, Users, Search,
 } from "lucide-react"
 import { Button } from "~/components/shadcn/ui/button"
 import { Input } from "~/components/shadcn/ui/input"
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/shadcn/ui/avatar"
-import { Badge } from "~/components/shadcn/ui/badge"
 import { api } from "~/utils/api"
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -81,39 +79,160 @@ function UserLocationCard({
 // ─── Tab: Redeem ───────────────────────────────────────────────────────────────
 
 function RedeemTab() {
-    const [code, setCode] = useState("")
+    const OTP_LENGTH = 6
+    const [codeChars, setCodeChars] = useState<string[]>(Array.from({ length: OTP_LENGTH }, () => ""))
+    const [failedStatus, setFailedStatus] = useState<Exclude<RedeemStatus, "success"> | null>(null)
+    const [shakeNonce, setShakeNonce] = useState(0)
+    const [successResult, setSuccessResult] = useState<{
+        status: RedeemStatus
+        user?: { name?: string | null; image?: string | null; email?: string | null }
+        location?: { title?: string | null; brand_name?: string | null; image_url?: string | null }
+        redeemedAt?: string | Date | null
+    } | null>(null)
+    const inputRefs = useRef<Array<HTMLInputElement | null>>([])
     const redeemMutation = api.maps.pin.redeemByCode.useMutation()
 
-    const status: RedeemStatus | null = redeemMutation.isSuccess
-        ? redeemMutation.data.status as RedeemStatus
-        : redeemMutation.isError
-            ? "not_found"
-            : null
-
-    const result = redeemMutation.isSuccess ? redeemMutation.data : null
+    const code = codeChars.join("")
+    const status: RedeemStatus | null = successResult?.status ?? null
     const cfg = status ? STATUS_UI[status] : null
 
-    const handleSubmit = () => {
+    const sanitize = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, "")
+    const isReady = codeChars.every((char) => char.length === 1)
+
+    const focusInput = (index: number) => {
+        const target = inputRefs.current[index]
+        if (!target) return
+        target.focus()
+        target.select()
+    }
+
+    const applyValueFrom = (startIndex: number, rawValue: string) => {
+        const clean = sanitize(rawValue)
+        if (!clean.length) return
+        setCodeChars((prev) => {
+            const next = [...prev]
+            for (let i = 0; i < clean.length && startIndex + i < OTP_LENGTH; i += 1) {
+                next[startIndex + i] = clean[i] ?? ""
+            }
+            return next
+        })
+        const focusIndex = Math.min(startIndex + clean.length, OTP_LENGTH - 1)
+        requestAnimationFrame(() => focusInput(focusIndex))
+    }
+
+    const handleInputChange = (index: number, rawValue: string) => {
+        if (redeemMutation.isLoading) return
+        setFailedStatus(null)
+
+        const clean = sanitize(rawValue)
+        if (!clean.length) {
+            setCodeChars((prev) => {
+                const next = [...prev]
+                next[index] = ""
+                return next
+            })
+            return
+        }
+
+        if (clean.length > 1) {
+            applyValueFrom(index, clean)
+            return
+        }
+
+        setCodeChars((prev) => {
+            const next = [...prev]
+            next[index] = clean
+            return next
+        })
+
+        if (index < OTP_LENGTH - 1) {
+            requestAnimationFrame(() => focusInput(index + 1))
+        }
+    }
+
+    const handleKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (redeemMutation.isLoading) return
+
+        if (event.key === "Backspace") {
+            event.preventDefault()
+            setFailedStatus(null)
+            setCodeChars((prev) => {
+                const next = [...prev]
+                if (next[index]) {
+                    next[index] = ""
+                    return next
+                }
+                if (index > 0) {
+                    next[index - 1] = ""
+                    requestAnimationFrame(() => focusInput(index - 1))
+                }
+                return next
+            })
+            return
+        }
+
+        if (event.key === "ArrowLeft" && index > 0) {
+            event.preventDefault()
+            focusInput(index - 1)
+            return
+        }
+
+        if (event.key === "ArrowRight" && index < OTP_LENGTH - 1) {
+            event.preventDefault()
+            focusInput(index + 1)
+            return
+        }
+
+        if (event.key === "Enter" && isReady) {
+            event.preventDefault()
+            void handleSubmit()
+        }
+    }
+
+    const handlePaste = (index: number, event: React.ClipboardEvent<HTMLInputElement>) => {
+        event.preventDefault()
+        if (redeemMutation.isLoading) return
+        setFailedStatus(null)
+        applyValueFrom(index, event.clipboardData.getData("text"))
+    }
+
+    const handleSubmit = async () => {
         const clean = code.trim().toUpperCase()
-        if (clean.length !== 6) return
-        redeemMutation.mutate({ code: clean })
+        if (clean.length !== OTP_LENGTH || redeemMutation.isLoading) return
+
+        setFailedStatus(null)
+
+        try {
+            const result = await redeemMutation.mutateAsync({ code: clean })
+            if (result.status === "success") {
+                setSuccessResult(result)
+                return
+            }
+
+            setFailedStatus(result.status as Exclude<RedeemStatus, "success">)
+            setShakeNonce((prev) => prev + 1)
+        } catch {
+            setFailedStatus("not_found")
+            setShakeNonce((prev) => prev + 1)
+        }
     }
 
     const handleReset = () => {
-        setCode("")
+        setCodeChars(Array.from({ length: OTP_LENGTH }, () => ""))
+        setFailedStatus(null)
+        setShakeNonce(0)
+        setSuccessResult(null)
         redeemMutation.reset()
+        requestAnimationFrame(() => focusInput(0))
     }
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6)
-        setCode(val)
-    }
-
-    const isReady = code.trim().length === 6
+    useEffect(() => {
+        if (successResult) return
+        focusInput(0)
+    }, [successResult])
 
     return (
         <div className="space-y-5">
-            {/* Input area */}
             <AnimatePresence mode="wait">
                 {!status && (
                     <motion.div
@@ -121,69 +240,115 @@ function RedeemTab() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="space-y-4"
+                        className="space-y-5"
                     >
-                        <div className="space-y-2">
-                            <label className="text-xs font-semibold [color:hsl(var(--muted-foreground))] uppercase tracking-widest">
-                                Reward Code
-                            </label>
-
-                            {/* Big segmented code display + input */}
-                            <div className="relative">
-                                <Input
-                                    value={code}
-                                    onChange={handleChange}
-                                    onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                                    placeholder="X7K2PQ"
-                                    maxLength={6}
-                                    autoFocus
-                                    className="
-                    h-16 text-center text-3xl font-black font-mono tracking-[0.35em]
-                    [background-color:hsl(var(--input)/0.6)] [border-color:hsl(var(--border)/0.15)] [color:hsl(var(--foreground))] placeholder:[color:hsl(var(--muted-foreground))]
-                    rounded-2xl focus-visible:[border-color:hsl(var(--success)/0.6)] focus-visible:ring-0
-                    transition-all duration-200
-                  "
-                                />
-                                {/* Character count dots */}
-                                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-                                    {Array.from({ length: 6 }).map((_, i) => (
-                                        <div
-                                            key={i}
-                                            className={`w-1.5 h-1.5 rounded-full transition-all duration-150 ${i < code.length ? "[background-color:hsl(var(--success))]" : "[background-color:hsl(var(--border)/0.15)]"
-                                                }`}
-                                        />
-                                    ))}
-                                </div>
+                        <div className="flex flex-col items-center text-center gap-2">
+                            <div className="w-16 h-16 rounded-full [background-color:hsl(var(--primary)/0.06)] border [border-color:hsl(var(--border)/0.2)] flex items-center justify-center">
+                                <ShieldCheck className="w-7 h-7 [color:hsl(var(--muted-foreground))]" />
                             </div>
+                            <h2 className="text-[30px] font-black leading-tight [color:hsl(var(--foreground))]">
+                                Verify your reward code
+                            </h2>
+                            <p className="text-sm [color:hsl(var(--muted-foreground))]">
+                                Enter the 6-character code to redeem.
+                            </p>
                         </div>
 
-                        <Button
-                            onClick={handleSubmit}
-                            disabled={!isReady || redeemMutation.isLoading}
-                            className={`
-                w-full h-12 rounded-2xl font-bold text-sm transition-all duration-200
-                ${isReady
-                                    ? "[background-color:hsl(var(--success))] hover:[background-color:hsl(var(--success)/0.8)] [color:hsl(var(--foreground))] shadow-lg [box-shadow:0_0_20px_hsl(var(--success)/0.2)]"
-                                    : "[background-color:hsl(var(--card)/0.6)] [color:hsl(var(--muted-foreground))] cursor-not-allowed"
-                                }
-              `}
+                        <motion.div
+                            key={shakeNonce}
+                            animate={
+                                failedStatus
+                                    ? { x: [0, -8, 8, -6, 6, -3, 3, 0] }
+                                    : { x: 0 }
+                            }
+                            transition={{ duration: 0.42, ease: "easeInOut" }}
+                            className="flex items-center justify-center gap-2 sm:gap-3"
                         >
-                            {redeemMutation.isLoading ? (
-                                <div className="flex items-center gap-2">
-                                    <div className="w-4 h-4 border-2 [border-color:hsl(var(--foreground)/0.3)] [border-top-color:hsl(var(--foreground))] rounded-full animate-spin" />
-                                    Verifying…
+                            {Array.from({ length: OTP_LENGTH }).map((_, index) => (
+                                <div key={index} className="contents">
+                                    <motion.input
+                                        ref={(node) => {
+                                            inputRefs.current[index] = node
+                                        }}
+                                        inputMode="text"
+                                        autoComplete={index === 0 ? "one-time-code" : "off"}
+                                        maxLength={1}
+                                        value={codeChars[index] ?? ""}
+                                        onChange={(event) => handleInputChange(index, event.target.value)}
+                                        onKeyDown={(event) => handleKeyDown(index, event)}
+                                        onPaste={(event) => handlePaste(index, event)}
+                                        disabled={redeemMutation.isLoading}
+                                        animate={
+                                            redeemMutation.isLoading
+                                                ? { opacity: [0.5, 1, 0.5] }
+                                                : { opacity: 1 }
+                                        }
+                                        transition={
+                                            redeemMutation.isLoading
+                                                ? {
+                                                    duration: 1.4,
+                                                    repeat: Infinity,
+                                                    ease: "easeInOut",
+                                                    delay: index * 0.12,
+                                                }
+                                                : { duration: 0.15 }
+                                        }
+                                        className={`
+                      h-16 w-12 sm:w-14 rounded-xl border-2 text-center text-3xl font-black font-mono uppercase
+                      [color:hsl(var(--foreground))]
+                      transition-all duration-200 outline-none
+                      ${failedStatus
+                                                ? "[border-color:hsl(var(--destructive)/0.45)] [background-color:hsl(var(--destructive)/0.09)]"
+                                                : "[border-color:hsl(var(--border)/0.45)] [background-color:hsl(var(--card)/0.6)] focus:[border-color:hsl(var(--success)/0.45)]"}
+                    `}
+                                    />
+                                    {index === 2 ? (
+                                        <div className="mx-0.5 w-6 flex items-center justify-center">
+                                            <span className="text-2xl [color:hsl(var(--muted-foreground))]">-</span>
+                                        </div>
+                                    ) : null}
                                 </div>
-                            ) : (
-                                <>
-                                    <ShieldCheck className="mr-2 h-4 w-4" />
-                                    Verify & Redeem
-                                </>
-                            )}
-                        </Button>
+                            ))}
+                        </motion.div>
+
+                        {failedStatus ? (
+                            <p className="text-center text-sm font-semibold [color:hsl(var(--destructive))]">
+                                {STATUS_UI[failedStatus].desc}
+                            </p>
+                        ) : null}
+
+                        <AnimatePresence initial={false}>
+                            {isReady ? (
+                                <motion.div
+                                    key="inline-verify"
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 20 }}
+                                    transition={{ type: "spring", stiffness: 240, damping: 22 }}
+                                >
+                                    <Button
+                                        onClick={() => void handleSubmit()}
+                                        disabled={redeemMutation.isLoading}
+                                        className="w-full h-12 rounded-2xl font-bold text-sm transition-all duration-200 bg-black text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/85 shadow-[0_12px_32px_rgba(0,0,0,0.22)] dark:shadow-[0_12px_32px_rgba(255,255,255,0.12)] disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {redeemMutation.isLoading ? (
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-4 w-4 rounded-full border-2 [border-color:hsl(var(--foreground)/0.3)] [border-top-color:hsl(var(--foreground))] animate-spin" />
+                                                Verifying...
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <ShieldCheck className="mr-2 h-4 w-4" />
+                                                Verify & Redeem
+                                            </>
+                                        )}
+                                    </Button>
+                                </motion.div>
+                            ) : null}
+                        </AnimatePresence>
                     </motion.div>
                 )}
 
-                {/* Result */}
                 {cfg && (
                     <motion.div
                         key="result"
@@ -193,7 +358,6 @@ function RedeemTab() {
                         transition={{ type: "spring", stiffness: 280, damping: 22 }}
                         className={`rounded-3xl border ${cfg.bg} ${cfg.border} p-6 space-y-4`}
                     >
-                        {/* Status header */}
                         <div className="flex items-center gap-3">
                             <motion.div
                                 initial={{ scale: 0 }}
@@ -208,22 +372,20 @@ function RedeemTab() {
                             </div>
                         </div>
 
-                        {/* User + location card */}
-                        {result && "user" in result && result.user && "location" in result && result.location && (
+                        {successResult?.user && successResult.location && (
                             <UserLocationCard
-                                user={result.user}
-                                location={result.location}
+                                user={successResult.user}
+                                location={successResult.location}
                                 extra={
-                                    status === "already_redeemed" && "redeemedAt" in result && result.redeemedAt ? (
+                                    status === "already_redeemed" && successResult.redeemedAt ? (
                                         <span className="text-xs text-amber-400/70 flex-shrink-0">
-                                            {new Date(result.redeemedAt).toLocaleDateString()}
+                                            {new Date(successResult.redeemedAt).toLocaleDateString()}
                                         </span>
                                     ) : undefined
                                 }
                             />
                         )}
 
-                        {/* Code used */}
                         <div className="flex items-center justify-between px-4 py-2.5 [background-color:hsl(var(--card)/0.4)] rounded-xl">
                             <span className="text-xs [color:hsl(var(--muted-foreground))]">Code used</span>
                             <span className="text-sm font-mono font-bold [color:hsl(var(--foreground)/0.8)] tracking-widest">{code}</span>
@@ -240,22 +402,36 @@ function RedeemTab() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
         </div>
     )
 }
-
 // ─── Tab: History ──────────────────────────────────────────────────────────────
 
 function HistoryTab() {
     const [search, setSearch] = useState("")
     const { data, isLoading } = api.maps.pin.getRedeemedByCreator.useQuery()
+    type RedeemHistoryEntry = {
+        id: string
+        user?: { name?: string | null; image?: string | null } | null
+        location?: { title?: string | null } | null
+        redeemCode?: string | null
+        redeemedAt?: string | Date | null
+    }
+    const historyItems: RedeemHistoryEntry[] = Array.isArray(data) ? (data as RedeemHistoryEntry[]) : []
 
-    const filtered = (data ?? []).filter((item) => {
+    const filtered = historyItems.filter((item) => {
         const q = search.toLowerCase()
+        const safeName = typeof item.user?.name === "string" ? item.user.name : ""
+        const safeLocationTitle = typeof item.location?.title === "string" ? item.location.title : ""
+        const safeCode = typeof item.redeemCode === "string" ? item.redeemCode : ""
+        const nameMatch = safeName.toLowerCase().includes(q)
+        const locationMatch = safeLocationTitle.toLowerCase().includes(q)
+        const codeMatch = safeCode.toLowerCase().includes(q)
         return (
-            item.user?.name?.toLowerCase().includes(q) ??
-            item.location?.title?.toLowerCase().includes(q) ??
-            item.redeemCode?.toLowerCase().includes(q)
+            nameMatch ||
+            locationMatch ||
+            codeMatch
         )
     })
 
@@ -353,7 +529,6 @@ function HistoryTab() {
 // ─── Page ───────────────────────────────────────────────────────────────────────
 
 const RedeemPage = () => {
-    const router = useRouter()
     const [tab, setTab] = useState<"redeem" | "history">("redeem")
 
     return (

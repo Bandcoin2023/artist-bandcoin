@@ -441,9 +441,9 @@ const UserBountyPage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
-            className="mx-auto max-w-6xl"
+            className="w-full pb-6"
           >
-            <Card className="overflow-hidden border-0 shadow-xl ">
+            <Card className="overflow-hidden rounded-none border-0 bg-transparent shadow-none dark:shadow-none">
               {/* Header Section with Image or Map */}
               <div className="relative">
                 {isLocationBasedBounty(data) &&
@@ -500,23 +500,23 @@ const UserBountyPage = () => {
                     initial={{ scale: 1.05, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.7, ease: "easeOut" }}
-                    className="h-80 w-full"
+                    className="h-[340px] w-full md:h-[460px]"
                   >
                     <Image
                       src={data?.imageUrls[0] ?? "/images/logo.png"}
                       alt={data?.title}
                       width={1200}
                       height={600}
-                      className="h-80 w-full object-cover"
+                      className="h-full w-full object-cover"
                       priority
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent"></div>
                   </motion.div>
                 )}
 
                 {/* Title and Creator Info - Overlay on image */}
                 <div className="absolute bottom-0 left-0 right-0 z-10 p-6">
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent"></div>
                   <div className="relative z-10 flex items-end justify-between">
                     <motion.div
                       initial={{ y: 20, opacity: 0 }}
@@ -524,26 +524,36 @@ const UserBountyPage = () => {
                       transition={{ duration: 0.5, delay: 0.3 }}
                       className="flex-1"
                     >
-                      <h1 className="mb-3 text-3xl font-bold text-white drop-shadow-lg md:text-4xl">
+                      <h1 className="mb-3 text-2xl font-semibold tracking-tight text-white drop-shadow md:text-4xl">
                         {data?.title}
                       </h1>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Badge
-                          variant="default"
-                          className="bg-primary/90 shadow-sm hover:bg-primary"
-                        >
-                          <Trophy className="mr-1 h-4 w-4" />
-                          {data?.priceInUSD > 0 ? `$${data.priceInUSD.toFixed(2)} USDC` : `${data?.priceInBand.toFixed(3)} ${PLATFORM_ASSET.code.toLocaleUpperCase()}`}
-                        </Badge>
-
-
-                        <Badge
-                          variant="outline"
-                          className="border-white/30 bg-black/40 text-white shadow-sm backdrop-blur-sm"
-                        >
-                          <Users className="mr-1 h-4 w-4" />
-                          {data?._count.participants} participants
-                        </Badge>
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-white/90">
+                        {data?.priceInUSD > 0 ? (
+                          <>
+                            <span className="font-medium text-[#4ea0ff]">
+                              ${data.priceInUSD.toFixed(2)}
+                            </span>
+                            <span>USDC</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-medium text-[#4ea0ff]">
+                              {data?.priceInBand.toFixed(3)}
+                            </span>
+                            <span>{PLATFORM_ASSET.code.toLocaleUpperCase()}</span>
+                          </>
+                        )}
+                        <span className="text-white/55">|</span>
+                        <span>{data?._count.participants} participants</span>
+                        {isLocationBasedBounty(data) ? (
+                          <>
+                            <span className="text-white/55">|</span>
+                            <span className="inline-flex items-center gap-1.5">
+                              <MapPin className="h-4 w-4" />
+                              Location-based bounty
+                            </span>
+                          </>
+                        ) : null}
                       </div>
                     </motion.div>
 
@@ -551,7 +561,7 @@ const UserBountyPage = () => {
                       initial={{ x: 20, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
                       transition={{ duration: 0.5, delay: 0.4 }}
-                      className="hidden items-center gap-3 rounded-lg bg-black/20 p-2 backdrop-blur-sm md:flex"
+                      className="hidden items-center gap-3 rounded-xl border border-white/25 bg-black/30 p-2.5 backdrop-blur-sm md:flex"
                     >
                       <CustomAvatar
                         className="h-8 w-8"
@@ -571,10 +581,10 @@ const UserBountyPage = () => {
                 </div>
               </div>
 
-              <CardContent className="px-6 pb-2 pt-6">
+              <CardContent className="mx-auto w-full px-4 pb-3 pt-4 md:w-[85vw] md:px-6 md:pt-6">
                 <Tabs defaultValue="details" className="w-full">
-                  <div className="mb-6 border-b border-slate-200 dark:border-slate-700 ">
-                    <TabsList className="h-auto space-x-6 bg-transparent p-0 w-full overflow-x-auto scrollbar-hide ">
+                  <div className="mb-6 border-b border-slate-200 dark:border-slate-700">
+                    <TabsList className="h-auto w-full justify-start gap-7 overflow-x-auto bg-transparent p-0 scrollbar-hide">
                       {[
                         { id: "details", label: "Details", icon: FileText },
                         { id: "submissions", label: "Submissions", icon: File },
@@ -588,16 +598,12 @@ const UserBountyPage = () => {
                         <TabsTrigger
                           key={tab.id}
                           value={tab.id}
-                          className="data-[state=active]: relative rounded-none bg-transparent px-2 py-3 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                          className="relative rounded-none border-b-2 border-transparent bg-transparent px-0 py-3 text-[1.02rem] font-normal text-slate-500 transition data-[state=active]:border-black data-[state=active]:bg-transparent data-[state=active]:font-medium data-[state=active]:text-black data-[state=active]:shadow-none dark:text-slate-400 dark:data-[state=active]:border-slate-100 dark:data-[state=active]:text-slate-100"
                         >
                           <div className="flex items-center gap-2">
-                            <tab.icon size={18} />
+                            <tab.icon size={16} />
                             <span>{tab.label}</span>
                           </div>
-                          <motion.div
-                            className="absolute -bottom-[1px] left-0 right-0 h-0.5 scale-x-0 rounded-full bg-primary opacity-0 transition-all duration-200 group-data-[state=active]:scale-x-100 group-data-[state=active]:opacity-100"
-                            initial={{ opacity: 0, scaleX: 0 }}
-                          />
                         </TabsTrigger>
                       ))}
                     </TabsList>
@@ -608,7 +614,7 @@ const UserBountyPage = () => {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4 }}
-                      className="prose prose-slate dark:prose-invert max-w-none"
+                      className="prose max-w-none rounded-xl border border-[#ececec] bg-[#fcfcfb] p-4 text-black/80 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200 md:p-5"
                     >
                       <SafeHTML html={data.description} />
                     </motion.div>
@@ -1051,7 +1057,7 @@ const UserBountyPage = () => {
               </CardContent>
 
               {/* Card Footer with Actions */}
-              <CardFooter className="flex flex-col items-center justify-between gap-4 border-t border-slate-200 px-6 py-4 dark:border-slate-700 sm:flex-row">
+              <CardFooter className="mx-auto flex w-full flex-col items-center justify-between gap-4 border-t border-slate-200 px-6 py-4 md:w-[85vw] dark:border-slate-700 sm:flex-row">
                 <div className="w-full sm:w-auto flex justify-center items-center gap-4">
                   {data.BountyWinner.some(
                     (winner) => winner.user.id === session.data?.user.id,
@@ -1308,24 +1314,24 @@ const UserBountyPage = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="mx-auto mt-10 max-w-lg"
+            className="mx-auto w-full max-w-lg pb-6"
           >
-            <Card className="border-red-200 bg-white shadow-lg dark:border-red-800 dark:bg-slate-900">
-              <CardHeader>
-                <div className="mb-2 flex justify-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
-                    <AlertTriangle
-                      size={32}
-                      className="text-red-500 dark:text-red-400"
-                    />
-                  </div>
-                </div>
-                <CardTitle className="text-center text-xl">
-                  Insufficient Balance
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4 text-center text-slate-600 dark:text-slate-400">
+            <Card className="overflow-hidden rounded-none border-0 bg-transparent shadow-none dark:shadow-none">
+              <CardContent className="mx-auto w-full px-4 pb-3 pt-4 md:w-[85vw] md:px-6 md:pt-6">
+                <div className="mx-auto max-w-lg">
+                  <div className="rounded-xl border border-red-200 bg-white p-6 shadow-sm dark:border-red-800 dark:bg-slate-800">
+                    <div className="mb-4 flex justify-center">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                        <AlertTriangle
+                          size={32}
+                          className="text-red-500 dark:text-red-400"
+                        />
+                      </div>
+                    </div>
+                    <h2 className="mb-2 text-center text-xl font-semibold text-slate-900 dark:text-white">
+                      Insufficient Balance
+                    </h2>
+                    <p className="mb-4 text-center text-slate-600 dark:text-slate-400">
                   To join this bounty, you need a minimum balance of:
                 </p>
                 <div className="mb-6 flex justify-center">
@@ -1345,6 +1351,8 @@ const UserBountyPage = () => {
                     Go to Bounty
                   </Button>
                 </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
@@ -1353,47 +1361,58 @@ const UserBountyPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mx-auto mt-10 max-w-lg px-4"
+            className="w-full pb-6"
           >
-            <Card className="overflow-hidden border-0 bg-white shadow-lg dark:bg-slate-900">
-              <div className="relative h-40">
+            <Card className="overflow-hidden rounded-none border-0 bg-transparent shadow-none dark:shadow-none">
+              <div className="relative h-[340px] w-full md:h-[460px]">
                 <Image
                   src={data?.imageUrls[0] ?? "/images/logo.png"}
                   alt={data?.title}
                   width={500}
                   height={200}
-                  className="h-40 w-full object-cover"
+                  className="h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent"></div>
-                <div className="absolute bottom-4 left-4 right-4">
-                  <h1 className="mb-1 text-xl font-bold text-white drop-shadow-md">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent"></div>
+                <div className="absolute bottom-0 left-0 right-0 p-6">
+                  <h1 className="mb-3 text-2xl font-semibold tracking-tight text-white drop-shadow md:text-4xl">
                     {data?.title}
                   </h1>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="default"
-                      className="bg-primary/90 shadow-sm"
-                    >
-                      <Trophy className="mr-1 h-3 w-3" />
-                      {data?.priceInUSD} USD
-                    </Badge>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-white/90">
+                    {data?.priceInUSD > 0 ? (
+                      <>
+                        <span className="font-medium text-[#4ea0ff]">
+                          ${data.priceInUSD.toFixed(2)}
+                        </span>
+                        <span>USDC</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-medium text-[#4ea0ff]">
+                          {data?.priceInBand.toFixed(3)}
+                        </span>
+                        <span>{PLATFORM_ASSET.code.toLocaleUpperCase()}</span>
+                      </>
+                    )}
+                    <span className="text-white/55">|</span>
+                    <span>{data?._count.participants} participants</span>
+                    <span className="text-white/55">|</span>
+                    <span>{data.currentWinnerCount}/{data.totalWinner} winners</span>
                   </div>
                 </div>
               </div>
-              <CardContent className="p-6">
-                <div className="mb-6">
-                  <h2 className="mb-2 text-xl font-semibold">
+              <CardContent className="mx-auto w-full px-4 pb-3 pt-4 md:w-[85vw] md:px-6 md:pt-6">
+                <div className="mb-5 space-y-2">
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 md:text-2xl">
                     Join this Bounty
                   </h2>
-                  <p className="text-slate-600 dark:text-slate-400">
-                    Gain access to this bounty and submit your solutions to win
-                    the prize.
+                  <p className="text-sm text-slate-600 dark:text-slate-400 md:text-base">
+                    Join to unlock submissions and participate in this bounty.
                   </p>
                 </div>
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full"
+                  className="w-full max-w-md"
                 >
                   {
                     isEligible({
@@ -1405,7 +1424,7 @@ const UserBountyPage = () => {
                     }) ?
                       <>
                         <Button
-                          className="h-12 w-full bg-primary text-base shadow-md hover:bg-primary/90"
+                          className="h-12 w-full rounded-none border-0 bg-[#1f86ee] text-base font-semibold text-white shadow-none hover:bg-[#1877da] disabled:pointer-events-none disabled:bg-[#d9d9d9] disabled:text-black/45 disabled:opacity-100"
                           disabled={
                             joinBountyMutation.isLoading || isAlreadyJoin.isLoading
                           }
@@ -1658,9 +1677,9 @@ const AdminBountyPage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6 }}
-          className="mx-auto max-w-6xl"
+          className="w-full pb-6"
         >
-          <Card className="overflow-hidden border-0 shadow-xl ">
+          <Card className="overflow-hidden rounded-none border-0 bg-transparent shadow-none dark:shadow-none">
             <div className="relative">
               {isLocationBasedBounty(data) &&
                 data.latitude &&
@@ -1716,23 +1735,23 @@ const AdminBountyPage = () => {
                   initial={{ scale: 1.05, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ duration: 0.7, ease: "easeOut" }}
-                  className="h-80 w-full"
+                  className="h-[340px] w-full md:h-[460px]"
                 >
                   <Image
                     src={data?.imageUrls[0] ?? "/images/logo.png"}
                     alt={data?.title}
                     width={1200}
                     height={600}
-                    className="h-80 w-full object-cover"
+                    className="h-full w-full object-cover"
                     priority
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent"></div>
                 </motion.div>
               )}
 
               {/* Title and Creator Info - Overlay on image */}
               <div className="absolute bottom-0 left-0 right-0 z-10 p-6">
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent"></div>
                 <div className="relative z-10 flex items-end justify-between">
                   <motion.div
                     initial={{ y: 20, opacity: 0 }}
@@ -1740,26 +1759,36 @@ const AdminBountyPage = () => {
                     transition={{ duration: 0.5, delay: 0.3 }}
                     className="flex-1"
                   >
-                    <h1 className="mb-3 text-3xl font-bold text-white drop-shadow-lg md:text-4xl">
+                    <h1 className="mb-3 text-2xl font-semibold tracking-tight text-white drop-shadow md:text-4xl">
                       {data?.title}
                     </h1>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Badge
-                        variant="default"
-                        className="bg-primary/90 shadow-sm hover:bg-primary"
-                      >
-                        <Trophy className="mr-1 h-4 w-4" />
-                        {data?.priceInUSD > 0 ? `$${data.priceInUSD.toFixed(2)} USDC` : `${data?.priceInBand.toFixed(3)} ${PLATFORM_ASSET.code.toLocaleUpperCase()}`}
-
-                      </Badge>
-
-                      <Badge
-                        variant="outline"
-                        className="border-white/30 bg-black/40 text-white shadow-sm backdrop-blur-sm"
-                      >
-                        <Users className="mr-1 h-4 w-4" />
-                        {data?._count.participants} participants
-                      </Badge>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-white/90">
+                      {data?.priceInUSD > 0 ? (
+                        <>
+                          <span className="font-medium text-[#4ea0ff]">
+                            ${data.priceInUSD.toFixed(2)}
+                          </span>
+                          <span>USDC</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-medium text-[#4ea0ff]">
+                            {data?.priceInBand.toFixed(3)}
+                          </span>
+                          <span>{PLATFORM_ASSET.code.toLocaleUpperCase()}</span>
+                        </>
+                      )}
+                      <span className="text-white/55">|</span>
+                      <span>{data?._count.participants} participants</span>
+                      {isLocationBasedBounty(data) ? (
+                        <>
+                          <span className="text-white/55">|</span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <MapPin className="h-4 w-4" />
+                            Location-based bounty
+                          </span>
+                        </>
+                      ) : null}
                     </div>
                   </motion.div>
 
@@ -1767,7 +1796,7 @@ const AdminBountyPage = () => {
                     initial={{ x: 20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.4 }}
-                    className="hidden items-center gap-3 rounded-lg bg-black/20 p-2 backdrop-blur-sm md:flex"
+                    className="hidden items-center gap-3 rounded-xl border border-white/25 bg-black/30 p-2.5 backdrop-blur-sm md:flex"
                   >
                     <CustomAvatar
                       className="h-8 w-8"
@@ -1786,10 +1815,10 @@ const AdminBountyPage = () => {
                 </div>
               </div>
             </div>
-            <CardContent className="px-6 pb-2 pt-6">
+            <CardContent className="mx-auto w-full px-4 pb-3 pt-4 md:w-[85vw] md:px-6 md:pt-6">
               <Tabs defaultValue="details" className="w-full">
                 <div className="mb-6 border-b border-slate-200 dark:border-slate-700">
-                  <TabsList className="h-auto space-x-6 bg-transparent p-0 w-full overflow-x-auto scrollbar-hide">
+                  <TabsList className="h-auto w-full justify-start gap-7 overflow-x-auto bg-transparent p-0 scrollbar-hide">
                     {[
                       { id: "details", label: "Details", icon: Trophy },
                       {
@@ -1812,10 +1841,10 @@ const AdminBountyPage = () => {
                       <TabsTrigger
                         key={tab.id}
                         value={tab.id}
-                        className="data-[state=active]: group relative rounded-none bg-transparent px-2 py-3 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                        className="group relative rounded-none border-b-2 border-transparent bg-transparent px-0 py-3 text-[1.02rem] font-normal text-slate-500 transition data-[state=active]:border-black data-[state=active]:bg-transparent data-[state=active]:font-medium data-[state=active]:text-black data-[state=active]:shadow-none dark:text-slate-400 dark:data-[state=active]:border-slate-100 dark:data-[state=active]:text-slate-100"
                       >
                         <div className="flex items-center gap-2">
-                          <tab.icon size={18} />
+                          <tab.icon size={16} />
                           <span>{tab.label}</span>
                           {tab.id === "redeem-codes" && redeemCodes && (
                             <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] rounded-full px-1.5 text-xs">
@@ -1823,10 +1852,6 @@ const AdminBountyPage = () => {
                             </Badge>
                           )}
                         </div>
-                        <motion.div
-                          className="absolute -bottom-[1px] left-0 right-0 h-0.5 scale-x-0 rounded-full bg-primary opacity-0 transition-all duration-200 group-data-[state=active]:scale-x-100 group-data-[state=active]:opacity-100"
-                          initial={{ opacity: 0, scaleX: 0 }}
-                        />
                       </TabsTrigger>
                     ))}
                   </TabsList>
@@ -1839,7 +1864,7 @@ const AdminBountyPage = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
-                    className="prose prose-slate dark:prose-invert max-w-none"
+                    className="prose max-w-none rounded-xl border border-[#ececec] bg-[#fcfcfb] p-4 text-black/80 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200 md:p-5"
                   >
                     <SafeHTML html={data.description} />
                   </motion.div>
@@ -2126,7 +2151,7 @@ const AdminBountyPage = () => {
               </Tabs>
             </CardContent>
 
-            <CardFooter className="flex flex-col items-center justify-between gap-4 border-t border-slate-200 px-6 py-4 dark:border-slate-700 sm:flex-row">
+            <CardFooter className="mx-auto flex w-full flex-col items-center justify-between gap-4 border-t border-slate-200 px-6 py-4 md:w-[85vw] dark:border-slate-700 sm:flex-row">
               <div className="flex w-full flex-wrap gap-3 sm:w-auto">
                 <motion.div
                   whileHover={{ scale: 1.05 }}
