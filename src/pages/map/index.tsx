@@ -663,11 +663,15 @@ const MyHotspots = memo(function MyHotspots({ mapInstance }: { mapInstance: mapb
 
     // Clean up existing layers
     layersRef.current.forEach(layerId => {
-      if (mapInstance.getLayer(layerId)) {
-        mapInstance.removeLayer(layerId)
-      }
-      if (mapInstance.getSource(layerId)) {
-        mapInstance.removeSource(layerId)
+      try {
+        if (mapInstance.getLayer(layerId)) {
+          mapInstance.removeLayer(layerId)
+        }
+        if (mapInstance.getSource(layerId)) {
+          mapInstance.removeSource(layerId)
+        }
+      } catch (error) {
+        console.error("Error removing existing hotspot layer:", error)
       }
     })
     layersRef.current = []
@@ -695,52 +699,62 @@ const MyHotspots = memo(function MyHotspots({ mapInstance }: { mapInstance: mapb
         },
       }
 
-      mapInstance.addSource(sourceId, {
-        type: "geojson",
-        data: feature,
-      })
+      try {
+        mapInstance.addSource(sourceId, {
+          type: "geojson",
+          data: feature,
+        })
 
-      mapInstance.addLayer({
-        id: fillLayerId,
-        type: "fill",
-        source: sourceId,
-        paint: {
-          "fill-color": feature.properties.fillColor,
-          "fill-opacity": feature.properties.fillOpacity,
-        },
-      })
+        mapInstance.addLayer({
+          id: fillLayerId,
+          type: "fill",
+          source: sourceId,
+          paint: {
+            "fill-color": feature.properties.fillColor,
+            "fill-opacity": feature.properties.fillOpacity,
+          },
+        })
 
-      mapInstance.addLayer({
-        id: outlineLayerId,
-        type: "line",
-        source: sourceId,
-        paint: {
-          "line-color": feature.properties.strokeColor,
-          "line-width": 2,
-          "line-opacity": feature.properties.strokeOpacity,
-        },
-      })
+        mapInstance.addLayer({
+          id: outlineLayerId,
+          type: "line",
+          source: sourceId,
+          paint: {
+            "line-color": feature.properties.strokeColor,
+            "line-width": 2,
+            "line-opacity": feature.properties.strokeOpacity,
+          },
+        })
 
-      mapInstance.on("click", fillLayerId, () => {
-        setSelectedHotspot(hs.id)
-        setShowHotspotModal(true)
-      })
+        mapInstance.on("click", fillLayerId, () => {
+          setSelectedHotspot(hs.id)
+          setShowHotspotModal(true)
+        })
 
-      mapInstance.on("click", outlineLayerId, () => {
-        setSelectedHotspot(hs.id)
-        setShowHotspotModal(true)
-      })
+        mapInstance.on("click", outlineLayerId, () => {
+          setSelectedHotspot(hs.id)
+          setShowHotspotModal(true)
+        })
 
-      layersRef.current.push(sourceId, fillLayerId, outlineLayerId)
+        layersRef.current.push(sourceId, fillLayerId, outlineLayerId)
+      } catch (error) {
+        console.error("Error adding hotspot layer:", error)
+      }
     })
 
     return () => {
+      if (!mapInstance) return
+
       layersRef.current.forEach(layerId => {
-        if (mapInstance.getLayer(layerId)) {
-          mapInstance.removeLayer(layerId)
-        }
-        if (mapInstance.getSource(layerId)) {
-          mapInstance.removeSource(layerId)
+        try {
+          if (mapInstance.getLayer(layerId)) {
+            mapInstance.removeLayer(layerId)
+          }
+          if (mapInstance.getSource(layerId)) {
+            mapInstance.removeSource(layerId)
+          }
+        } catch (error) {
+          console.error("Error removing hotspot layer:", error)
         }
       })
       layersRef.current = []
