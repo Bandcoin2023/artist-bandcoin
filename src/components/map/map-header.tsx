@@ -4,18 +4,20 @@ import { Button } from "~/components/shadcn/ui/button"
 import { Input } from "~/components/shadcn/ui/input"
 import { CustomMapControl } from "~/components/map/search/map-control"
 import { PinToggleSwitch } from "./pin-toggle-switch"
+import mapboxgl from "mapbox-gl"
 
 interface MapHeaderProps {
     showExpired: boolean
     onPlaceSelect: (place: { lat: number; lng: number }) => void
-    onCenterChange: (center: google.maps.LatLngLiteral) => void
+    onCenterChange: (center: { lat: number; lng: number }) => void
     setIsCordsSearch: (value: boolean) => void
-    setSearchCoordinates: (coords: google.maps.LatLngLiteral | undefined) => void
-    setCordSearchLocation: (coords: google.maps.LatLngLiteral | undefined) => void
+    setSearchCoordinates: (coords: { lat: number; lng: number } | undefined) => void
+    setCordSearchLocation: (coords: { lat: number; lng: number } | undefined) => void
     setZoom: (zoom: number) => void
     setShowExpired: (value: boolean) => void
     onManualPinClick: () => void
     onCreateHotspot: () => void
+    mapInstance?: mapboxgl.Map | null
 }
 
 export function MapHeader({
@@ -29,7 +31,7 @@ export function MapHeader({
     setShowExpired,
     onManualPinClick,
     onCreateHotspot,
-
+    mapInstance,
 }: MapHeaderProps) {
     return (
         <div className="absolute top-8 left-0 right-0 z-50 p-4">
@@ -50,6 +52,7 @@ export function MapHeader({
                                     setSearchCoordinates={setSearchCoordinates}
                                     setCordSearchLocation={setCordSearchLocation}
                                     setZoom={setZoom}
+                                    mapInstance={mapInstance}
                                 >
                                     <Input
                                         placeholder="Search locations, brands..."

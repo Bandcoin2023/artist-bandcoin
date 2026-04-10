@@ -1,13 +1,14 @@
 "use client"
 
 import { memo, useEffect, useRef, useState, type MouseEvent } from "react"
-import { APIProvider, AdvancedMarker, ColorScheme, Map, Marker, useMap } from "@vis.gl/react-google-maps"
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react"
 import { useSession } from "next-auth/react"
 import { useCreatorStorageAcc } from "~/lib/state/wallete/stellar-balances"
-import { api } from "~/utils/api"
+import { api } from "~/utils/utils"
 import { ClipboardList, MapPin } from "lucide-react"
 import Image from "next/image"
+import mapboxgl, { Marker } from "mapbox-gl"
+import MapboxMap from "~/components/mapbox/mapbox"
 
 import { NearbyLocationsPanel } from "~/components/map/nearby-locations-panel"
 import { getPinIcon } from "~/utils/map-helpers"
@@ -27,191 +28,17 @@ import Link from "next/link"
 import { Button } from "~/components/shadcn/ui/button"
 import { useTheme } from "next-themes"
 import { useSelectedAutoSuggestion } from "~/lib/state/map/useSelectedAutoSuggestion"
-import { GoogleMapDrawing } from "~/components/map/google-map-drawing"
 import CreateHotspotModal from "~/components/modal/create-hotspot-modal"
 import HotspotDetailModal from "~/components/modal/hotspot-details-modal"
 import disc from "./disc.png"
 import fire from "./fire.png"
 import like from "./like.png"
 
-const lightMapStyle = [
-  {
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#f5f5f5"
-      }
-    ]
-  },
-  {
-    "elementType": "labels.icon",
-    "stylers": [
-      {
-        "visibility": "off"
-      }
-    ]
-  },
-  {
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#616161"
-      }
-    ]
-  },
-  {
-    "elementType": "labels.text.stroke",
-    "stylers": [
-      {
-        "color": "#f5f5f5"
-      }
-    ]
-  },
-  {
-    "featureType": "administrative",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#e0e0e0"
-      }
-    ]
-  },
-  {
-    "featureType": "administrative.land_parcel",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#bdbdbd"
-      }
-    ]
-  },
-  {
-    "featureType": "poi",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#eeeeee"
-      }
-    ]
-  },
-  {
-    "featureType": "poi",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#757575"
-      }
-    ]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#c5e8c5"
-      }
-    ]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#9e9e9e"
-      }
-    ]
-  },
-  {
-    "featureType": "road",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#ffffff"
-      }
-    ]
-  },
-  {
-    "featureType": "road",
-    "elementType": "labels.icon",
-    "stylers": [
-      {
-        "visibility": "off"
-      }
-    ]
-  },
-  {
-    "featureType": "road.arterial",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#757575"
-      }
-    ]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#e8e8e8"
-      }
-    ]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#616161"
-      }
-    ]
-  },
-  {
-    "featureType": "road.local",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#9e9e9e"
-      }
-    ]
-  },
-  {
-    "featureType": "transit.line",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#e5e5e5"
-      }
-    ]
-  },
-  {
-    "featureType": "transit.station",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#eeeeee"
-      }
-    ]
-  },
-  {
-    "featureType": "water",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#c9e8f7"
-      }
-    ]
-  },
-  {
-    "featureType": "water",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#9e9e9e"
-      }
-    ]
-  }
-]
+const MAPBOX_TOKEN =
+  process.env.NEXT_PUBLIC_MAPBOX_TOKEN ??
+  process.env.NEXT_PUBLIC_MAPBOX_API ??
+  "";
+mapboxgl.accessToken = MAPBOX_TOKEN;
 
 type Pin = Location & {
   locationGroup:
@@ -225,31 +52,6 @@ type Pin = Location & {
 }
 
 type DrawingMode = "polygon" | "rectangle" | "circle"
-
-function MapDrawingLayer({
-  isCreatingHotspot,
-  onSelectionChange,
-  onClose,
-  mapContainerRef,
-}: {
-  isCreatingHotspot: boolean
-  onSelectionChange: (feature: GeoJSON.Feature | null, activeMode: DrawingMode) => void
-  onClose: () => void
-  mapContainerRef: React.RefObject<HTMLDivElement>
-}) {
-  const map = useMap()
-
-  if (!isCreatingHotspot || !mapContainerRef.current || !map) return null
-
-  return (
-    <GoogleMapDrawing
-      map={map}
-      onSelectionChange={onSelectionChange}
-      onClose={onClose}
-      mapElement={mapContainerRef.current}
-    />
-  )
-}
 
 function GuestJoinOverlay() {
   const pointerX = useMotionValue(0)
@@ -430,10 +232,16 @@ function CreatorMapDashboardContent() {
   const [selectedShape, setSelectedShape] = useState<DrawingMode>("polygon")
   const [isCreatingHotspot, setIsCreatingHotspot] = useState(false)
 
-  const mapContainerRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<mapboxgl.Map | null>(null)
   const { theme } = useTheme()
   const { filterNearbyPins } = useNearbyPinsStore()
   const { selectedPlace: alreadySelectedPlace } = useSelectedAutoSuggestion()
+
+  const userLocationMarkerRef = useRef<Marker | null>(null)
+  const searchMarkerRef = useRef<Marker | null>(null)
+  const cordSearchMarkerRef = useRef<Marker | null>(null)
+  const pinMarkersRef = useRef<Marker[]>([])
+  const hotspotLayersRef = useRef<string[]>([])
 
   const handleCreateHotspot = () => setIsCreatingHotspot(true)
 
@@ -475,13 +283,10 @@ function CreatorMapDashboardContent() {
 
   useEffect(() => {
     if (alreadySelectedPlace) {
-      const latLng = {
-        lat: alreadySelectedPlace.lat,
-        lng: alreadySelectedPlace.lng,
-      }
-      setMapCenter(latLng)
+      const lngLat = [alreadySelectedPlace.lng, alreadySelectedPlace.lat] as [number, number]
+      setMapCenter({ lat: alreadySelectedPlace.lat, lng: alreadySelectedPlace.lng })
       setMapZoom(13)
-      setPosition(latLng)
+      setPosition({ lat: alreadySelectedPlace.lat, lng: alreadySelectedPlace.lng })
     }
   }, [alreadySelectedPlace, setMapCenter, setMapZoom, setPosition])
 
@@ -499,9 +304,96 @@ function CreatorMapDashboardContent() {
     openCreatePinModal()
   }
 
+  const handleMapLoad = (map: mapboxgl.Map) => {
+    mapRef.current = map
+  }
+
+  const handleMapClickInternal = (e: mapboxgl.MapMouseEvent & mapboxgl.EventData) => {
+    if (!mapRef.current) return
+
+    const center = mapRef.current.getCenter()
+    const bounds = mapRef.current.getBounds()
+
+    setMapCenter({ lat: center.lat, lng: center.lng })
+    setCenterChanged(bounds)
+
+    handleMapClick(e as unknown as MouseEvent)
+  }
+
+  const handleDragEndInternal = () => {
+    if (!mapRef.current) return
+
+    const center = mapRef.current.getCenter()
+    const bounds = mapRef.current.getBounds()
+
+    setMapCenter({ lat: center.lat, lng: center.lng })
+    setCenterChanged(bounds)
+    handleDragEnd()
+  }
+
+  // Update user location marker
+  useEffect(() => {
+    if (!mapRef.current || !position || isCordsSearch) return
+
+    if (userLocationMarkerRef.current) {
+      userLocationMarkerRef.current.remove()
+    }
+
+    const el = document.createElement("div")
+    el.className = "w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg"
+
+    userLocationMarkerRef.current = new Marker({ element: el })
+      .setLngLat([position.lng, position.lat])
+      .addTo(mapRef.current)
+  }, [position, isCordsSearch])
+
+  // Update search coordinates marker
+  useEffect(() => {
+    if (!mapRef.current || !searchCoordinates || !isCordsSearch) return
+
+    if (searchMarkerRef.current) {
+      searchMarkerRef.current.remove()
+    }
+
+    const el = document.createElement("div")
+    el.className = "animate-bounce"
+    el.innerHTML = `<svg class="w-8 h-8 text-red-500 drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>`
+
+    searchMarkerRef.current = new Marker({ element: el })
+      .setLngLat([searchCoordinates.lng, searchCoordinates.lat])
+      .addTo(mapRef.current)
+  }, [searchCoordinates, isCordsSearch])
+
+  // Update cord search marker
+  useEffect(() => {
+    if (!mapRef.current || !cordSearchCords || !isCordsSearch) return
+
+    if (cordSearchMarkerRef.current) {
+      cordSearchMarkerRef.current.remove()
+    }
+
+    const el = document.createElement("div")
+    el.className = "animate-bounce"
+    el.innerHTML = `<svg class="w-8 h-8 text-red-500 drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>`
+
+    cordSearchMarkerRef.current = new Marker({ element: el })
+      .setLngLat([cordSearchCords.lng, cordSearchCords.lat])
+      .addTo(mapRef.current)
+  }, [cordSearchCords, isCordsSearch])
+
+  // Clean up markers on unmount
+  useEffect(() => {
+    return () => {
+      userLocationMarkerRef.current?.remove()
+      searchMarkerRef.current?.remove()
+      cordSearchMarkerRef.current?.remove()
+      pinMarkersRef.current.forEach(m => m.remove())
+    }
+  }, [])
+
   return (
-    <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAP_API_KEY!}>
-      <div className="relative h-screen w-full overflow-hidden" ref={mapContainerRef}>
+    <>
+      <div className="relative h-screen w-full overflow-hidden">
         <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-slate-900/5 via-transparent to-transparent" />
         {isAuthenticated ? (
           <MapHeader
@@ -520,73 +412,35 @@ function CreatorMapDashboardContent() {
             setSearchCoordinates={setSearchCoordinates}
             setCordSearchLocation={setCordSearchCords}
             setZoom={setMapZoom}
+            mapInstance={mapRef.current}
           />
         ) : null}
 
-        <Map
-          onCenterChanged={(center) => {
-            setMapCenter(center.detail.center)
-            setCenterChanged(center.detail.bounds)
-          }}
-          onZoomChanged={(zoom) => {
-            setMapZoom(zoom.detail.zoom)
-          }}
-          colorScheme={ColorScheme.LIGHT}
-          onClick={handleMapClick}
-          mapId={"bf51eea910020fa25a"}
-          className="h-full w-full transition-all duration-500 ease-out"
-          defaultCenter={{ lat: 22.54992, lng: 0 }}
-          defaultZoom={3}
-          minZoom={3}
-          zoom={mapZoom}
-          center={mapCenter}
-          gestureHandling={"greedy"}
-          disableDefaultUI={true}
-          onDragend={handleDragEnd}
-          styles={lightMapStyle}
-          defaultTilt={45}
-          defaultHeading={-18}
-          tilt={45}
-          heading={-18}
+        <MapboxMap
+          initialCenter={[mapCenter.lng, mapCenter.lat]}
+          initialZoom={mapZoom}
+          initialBearing={-18}
+          initialPitch={45}
+          height="100vh"
+          onMapLoad={handleMapLoad}
+          onMapClick={handleMapClickInternal}
+          onDragEnd={handleDragEndInternal}
         >
-          {position && !isCordsSearch && <Marker position={{ lat: position.lat, lng: position.lng }} />}
-          {isCordsSearch && searchCoordinates && (
-            <AdvancedMarker position={searchCoordinates}>
-              <div className="animate-bounce">
-                <MapPin className="size-8 text-red-500 drop-shadow-lg" />
-              </div>
-            </AdvancedMarker>
-          )}
-
-          {isCordsSearch && cordSearchCords && (
-            <AdvancedMarker position={cordSearchCords}>
-              <div className="animate-bounce">
-                <MapPin className="size-8 text-red-500 drop-shadow-lg" />
-              </div>
-            </AdvancedMarker>
-          )}
-
           {isAuthenticated ? (
             <>
-              {!isCreatingHotspot && <MapControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} />}
+              {!isCreatingHotspot && <MapControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} mapInstance={mapRef.current} />}
               <MyPins
                 onPinClick={(pin) => {
                   openPinDetailModal(pin)
                   setIsAutoCollect(pin.autoCollect)
                 }}
                 showExpired={showExpired}
+                mapInstance={mapRef.current}
               />
-              <MyHotspots />
-
-              <MapDrawingLayer
-                isCreatingHotspot={isCreatingHotspot}
-                onSelectionChange={handleHotspotSelection}
-                onClose={() => setIsCreatingHotspot(false)}
-                mapContainerRef={mapContainerRef}
-              />
+              <MyHotspots mapInstance={mapRef.current} />
             </>
           ) : null}
-        </Map>
+        </MapboxMap>
 
         {isGuest ? <GuestJoinOverlay /> : null}
       </div>
@@ -600,7 +454,6 @@ function CreatorMapDashboardContent() {
                 <ClipboardList className="mr-2 h-4 w-4" /> Collection Reports
               </span>
             </button>
-
           </Link>
 
           {!isCreatingHotspot && (
@@ -627,7 +480,7 @@ function CreatorMapDashboardContent() {
           )}
         </>
       ) : null}
-    </APIProvider>
+    </>
   )
 }
 
@@ -636,12 +489,15 @@ export default CreatorMapDashboardContent
 const MyPins = memo(function MyPins({
   onPinClick,
   showExpired,
+  mapInstance,
 }: {
   onPinClick: (pin: Pin) => void
   showExpired: boolean
+  mapInstance: mapboxgl.Map | null
 }) {
   const { myPins, setMyPins } = useNearbyPinsStore()
   const pinsQuery = api.maps.pin.getMyPins.useQuery({ showExpired })
+  const markersRef = useRef<Marker[]>([])
 
   useEffect(() => {
     if (pinsQuery.data) {
@@ -649,82 +505,96 @@ const MyPins = memo(function MyPins({
     }
   }, [pinsQuery.data, setMyPins])
 
+  useEffect(() => {
+    if (!mapInstance || !myPins.length) return
+
+    // Clean up existing markers
+    markersRef.current.forEach(marker => marker.remove())
+    markersRef.current = []
+
+    myPins.forEach((pin) => {
+      const PinIcon = getPinIcon(pin.locationGroup?.type ?? PinType.OTHER)
+
+      const isExpired = (pin.locationGroup?.endDate && new Date(pin.locationGroup.endDate) < new Date()) ?? false
+      const isApproved = pin.locationGroup?.approved === true
+      const isRemainingZero = pin.locationGroup?.remaining !== undefined && pin.locationGroup?.remaining <= 0
+      const isHidden = pin.hidden === true
+      const isAutoCollect = pin.autoCollect === true
+
+      const isInactive = isExpired || isRemainingZero || !isApproved
+      const showAnimation = !isExpired && !isRemainingZero && isApproved && !isHidden
+
+      const opacityClasses = isHidden
+        ? "opacity-40"
+        : isInactive
+          ? "opacity-50"
+          : "opacity-100"
+
+      const shapeClasses = isAutoCollect ? "rounded-none" : "rounded-full"
+
+      const borderClasses = isHidden
+        ? "border-dashed border-red-500 border-2"
+        : isApproved
+          ? "ring-2 ring-green-400"
+          : ""
+
+      const filterClasses = isInactive && !isHidden ? "grayscale" : ""
+
+      const bgClasses = !isApproved && !isHidden ? "bg-gray-500" : "bg-white/80 hover:bg-white/100"
+
+      // Create marker element
+      const el = document.createElement("div")
+      el.className = `relative flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-125 hover:shadow-2xl cursor-pointer group transform hover:-translate-y-1 ${opacityClasses} ${shapeClasses} ${borderClasses} ${filterClasses} ${bgClasses}`
+
+      if (showAnimation) {
+        const pingEl = document.createElement("div")
+        pingEl.className = `absolute inset-0 bg-blue-400 animate-ping opacity-20 ${shapeClasses}`
+        el.appendChild(pingEl)
+      }
+
+      if (pin.locationGroup?.creator.profileUrl) {
+        const img = document.createElement("img")
+        img.src = pin.locationGroup.creator.profileUrl ?? "/placeholder.svg"
+        img.className = `h-12 w-12 ${shapeClasses} object-cover ring-2 transition-all duration-300`
+        img.width = 32
+        img.height = 32
+        el.appendChild(img)
+      } else {
+        const div = document.createElement("div")
+        div.className = `h-12 w-12 ${shapeClasses} bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center ring-2 transition-all duration-300`
+        const iconDiv = document.createElement("div")
+        // You would need to render the PinIcon as an SVG here
+        // For now, using a simple placeholder
+        iconDiv.innerHTML = `<svg class="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>`
+        div.appendChild(iconDiv)
+        el.appendChild(div)
+      }
+
+      if (pin._count.consumers > 0) {
+        const countEl = document.createElement("div")
+        countEl.className = "absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium shadow-lg"
+        countEl.textContent = pin._count.consumers > 99 ? "99+" : `${pin._count.consumers}`
+        el.appendChild(countEl)
+      }
+
+      el.addEventListener("click", () => onPinClick(pin))
+
+      const marker = new Marker({ element: el })
+        .setLngLat([pin.longitude, pin.latitude])
+        .addTo(mapInstance)
+
+      markersRef.current.push(marker)
+    })
+
+    return () => {
+      markersRef.current.forEach(marker => marker.remove())
+      markersRef.current = []
+    }
+  }, [mapInstance, myPins, onPinClick])
+
   if (pinsQuery.isLoading) return null
 
-  return (
-    <>
-      {myPins.map((pin) => {
-        const PinIcon = getPinIcon(pin.locationGroup?.type ?? PinType.OTHER)
-
-        const isExpired = (pin.locationGroup?.endDate && new Date(pin.locationGroup.endDate) < new Date()) ?? false
-        const isApproved = pin.locationGroup?.approved === true
-        const isRemainingZero = pin.locationGroup?.remaining !== undefined && pin.locationGroup?.remaining <= 0
-        const isHidden = pin.hidden === true
-        const isAutoCollect = pin.autoCollect === true
-
-        const isInactive = isExpired || isRemainingZero || !isApproved
-        const showAnimation = !isExpired && !isRemainingZero && isApproved && !isHidden
-
-        const baseClasses = "relative flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-125 hover:shadow-2xl cursor-pointer group transform hover:-translate-y-1"
-
-        const opacityClasses = isHidden
-          ? "opacity-40"
-          : isInactive
-            ? "opacity-50"
-            : "opacity-100"
-
-        const shapeClasses = isAutoCollect ? "rounded-none" : "rounded-full"
-
-        const borderClasses = isHidden
-          ? "border-dashed border-red-500 border-2"
-          : isApproved
-            ? "ring-2 ring-green-400"
-            : ""
-
-        const filterClasses = isInactive && !isHidden ? "grayscale" : ""
-
-        const bgClasses = !isApproved && !isHidden ? "bg-gray-500" : "bg-white/80 hover:bg-white/100"
-
-        return (
-          <AdvancedMarker
-            key={pin.id}
-            position={{ lat: pin.latitude, lng: pin.longitude }}
-            onClick={() => onPinClick(pin)}
-          >
-            <div
-              className={`${baseClasses} ${opacityClasses} ${shapeClasses} ${borderClasses} ${filterClasses} ${bgClasses}`}
-            >
-              {showAnimation && (
-                <div
-                  className={`absolute inset-0 bg-blue-400 animate-ping opacity-20 ${shapeClasses}`}
-                />
-              )}
-
-              {pin.locationGroup?.creator.profileUrl ? (
-                <Image
-                  src={pin.locationGroup.creator.profileUrl ?? "/placeholder.svg"}
-                  width={32}
-                  height={32}
-                  alt="Creator"
-                  className={`h-12 w-12 ${shapeClasses} object-cover ring-2  transition-all duration-300`}
-                />
-              ) : (
-                <div className={`h-12 w-12 ${shapeClasses} bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center ring-2  transition-all duration-300`}>
-                  <PinIcon className="h-6 w-6 text-gray-600  transition-colors duration-300" />
-                </div>
-              )}
-
-              {pin._count.consumers > 0 && (
-                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium shadow-lg">
-                  {pin._count.consumers > 99 ? "99+" : pin._count.consumers}
-                </div>
-              )}
-            </div>
-          </AdvancedMarker>
-        )
-      })}
-    </>
-  )
+  return null
 })
 
 type HotspotGeoJson = {
@@ -739,76 +609,100 @@ type HotspotGeoJson = {
   } | null
 }
 
-const MyHotspots = memo(function MyHotspots() {
-  const map = useMap()
+const MyHotspots = memo(function MyHotspots({ mapInstance }: { mapInstance: mapboxgl.Map | null }) {
   const hotspotQuery = api.maps.pin.myHotspots.useQuery()
-  const overlaysRef = useRef<(google.maps.Polygon | google.maps.Circle | google.maps.Rectangle)[]>([])
-
   const [selectedHotspot, setSelectedHotspot] = useState<string | null>(null)
   const [showHotspotModal, setShowHotspotModal] = useState(false)
+  const layersRef = useRef<string[]>([])
 
   useEffect(() => {
-    if (!map || !hotspotQuery.data) return
+    if (!mapInstance || !hotspotQuery.data) return
 
-    overlaysRef.current.forEach((o) => o.setMap(null))
-    overlaysRef.current = []
+    // Clean up existing layers
+    layersRef.current.forEach(layerId => {
+      if (mapInstance.getLayer(layerId)) {
+        mapInstance.removeLayer(layerId)
+      }
+      if (mapInstance.getSource(layerId)) {
+        mapInstance.removeSource(layerId)
+      }
+    })
+    layersRef.current = []
 
-    hotspotQuery.data.forEach((hs) => {
+    hotspotQuery.data.forEach((hs, index) => {
       const geoJson = hs.geoJson as HotspotGeoJson
       if (!geoJson?.geometry) return
 
       const isActive = hs.isActive
       const isAutoCollect = hs.autoCollect
 
-      const shapeOptions = {
-        map,
-        strokeColor: isAutoCollect ? "#22c55e" : "#3b82f6",
-        strokeOpacity: isActive ? 0.9 : 0.4,
-        strokeWeight: 2,
-        fillColor: "#22c55e",
-        fillOpacity: isActive ? 0.2 : 0.05,
+      const sourceId = `hotspot-${hs.id}`
+      const fillLayerId = `hotspot-fill-${hs.id}`
+      const outlineLayerId = `hotspot-outline-${hs.id}`
+
+      const feature = {
+        type: "Feature" as const,
+        geometry: geoJson.geometry,
+        properties: {
+          id: hs.id,
+          strokeColor: isAutoCollect ? "#22c55e" : "#3b82f6",
+          strokeOpacity: isActive ? 0.9 : 0.4,
+          fillColor: "#22c55e",
+          fillOpacity: isActive ? 0.2 : 0.05,
+        },
       }
 
-      let overlay: google.maps.Polygon | google.maps.Circle | google.maps.Rectangle
+      mapInstance.addSource(sourceId, {
+        type: "geojson",
+        data: feature,
+      })
 
-      if (hs.shape === "circle") {
-        const props = geoJson.properties
-        if (!props?.center || !props?.radiusMetres) return
-        overlay = new window.google.maps.Circle({
-          ...shapeOptions,
-          center: { lat: props.center[0], lng: props.center[1] },
-          radius: props.radiusMetres,
-        })
-      } else if (hs.shape === "rectangle") {
-        const coords = geoJson.geometry.coordinates[0]
-        if (!coords?.length) return
-        const lats = coords.map(([lat]) => lat)
-        const lngs = coords.map(([, lng]) => lng)
-        const bounds = new window.google.maps.LatLngBounds(
-          { lat: Math.min(...lats), lng: Math.min(...lngs) },
-          { lat: Math.max(...lats), lng: Math.max(...lngs) },
-        )
-        overlay = new window.google.maps.Rectangle({ ...shapeOptions, bounds })
-      } else {
-        const coords = geoJson.geometry.coordinates[0]
-        if (!coords?.length) return
-        const paths = coords.map(([lat, lng]) => ({ lat, lng }))
-        overlay = new window.google.maps.Polygon({ ...shapeOptions, paths })
-      }
+      mapInstance.addLayer({
+        id: fillLayerId,
+        type: "fill",
+        source: sourceId,
+        paint: {
+          "fill-color": feature.properties.fillColor,
+          "fill-opacity": feature.properties.fillOpacity,
+        },
+      })
 
-      overlay.addListener("click", () => {
+      mapInstance.addLayer({
+        id: outlineLayerId,
+        type: "line",
+        source: sourceId,
+        paint: {
+          "line-color": feature.properties.strokeColor,
+          "line-width": 2,
+          "line-opacity": feature.properties.strokeOpacity,
+        },
+      })
+
+      mapInstance.on("click", fillLayerId, () => {
         setSelectedHotspot(hs.id)
         setShowHotspotModal(true)
       })
 
-      overlaysRef.current.push(overlay)
+      mapInstance.on("click", outlineLayerId, () => {
+        setSelectedHotspot(hs.id)
+        setShowHotspotModal(true)
+      })
+
+      layersRef.current.push(sourceId, fillLayerId, outlineLayerId)
     })
 
     return () => {
-      overlaysRef.current.forEach((o) => o.setMap(null))
-      overlaysRef.current = []
+      layersRef.current.forEach(layerId => {
+        if (mapInstance.getLayer(layerId)) {
+          mapInstance.removeLayer(layerId)
+        }
+        if (mapInstance.getSource(layerId)) {
+          mapInstance.removeSource(layerId)
+        }
+      })
+      layersRef.current = []
     }
-  }, [map, hotspotQuery.data])
+  }, [mapInstance, hotspotQuery.data])
 
   return (
     <HotspotDetailModal
