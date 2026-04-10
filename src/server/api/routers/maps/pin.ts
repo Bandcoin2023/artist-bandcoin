@@ -1825,18 +1825,97 @@ export const pinRouter = createTRPCRouter({
         location: updated.location.locationGroup,
       }
     }),
+  lookupRedeemCode: publicProcedure
+    .input(
+      z.object({
+        code: z.string().trim().toUpperCase().length(6, "Code must be exactly 6 characters"),
+        locationId: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const consumer = await ctx.db.locationConsumer.findUnique({
+        where: { redeemCode: input.code },
+        include: {
+          user: { select: { name: true, image: true, email: true } },
+          location: {
+            include: {
+              locationGroup: {
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  image: true,
+                  link: true,
+                  type: true,
+                  startDate: true,
+                  endDate: true,
+                  limit: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!consumer) {
+        return { status: "not_found" as const };
+      }
+
+      if (consumer.isRedeemed) {
+        return {
+          status: "already_redeemed" as const,
+          redeemedAt: consumer.redeemedAt?.toISOString() ?? null,
+          user: consumer.user,
+        };
+      }
+
+      // Check if locationId is provided and if the code belongs to a different location
+      if (input.locationId && consumer.locationId !== input.locationId) {
+        return {
+          status: "wrong_location" as const,
+          actualLocation: {
+            id: consumer.location.id,
+            groupTitle: consumer.location.locationGroup?.title,
+          },
+        };
+      }
+
+      return {
+        status: "pending" as const,
+        user: consumer.user,
+        claimedAt: consumer.claimedAt?.toISOString() ?? null,
+      };
+    }),
   getRedeemedByCreator: protectedProcedure
-    .query(async ({ ctx }) => {
-      const creatorId = ctx.session.user.id
+    .input(
+      z.object({
+        search: z.string().optional(),
+        type: z.enum(["EVENT", "BOUNTY", "EXPERIENCE", "LAUNCH", "OTHER"]).optional(),
+        limit: z.number().min(1).max(100).default(10),
+        cursor: z.string().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const creatorId = ctx.session.user.id;
+      const { limit, cursor } = input;
 
       const redeemed = await ctx.db.locationConsumer.findMany({
         where: {
           isRedeemed: true,
           location: {
             locationGroup: {
-              creatorId: creatorId, // adjust field name to match your schema
+              creatorId: creatorId,
+              ...(input.type && { type: input.type }),
             },
           },
+          ...(input.search && {
+            OR: [
+              { user: { name: { contains: input.search, mode: "insensitive" } } },
+              { user: { email: { contains: input.search, mode: "insensitive" } } },
+              { redeemCode: { contains: input.search, mode: "insensitive" } },
+              { location: { locationGroup: { title: { contains: input.search, mode: "insensitive" } } } },
+            ],
+          }),
         },
         include: {
           user: { select: { id: true, name: true, image: true, email: true } },
@@ -1846,13 +1925,19 @@ export const pinRouter = createTRPCRouter({
                 select: {
                   id: true,
                   title: true,
+                  description: true,
                   image: true,
+                  link: true,
+                  type: true,
+                  startDate: true,
+                  endDate: true,
+                  limit: true,
                   creator: {
                     select: {
                       name: true,
                       id: true,
                       profileUrl: true,
-                    }
+                    },
                   },
                 },
               },
@@ -1860,16 +1945,168 @@ export const pinRouter = createTRPCRouter({
           },
         },
         orderBy: { redeemedAt: "desc" },
-      })
+        take: limit + 1,
+        ...(cursor && {
+          cursor: { id: cursor },
+          skip: 1,
+        }),
+      });
 
-      return redeemed.map((c) => ({
+      let nextCursor: typeof cursor | undefined = undefined;
+      if (redeemed.length > limit) {
+        const nextItem = redeemed.pop();
+        nextCursor = nextItem!.id;
+      }
+
+      const items = redeemed.map((c) => ({
         id: c.id,
         redeemCode: c.redeemCode,
         redeemedAt: c.redeemedAt?.toISOString() ?? null,
         claimedAt: c.claimedAt?.toISOString() ?? null,
         user: c.user,
-        location: c.location,
-      }))
+        location: c.location.locationGroup,
+        locationData: {
+          latitude: c.location.latitude,
+          longitude: c.location.longitude,
+        },
+      }));
+
+      const total = await ctx.db.locationConsumer.count({
+        where: {
+          isRedeemed: true,
+          location: {
+            locationGroup: {
+              creatorId: creatorId,
+              ...(input.type && { type: input.type }),
+            },
+          },
+          ...(input.search && {
+            OR: [
+              { user: { name: { contains: input.search, mode: "insensitive" } } },
+              { user: { email: { contains: input.search, mode: "insensitive" } } },
+              { redeemCode: { contains: input.search, mode: "insensitive" } },
+              { location: { locationGroup: { title: { contains: input.search, mode: "insensitive" } } } },
+            ],
+          }),
+        },
+      });
+
+      return {
+        items,
+        nextCursor,
+        total,
+      };
+    }),
+  getLocationGroupsWithConsumers: protectedProcedure
+    .input(
+      z.object({
+        search: z.string().optional(),
+        type: z.enum(["EVENT", "BOUNTY", "EXPERIENCE", "LAUNCH", "OTHER"]).optional(),
+        limit: z.number().min(1).max(100).default(10),
+        cursor: z.string().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const creatorId = ctx.session.user.id;
+      const { limit, cursor } = input;
+
+      const locationGroups = await ctx.db.locationGroup.findMany({
+        where: {
+          creatorId,
+          hidden: false,
+          ...(input.search && {
+            OR: [
+              { title: { contains: input.search, mode: "insensitive" } },
+              { description: { contains: input.search, mode: "insensitive" } },
+            ],
+          }),
+          ...(input.type && { type: input.type }),
+        },
+        include: {
+          locations: {
+            include: {
+              consumers: {
+                where: { isRedeemed: false },
+                include: {
+                  user: { select: { name: true, image: true, email: true } },
+                },
+                orderBy: { claimedAt: "desc" },
+              },
+            },
+          },
+          _count: {
+            select: {
+              locations: {
+                where: {
+                  consumers: { some: { isRedeemed: false } },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit + 1,
+        ...(cursor && {
+          cursor: { id: cursor },
+          skip: 1,
+        }),
+      });
+
+      let nextCursor: typeof cursor | undefined = undefined;
+      if (locationGroups.length > limit) {
+        const nextItem = locationGroups.pop();
+        nextCursor = nextItem!.id;
+      }
+
+      const items = locationGroups.map((group) => ({
+        id: group.id,
+        title: group.title,
+        description: group.description,
+        image: group.image,
+        link: group.link,
+        type: group.type,
+        startDate: group.startDate.toISOString(),
+        endDate: group.endDate.toISOString(),
+        limit: group.limit,
+        totalConsumers: group._count.locations,
+        totalRedeemed: 0, // Calculate from redeemed consumers
+        latestConsumerAt: null,
+        locations: group.locations
+          .filter((loc) => loc.consumers.length > 0)
+          .map((loc) => ({
+            id: loc.id,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            consumers: loc.consumers.map((c) => ({
+              id: c.id,
+              redeemCode: c.redeemCode,
+              isRedeemed: c.isRedeemed,
+              redeemedAt: c.redeemedAt?.toISOString() ?? null,
+              claimedAt: c.claimedAt?.toISOString() ?? null,
+              user: c.user,
+            })),
+          })),
+      }));
+
+      const total = await ctx.db.locationGroup.count({
+        where: {
+          creatorId,
+          hidden: false,
+          ...(input.search && {
+            OR: [
+              { title: { contains: input.search, mode: "insensitive" } },
+              { description: { contains: input.search, mode: "insensitive" } },
+            ],
+          }),
+          ...(input.type && { type: input.type }),
+        },
+      });
+
+      return {
+        items,
+        nextCursor,
+        total,
+      };
     }),
 });
 
