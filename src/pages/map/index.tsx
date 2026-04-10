@@ -233,6 +233,7 @@ function CreatorMapDashboardContent() {
   const [isCreatingHotspot, setIsCreatingHotspot] = useState(false)
 
   const mapRef = useRef<mapboxgl.Map | null>(null)
+  const [isMapReady, setIsMapReady] = useState(false)
   const { theme } = useTheme()
   const { filterNearbyPins } = useNearbyPinsStore()
   const { selectedPlace: alreadySelectedPlace } = useSelectedAutoSuggestion()
@@ -306,6 +307,7 @@ function CreatorMapDashboardContent() {
 
   const handleMapLoad = (map: mapboxgl.Map) => {
     mapRef.current = map
+    setIsMapReady(true)
   }
 
   const handleMapClickInternal = (e: mapboxgl.MapMouseEvent & mapboxgl.EventData) => {
@@ -339,12 +341,16 @@ function CreatorMapDashboardContent() {
       userLocationMarkerRef.current.remove()
     }
 
-    const el = document.createElement("div")
-    el.className = "w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg"
+    try {
+      const el = document.createElement("div")
+      el.className = "w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg"
 
-    userLocationMarkerRef.current = new Marker({ element: el })
-      .setLngLat([position.lng, position.lat])
-      .addTo(mapRef.current)
+      userLocationMarkerRef.current = new Marker({ element: el })
+        .setLngLat([position.lng, position.lat])
+        .addTo(mapRef.current)
+    } catch (error) {
+      console.error("Error adding user location marker:", error)
+    }
   }, [position, isCordsSearch])
 
   // Update search coordinates marker
@@ -355,13 +361,17 @@ function CreatorMapDashboardContent() {
       searchMarkerRef.current.remove()
     }
 
-    const el = document.createElement("div")
-    el.className = "animate-bounce"
-    el.innerHTML = `<svg class="w-8 h-8 text-red-500 drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>`
+    try {
+      const el = document.createElement("div")
+      el.className = "animate-bounce"
+      el.innerHTML = `<svg class="w-8 h-8 text-red-500 drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>`
 
-    searchMarkerRef.current = new Marker({ element: el })
-      .setLngLat([searchCoordinates.lng, searchCoordinates.lat])
-      .addTo(mapRef.current)
+      searchMarkerRef.current = new Marker({ element: el })
+        .setLngLat([searchCoordinates.lng, searchCoordinates.lat])
+        .addTo(mapRef.current)
+    } catch (error) {
+      console.error("Error adding search marker:", error)
+    }
   }, [searchCoordinates, isCordsSearch])
 
   // Update cord search marker
@@ -372,22 +382,42 @@ function CreatorMapDashboardContent() {
       cordSearchMarkerRef.current.remove()
     }
 
-    const el = document.createElement("div")
-    el.className = "animate-bounce"
-    el.innerHTML = `<svg class="w-8 h-8 text-red-500 drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>`
+    try {
+      const el = document.createElement("div")
+      el.className = "animate-bounce"
+      el.innerHTML = `<svg class="w-8 h-8 text-red-500 drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>`
 
-    cordSearchMarkerRef.current = new Marker({ element: el })
-      .setLngLat([cordSearchCords.lng, cordSearchCords.lat])
-      .addTo(mapRef.current)
+      cordSearchMarkerRef.current = new Marker({ element: el })
+        .setLngLat([cordSearchCords.lng, cordSearchCords.lat])
+        .addTo(mapRef.current)
+    } catch (error) {
+      console.error("Error adding cord search marker:", error)
+    }
   }, [cordSearchCords, isCordsSearch])
 
   // Clean up markers on unmount
   useEffect(() => {
     return () => {
-      userLocationMarkerRef.current?.remove()
-      searchMarkerRef.current?.remove()
-      cordSearchMarkerRef.current?.remove()
-      pinMarkersRef.current.forEach(m => m.remove())
+      try {
+        userLocationMarkerRef.current?.remove()
+      } catch (error) {
+        console.error("Error removing user location marker:", error)
+      }
+      try {
+        searchMarkerRef.current?.remove()
+      } catch (error) {
+        console.error("Error removing search marker:", error)
+      }
+      try {
+        cordSearchMarkerRef.current?.remove()
+      } catch (error) {
+        console.error("Error removing cord search marker:", error)
+      }
+      try {
+        pinMarkersRef.current.forEach(m => m.remove())
+      } catch (error) {
+        console.error("Error removing pin markers:", error)
+      }
     }
   }, [])
 
@@ -436,6 +466,7 @@ function CreatorMapDashboardContent() {
                 }}
                 showExpired={showExpired}
                 mapInstance={mapRef.current}
+                isMapReady={isMapReady}
               />
               <MyHotspots mapInstance={mapRef.current} />
             </>
@@ -490,10 +521,12 @@ const MyPins = memo(function MyPins({
   onPinClick,
   showExpired,
   mapInstance,
+  isMapReady,
 }: {
   onPinClick: (pin: Pin) => void
   showExpired: boolean
   mapInstance: mapboxgl.Map | null
+  isMapReady: boolean
 }) {
   const { myPins, setMyPins } = useNearbyPinsStore()
   const pinsQuery = api.maps.pin.getMyPins.useQuery({ showExpired })
@@ -506,7 +539,7 @@ const MyPins = memo(function MyPins({
   }, [pinsQuery.data, setMyPins])
 
   useEffect(() => {
-    if (!mapInstance || !myPins.length) return
+    if (!mapInstance || !myPins.length || !isMapReady) return
 
     // Clean up existing markers
     markersRef.current.forEach(marker => marker.remove())
@@ -579,15 +612,25 @@ const MyPins = memo(function MyPins({
 
       el.addEventListener("click", () => onPinClick(pin))
 
-      const marker = new Marker({ element: el })
-        .setLngLat([pin.longitude, pin.latitude])
-        .addTo(mapInstance)
+      try {
+        const marker = new Marker({ element: el })
+          .setLngLat([pin.longitude, pin.latitude])
+          .addTo(mapInstance)
 
-      markersRef.current.push(marker)
+        markersRef.current.push(marker)
+      } catch (error) {
+        console.error("Error adding marker to map:", error)
+      }
     })
 
     return () => {
-      markersRef.current.forEach(marker => marker.remove())
+      markersRef.current.forEach(marker => {
+        try {
+          marker.remove()
+        } catch (error) {
+          console.error("Error removing marker from map:", error)
+        }
+      })
       markersRef.current = []
     }
   }, [mapInstance, myPins, onPinClick])
