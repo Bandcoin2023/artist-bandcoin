@@ -18,6 +18,7 @@ interface MapProps {
   onMapLoad?: (map: mapboxgl.Map) => void;
   onMapClick?: (e: mapboxgl.MapMouseEvent & mapboxgl.EventData) => void;
   onDragEnd?: () => void;
+  onContainerRef?: (container: HTMLDivElement | null) => void;
   children?: React.ReactNode;
 }
 
@@ -150,6 +151,7 @@ export default function MapboxMap({
   onMapLoad,
   onMapClick,
   onDragEnd,
+  onContainerRef,
   children,
 }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -158,6 +160,12 @@ export default function MapboxMap({
   const [mapLoadError, setMapLoadError] = useState<string | null>(null);
   const centerLng = initialCenter[0];
   const centerLat = initialCenter[1];
+
+  // Expose container ref
+  useEffect(() => {
+    onContainerRef?.(mapContainer.current);
+    return () => onContainerRef?.(null);
+  }, [onContainerRef]);
 
   useEffect(() => {
     if (map.current) return;
@@ -212,7 +220,7 @@ export default function MapboxMap({
       map.current?.remove();
       map.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
   // Update map center when initialCenter changes (after initial load)
