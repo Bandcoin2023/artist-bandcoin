@@ -1,1 +1,1 @@
-export const BASE_URL = "https://www.bandcoin.io";
+export const BASE_URL = "https://artist.bandcoin.io";

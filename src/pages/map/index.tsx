@@ -12,7 +12,7 @@ import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import { useSession } from "next-auth/react";
 import { useCreatorStorageAcc } from "~/lib/state/wallete/stellar-balances";
 import { api } from "~/utils/api";
-import { ClipboardList, MapPin } from "lucide-react";
+import { ClipboardList, MapPin, Settings } from "lucide-react";
 import Image from "next/image";
 import mapboxgl, { Marker } from "mapbox-gl";
 import MapboxMap from "~/components/mapbox/mapbox";
@@ -53,10 +53,10 @@ mapboxgl.accessToken = MAPBOX_TOKEN;
 
 type Pin = Location & {
   locationGroup:
-    | (LocationGroup & {
-        creator: { profileUrl: string | null };
-      })
-    | null;
+  | (LocationGroup & {
+    creator: { profileUrl: string | null };
+  })
+  | null;
   _count: {
     consumers: number;
   };
@@ -403,7 +403,7 @@ function CreatorMapDashboardContent() {
       const bounds = mapRef.current.getBounds();
 
       setMapCenter({ lat: center.lat, lng: center.lng });
-      setCenterChanged(bounds as any);
+      setCenterChanged(bounds);
 
       handleMapClick(e as unknown as MouseEvent);
     },
@@ -417,7 +417,7 @@ function CreatorMapDashboardContent() {
     const bounds = mapRef.current.getBounds();
 
     setMapCenter({ lat: center.lat, lng: center.lng });
-    setCenterChanged(bounds as any);
+    setCenterChanged(bounds);
     handleDragEnd();
   }, [handleDragEnd, setMapCenter, setCenterChanged]);
 
@@ -584,14 +584,21 @@ function CreatorMapDashboardContent() {
       {isAuthenticated ? (
         <>
           <Link href="/map/collection-report">
-            <button className="absolute bottom-40 right-6 z-20 inline-flex h-12 overflow-hidden rounded-full p-[1px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50 md:bottom-32">
+            <button className="absolute bottom-44 right-6 z-20 inline-flex h-12 overflow-hidden rounded-full p-[1px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50 lg:bottom-8">
               <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
               <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
                 <ClipboardList className="mr-2 h-4 w-4" /> Collection Reports
               </span>
             </button>
           </Link>
-
+          <Link href="/map/pin-manage">
+            <button className="absolute bottom-60 right-6 z-20 inline-flex h-12 overflow-hidden rounded-full p-[1px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50 lg:bottom-24">
+              <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
+              <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
+                <Settings className="mr-2 h-4 w-4" />  Manage Pins
+              </span>
+            </button>
+          </Link>
           {!isCreatingHotspot && (
             <NearbyLocationsPanel
               onSelectPlace={(coords) => {

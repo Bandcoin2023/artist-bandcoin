@@ -1,6 +1,5 @@
 "use client"
 
-// src/components/AgentChat.tsx
 
 import type React from "react"
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -17,9 +16,36 @@ import {
     CheckCircle2,
     Sparkles,
     X,
+    XCircle,
+    ChevronUp,
 } from "lucide-react"
 import type { AgentState, AgentTask, EventData, LandmarkData, Message, PinItem } from "~/lib/agent/types"
+import { Input } from "../shadcn/ui/input"
+// ─── Types ────────────────────────────────────────────────────────────────────
 
+type JobStatus = "pending" | "processing" | "completed" | "failed"
+
+interface LogEntry {
+    title: string
+    status: "ok" | "error"
+    error?: string
+}
+
+interface PinJobProgressProps {
+    count: number
+    jobId?: string
+    onNew: (t: AgentTask) => void
+}
+
+// ─── Sub-component: status icon ───────────────────────────────────────────────
+
+function StatusIcon({ status }: { status: JobStatus }) {
+    if (status === "completed")
+        return <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+    if (status === "failed")
+        return <XCircle className="h-8 w-8 text-red-500" />
+    return <Loader2 className="h-8 w-8 animate-spin text-primary" />
+}
 // ─── Local types ──────────────────────────────────────────────────────────────
 
 type DateMap = Record<string, { startDate: string; endDate: string }>
@@ -28,7 +54,6 @@ type PinCfg = {
     pinNumber: number
     pinCollectionLimit: number
     autoCollect: boolean
-    multiPin: boolean
     radius: number
 }
 
@@ -47,6 +72,11 @@ const WELCOME: Message = {
     role: "assistant",
     content:
         "Hi! I'm your Bandcoin assistant. I can help you create location pins for real events or landmarks. What would you like to do today?",
+
+    uiData: {
+        type: "task_select",
+        data: {},
+    },
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -308,7 +338,7 @@ function PinConfigForm({
     isLandmark,
     onConfirm,
 }: {
-    items: Array<{ id: string; title: string }>
+    items: Array<{ id: string; title: string; latitude: number; longitude: number }>
     isLandmark: boolean
     onConfirm: (cfgs: Record<string, PinCfg>) => void
 }) {
@@ -320,124 +350,446 @@ function PinConfigForm({
                     pinNumber: isLandmark ? 1 : 5,
                     pinCollectionLimit: isLandmark ? 999999 : 100,
                     autoCollect: false,
-                    multiPin: false,
-                    radius: 50,
+                    radius: 2,
                 },
             ]),
         ),
     )
+    const [expandedId, setExpandedId] = useState<string | null>(null)
+    const [showBulkActions, setShowBulkActions] = useState(false)
 
-    function update<K extends keyof PinCfg>(id: string, key: K, value: PinCfg[K]) {
-        setCfgs((prev) => ({ ...prev, [id]: { ...prev[id]!, [key]: value } }))
+    function updateCfg(id: string, updates: Partial<PinCfg>) {
+        setCfgs((prev) => ({
+            ...prev,
+            [id]: { ...prev[id]!, ...updates },
+        }))
+    }
+
+    function toggle(id: string) {
+        updateCfg(id, { autoCollect: !cfgs[id]!.autoCollect })
+    }
+
+    function bulkToggleAutoCollect(enabled: boolean) {
+        setCfgs((prev) =>
+            Object.fromEntries(
+                Object.entries(prev).map(([id, cfg]) => [id, { ...cfg, autoCollect: enabled }])
+            )
+        )
+    }
+
+    function bulkSetRadius(radius: number) {
+        setCfgs((prev) =>
+            Object.fromEntries(
+                Object.entries(prev).map(([id, cfg]) => [id, { ...cfg, radius }])
+            )
+        )
     }
 
     return (
         <div className="mt-3 flex flex-col gap-3">
+
+
             {items.map((it) => {
                 const cfg = cfgs[it.id]!
+                const on = cfg.autoCollect
+                const isExpanded = expandedId === it.id
+
                 return (
-                    <div key={it.id} className="rounded-xl border border-border bg-muted/30 p-3">
-                        <p className="mb-3 font-semibold text-sm text-foreground">{it.title}</p>
-                        <div className="flex flex-col gap-3">
-
-                            {/* Pin Count */}
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs font-medium text-foreground">Pin Count</p>
-                                    <p className="text-[11px] text-muted-foreground">Pins scattered in area</p>
+                    <div
+                        key={it.id}
+                        className="rounded-[20px] bg-muted/50 p-4 transition-all"
+                    >
+                        {/* Header - clickable to expand */}
+                        <button
+                            onClick={() => setExpandedId(isExpanded ? null : it.id)}
+                            className="w-full text-left transition-all hover:opacity-80"
+                        >
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-foreground">{it.title}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                        Pins: {cfg.pinNumber} | Limit: {cfg.pinCollectionLimit} | Radius: {cfg.radius}m | Auto: {on ? "Yes" : "No"}
+                                    </p>
                                 </div>
-                                {isLandmark ? (
-                                    <span className="rounded-lg border border-border bg-muted/50 px-3 py-1 font-mono text-xs text-muted-foreground">
-                                        1 (fixed)
-                                    </span>
-                                ) : (
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        max={50}
-                                        value={cfg.pinNumber}
-                                        onChange={(e) => update(it.id, "pinNumber", Number(e.target.value))}
-                                        className="w-20 rounded-lg border border-border bg-background px-2 py-1.5 text-center text-xs text-foreground outline-none focus:border-primary"
-                                    />
-                                )}
+                                <span className="text-lg">{isExpanded ? "▼" : "▶"}</span>
                             </div>
+                        </button>
 
-                            {/* Collection Limit */}
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs font-medium text-foreground">Collection Limit</p>
-                                    <p className="text-[11px] text-muted-foreground">Max total collections</p>
-                                </div>
-                                {isLandmark ? (
-                                    <span className="rounded-lg border border-border bg-muted/50 px-3 py-1 font-mono text-xs text-muted-foreground">
-                                        999999 (fixed)
-                                    </span>
-                                ) : (
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        value={cfg.pinCollectionLimit}
-                                        onChange={(e) => update(it.id, "pinCollectionLimit", Number(e.target.value))}
-                                        className="w-20 rounded-lg border border-border bg-background px-2 py-1.5 text-center text-xs text-foreground outline-none focus:border-primary"
-                                    />
-                                )}
-                            </div>
-
-                            {/* Radius */}
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs font-medium text-foreground">Radius (metres)</p>
-                                    <p className="text-[11px] text-muted-foreground">Scatter area around pin</p>
-                                </div>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    value={cfg.radius}
-                                    onChange={(e) => update(it.id, "radius", Number(e.target.value))}
-                                    className="w-20 rounded-lg border border-border bg-background px-2 py-1.5 text-center text-xs text-foreground outline-none focus:border-primary"
-                                />
-                            </div>
-
-                            {/* Toggle row */}
-                            <div className="grid grid-cols-2 gap-2">
-                                {(
-                                    [
-                                        ["autoCollect", "Auto Collect"],
-                                        ["multiPin", "Multi Pin"],
-                                    ] as const
-                                ).map(([key, label]) => (
-                                    <button
-                                        key={key}
-                                        onClick={() => update(it.id, key, !cfg[key])}
-                                        className={`flex items-center justify-between rounded-lg border px-3 py-2 text-xs font-medium transition-all ${cfg[key]
-                                            ? "border-primary bg-primary/10 text-primary"
-                                            : "border-border text-muted-foreground"
-                                            }`}
-                                    >
-                                        {label}
-                                        <div
-                                            className={`relative h-4 w-7 rounded-full transition-colors ${cfg[key] ? "bg-primary" : "bg-border"
-                                                }`}
-                                        >
-                                            <div
-                                                className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform ${cfg[key] ? "translate-x-3" : "translate-x-0.5"
-                                                    }`}
-                                            />
+                        {/* Expanded Editor */}
+                        {isExpanded && (
+                            <>
+                                <div className="h-px bg-border mb-3" />
+                                <div className="flex flex-col gap-3">
+                                    {/* Location info */}
+                                    <div className="flex gap-5 text-xs">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="font-medium uppercase tracking-wide text-muted-foreground">
+                                                Latitude
+                                            </span>
+                                            <span className="font-mono text-foreground">
+                                                {it.latitude.toFixed(4)}
+                                            </span>
                                         </div>
+                                        <div className="flex flex-col gap-1">
+                                            <span className="font-medium uppercase tracking-wide text-muted-foreground">
+                                                Longitude
+                                            </span>
+                                            <span className="font-mono text-foreground">
+                                                {it.longitude.toFixed(4)}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Pin Number */}
+                                    <div>
+                                        <label className="text-xs font-semibold text-muted-foreground">Number of Pins</label>
+                                        <Input
+                                            disabled
+                                            type="number"
+                                            min="1"
+                                            value={cfg.pinNumber}
+
+                                        />
+                                    </div>
+
+                                    {/* Collection Limit */}
+                                    <div>
+                                        <label className="text-xs font-semibold text-muted-foreground">Collection Limit</label>
+                                        <Input
+                                            disabled
+                                            type="number"
+                                            min="1"
+
+                                            value={cfg.pinCollectionLimit}
+
+                                        />
+                                    </div>
+
+                                    {/* Radius */}
+                                    <div>
+                                        <label className="text-xs font-semibold text-muted-foreground">Radius (meters)</label>
+                                        <Input
+                                            type="number"
+                                            min="1"
+                                            disabled
+                                            value={cfg.radius}
+
+                                        />
+                                    </div>
+
+                                    {/* Auto Collect Toggle */}
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="checkbox"
+                                            id={`auto-collect-${it.id}`}
+                                            checked={on}
+                                            onChange={() => toggle(it.id)}
+                                            className="h-4 w-4 rounded border-border accent-primary"
+                                        />
+                                        <label htmlFor={`auto-collect-${it.id}`} className="text-xs font-semibold text-muted-foreground cursor-pointer">
+                                            Enable Auto Collect
+                                        </label>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )
+            })}
+            {/* Bulk Actions */}
+            {showBulkActions && (
+                <div className="rounded-xl border border-border bg-muted/50 p-3 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-semibold text-foreground">Bulk Edit All</h4>
+                        <button
+                            onClick={() => setShowBulkActions(false)}
+                            className="text-muted-foreground hover:text-foreground text-lg"
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2">
+                        <div>
+                            <label className="text-xs font-semibold text-muted-foreground">Set Radius (m) for All</label>
+                            <div className="mt-1 flex gap-1">
+                                {[1, 2, 5, 10, 50].map((r) => (
+                                    <button
+                                        key={r}
+                                        onClick={() => {
+                                            bulkSetRadius(r)
+                                            setShowBulkActions(false)
+                                        }}
+                                        className="flex-1 rounded-lg border border-border bg-background px-2 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:border-primary hover:text-primary active:scale-95"
+                                    >
+                                        {r}m
                                     </button>
                                 ))}
                             </div>
                         </div>
+
+                        <button
+                            onClick={() => {
+                                bulkToggleAutoCollect(true)
+                                setShowBulkActions(false)
+                            }}
+                            className="rounded-lg bg-emerald-500/20 border border-emerald-500/40 px-3 py-2 text-xs font-semibold text-emerald-700 transition-all hover:bg-emerald-500/30"
+                        >
+                            ✓ Enable Auto Collect All
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                bulkToggleAutoCollect(false)
+                                setShowBulkActions(false)
+                            }}
+                            className="rounded-lg bg-muted/50 border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition-all hover:border-primary hover:text-primary"
+                        >
+                            ✕ Disable Auto Collect All
+                        </button>
                     </div>
-                )
-            })}
+                </div>
+            )}
+            {/* Bulk Edit Button */}
+            <button
+                onClick={() => setShowBulkActions(!showBulkActions)}
+                className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-muted-foreground transition-all hover:border-primary hover:bg-muted/50 hover:text-primary"
+            >
+                {showBulkActions ? "✕ Close Bulk Edit" : "⚙ Bulk Edit All"}
+            </button>
 
             <button
                 onClick={() => onConfirm(cfgs)}
-                className="w-full rounded-xl bg-primary py-2.5 text-sm font-bold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]"
+                className="w-full rounded-full bg-blue-500 py-3 text-sm font-medium text-white transition-all hover:opacity-90 active:scale-[0.99]"
             >
-                Confirm Configuration →
+                Confirm →
             </button>
+        </div>
+    )
+}
+// ─── PinEditor (inline editing) ───────────────────────────────────────────────
+
+function PinEditor({
+    pins: initialPins,
+    onPinsChange,
+    onConfirm,
+    onCancel,
+}: {
+    pins: PinItem[]
+    onPinsChange: (pins: PinItem[]) => void
+    onConfirm: () => void
+    onCancel: () => void
+}) {
+    const [pins, setPins] = useState(initialPins)
+    const [editingIndex, setEditingIndex] = useState<number | null>(null)
+    const [showBulkEdit, setShowBulkEdit] = useState(false)
+
+    function updatePin(index: number, updates: Partial<PinItem>) {
+        const newPins = [...pins]
+        newPins[index] = { ...newPins[index]!, ...updates }
+        setPins(newPins)
+        onPinsChange(newPins)
+    }
+
+    function bulkToggleAutoCollect(enabled: boolean) {
+        const newPins = pins.map((p) => ({ ...p, autoCollect: enabled }))
+        setPins(newPins)
+        onPinsChange(newPins)
+    }
+
+    function bulkSetRadius(radius: number) {
+        const newPins = pins.map((p) => ({ ...p, radius }))
+        setPins(newPins)
+        onPinsChange(newPins)
+    }
+
+    if (editingIndex !== null) {
+        const pin = pins[editingIndex]
+        return (
+            <div className="mt-3 flex flex-col gap-3">
+                <div className="rounded-xl border border-border bg-muted/50 p-4">
+                    <div className="mb-4 flex items-center justify-between">
+                        <h3 className="font-semibold text-foreground">Editing: {pin?.title}</h3>
+                        <button
+                            onClick={() => setEditingIndex(null)}
+                            className="text-muted-foreground hover:text-foreground text-lg"
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                        {/* Pin Number */}
+                        <div>
+                            <label className="text-xs font-semibold text-muted-foreground">Number of Pins</label>
+                            <input
+                                type="number"
+                                min="1"
+                                value={pin?.pinNumber ?? 1}
+                                onChange={(e) =>
+                                    updatePin(editingIndex, { pinNumber: Math.max(1, parseInt(e.target.value) || 1) })
+                                }
+                                className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                            />
+                        </div>
+
+                        {/* Collection Limit */}
+                        <div>
+                            <label className="text-xs font-semibold text-muted-foreground">Collection Limit</label>
+                            <input
+                                type="number"
+                                min="1"
+
+                                value={pin?.pinCollectionLimit ?? 100}
+                                onChange={(e) =>
+                                    updatePin(editingIndex, { pinCollectionLimit: Math.max(1, parseInt(e.target.value) || 100) })
+                                }
+                                className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                            />
+                        </div>
+
+                        {/* Radius */}
+                        <div>
+                            <label className="text-xs font-semibold text-muted-foreground">Radius (meters)</label>
+                            <input
+                                type="number"
+                                min="1"
+                                value={pin?.radius ?? 2}
+                                onChange={(e) =>
+                                    updatePin(editingIndex, { radius: Math.max(1, parseInt(e.target.value) || 2) })
+                                }
+                                className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                            />
+                        </div>
+
+                        {/* Auto Collect Toggle */}
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="checkbox"
+                                id={`auto-collect-${editingIndex}`}
+                                checked={pin?.autoCollect ?? false}
+                                onChange={(e) => updatePin(editingIndex, { autoCollect: e.target.checked })}
+                                className="h-4 w-4 rounded border-border accent-primary"
+                            />
+                            <label htmlFor={`auto-collect-${editingIndex}`} className="text-xs font-semibold text-muted-foreground cursor-pointer">
+                                Enable Auto Collect
+                            </label>
+                        </div>
+
+                        <button
+                            onClick={() => setEditingIndex(null)}
+                            className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-95"
+                        >
+                            Done Editing
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="mt-3 flex flex-col gap-3">
+            {/* Bulk Actions */}
+            {showBulkEdit && (
+                <div className="rounded-xl border border-border bg-muted/50 p-3 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-semibold text-foreground">Bulk Edit All</h4>
+                        <button
+                            onClick={() => setShowBulkEdit(false)}
+                            className="text-muted-foreground hover:text-foreground text-lg"
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2">
+                        <div>
+                            <label className="text-xs font-semibold text-muted-foreground">Set Radius (m) for All</label>
+                            <div className="mt-1 flex gap-1">
+                                {[2, 5, 10, 50, 100].map((r) => (
+                                    <button
+                                        key={r}
+                                        onClick={() => {
+                                            bulkSetRadius(r)
+                                            setShowBulkEdit(false)
+                                        }}
+                                        className="flex-1 rounded-lg border border-border bg-background px-2 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:border-primary hover:text-primary active:scale-95"
+                                    >
+                                        {r}m
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                bulkToggleAutoCollect(true)
+                                setShowBulkEdit(false)
+                            }}
+                            className="rounded-lg bg-emerald-500/20 border border-emerald-500/40 px-3 py-2 text-xs font-semibold text-emerald-700 transition-all hover:bg-emerald-500/30"
+                        >
+                            ✓ Enable Auto Collect All
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                bulkToggleAutoCollect(false)
+                                setShowBulkEdit(false)
+                            }}
+                            className="rounded-lg bg-muted/50 border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition-all hover:border-primary hover:text-primary"
+                        >
+                            ✕ Disable Auto Collect All
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Pin List */}
+            <div className="flex max-h-52 flex-col gap-2 overflow-y-auto pr-1">
+                {pins.map((p, i) => (
+                    <button
+                        key={i}
+                        onClick={() => setEditingIndex(i)}
+                        className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-3 text-left transition-all hover:border-primary hover:bg-muted/50 active:scale-[0.98]"
+                    >
+                        <div className="flex items-center justify-between">
+                            <span className="font-semibold text-sm text-foreground">{p.title}</span>
+                            <span className="text-[10px] text-muted-foreground">#{i + 1}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                            <span><span className="text-foreground/60">Pins: </span>{p.pinNumber ?? 1}</span>
+                            <span><span className="text-foreground/60">Limit: </span>{p.pinCollectionLimit ?? "—"}</span>
+                            <span><span className="text-foreground/60">Radius: </span>{p.radius ?? 2}m</span>
+                            <span><span className={`font-semibold ${p.autoCollect ? "text-emerald-600" : "text-muted-foreground"}`}>Auto: {p.autoCollect ? "✓ Yes" : "No"}</span></span>
+                        </div>
+                    </button>
+                ))}
+            </div>
+
+            {/* Bulk Edit Button */}
+            <button
+                onClick={() => setShowBulkEdit(!showBulkEdit)}
+                className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-muted-foreground transition-all hover:border-primary hover:bg-muted/50 hover:text-primary"
+            >
+                {showBulkEdit ? "✕ Close Bulk Edit" : "⚙ Bulk Edit All"}
+            </button>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+                <button
+                    onClick={onCancel}
+                    className="flex-1 rounded-xl border border-border px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-all hover:border-primary hover:text-primary"
+                >
+                    ← Back
+                </button>
+                <button
+                    onClick={onConfirm}
+                    className="flex-1 rounded-xl bg-primary px-3 py-2.5 text-sm font-bold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]"
+                >
+                    ✓ Generate {pins.length}
+                </button>
+            </div>
         </div>
     )
 }
@@ -453,12 +805,26 @@ function ConfirmReview({
     onConfirm: () => void
     onEdit: (msg: string) => void
 }) {
-    const [editMsg, setEditMsg] = useState("")
+    const [isEditing, setIsEditing] = useState(false)
+    const [editedPins, setEditedPins] = useState(pins)
 
-    function submitEdit() {
-        if (!editMsg.trim()) return
-        onEdit(editMsg)
-        setEditMsg("")
+    function handleFinishEditing() {
+        // Send the updated pins back to the server
+        onEdit(`I've made the following changes to the pins. Please generate with these updated settings.`)
+    }
+
+    if (isEditing) {
+        return (
+            <PinEditor
+                pins={editedPins}
+                onPinsChange={setEditedPins}
+                onConfirm={() => {
+                    handleFinishEditing()
+                    setIsEditing(false)
+                }}
+                onCancel={() => setIsEditing(false)}
+            />
+        )
     }
 
     return (
@@ -474,7 +840,7 @@ function ConfirmReview({
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                             <span><span className="text-foreground/60">Pins: </span>{p.pinNumber ?? 1}</span>
                             <span><span className="text-foreground/60">Limit: </span>{p.pinCollectionLimit ?? "—"}</span>
-                            <span><span className="text-foreground/60">Radius: </span>{p.radius ?? 50}m</span>
+                            <span><span className="text-foreground/60">Radius: </span>{p.radius ?? 2}m</span>
                             <span><span className="text-foreground/60">Auto: </span>{p.autoCollect ? "Yes" : "No"}</span>
                             <span className="col-span-2"><span className="text-foreground/60">Start: </span>{fmtDate(p.startDate)}</span>
                             <span className="col-span-2"><span className="text-foreground/60">End: </span>{fmtDate(p.endDate)}</span>
@@ -483,72 +849,30 @@ function ConfirmReview({
                 ))}
             </div>
 
-            {/* Inline edit request */}
+            {/* Action Buttons */}
             <div className="flex gap-2">
-                <input
-                    value={editMsg}
-                    onChange={(e) => setEditMsg(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") submitEdit() }}
-                    placeholder='e.g. "Change #2 radius to 100m"'
-                    className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
-                />
-                <button
-                    onClick={submitEdit}
-                    disabled={!editMsg.trim()}
-                    className="rounded-xl border border-border px-3 py-2 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-40"
-                >
-                    Edit
-                </button>
-            </div>
 
-            <button
-                onClick={onConfirm}
-                className="w-full rounded-xl bg-primary py-2.5 text-sm font-bold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]"
-            >
-                ✓ Generate {pins.length} Pin{pins.length !== 1 ? "s" : ""}
-            </button>
-        </div>
-    )
-}
-
-// ─── PinResult ────────────────────────────────────────────────────────────────
-
-function PinResult({ count, onNew }: { count: number; onNew: (t: AgentTask) => void }) {
-    return (
-        <div className="mt-3 flex flex-col items-center gap-4 py-2">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <CheckCircle2 className="h-8 w-8" />
-            </div>
-            <div className="text-center">
-                <p className="font-bold text-foreground">
-                    {count} pin{count !== 1 ? "s" : ""} sent for approval!
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                    They{"'"}ll appear on the map once approved.
-                </p>
-            </div>
-            <p className="text-sm text-muted-foreground">Want to create more?</p>
-            <div className="grid w-full grid-cols-2 gap-2">
                 <button
-                    onClick={() => onNew("event")}
-                    className="rounded-xl border border-border bg-muted/40 py-2.5 text-sm font-semibold text-foreground transition-all hover:border-primary hover:bg-primary/5 active:scale-95"
+                    onClick={onConfirm}
+                    className="flex-1 rounded-xl bg-primary px-3 py-2.5 text-sm font-bold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]"
                 >
-                    📅 Event Pins
-                </button>
-                <button
-                    onClick={() => onNew("landmark")}
-                    className="rounded-xl border border-border bg-muted/40 py-2.5 text-sm font-semibold text-foreground transition-all hover:border-primary hover:bg-primary/5 active:scale-95"
-                >
-                    📍 Landmark Pins
+                    ✓ Generate {pins.length}
                 </button>
             </div>
         </div>
     )
 }
+
+
+// ------ Props ------------
+interface AgentChatProps {
+    creatorId?: string
+}
+
 
 // ─── Main AgentChat ───────────────────────────────────────────────────────────
 
-export default function AgentChat() {
+export default function AgentChat({ creatorId }: AgentChatProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [isMinimized, setIsMinimized] = useState(false)
     const [messages, setMessages] = useState<Message[]>([WELCOME])
@@ -565,7 +889,8 @@ export default function AgentChat() {
     // ── Core send ─────────────────────────────────────────────────────────────
 
     const send = useCallback(
-        async (userMsg: string, stateOverride?: Partial<AgentState>) => {
+        async (userMsg: string, stateOverride?: Partial<AgentState> | undefined) => {
+            setIsOpen(true)
             if (!userMsg.trim() || chatMutation.isLoading) return
 
             const currentState = stateOverride
@@ -582,28 +907,28 @@ export default function AgentChat() {
                     message: userMsg,
                     history,
                     state: currentState,
+                    creatorId: creatorId
                 })
 
-                setMessages((prev) => [
-                    ...prev,
-                    {
-                        role: "assistant",
-                        content: res.message,
-                        uiData: res.uiData ?? undefined,
-                    },
-                ])
+                const newMessage: Message = {
+                    role: "assistant" as const,
+                    content: res.message,
+                    uiData: res.uiData ? {
+                        type: res.uiData.type as Message["uiData"] extends { type: infer T } ? T : never,
+                        data: res.uiData.data,
+                    } : undefined,
+                }
+                setMessages((prev) => [...prev, newMessage])
                 setAgentState(res.state)
             } catch {
-                setMessages((prev) => [
-                    ...prev,
-                    {
-                        role: "assistant",
-                        content: "Sorry, something went wrong. Please try again.",
-                    },
-                ])
+                const errorMessage: Message = {
+                    role: "assistant" as const,
+                    content: "Sorry, something went wrong. Please try again.",
+                }
+                setMessages((prev) => [...prev, errorMessage])
             }
         },
-        [agentState, chatMutation, messages],
+        [agentState, chatMutation, messages, creatorId],
     )
 
     // ── Handlers ──────────────────────────────────────────────────────────────
@@ -653,7 +978,7 @@ export default function AgentChat() {
         const sel = agentState.selectedEvents ?? []
         console.log("Selected events:", sel)
         void send(
-            `Confirmed ${sel.length} events: ${sel.map((e) => e.title).join(", ")}. Please proceed to date configuration.`,
+            `Confirmed ${sel.length} events. Please proceed to date configuration.`,
         )
     }
 
@@ -661,15 +986,13 @@ export default function AgentChat() {
         const sel = agentState.selectedLandmarks ?? []
         // Server enforces landmark_confirm_list -> landmark_pin_config (skips date step)
         void send(
-            `Confirmed ${sel.length} landmarks: ${sel.map((l) => l.title).join(", ")}. Please show pin configuration.`,
+            `Confirmed ${sel.length} landmarks. Please show pin configuration.`,
             { selectedLandmarks: sel },
         )
     }
 
     function handleDateConfirm(dates: DateMap) {
-        const summary = Object.entries(dates)
-            .map(([id, d]) => `${id}: ${d.startDate} -> ${d.endDate}`)
-            .join("; ")
+
 
         // Merge dates into pinConfig — server reads this when building PinItem[]
         const pinConfigPatch = Object.fromEntries(
@@ -685,18 +1008,13 @@ export default function AgentChat() {
 
         // Server enforces event_pin_dates -> event_pin_config
         void send(
-            `Dates confirmed — ${summary}. Please show pin configuration form.`,
+            `Dates confirmed. Please show pin configuration form.`,
             { pinConfig: { ...agentState.pinConfig, ...pinConfigPatch } },
         )
     }
 
     function handlePinConfigConfirm(cfgs: Record<string, PinCfg>) {
-        const summary = Object.entries(cfgs)
-            .map(
-                ([id, c]) =>
-                    `${id}: pins=${c.pinNumber} limit=${c.pinCollectionLimit} radius=${c.radius}m auto=${c.autoCollect} multi=${c.multiPin}`,
-            )
-            .join("; ")
+
 
         // Merge new cfg values on top of existing pinConfig entries (preserves dates)
         const merged = Object.fromEntries(
@@ -712,7 +1030,7 @@ export default function AgentChat() {
         // Server enforces event_pin_config -> event_final_confirm
         //          or landmark_pin_config -> landmark_final_confirm
         void send(
-            `Pin configuration confirmed — ${summary}. Please show the final review.`,
+            `Pin configuration confirmed. Please show the final review.`,
             { pinConfig: { ...agentState.pinConfig, ...merged } },
         )
     }
@@ -722,12 +1040,12 @@ export default function AgentChat() {
         const confirmMsg = [...messages].reverse().find((m) => m.uiData?.type === "confirm")
         const pins = (confirmMsg?.uiData?.data as { pins: PinItem[] } | undefined)?.pins ?? []
 
-        console.log("Final confirmed pins:", pins)
         void send("Everything looks correct. Please generate the pins now.", { pins })
     }
 
     function handleFinalEdit(msg: string) {
-        void send(msg)
+        // When user finishes editing pins through the editor, we pass the updated pins
+        void send(msg, { pins: agentState.pins })
     }
 
     function handleNewTask(t: AgentTask) {
@@ -737,7 +1055,14 @@ export default function AgentChat() {
             INITIAL_STATE,
         )
     }
-
+    function handleRedeemModeSelect(mode: "separate" | "single") {
+        void send(
+            mode === "separate"
+                ? "Yes, separate redeem code per location."
+                : "No, single redeem code for all locations.",
+            { redeemMode: mode },
+        )
+    }
     // ── Render uiData ─────────────────────────────────────────────────────────
 
     function renderUiData(uiData: Message["uiData"], msgIndex: number) {
@@ -784,6 +1109,9 @@ export default function AgentChat() {
                     />
                 )
             }
+            case "redeem_mode_select":
+                if (!isLast) return <p className="mt-1 text-xs text-muted-foreground">Redeem mode selected ✓</p>
+                return <RedeemModeSelect onChoose={handleRedeemModeSelect} />
 
             // ── date_picker ──────────────────────────────────────────────────────
             case "date_picker": {
@@ -796,7 +1124,7 @@ export default function AgentChat() {
             // ── pin_config_form ──────────────────────────────────────────────────
             case "pin_config_form": {
                 const { items, isLandmark } = uiData.data as {
-                    items: Array<{ id: string; title: string }>
+                    items: Array<{ id: string; title: string, latitude: number, longitude: number }>
                     isLandmark: boolean
                 }
                 if (!isLast)
@@ -828,10 +1156,9 @@ export default function AgentChat() {
 
             // ── pin_result ───────────────────────────────────────────────────────
             case "pin_result": {
-                const { count } = uiData.data as { count: number }
-                return <PinResult count={count} onNew={handleNewTask} />
+                const { count, jobId } = uiData.data as { count: number; jobId?: string }
+                return <PinJobProgress count={count} jobId={jobId} onNew={handleNewTask} />
             }
-
             // ── next_action ──────────────────────────────────────────────────────
             case "next_action":
                 if (!isLast) return null
@@ -914,7 +1241,7 @@ export default function AgentChat() {
                             className="flex flex-shrink-0 items-center justify-center rounded-full bg-primary/80 px-4 py-3 text-primary-foreground transition-all hover:scale-105 active:scale-95"
                         >
                             <ChevronDown
-                                className={`h-5 w-5 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+                                className={`h-5 w-5 transition-transform duration-300 ${isOpen ? "" : "rotate-180"}`}
                             />
                         </button>
                     </div>
@@ -923,8 +1250,7 @@ export default function AgentChat() {
 
             {/* Chat drawer */}
             {isOpen && !isMinimized && (
-                <div className="fixed inset-x-0 bottom-40 z-40 mx-auto flex h-[70vh] max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl animate-in slide-in-from-bottom-5 duration-300 ">
-
+                <div className="fixed inset-x-0 bottom-44 z-40 mx-auto flex h-[68vh] max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl animate-in slide-in-from-bottom-5 duration-300 ">
                     {/* Header */}
                     <div className="flex flex-shrink-0 items-center justify-between bg-primary px-5 py-3 text-primary-foreground">
                         <div className="flex items-center gap-3">
@@ -933,7 +1259,7 @@ export default function AgentChat() {
                             </div>
                             <div>
                                 <p className="font-bold text-sm">Bandcoin Assistant</p>
-                                <p className="text-[11px] text-white/70">Pin Generation Agent</p>
+                                <p className="text-[11px] ">Pin Generation Agent</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-1">
@@ -976,7 +1302,7 @@ export default function AgentChat() {
                                     /* Assistant bubble */
                                     <div className="flex justify-start">
                                         <div className="max-w-[88%] rounded-3xl rounded-tl-lg bg-muted px-4 py-3 shadow-sm">
-                                            {msg.content && (
+                                            {msg.content && msg.uiData?.type !== "redeem_mode_select" && (
                                                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
                                                     {msg.content}
                                                 </p>
@@ -1005,5 +1331,220 @@ export default function AgentChat() {
                 </div>
             )}
         </>
+    )
+}
+
+// Component
+function RedeemModeSelect({ onChoose }: { onChoose: (mode: "separate" | "single") => void }) {
+    return (
+        <>
+            <div
+                className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-foreground"
+            >
+                Choose user collection limit : One pin/redeem code at each landmark location, One pin/redeem code for all landmarks
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-3">
+                <button
+                    onClick={() => onChoose("separate")}
+                    className="flex flex-col gap-2 rounded-2xl border border-border bg-muted/40 p-4 text-left transition-all hover:border-primary hover:bg-primary/5 active:scale-95"
+                >
+                    <span className="text-2xl">✅</span>
+                    <span className="font-bold text-sm text-foreground">One pin/code per landmark</span>
+
+                </button>
+                <button
+                    onClick={() => onChoose("single")}
+                    className="flex flex-col gap-2 rounded-2xl border border-border bg-muted/40 p-4 text-left transition-all hover:border-primary hover:bg-primary/5 active:scale-95"
+                >
+                    <span className="text-2xl">🎟️</span>
+                    <span className="font-bold text-sm text-foreground">One pin/code for all landmarks</span>
+
+                </button>
+            </div>
+        </>
+    )
+}
+
+
+
+
+// ─── Sub-component: progress bar ─────────────────────────────────────────────
+
+function ProgressBar({ completed, total }: { completed: number; total: number }) {
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0
+    return (
+        <div className="w-full">
+            <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>{completed} / {total} pins</span>
+                <span>{pct}%</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    style={{ width: `${pct}%` }}
+                />
+            </div>
+        </div>
+    )
+}
+
+// ─── Sub-component: log accordion ────────────────────────────────────────────
+
+function LogAccordion({ log }: { log: LogEntry[] }) {
+    const [open, setOpen] = useState(false)
+    if (log.length === 0) return null
+
+    return (
+        <div className="mt-2 w-full rounded-xl border border-border overflow-hidden">
+            <button
+                onClick={() => setOpen((p) => !p)}
+                className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/30 transition-colors"
+            >
+                <span>Pin details ({log.length})</span>
+                {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+
+            {open && (
+                <div className="max-h-44 overflow-y-auto divide-y divide-border">
+                    {log.map((entry, i) => (
+                        <div key={i} className="flex items-start gap-2 px-3 py-2">
+                            {entry.status === "ok" ? (
+                                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-emerald-500" />
+                            ) : (
+                                <XCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-red-500" />
+                            )}
+                            <div className="min-w-0">
+                                <p className="truncate text-xs font-medium text-foreground">{entry.title}</p>
+                                {entry.error && (
+                                    <p className="text-[11px] text-red-500 leading-tight">{entry.error}</p>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    )
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export function PinJobProgress({ count, jobId, onNew }: PinJobProgressProps) {
+    const [status, setStatus] = useState<JobStatus>("pending")
+    const [completed, setCompleted] = useState(0)
+    const [total, setTotal] = useState(count)
+    const [log, setLog] = useState<LogEntry[]>([])
+    const [error, setError] = useState<string | null>(null)
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+    // If no jobId, we can't poll — just show a static success state
+    const canPoll = Boolean(jobId)
+
+    const jobStatusQuery = api.agent.jobStatus.useQuery(
+        { jobId: jobId! },
+        {
+            enabled: canPoll && status !== "completed" && status !== "failed",
+            refetchInterval: (data) => {
+                // Stop polling when terminal
+                if (data?.status === "completed" || data?.status === "failed") return false
+                return 1500
+            },
+            refetchIntervalInBackground: true,
+        },
+    )
+
+    // Sync query data into local state
+    useEffect(() => {
+        const data = jobStatusQuery.data
+        if (!data) return
+        setStatus(data.status)
+        setTotal(data.total || count)
+        setCompleted(data.completed)
+        setLog(data.log ?? [])
+        if (data.error) setError(data.error)
+    }, [jobStatusQuery.data, count])
+
+    // Cleanup on unmount
+    useEffect(() => {
+        const currentInterval = intervalRef.current
+        return () => {
+            if (currentInterval) clearInterval(currentInterval)
+        }
+    }, [])
+
+    const isTerminal = status === "completed" || status === "failed"
+    const statusLabel =
+        status === "completed"
+            ? "All pins created!"
+            : status === "failed"
+                ? "Some pins failed"
+                : status === "processing"
+                    ? "Creating pins…"
+                    : "Queued…"
+
+    return (
+        <div className="mt-3 flex flex-col items-center gap-4 py-2">
+            {/* Icon */}
+            <div
+                className={`flex h-14 w-14 items-center justify-center rounded-full ${status === "completed"
+                    ? "bg-emerald-500/10"
+                    : status === "failed"
+                        ? "bg-red-500/10"
+                        : "bg-primary/10"
+                    }`}
+            >
+                <StatusIcon status={status} />
+            </div>
+
+            {/* Status label */}
+            <div className="text-center">
+                <p className="font-bold text-foreground">{statusLabel}</p>
+                {!isTerminal && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                        Hang tight, this runs in the background.
+                    </p>
+                )}
+                {status === "completed" && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                        They{"'"}ll appear on the map once approved.
+                    </p>
+                )}
+                {error && (
+                    <p className="mt-1 text-xs text-red-500">{error}</p>
+                )}
+            </div>
+
+            {/* Progress bar (hide when terminal with no partial data) */}
+            {canPoll && (
+                <div className="w-full">
+                    <ProgressBar completed={completed} total={total} />
+                </div>
+            )}
+
+            {/* Per-pin log */}
+            <LogAccordion log={log} />
+
+            {/* Create more (only when done) */}
+            {isTerminal && (
+                <>
+                    <p className="text-sm text-muted-foreground">Want to create more?</p>
+                    <div className="grid w-full grid-cols-2 gap-2">
+                        <button
+                            onClick={() => onNew("event")}
+                            className="rounded-xl border border-border bg-muted/40 py-2.5 text-sm font-semibold text-foreground transition-all hover:border-primary hover:bg-primary/5 active:scale-95"
+                        >
+                            📅 Event Pins
+                        </button>
+                        <button
+                            onClick={() => onNew("landmark")}
+                            className="rounded-xl border border-border bg-muted/40 py-2.5 text-sm font-semibold text-foreground transition-all hover:border-primary hover:bg-primary/5 active:scale-95"
+                        >
+                            📍 Landmark Pins
+                        </button>
+                    </div>
+                </>
+            )}
+        </div>
     )
 }

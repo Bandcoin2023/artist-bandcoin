@@ -173,7 +173,7 @@ const CreatorCollectionReport = ({
   }
 
   return (
-    <div className="mx-auto w-[85vw] pb-20 px-4 py-8">
+    <div className="mx-auto w-[85vw] pb-20 px-4 py-20">
       {!isAdmin && (
         <>
           {/* <div className="mb-6">

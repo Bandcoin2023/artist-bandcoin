@@ -36,6 +36,7 @@ enum PinType {
     EXPERIENCE
     LAUNCH
     OTHER
+    LANDMARK
 }
 
 enum NotificationType {
@@ -201,18 +202,18 @@ model CreatorPageAsset {
 }
 
 model Creator {
-    id         String   @id
-    joinedAt   DateTime @default(now())
-    profileUrl String?
-    coverUrl   String?
-    coverHeightDefault Int @default(240)
-    coverHeightDesktop Int @default(240)
-    coverHeightMobile  Int @default(220)
+    id                   String   @id
+    joinedAt             DateTime @default(now())
+    profileUrl           String?
+    coverUrl             String?
+    coverHeightDefault   Int      @default(240)
+    coverHeightDesktop   Int      @default(240)
+    coverHeightMobile    Int      @default(220)
     sectionLayoutDefault Json?
     sectionLayoutDesktop Json?
     sectionLayoutMobile  Json?
-    bio        String?
-    name       String
+    bio                  String?
+    name                 String
 
     backgroundSVG String?
     showSVG       Boolean @default(false)
@@ -256,6 +257,9 @@ model Creator {
     creatorAssetIssuer  CreatorAssetIssuer?
     postGroups          PostGroup[]
     hotspots            Hotspot[]
+    locationGroupJobs   LocationGroupJob[]
+    pinAgentSessions    PinAgentChatSession[] @relation("pinAgentSessions")
+    pinAgentMessages    PinAgentChatHistory[] @relation("pinAgentMessages")
 
     @@index([bio, name])
 }
@@ -1173,4 +1177,58 @@ model CreditPackage {
     isActive    Boolean  @default(true)
     createdAt   DateTime @default(now())
     updatedAt   DateTime @updatedAt
+}
+
+model LocationGroupJob {
+    id        String @id @default(cuid())
+    creatorId String
+
+    status    String @default("pending")
+    total     Int    @default(0)
+    completed Int    @default(0)
+
+    payload    Json
+    redeemMode String @default("separate")
+
+    log   Json    @default("[]")
+    error String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+    @@index([creatorId, createdAt])
+}
+
+model PinAgentChatHistory {
+    id        String  @id @default(cuid())
+    creatorId String
+    creator   Creator @relation("pinAgentMessages", fields: [creatorId], references: [id], onDelete: Cascade)
+
+    sessionId String
+    session   PinAgentChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+    role    String // "user" or "assistant"
+    content String @db.Text
+
+    createdAt DateTime @default(now())
+
+    @@index([creatorId, createdAt])
+    @@index([sessionId, createdAt])
+}
+
+// Pin Agent Chat Session
+model PinAgentChatSession {
+    id        String  @id @default(cuid())
+    creatorId String
+    creator   Creator @relation("pinAgentSessions", fields: [creatorId], references: [id], onDelete: Cascade)
+
+    title    String
+    messages PinAgentChatHistory[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([creatorId, updatedAt])
 }
