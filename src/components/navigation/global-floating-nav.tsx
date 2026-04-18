@@ -26,6 +26,7 @@ import {
 import { Glass } from "~/components/glass/glass";
 import { useBottomPlayer } from "~/components/player/context/bottom-player-context";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/shadcn/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/shadcn/ui/tooltip";
 import { cn } from "~/lib/utils";
 import type { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
 import { House, QrCodeIcon, Rss } from "lucide-react";
@@ -151,18 +152,27 @@ function FloatingNavItem({
     </motion.div>
   );
 
+  const content = item.isButton ? (
+    <button type="button" className="block">
+      {itemBody}
+    </button>
+  ) : (
+    <Link href={item.path} aria-current={isActive ? "page" : undefined} className="block">
+      {itemBody}
+    </Link>
+  );
+
   return (
-    <motion.div layout>
-      {item.isButton ? (
-        <button type="button" className="block">
-          {itemBody}
-        </button>
-      ) : (
-        <Link href={item.path} aria-current={isActive ? "page" : undefined} className="block">
-          {itemBody}
-        </Link>
-      )}
-    </motion.div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <motion.div layout>
+          {content}
+        </motion.div>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="capitalize">
+        {item.text}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -925,10 +935,11 @@ export default function GlobalFloatingNav() {
                 "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.85),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.5)]",
             }}
           />
-          <motion.nav
-            layout
-            className="relative z-10 flex items-center gap-1.5 overflow-x-auto pb-0.5 md:gap-2 md:overflow-x-hidden scrollbar-hide"
-          >
+          <TooltipProvider>
+            <motion.nav
+              layout
+              className="relative z-10 flex items-center gap-1.5 overflow-x-auto pb-0.5 md:gap-2 md:overflow-x-hidden scrollbar-hide"
+            >
             {navItems.map((item) => {
               const isActive = activeKey === item.key;
               return (
@@ -965,7 +976,8 @@ export default function GlobalFloatingNav() {
                 getStemVolume={getStemVolume}
               />
             ) : null}
-          </motion.nav>
+            </motion.nav>
+          </TooltipProvider>
         </motion.div>
       </div>
     </>
