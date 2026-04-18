@@ -940,42 +940,42 @@ export default function GlobalFloatingNav() {
               layout
               className="relative z-10 flex items-center gap-1.5 overflow-x-auto pb-0.5 md:gap-2 md:overflow-x-hidden scrollbar-hide"
             >
-            {navItems.map((item) => {
-              const isActive = activeKey === item.key;
-              return (
-                <FloatingNavItem
-                  key={item.key}
-                  item={item}
-                  isActive={isActive}
-                  isExpanded={isActive}
+              {navItems.map((item) => {
+                const isActive = activeKey === item.key;
+                return (
+                  <FloatingNavItem
+                    key={item.key}
+                    item={item}
+                    isActive={isActive}
+                    isExpanded={isActive}
+                  />
+                );
+              })}
+
+              {shouldShowPlayer && !isPlayerDetached ? <div className="mx-1 h-8 w-px bg-black/20" /> : null}
+
+              {shouldShowPlayer && !isPlayerDetached ? (
+                <FloatingPlayer
+                  isPlaying={isPlaying}
+                  onPlayToggle={handlePlayToggle}
+                  onSeekTo={handleSeekTo}
+                  onPrevTrack={handlePrevTrack}
+                  onNextTrack={handleNextTrack}
+                  stemEntries={stemEntries}
+                  activeStemUrl={activeStemUrl}
+                  currentTime={currentTime}
+                  duration={duration}
+                  trackTitle={displayTrackTitle}
+                  trackArtist={displayTrackArtist}
+                  isDetached={isPlayerDetached}
+                  onToggleDock={togglePlayerDock}
+                  onSetActiveStem={handleSetActiveStem}
+                  onToggleStemPlay={handleToggleStemPlay}
+                  onSetStemVolume={handleSetStemVolume}
+                  getStemPlaying={getStemPlaying}
+                  getStemVolume={getStemVolume}
                 />
-              );
-            })}
-
-            {shouldShowPlayer && !isPlayerDetached ? <div className="mx-1 h-8 w-px bg-black/20" /> : null}
-
-            {shouldShowPlayer && !isPlayerDetached ? (
-              <FloatingPlayer
-                isPlaying={isPlaying}
-                onPlayToggle={handlePlayToggle}
-                onSeekTo={handleSeekTo}
-                onPrevTrack={handlePrevTrack}
-                onNextTrack={handleNextTrack}
-                stemEntries={stemEntries}
-                activeStemUrl={activeStemUrl}
-                currentTime={currentTime}
-                duration={duration}
-                trackTitle={displayTrackTitle}
-                trackArtist={displayTrackArtist}
-                isDetached={isPlayerDetached}
-                onToggleDock={togglePlayerDock}
-                onSetActiveStem={handleSetActiveStem}
-                onToggleStemPlay={handleToggleStemPlay}
-                onSetStemVolume={handleSetStemVolume}
-                getStemPlaying={getStemPlaying}
-                getStemVolume={getStemVolume}
-              />
-            ) : null}
+              ) : null}
             </motion.nav>
           </TooltipProvider>
         </motion.div>
