@@ -230,10 +230,12 @@ model Creator {
     pageAssetId Int?
 
     customPageAssetCodeIssuer String? // CODE-ISSUER-ASSET-USD
+    extraFields               Json? // {navPermission?: true}
+
     //handle
-    website                   String?
-    twitter                   String?
-    instagram                 String?
+    website   String?
+    twitter   String?
+    instagram String?
 
     user User @relation(fields: [id], references: [id], onDelete: Cascade)
 
