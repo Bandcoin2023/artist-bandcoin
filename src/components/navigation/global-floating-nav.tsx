@@ -100,55 +100,30 @@ const navItems: NavItem[] = [
 function FloatingNavItem({
   item,
   isActive,
-  isExpanded,
 }: {
   item: NavItem;
   isActive: boolean;
-  isExpanded: boolean;
 }) {
   const Icon = item.icon;
-  const canExpand = isExpanded && !item.isButton;
 
   const itemBody = (
     <motion.div
       layout
       className={cn(
-        "relative flex h-10 items-center overflow-hidden rounded-xl px-2.5 transition-colors md:h-12 md:px-3",
-        canExpand ? "gap-0 md:gap-2" : "gap-0",
-        "border border-black/20 text-black/85",
-        isActive && !item.isButton && "text-black",
-        item.dashed ? "border border-dashed border-black/35" : "border-solid",
+        "relative flex flex-col items-center gap-1 rounded-xl px-2.5 py-2 transition-colors md:px-3 md:py-2.5",
+        isActive ? "text-blue-600" : "text-black/85",
       )}
       transition={{ type: "spring", damping: 28, stiffness: 220 }}
     >
-      <Glass
-        className={{
-          root: "pointer-events-none absolute inset-0 z-0 rounded-xl *:rounded-xl",
-          tint: isActive && !item.isButton ? "bg-yellow-400/70" : "bg-white/75",
-          effect: "backdrop-blur-[2px]",
-          shine:
-            "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.8),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.5)]",
-        }}
-      />
       <div className="relative z-30 grid size-5 place-items-center md:size-6">
         <Icon className="size-5 md:size-6" />
       </div>
 
-      <motion.div
-        className="relative z-30 hidden overflow-hidden md:block"
-        initial={false}
-        animate={{ maxWidth: canExpand ? 160 : 0 }}
-        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <motion.span
-          initial={false}
-          animate={{ opacity: canExpand ? 1 : 0, x: canExpand ? 0 : -6 }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-10 hidden whitespace-nowrap pr-1 text-sm font-medium capitalize md:inline"
-        >
+      <div className="relative z-30 text-center">
+        <span className="relative z-10 whitespace-nowrap text-[10px] font-medium capitalize leading-tight md:text-xs">
           {item.text}
-        </motion.span>
-      </motion.div>
+        </span>
+      </div>
     </motion.div>
   );
 
@@ -947,7 +922,6 @@ export default function GlobalFloatingNav() {
                     key={item.key}
                     item={item}
                     isActive={isActive}
-                    isExpanded={isActive}
                   />
                 );
               })}
