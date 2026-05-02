@@ -729,7 +729,7 @@ export const pinRouter = createTRPCRouter({
             const redeemCode = await getUniqueRedeemCode();
 
             await ctx.db.locationConsumer.create({
-              data: { locationId: location.id, userId, redeemCode },
+              data: { locationId: location.id, userId, redeemCode, claimedAt: new Date() },
             });
             await ctx.db.locationGroup.update({
               where: { id: location.locationGroup.id },
@@ -794,7 +794,7 @@ export const pinRouter = createTRPCRouter({
             const redeemCode = await getUniqueRedeemCode();
 
             await ctx.db.locationConsumer.create({
-              data: { locationId: location.id, userId, redeemCode },
+              data: { locationId: location.id, userId, redeemCode, claimedAt: new Date() },
             });
             await ctx.db.locationGroup.update({
               where: { id: location.locationGroup.id },
