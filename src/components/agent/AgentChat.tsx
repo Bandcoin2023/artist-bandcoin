@@ -1222,7 +1222,7 @@ export default function AgentChat({ creatorId }: AgentChatProps) {
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder="Ask me anything..."
-                            disabled={chatMutation.isLoading}
+                            disabled
                             className="flex-1 rounded-full bg-white px-5 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
                         />
                         <button
@@ -1286,20 +1286,19 @@ export default function AgentChat({ creatorId }: AgentChatProps) {
                             </button>
                         </div>
                     </div>
-
-                    {/* Messages */}
-                    <div className="flex-1 space-y-4 overflow-y-auto p-5">
+                    <div className="flex flex-col  items-center justify-center h-full ">
+                        ⚠️ This feature is currently under development and may not work as expected.
+                    </div>
+                    {/* <div className="flex-1 space-y-4 overflow-y-auto p-5">
                         {messages.map((msg, i) => (
                             <div key={i} className="animate-in fade-in slide-in-from-bottom-2 duration-200">
                                 {msg.role === "user" ? (
-                                    /* User bubble */
                                     <div className="flex justify-end">
                                         <div className="max-w-[78%] rounded-3xl rounded-tr-lg bg-primary px-4 py-2.5 text-sm text-primary-foreground shadow-sm">
                                             {msg.content}
                                         </div>
                                     </div>
                                 ) : (
-                                    /* Assistant bubble */
                                     <div className="flex justify-start">
                                         <div className="max-w-[88%] rounded-3xl rounded-tl-lg bg-muted px-4 py-3 shadow-sm">
                                             {msg.content && msg.uiData?.type !== "redeem_mode_select" && (
@@ -1314,7 +1313,6 @@ export default function AgentChat({ creatorId }: AgentChatProps) {
                             </div>
                         ))}
 
-                        {/* Typing indicator */}
                         {chatMutation.isLoading && (
                             <div className="flex justify-start animate-in fade-in">
                                 <div className="rounded-3xl rounded-tl-lg bg-muted px-4 py-3 shadow-sm">
@@ -1327,7 +1325,7 @@ export default function AgentChat({ creatorId }: AgentChatProps) {
                         )}
 
                         <div ref={endRef} />
-                    </div>
+                    </div> */}
                 </div>
             )}
         </>
