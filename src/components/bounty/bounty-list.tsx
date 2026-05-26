@@ -253,7 +253,7 @@ export default function BountyList({ bounties,
                         className="group relative h-full cursor-pointer overflow-hidden rounded-[0.95rem] border border-[#ddd9d0] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-none"
                     >
                         <CardHeader className="p-0">
-                            <div className="relative h-52 w-full overflow-hidden rounded-t-[0.95rem] bg-[#d8c7bb] dark:bg-zinc-800">
+                            <div className="relative h-44 w-full overflow-hidden rounded-t-[0.95rem] bg-[#d8c7bb] dark:bg-zinc-800">
                                 <Image
                                     src={bounty.imageUrls[0] ?? "/images/logo.png"}
                                     alt={bounty.title}
@@ -298,7 +298,7 @@ export default function BountyList({ bounties,
                                     </div>
                                 </div>
 
-                                <div className="h-[56px] overflow-hidden text-left text-sm text-black/55 dark:text-zinc-300 [&_*]:text-left">
+                                <div className="h-[80px] overflow-y-auto text-left text-sm text-black/55 dark:text-zinc-300 [&_*]:text-left scrollbar-thin">
                                     <SafeHTML html={bounty.description} />
                                 </div>
 
