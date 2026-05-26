@@ -51,7 +51,7 @@ const CreatorBounty = () => {
     }, [session.data?.user.id]);
 
     return (
-        <div className="relative flex h-[calc(100vh-10.8vh)] w-full flex-col gap-4 overflow-y-auto px-3 scrollbar-hide md:mx-auto md:w-[85vw] md:px-0">
+        <div className="relative flex h-[calc(100vh-10.8vh)] pb-24 w-full flex-col gap-4 overflow-y-auto px-3 scrollbar-hide md:mx-auto md:w-[85vw] md:px-0">
             <div>
                 <SearchAndSort
                     searchTerm={searchTerm}

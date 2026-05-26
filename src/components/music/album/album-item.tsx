@@ -79,10 +79,10 @@ export default function AlbumView({ name, creatorId, coverImgUrl, albumId, isAlb
                             </p>
                         </div>
 
-                        <div className="inline-flex w-fit rounded-[2px] bg-[#f3f1ee] px-2 py-0.5 text-sm font-medium text-black/60 dark:bg-zinc-800 dark:text-zinc-300">
+                        <Badge className="inline-flex w-fit rounded-[2px] px-2 py-0.5 text-sm font-medium shadow-none">
                             <Music className="mr-1 h-3 w-3" />
                             Music
-                        </div>
+                        </Badge>
                     </div>
                 </CardContent>
             </Card>

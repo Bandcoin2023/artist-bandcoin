@@ -27,8 +27,6 @@ import { toast } from "react-hot-toast";
 import { z } from "zod";
 import {
     PLATFORM_ASSET,
-    PLATFORM_FEE,
-    TrxBaseFeeInPlatformAsset,
 } from "~/lib/stellar/constant";
 import { AccountSchema, clientSelect } from "~/lib/stellar/fan/utils";
 import { ipfsHashToPinataGatewayUrl } from "~/utils/ipfs";
@@ -39,23 +37,15 @@ import { api } from "~/utils/api";
 import Image from "next/image";
 import { Button } from "~/components/shadcn/ui/button";
 import useNeedSign from "~/lib/hook";
-import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances";
+
 import { motion, AnimatePresence } from "framer-motion";
-import {
-    Card,
-    CardContent,
-    CardFooter,
-    CardTitle,
-} from "~/components/shadcn/ui/card";
+import { Glass } from "~/components/glass/glass";
 import { Badge } from "~/components/shadcn/ui/badge";
 import { Progress } from "~/components/shadcn/ui/progress";
 import { Separator } from "~/components/shadcn/ui/separator";
 import { useCreateRoyalityModalStore } from "../store/create-royality-modal";
 import { UploadS3Button } from "../common/upload-button";
-import {
-    PaymentChoose,
-    usePaymentMethodStore,
-} from "../common/payment-options";
+import { usePaymentMethodStore } from "../common/payment-options";
 import {
     Dialog,
     DialogContent,
@@ -273,48 +263,59 @@ export default function CreateRoyalityModal() {
                 onInteractOutside={(e) => {
                     e.preventDefault();
                 }}
-                className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-xl p-2"
+                className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[0.9rem] border border-black/20 p-0"
             >
+                <div className="relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden">
+                <Glass
+                    className={{
+                        root: "pointer-events-none absolute inset-0 z-0 rounded-[0.9rem] *:rounded-[0.9rem]",
+                        tint: "bg-[#f3f1ea]/60 transition-colors",
+                        effect:
+                            "backdrop-blur-[8px] bg-[radial-gradient(circle_at_20%_20%,rgba(255,251,242,0.24),rgba(248,243,232,0.08)_55%,rgba(245,240,230,0.03)_100%)] transition-all",
+                        shine:
+                            "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.85),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.5)]",
+                    }}
+                />
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
                     transition={{ duration: 0.3 }}
-                    className="flex h-full flex-col"
+                    className="relative z-10 flex min-h-0 flex-1 flex-col"
                 >
-                    <DialogHeader className="px-6 py-4">
+                    <DialogHeader className="px-6 pt-5 pb-3">
                         <DialogTitle>
                             <div className="flex items-center gap-2">
                                 <Coins className="h-5 w-5" />
-                                <CardTitle>Create Royalty Item</CardTitle>
+                                Create Royalty Item
                             </div>
                         </DialogTitle>
                         <DialogDescription>
                             Create a new royalty investment opportunity
                         </DialogDescription>
 
-                        <Progress value={formProgress} className="mt-2 h-2" />
+                        <Progress value={formProgress} className="mt-3 h-1.5" />
 
-                        <div className="w-full px-6">
+                        <div className="w-full px-2 mt-2">
                             <div className="flex items-center justify-between">
                                 {FORM_STEPS.map((step, index) => (
                                     <div key={step} className="flex flex-col items-center">
                                         <div
                                             className={cn(
-                                                "mb-1 flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium",
+                                                "mb-1 flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-all",
                                                 activeStep === step
-                                                    ? "bg-primary shadow-sm shadow-foreground"
-                                                    : "bg-muted text-muted-foreground",
+                                                    ? "bg-black/10 backdrop-blur-[4px]"
+                                                    : "bg-white/40 text-black/40",
                                             )}
                                         >
                                             {index + 1}
                                         </div>
                                         <span
                                             className={cn(
-                                                "text-xs",
+                                                "text-[11px]",
                                                 activeStep === step
                                                     ? "font-medium"
-                                                    : "text-muted-foreground",
+                                                    : "text-black/40",
                                             )}
                                         >
                                             {step === "basics"
@@ -334,8 +335,8 @@ export default function CreateRoyalityModal() {
                     </DialogHeader>
 
                     <FormProvider {...methods}>
-                        <form>
-                            <CardContent className="p-6">
+                        <form className="flex min-h-0 flex-1 flex-col">
+                            <div className="flex-1 overflow-y-auto p-6">
                                 <AnimatePresence mode="wait">
                                     {activeStep === "basics" && <BasicsStep key="basics" />}
                                     {activeStep === "media" && <MediaStep key="media" />}
@@ -343,9 +344,9 @@ export default function CreateRoyalityModal() {
                                     {activeStep === "pricing" && <PricingStep key="pricing" />}
                                     {activeStep === "review" && <ReviewStep key="review" />}
                                 </AnimatePresence>
-                            </CardContent>
+                            </div>
 
-                            <CardFooter className="flex justify-between border-t p-6">
+                            <div className="flex justify-between border-t border-black/10 p-6">
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -359,7 +360,6 @@ export default function CreateRoyalityModal() {
                                 {activeStep !== "review" ? (
                                     <Button
                                         type="button"
-                                        className="shadow-foreground"
                                         onClick={handleNext}
                                     >
                                         Next
@@ -368,10 +368,11 @@ export default function CreateRoyalityModal() {
                                 ) : (
                                     <SubmitButton albumId={albumId} setIsOpen={setIsOpen} />
                                 )}
-                            </CardFooter>
+                            </div>
                         </form>
                     </FormProvider>
                 </motion.div>
+                </div>
             </DialogContent>
         </Dialog>
     );
@@ -682,24 +683,22 @@ function MediaStep() {
                                 transition={{ duration: 0.3 }}
                                 className="mt-2"
                             >
-                                <Card className="overflow-hidden">
-                                    <CardContent className="p-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="rounded-full bg-primary/10 p-3">
-                                                <FileMusic className="h-5 w-5" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="text-sm font-medium">
-                                                    Demo audio uploaded
-                                                </p>
-                                                <audio controls className="mt-2 w-full">
-                                                    <source src={sampleAudio} type="audio/mpeg" />
-                                                    Your browser does not support the audio element.
-                                                </audio>
-                                            </div>
+                                <div className="rounded-xl border border-black/10 bg-white/30 p-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="rounded-full bg-black/5 p-2.5">
+                                            <FileMusic className="h-5 w-5" />
                                         </div>
-                                    </CardContent>
-                                </Card>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-medium">
+                                                Demo audio uploaded
+                                            </p>
+                                            <audio controls className="mt-2 w-full">
+                                                <source src={sampleAudio} type="audio/mpeg" />
+                                                Your browser does not support the audio element.
+                                            </audio>
+                                        </div>
+                                    </div>
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -1042,25 +1041,12 @@ function SubmitButton({
         reset,
         getValues,
         setValue,
-        handleSubmit: formHandleSubmit,
     } = useFormContext<RoyalityFormType>();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const session = useSession();
-    const { platformAssetBalance } = useUserStellarAcc();
     const { needSign } = useNeedSign();
     const { paymentMethod, setIsOpen: setPaymentModalOpen } =
         usePaymentMethodStore();
-
-    const requiredToken = api.fan.trx.getRequiredPlatformAsset.useQuery(
-        {
-            xlm: 2,
-        },
-        {
-            enabled: !!albumId,
-        },
-    );
-
-    const totalFeees = Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE);
 
     const addRoyality = api.fan.music.createRoyalityItem.useMutation({
         onSuccess: () => {
@@ -1147,64 +1133,24 @@ function SubmitButton({
         onSubmit(getValues());
     };
 
-    if (requiredToken.isLoading) {
-        return (
-            <Button disabled>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading...
-            </Button>
-        );
-    }
-
-    const requiredTokenAmount = requiredToken.data ?? 0;
-    const insufficientBalance = requiredTokenAmount > platformAssetBalance;
-
     return (
-        <PaymentChoose
-            costBreakdown={[
-                {
-                    label: "Cost",
-                    amount:
-                        paymentMethod === "asset" ? requiredTokenAmount - totalFeees : 2,
-                    type: "cost",
-                    highlighted: true,
-                },
-                {
-                    label: "Platform Fee",
-                    amount: paymentMethod === "asset" ? totalFeees : 2,
-                    highlighted: false,
-                    type: "fee",
-                },
-                {
-                    label: "Total Cost",
-                    amount: paymentMethod === "asset" ? requiredTokenAmount : 4,
-                    highlighted: false,
-                    type: "total",
-                },
-            ]}
-            XLM_EQUIVALENT={4}
-            handleConfirm={handleConfirm}
-            loading={isSubmitting}
-            requiredToken={requiredTokenAmount}
-            trigger={
-                <Button
-                    variant="sidebarAccent"
-                    disabled={isSubmitting || insufficientBalance}
-                    className="flex items-center gap-2 shadow-sm shadow-black transition-shadow duration-200 hover:shadow-xl"
-                >
-                    {isSubmitting ? (
-                        <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Creating Royalty Item...
-                        </>
-                    ) : (
-                        <>
-                            <Coins className="h-4 w-4" />
-                            Create Royalty Item
-                        </>
-                    )}
-                </Button>
-            }
-        />
+        <Button
+            onClick={handleConfirm}
+            variant="sidebarAccent"
+            disabled={isSubmitting}
+            className="flex items-center gap-2"
+        >
+            {isSubmitting ? (
+                <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Creating Royalty Item...
+                </>
+            ) : (
+                <>
+                    <Coins className="h-4 w-4" />
+                    Create Royalty Item
+                </>
+            )}
+        </Button>
     );
 }

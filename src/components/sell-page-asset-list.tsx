@@ -24,6 +24,8 @@ import { PLATFORM_ASSET } from "~/lib/stellar/constant"
 import SellPageAssetUpdate from "./sell-page-asset-update"
 import { Skeleton } from "./shadcn/ui/skeleton"
 import { Separator } from "./shadcn/ui/separator"
+import { useSellPageAssetStore } from "./store/sell-page-asset-store"
+import SellPageAssetModal from "./modal/sell-page-asset-modal"
 
 interface SellPageAsset {
     id: number
@@ -42,6 +44,7 @@ export default function SellPageAssetList() {
     const [selectedAsset, setSelectedAsset] = useState<SellPageAsset | null>(null)
     const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false)
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+    const { setIsOpen } = useSellPageAssetStore()
 
     const { data: assets, isLoading, refetch } = api.fan.asset.getMyAssets.useQuery()
 
@@ -121,7 +124,7 @@ export default function SellPageAssetList() {
                 <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
                     You haven{"'"}t created any sell page assets yet. Create your first asset to get started.
                 </p>
-                <Button>
+                <Button onClick={() => setIsOpen(true)}>
                     <Package className="h-4 w-4 mr-2" />
                     Create Asset
                 </Button>
@@ -141,6 +144,10 @@ export default function SellPageAssetList() {
                         {assets.filter((a) => !a.isSold).length} available
                     </Badge>
                 </div>
+                <Button size="sm" onClick={() => setIsOpen(true)}>
+                    <Package className="h-3.5 w-3.5 mr-1.5" />
+                    Create Asset
+                </Button>
             </div>
 
             {/* Asset Grid */}
@@ -412,6 +419,8 @@ export default function SellPageAssetList() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            <SellPageAssetModal />
         </div>
     )
 }

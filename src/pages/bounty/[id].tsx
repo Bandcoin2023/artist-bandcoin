@@ -144,7 +144,7 @@ const SingleBountyPage = () => {
   });
 
   return (
-    <div className="relative flex  h-[calc(100vh-10.8vh)] w-full flex-col gap-4 overflow-y-auto scrollbar-hide ">
+    <div className="relative flex  h-[calc(100vh-10.8vh)] pb-24 w-full flex-col gap-4 overflow-y-auto scrollbar-hide ">
       {Owner?.isOwner ? <AdminBountyPage /> : <UserBountyPage />}
     </div>
   );

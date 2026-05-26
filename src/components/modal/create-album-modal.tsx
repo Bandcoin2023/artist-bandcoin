@@ -15,13 +15,14 @@ import { Input } from "~/components/shadcn/ui/input"
 import { Label } from "~/components/shadcn/ui/label"
 import { Textarea } from "~/components/shadcn/ui/textarea"
 import { type SubmitHandler, useForm } from "react-hook-form"
-import { Music, PlusCircle, Upload, X } from "lucide-react"
+import { Music, PlusCircle, Upload, X, Loader2 } from "lucide-react"
 import Image from "next/image"
 import toast from "react-hot-toast"
 import { z } from "zod"
 import { api } from "~/utils/api"
 import { UploadS3Button } from "../common/upload-button"
 import { useCreateAlbumStore } from "../store/album-create-store"
+import { Glass } from "~/components/glass/glass"
 
 
 export const AlbumCreateFormShema = z.object({
@@ -86,67 +87,64 @@ const CreateAlbumModal = () => {
 
     return (
         <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-
-            <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-xl border-none shadow-2xl">
-
-                <DialogHeader className=" p-4">
-                    <DialogTitle className="text-2xl font-bold  flex items-center">
-                        <Music className="mr-2 h-5 w-5" />
-                        Create New Album
-                    </DialogTitle>
-                </DialogHeader>
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    transition={{ duration: 0.3 }}
-                    className=""
-                >
-                    <form onSubmit={handleSubmit(onSubmit)} className="px-6">
-                        <div className="space-y-4">
+            <DialogContent className="flex max-h-[90vh] w-full max-w-[450px] flex-col overflow-hidden rounded-[0.9rem] border border-black/20 p-0">
+                <div className="relative z-0 flex-1 overflow-hidden">
+                <Glass
+                    className={{
+                        root: "pointer-events-none absolute inset-0 z-0 rounded-[0.9rem] *:rounded-[0.9rem]",
+                        tint: "bg-[#f3f1ea]/60 transition-colors",
+                        effect:
+                            "backdrop-blur-[8px] bg-[radial-gradient(circle_at_20%_20%,rgba(255,251,242,0.24),rgba(248,243,232,0.08)_55%,rgba(245,240,230,0.03)_100%)] transition-all",
+                        shine:
+                            "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.85),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.5)]",
+                    }}
+                />
+                <div className="relative z-10 flex h-full flex-col">
+                    <DialogHeader className="px-6 pt-5 pb-3">
+                        <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
+                            <Music className="h-5 w-5" />
+                            Create New Album
+                        </DialogTitle>
+                    </DialogHeader>
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.3 }}
+                        className="flex-1 overflow-y-auto px-6"
+                    >
+                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <Label htmlFor="name" className="text-sm font-medium">
                                     Album Name
                                 </Label>
-                                <motion.div whileFocus={{ scale: 1.01 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
-                                    <Input
-                                        {...register("name")}
-                                        id="name"
-                                        type="text"
-                                        required
-                                        placeholder="Enter album name"
-                                        className="w-full rounded-lg border-gray-300  transition-all duration-200"
-                                    />
-                                </motion.div>
+                                <Input
+                                    {...register("name")}
+                                    id="name"
+                                    type="text"
+                                    required
+                                    placeholder="Enter album name"
+                                />
                                 {errors.name && (
-                                    <motion.p
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="text-red-500 text-xs mt-1"
-                                    >
-                                        {errors.name.message}
-                                    </motion.p>
+                                    <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
                                 )}
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="description" className="text-sm font-medium ">
+                                <Label htmlFor="description" className="text-sm font-medium">
                                     Description
                                 </Label>
-                                <motion.div whileFocus={{ scale: 1.01 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
-                                    <Textarea
-                                        {...register("description")}
-                                        id="description"
-                                        required
-                                        placeholder="Describe your album"
-                                        className="w-full rounded-lg   transition-all duration-200"
-                                        rows={3}
-                                    />
-                                </motion.div>
+                                <Textarea
+                                    {...register("description")}
+                                    id="description"
+                                    required
+                                    placeholder="Describe your album"
+                                    rows={3}
+                                />
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-sm font-medium ">Cover Image</Label>
+                                <Label className="text-sm font-medium">Cover Image</Label>
 
                                 <AnimatePresence>
                                     {!coverUrl ? (
@@ -154,7 +152,7 @@ const CreateAlbumModal = () => {
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             exit={{ opacity: 0 }}
-                                            className="flex flex-col bg-primary items-center justify-center border-2 border-dashed rounded-lg p-6 transition-all "
+                                            className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-black/10 bg-white/40 p-6"
                                         >
                                             <div className="relative w-full">
                                                 <UploadS3Button
@@ -169,14 +167,11 @@ const CreateAlbumModal = () => {
                                                             setIsUploading(false)
                                                         }
                                                     }}
-
                                                     onUploadError={(error: Error) => {
                                                         toast.error(`ERROR! ${error.message}`)
                                                         setIsUploading(false)
                                                     }}
-
                                                 />
-
                                             </div>
                                         </motion.div>
                                     ) : (
@@ -184,70 +179,49 @@ const CreateAlbumModal = () => {
                                             initial={{ opacity: 0, scale: 0.9 }}
                                             animate={{ opacity: 1, scale: 1 }}
                                             exit={{ opacity: 0, scale: 0.9 }}
-                                            className="relative rounded-lg overflow-hidden shadow-md group"
+                                            className="relative overflow-hidden rounded-xl border border-black/10 group"
                                         >
                                             <Image
                                                 alt="Album cover preview"
                                                 src={coverUrl || "/placeholder.svg"}
                                                 width={400}
                                                 height={400}
-                                                className="w-full h-48 object-cover rounded-lg"
+                                                className="w-full h-48 object-cover"
                                             />
-                                            <motion.button
-                                                whileHover={{ scale: 1.1 }}
-                                                whileTap={{ scale: 0.9 }}
+                                            <button
                                                 type="button"
                                                 onClick={removeCoverImage}
-                                                className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-lg opacity-80 hover:opacity-100 transition-all"
+                                                className="absolute top-2 right-2 grid size-7 place-items-center rounded-full border border-red-200/60 bg-red-50/70 text-red-600 hover:bg-red-100/80"
                                             >
-                                                <X className="h-4 w-4" />
-                                            </motion.button>
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
-                                                <p className="text-white p-3 text-sm font-medium">Cover Image</p>
-                                            </div>
+                                                <X className="h-3.5 w-3.5" />
+                                            </button>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
 
                                 {errors.coverImgUrl && (
-                                    <motion.p
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="text-red-500 text-xs mt-1"
-                                    >
-                                        {errors.coverImgUrl.message}
-                                    </motion.p>
+                                    <p className="text-red-500 text-xs mt-1">{errors.coverImgUrl.message}</p>
                                 )}
                             </div>
-                        </div>
-                    </form>
-
-
-                </motion.div>
-                <DialogFooter className="px-6 pb-6">
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
+                        </form>
+                    </motion.div>
+                    <div className="flex justify-end border-t border-black/10 p-6">
                         <Button
                             type="submit"
                             onClick={handleSubmit(onSubmit)}
                             disabled={CreateAlbumMutation.isLoading || isUploading}
-                            className="w-full shadow-sm shadow-foreground  font-medium py-2 rounded-lg transition-all duration-300  disabled:opacity-70"
+                            className="flex items-center gap-2"
                         >
                             {CreateAlbumMutation.isLoading ? (
-                                <motion.div
-                                    animate={{ rotate: 360 }}
-                                    transition={{ repeat: Number.POSITIVE_INFINITY, duration: 1, ease: "linear" }}
-                                    className="mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"
-                                />
-                            ) : null}
-                            {CreateAlbumMutation.isLoading ? "Creating Album..." :
-                                <span className="flex items-center justify-center">
-                                    <PlusCircle className="h-4 w-4 mr-2" />
-                                    Create Album
-                                </span>
-                            }
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <PlusCircle className="h-4 w-4" />
+                            )}
+                            {CreateAlbumMutation.isLoading ? "Creating Album..." : "Create Album"}
                         </Button>
-                    </motion.div>
-                </DialogFooter>
+                    </div>
+                </div>
+                </div>
             </DialogContent>
         </Dialog>
     )

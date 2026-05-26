@@ -176,9 +176,9 @@ export default function AssetView({
             >
               <div className="flex flex-col gap-1.5">
                 {isCollectionCard && (
-                  <div className="inline-flex w-fit rounded-[2px] bg-[#f3f1ee] px-2 py-0.5 text-[0.64rem] font-medium text-black/60 dark:bg-zinc-800 dark:text-zinc-300">
+                  <Badge className="w-fit rounded-[2px] px-2 py-0.5 text-[0.64rem] font-medium shadow-none">
                     {typeLabel ?? "Collectible"}
-                  </div>
+                  </Badge>
                 )}
                 <div className="flex items-start justify-between gap-3">
                   <h2
@@ -198,7 +198,7 @@ export default function AssetView({
               </div>
 
               {isCollectionCard ? (
-                <div className="flex items-center justify-between gap-2">
+                <div className="mt-1 flex items-center justify-between gap-2">
                   {price ? (
                     <div className="flex items-center gap-2 text-sm font-medium text-black/88 dark:text-zinc-100">
                       <span>{price}</span>
@@ -249,9 +249,9 @@ export default function AssetView({
               )}
 
               {!isCollectionCard && mediaType && (
-                <div className="inline-flex w-fit rounded-[2px] bg-[#f3f1ee] px-2 py-0.5 text-sm font-medium text-black/60 dark:bg-zinc-800 dark:text-zinc-300">
+                <Badge className="w-fit rounded-[2px] px-2 py-0.5 text-sm font-medium shadow-none">
                   {mediaType === "THREE_D" ? "3D" : mediaType}
-                </div>
+                </Badge>
               )}
             </div>
 

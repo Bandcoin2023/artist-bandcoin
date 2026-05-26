@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { MediaType } from "@prisma/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  PlusIcon,
   Upload,
   Check,
   X,
@@ -18,7 +17,6 @@ import {
   ArrowRight,
   DollarSign,
   Coins,
-  PlusCircle,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -33,10 +31,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogDescription,
 } from "~/components/shadcn/ui/dialog";
+import { Glass } from "~/components/glass/glass";
 import useNeedSign from "~/lib/hook";
 import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances";
 import {
@@ -76,20 +74,14 @@ import { ipfsHashToPinataGatewayUrl } from "~/utils/ipfs";
 import { Label } from "../shadcn/ui/label";
 import { Input } from "../shadcn/ui/input";
 import { Textarea } from "../shadcn/ui/textarea";
-import { Card, CardContent } from "../shadcn/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../shadcn/ui/tabs";
 import { Badge } from "../shadcn/ui/badge";
-import { Separator } from "../shadcn/ui/separator";
 import {
-  PaymentChoose,
   usePaymentMethodStore,
 } from "../common/payment-options";
 import { UploadS3Button } from "../common/upload-button";
 import { Alert, AlertDescription } from "../shadcn/ui/alert";
-import RechargeLink from "../payment/recharge-link";
 import { useNFTCreateModalStore } from "../store/nft-create-modal-store";
 import { cn } from "~/lib/utils";
-import { Progress } from "../shadcn/ui/progress";
 import { calculatePlatformAssetNFTRequirements, calculateXLMNFTRequirements } from "~/lib/stellar/nft/nft-payment-handler";
 
 export const ExtraSongInfo = z.object({
@@ -572,44 +564,54 @@ export default function NftCreateModal() {
         onInteractOutside={(e) => {
           e.preventDefault();
         }}
-        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-xl p-0"
+        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[0.9rem] border border-black/20 p-0"
       >
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.3 }}
-          className="flex h-full flex-col"
-        >
-          <DialogHeader className=" px-6 py-4">
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              Create Store Item
-            </DialogTitle>
-            <DialogDescription>
-              Create you nft and place it to marketplace.
-            </DialogDescription>
-            <Progress value={formProgress} className="mt-2 h-2" />
+        <div className="relative z-0 flex-1 overflow-hidden">
+          <Glass
+            className={{
+              root: "pointer-events-none absolute inset-0 z-0 rounded-[0.9rem] *:rounded-[0.9rem]",
+              tint: "bg-[#f3f1ea]/60 transition-colors",
+              effect:
+                "backdrop-blur-[8px] bg-[radial-gradient(circle_at_20%_20%,rgba(255,251,242,0.24),rgba(248,243,232,0.08)_55%,rgba(245,240,230,0.03)_100%)] transition-all",
+              shine:
+                "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.85),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.5)]",
+            }}
+          />
+          <div className="relative z-10 flex h-full flex-col">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col"
+          >
+            <DialogHeader className="px-6 pt-5 pb-3">
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                Create Store Item
+              </DialogTitle>
+              <DialogDescription>
+                Create your NFT and place it on the marketplace.
+              </DialogDescription>
 
-            <div className="w-full px-6 ">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pt-3">
                 {FORM_STEPS.map((step, index) => (
-                  <div key={step} className="flex flex-col items-center">
+                  <div key={step} className="flex flex-col items-center gap-1">
                     <div
                       className={cn(
-                        "mb-1 flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium ",
+                        "flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-colors",
                         activeStep === step
-                          ? "bg-primary  shadow-sm shadow-foreground"
-                          : "bg-muted text-muted-foreground",
+                          ? "bg-black/10"
+                          : "bg-white/40 text-black/40",
                       )}
                     >
                       {index + 1}
                     </div>
                     <span
                       className={cn(
-                        "text-xs",
+                        "text-[11px]",
                         activeStep === step
-                          ? " font-medium"
-                          : "text-muted-foreground",
+                          ? "font-medium"
+                          : "text-black/40",
                       )}
                     >
                       {step === "media"
@@ -621,443 +623,389 @@ export default function NftCreateModal() {
                   </div>
                 ))}
               </div>
-            </div>
-          </DialogHeader>
-          <div className="overflow-y-auto px-6 py-4">
-            <form
-              id="nft-form"
-              onSubmit={handleSubmit(onSubmit)}
-              className="space-y-4"
-            >
-
-              {activeStep === "details" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card>
-                    <CardContent className="space-y-4 pt-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Item name</Label>
-                        <Input
-                          id="name"
-                          {...register("name")}
-                          placeholder="Enter a name for your item"
-                        />
-                        {errors.name && (
-                          <p className="text-sm text-destructive">
-                            {errors.name.message}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                          id="description"
-                          {...register("description")}
-                          placeholder="Describe your NFT"
-                          className="min-h-24 resize-none"
-                        />
-                        {errors.description && (
-                          <p className="text-sm text-destructive">
-                            {errors.description.message}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="code">Asset Code</Label>
-                        <Input
-                          id="code"
-                          {...register("code")}
-                          placeholder="Enter asset code (4-12 characters)"
-                        />
-                        {errors.code && (
-                          <p className="text-sm text-destructive">
-                            {errors.code.message}
-                          </p>
-                        )}
-                        {assetCodeValue?.length > 0 && (
-                          <span className={`text-xs mt-1 ${isAvailableCode ? "text-green-600" : "text-red-600"}`}>
-                            {isAvailableCode ? "✓ Available" : "✗ Not Available"}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="limit">Supply Limit</Label>
-                        <Input
-                          id="limit"
-                          type="number"
-                          {...register("limit", { valueAsNumber: true })}
-                          placeholder="Enter supply limit (default: 1)"
-                        />
-                        {errors.limit && (
-                          <p className="text-sm text-destructive">
-                            {errors.limit.message}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          This determines how many copies of this Item can exist
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-              {activeStep === "media" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="space-y-4">
-                        <div>
-                          <Label className="mb-2 block text-sm font-medium">
-                            Media Type
-                          </Label>
-                          <div className="grid grid-cols-4 gap-2">
-                            {Object.values(MediaType).map((media, i) => (
-                              <Button
-                                key={i}
-                                type="button"
-                                variant={
-                                  media === mediaType ? "destructive" : "muted"
-                                }
-                                onClick={() => handleMediaChange(media)}
-                                className={`flex items-center gap-2 ${media === mediaType ? "shadow-sm shadow-foreground" : ""} `}
-                              >
-                                {getMediaIcon(media)}
-                                <span>
-                                  {media === MediaType.THREE_D ? "3D" : media}
-                                </span>
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {tiers.data && (
-                          <div>
-                            <Label className="mb-2 block text-sm font-medium">
-                              Access Tier
-                            </Label>
-                            <TiersOptions
-                              handleTierChange={(value: string) => {
-                                setTier(value);
-                              }}
-                              tiers={tiers.data}
-                            />
-                          </div>
-                        )}
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium flex items-center gap-2">
-                            Thumbnail Image
-                            <span className="text-xs text-muted-foreground">
-                              (This will be your NFT image and item Thumbnail)
-                            </span>
-                          </Label>
-                          <AnimatePresence>
-                            {!coverUrl ? (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() =>
-                                  document.getElementById("coverImg")?.click()
-                                }
-                                className="relative flex h-36 w-full  flex-col items-center justify-center gap-2 border-dashed"
-                              >
-                                <Upload className="h-6 w-6 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">
-                                  Upload Thumbnail
-                                </span>
-                                {uploading && (
-                                  <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                                    <Loader2 className="h-6 w-6 animate-spin " />
-                                  </div>
-                                )}
-                              </Button>
-                            ) : (
-                              <motion.div
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                className="relative h-36 overflow-hidden rounded-md"
-                              >
-                                <Image
-                                  fill
-                                  alt="preview image"
-                                  src={coverUrl ?? "/placeholder.svg"}
-                                  className="object-cover"
-                                />
-                                <Button
-                                  type="button"
-                                  variant="destructive"
-                                  size="icon"
-                                  className="absolute right-1 top-1 h-6 w-6"
-                                  onClick={() => {
-                                    setCover(undefined);
-                                    setValue("coverImgUrl", "");
-                                    setCid(undefined);
-                                  }}
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                                <div className="absolute bottom-0 left-0 right-0 bg-background/80 px-2 py-1">
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-green-100 text-green-800"
-                                  >
-                                    <Check className="mr-1 h-3 w-3" /> Uploaded
-                                  </Badge>
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                          <Input
-                            id="coverImg"
-                            type="file"
-                            accept=".jpg, .png"
-                            onChange={handleChange}
-                            className="hidden"
-                          />
-
-                          {errors.coverImgUrl && (
-                            <p className="text-sm text-destructive">
-                              {errors.coverImgUrl.message}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">
-                            Locked Content
-                          </Label>
-                          <div className="flex flex-col gap-2">
-                            <UploadS3Button
-                              endpoint={getEndpoint(mediaType)}
-                              variant="button"
-                              label={`UPLOAD ${mediaType !== "THREE_D" ? mediaType : "3D"} CONTENT`}
-                              className="w-full"
-                              onClientUploadComplete={(res) => {
-                                const data = res;
-                                if (data?.url) {
-                                  setMediaUrl(data.url);
-                                  setValue("mediaUrl", data.url);
-                                  setMediaUpload(false);
-                                  setMediaUploadSuccess(true);
-                                  trigger("mediaUrl")
-                                }
-                              }}
-                              onUploadError={(error: Error) => {
-                                toast.error(`ERROR! ${error.message}`);
-                              }}
-                            />
-
-                            {mediaType === "THREE_D" && (
-                              <Alert variant="info">
-                                <AlertDescription>
-                                  <p className="text-center text-xs text-muted-foreground">
-                                    Only .obj files are accepted
-                                  </p>
-                                </AlertDescription>
-                              </Alert>
-                            )}
-
-                            <AnimatePresence>
-                              {mediaUrl && (
-                                <motion.div
-                                  initial={{ opacity: 0, y: 10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, y: 10 }}
-                                  transition={{ duration: 0.3 }}
-                                  className="mt-2"
-                                >
-                                  <Card className="overflow-hidden">
-                                    <CardContent className="p-3">
-                                      <PlayableMedia
-                                        mediaType={mediaType}
-                                        mediaUrl={mediaUrl}
-                                      />
-                                    </CardContent>
-                                  </Card>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-
-                            {errors.mediaUrl && (
-                              <p className="text-sm text-destructive">
-                                {errors.mediaUrl.message}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-
-              {activeStep === "pricing" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card>
-                    <CardContent className="space-y-4 pt-6">
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="priceUSD"
-                          className="flex items-center gap-2"
-                        >
-                          <DollarSign className="h-4 w-4 text-muted-foreground" />
-                          Price in USD
-                        </Label>
-                        <Input
-                          id="priceUSD"
-                          type="number"
-                          {...register("priceUSD", { valueAsNumber: true })}
-                          placeholder="Enter price in USD"
-                        />
-                        {errors.priceUSD && (
-                          <p className="text-sm text-destructive">
-                            {errors.priceUSD.message}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="price"
-                          className="flex items-center gap-2"
-                        >
-                          <Coins className="h-4 w-4 text-muted-foreground" />
-                          Price in {PLATFORM_ASSET.code}
-                        </Label>
-                        <Input
-                          id="price"
-                          type="number"
-                          {...register("price", { valueAsNumber: true })}
-                          placeholder={`Enter price in ${PLATFORM_ASSET.code}`}
-                        />
-                        {errors.price && (
-                          <p className="text-sm text-destructive">
-                            {errors.price.message}
-                          </p>
-                        )}
-                      </div>
-
-
-
-                      {showAlert && (
-                        <Alert variant={paymentValidationResult?.canProceed === false ? "destructive" : "default"}>
-                          <AlertDescription>
-                            {alertMessage}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-            </form>
-          </div>
-
-          <DialogFooter className="border-t px-6 py-4 ">
-            <div className="flex w-full items-center justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={prevStep}
-                disabled={activeStep === "details"}
-                className="flex items-center gap-1"
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto px-6 pb-4">
+              <form
+                id="nft-form"
+                onSubmit={handleSubmit(onSubmit)}
+                className="space-y-4"
               >
-                Previous
-              </Button>
 
-              {activeStep !== "pricing" ? (
+                {activeStep === "details" && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-4 rounded-xl bg-white/40 p-4 border border-black/10"
+                  >
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Item name</Label>
+                      <Input
+                        id="name"
+                        {...register("name")}
+                        placeholder="Enter a name for your item"
+                      />
+                      {errors.name && (
+                        <p className="text-sm text-destructive">
+                          {errors.name.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        {...register("description")}
+                        placeholder="Describe your NFT"
+                        className="min-h-24 resize-none"
+                      />
+                      {errors.description && (
+                        <p className="text-sm text-destructive">
+                          {errors.description.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="code">Asset Code</Label>
+                      <Input
+                        id="code"
+                        {...register("code")}
+                        placeholder="Enter asset code (4-12 characters)"
+                      />
+                      {errors.code && (
+                        <p className="text-sm text-destructive">
+                          {errors.code.message}
+                        </p>
+                      )}
+                      {assetCodeValue?.length > 0 && (
+                        <span className={`text-xs mt-1 ${isAvailableCode ? "text-green-600" : "text-red-600"}`}>
+                          {isAvailableCode ? "✓ Available" : "✗ Not Available"}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="limit">Supply Limit</Label>
+                      <Input
+                        id="limit"
+                        type="number"
+                        {...register("limit", { valueAsNumber: true })}
+                        placeholder="Enter supply limit (default: 1)"
+                      />
+                      {errors.limit && (
+                        <p className="text-sm text-destructive">
+                          {errors.limit.message}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        This determines how many copies of this Item can exist
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+                {activeStep === "media" && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-4 rounded-xl bg-white/40 p-4 border border-black/10"
+                  >
+                    <div>
+                      <Label className="mb-2 block text-sm font-medium">
+                        Media Type
+                      </Label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {Object.values(MediaType).map((media, i) => (
+                          <Button
+                            key={i}
+                            type="button"
+                            variant={
+                              media === mediaType ? "destructive" : "muted"
+                            }
+                            onClick={() => handleMediaChange(media)}
+                            className={`flex items-center gap-2 ${media === mediaType ? "" : ""} `}
+                          >
+                            {getMediaIcon(media)}
+                            <span>
+                              {media === MediaType.THREE_D ? "3D" : media}
+                            </span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {tiers.data && (
+                      <div>
+                        <Label className="mb-2 block text-sm font-medium">
+                          Access Tier
+                        </Label>
+                        <TiersOptions
+                          handleTierChange={(value: string) => {
+                            setTier(value);
+                          }}
+                          tiers={tiers.data}
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium flex items-center gap-2">
+                        Thumbnail Image
+                        <span className="text-xs text-muted-foreground">
+                          (This will be your NFT image and item Thumbnail)
+                        </span>
+                      </Label>
+                      <AnimatePresence>
+                        {!coverUrl ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              document.getElementById("coverImg")?.click()
+                            }
+                            className="relative flex h-36 w-full flex-col items-center justify-center gap-2 border-dashed"
+                          >
+                            <Upload className="h-6 w-6 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
+                              Upload Thumbnail
+                            </span>
+                            {uploading && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                                <Loader2 className="h-6 w-6 animate-spin " />
+                              </div>
+                            )}
+                          </Button>
+                        ) : (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="relative h-36 overflow-hidden rounded-md border border-black/10"
+                          >
+                            <Image
+                              fill
+                              alt="preview image"
+                              src={coverUrl ?? "/placeholder.svg"}
+                              className="object-cover"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute right-1 top-1 h-6 w-6"
+                              onClick={() => {
+                                setCover(undefined);
+                                setValue("coverImgUrl", "");
+                                setCid(undefined);
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                            <div className="absolute bottom-0 left-0 right-0 bg-background/80 px-2 py-1">
+                              <Badge
+                                variant="outline"
+                                className="bg-green-100 text-green-800"
+                              >
+                                <Check className="mr-1 h-3 w-3" /> Uploaded
+                              </Badge>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      <Input
+                        id="coverImg"
+                        type="file"
+                        accept=".jpg, .png"
+                        onChange={handleChange}
+                        className="hidden"
+                      />
+
+                      {errors.coverImgUrl && (
+                        <p className="text-sm text-destructive">
+                          {errors.coverImgUrl.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">
+                        Locked Content
+                      </Label>
+                      <div className="flex flex-col gap-2">
+                        <UploadS3Button
+                          endpoint={getEndpoint(mediaType)}
+                          variant="button"
+                          label={`UPLOAD ${mediaType !== "THREE_D" ? mediaType : "3D"} CONTENT`}
+                          className="w-full"
+                          onClientUploadComplete={(res) => {
+                            const data = res;
+                            if (data?.url) {
+                              setMediaUrl(data.url);
+                              setValue("mediaUrl", data.url);
+                              setMediaUpload(false);
+                              setMediaUploadSuccess(true);
+                              trigger("mediaUrl")
+                            }
+                          }}
+                          onUploadError={(error: Error) => {
+                            toast.error(`ERROR! ${error.message}`);
+                          }}
+                        />
+
+                        {mediaType === "THREE_D" && (
+                          <Alert variant="info">
+                            <AlertDescription>
+                              <p className="text-center text-xs text-muted-foreground">
+                                Only .obj files are accepted
+                              </p>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
+                        <AnimatePresence>
+                          {mediaUrl && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 10 }}
+                              transition={{ duration: 0.3 }}
+                              className="mt-2"
+                            >
+                              <div className="overflow-hidden rounded-xl border border-black/10 bg-white/40">
+                                <div className="p-3">
+                                  <PlayableMedia
+                                    mediaType={mediaType}
+                                    mediaUrl={mediaUrl}
+                                  />
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        {errors.mediaUrl && (
+                          <p className="text-sm text-destructive">
+                            {errors.mediaUrl.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeStep === "pricing" && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-4 rounded-xl bg-white/40 p-4 border border-black/10"
+                  >
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="priceUSD"
+                        className="flex items-center gap-2"
+                      >
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        Price in USD
+                      </Label>
+                      <Input
+                        id="priceUSD"
+                        type="number"
+                        {...register("priceUSD", { valueAsNumber: true })}
+                        placeholder="Enter price in USD"
+                      />
+                      {errors.priceUSD && (
+                        <p className="text-sm text-destructive">
+                          {errors.priceUSD.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="price"
+                        className="flex items-center gap-2"
+                      >
+                        <Coins className="h-4 w-4 text-muted-foreground" />
+                        Price in {PLATFORM_ASSET.code}
+                      </Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        {...register("price", { valueAsNumber: true })}
+                        placeholder={`Enter price in ${PLATFORM_ASSET.code}`}
+                      />
+                      {errors.price && (
+                        <p className="text-sm text-destructive">
+                          {errors.price.message}
+                        </p>
+                      )}
+                    </div>
+
+                    {showAlert && (
+                      <Alert variant={paymentValidationResult?.canProceed === false ? "destructive" : "default"}>
+                        <AlertDescription>
+                          {alertMessage}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </motion.div>
+                )}
+              </form>
+            </div>
+
+            <DialogFooter className="border-t border-black/10 px-6 py-4">
+              <div className="flex w-full items-center justify-between">
                 <Button
                   type="button"
-                  onClick={nextStep}
-                  disabled={
-                    (activeStep === "details" && (!!errors.code || !!assetCodeError || isAvailableCode === false)) ||
-                    (activeStep === "media" && (!!errors.mediaUrl || !!errors.coverImgUrl))
-                  }
-                  className="flex items-center gap-1 shadow-sm shadow-foreground"
+                  variant="outline"
+                  onClick={prevStep}
+                  disabled={activeStep === "details"}
+                  className="flex items-center gap-1"
                 >
-                  Next
-                  <ArrowRight className="ml-1 h-4 w-4" />
+                  Previous
                 </Button>
-              ) : (
-                <PaymentChoose
-                  costBreakdown={[
-                    {
-                      label: "Stellar Fee",
-                      amount:
-                        paymentMethod === "asset"
-                          ? requiredTokenAmount
-                          : requiredXlm,
-                      type: "cost",
-                      highlighted: true,
-                    },
-                    {
-                      label: "Platform Fee",
-                      amount: paymentMethod === "asset" ? totalFees : feeInXLM,
-                      highlighted: false,
-                      type: "fee",
-                    },
-                    {
-                      label: "Total Cost",
-                      amount:
-                        paymentMethod === "asset"
-                          ? totalCostInPlatform
-                          : totalXlmCost,
-                      highlighted: false,
-                      type: "total",
-                    },
-                  ]}
-                  XLM_EQUIVALENT={totalXlmCost}
-                  handleConfirm={handleSubmit(onSubmit)}
-                  beforeTrigger={validatePaymentMethod}
-                  loading={loading || validationInProgress}
-                  requiredToken={totalCostInPlatform}
-                  conversionInfo={conversionInfo}
-                  showAlert={showAlert}
-                  alertMessage={alertMessage}
-                  trigger={
-                    <Button
-                      variant="default"
-                      disabled={
-                        loading ||
-                        validationInProgress || !isValid
-                      }
-                      className="flex items-center gap-1 shadow-sm shadow-foreground"
-                    >
-                      {loading || validationInProgress ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating NFT...
-                        </>
-                      ) : (
-                        "Create NFT"
-                      )}
-                    </Button>
-                  }
-                />
-              )}
-            </div>
-          </DialogFooter>
-        </motion.div>
+
+                {activeStep !== "pricing" ? (
+                  <Button
+                    type="button"
+                    onClick={nextStep}
+                    disabled={
+                      (activeStep === "details" && (!!errors.code || !!assetCodeError || isAvailableCode === false)) ||
+                      (activeStep === "media" && (!!errors.mediaUrl || !!errors.coverImgUrl))
+                    }
+                    className="flex items-center gap-1"
+                  >
+                    Next
+                    <ArrowRight className="ml-1 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    form="nft-form"
+                    disabled={loading || validationInProgress || !isValid}
+                    className="flex items-center gap-1"
+                  >
+                    {loading || validationInProgress ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating NFT...
+                      </>
+                    ) : (
+                      "Create NFT"
+                    )}
+                  </Button>
+                )}
+              </div>
+            </DialogFooter>
+          </motion.div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

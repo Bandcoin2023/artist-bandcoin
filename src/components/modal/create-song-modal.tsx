@@ -18,15 +18,12 @@ import {
   Coins,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { WalletType, clientsign } from "package/connect_wallet";
+import { clientsign } from "package/connect_wallet";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { z } from "zod";
 import {
   PLATFORM_ASSET,
-  PLATFORM_FEE,
-  SIMPLIFIED_FEE_IN_XLM,
-  TrxBaseFeeInPlatformAsset,
 } from "~/lib/stellar/constant";
 import { AccountSchema, clientSelect } from "~/lib/stellar/fan/utils";
 import { ipfsHashToPinataGatewayUrl } from "~/utils/ipfs";
@@ -46,32 +43,25 @@ import {
 import Image from "next/image";
 import { Button } from "~/components/shadcn/ui/button";
 import useNeedSign from "~/lib/hook";
-import { useUserStellarAcc } from "~/lib/state/wallete/stellar-balances";
+
+
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "~/components/shadcn/ui/card";
+import { Glass } from "~/components/glass/glass";
 import { Badge } from "~/components/shadcn/ui/badge";
 import { Progress } from "~/components/shadcn/ui/progress";
 import { Separator } from "~/components/shadcn/ui/separator";
-import { Alert, AlertDescription } from "~/components/shadcn/ui/alert";
-import { calculatePlatformAssetNFTRequirements, calculateXLMNFTRequirements } from "~/lib/stellar/nft/nft-payment-handler";
+
+
+
 import { useCreateSongModalStore } from "../store/create-song-modal";
 import { UploadS3Button } from "../common/upload-button";
-import {
-  PaymentChoose,
-  usePaymentMethodStore,
-} from "../common/payment-options";
+import { usePaymentMethodStore } from "../common/payment-options";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
+  DialogTitle,
 } from "../shadcn/ui/dialog";
 import { cn } from "~/lib/utils";
 
@@ -214,46 +204,59 @@ export default function CreateSongModal() {
         onInteractOutside={(e) => {
           e.preventDefault();
         }}
-        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-xl p-2"
+        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[0.9rem] border border-black/20 p-0"
       >
+        <div className="relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden">
+        <Glass
+          className={{
+            root: "pointer-events-none absolute inset-0 z-0 rounded-[0.9rem] *:rounded-[0.9rem]",
+            tint: "bg-[#f3f1ea]/60 transition-colors",
+            effect:
+              "backdrop-blur-[8px] bg-[radial-gradient(circle_at_20%_20%,rgba(255,251,242,0.24),rgba(248,243,232,0.08)_55%,rgba(245,240,230,0.03)_100%)] transition-all",
+            shine:
+              "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.85),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.5)]",
+          }}
+        />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.3 }}
-          className="flex h-full flex-col"
+          className="relative z-10 flex min-h-0 flex-1 flex-col"
         >
-          <DialogHeader className=" px-6 py-4">
-            <div className="flex items-center gap-2">
-              <Music className="h-5 w-5 " />
-              <CardTitle>Create New Song</CardTitle>
-            </div>
+          <DialogHeader className="px-6 pt-5 pb-3">
+            <DialogTitle>
+              <div className="flex items-center gap-2">
+                <Music className="h-5 w-5" />
+                Create New Song
+              </div>
+            </DialogTitle>
             <DialogDescription>
               Add a new song to your collection
             </DialogDescription>
 
-            <Progress value={formProgress} className="mt-2 h-2" />
+            <Progress value={formProgress} className="mt-3 h-1.5" />
 
-            <div className="w-full px-6 ">
+            <div className="w-full px-2 mt-2">
               <div className="flex items-center justify-between">
                 {FORM_STEPS.map((step, index) => (
                   <div key={step} className="flex flex-col items-center">
                     <div
                       className={cn(
-                        "mb-1 flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium ",
+                        "mb-1 flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-all",
                         activeStep === step
-                          ? "bg-primary  shadow-sm shadow-foreground"
-                          : "bg-muted text-muted-foreground",
+                          ? "bg-black/10 backdrop-blur-[4px]"
+                          : "bg-white/40 text-black/40",
                       )}
                     >
                       {index + 1}
                     </div>
                     <span
                       className={cn(
-                        "text-xs",
+                        "text-[11px]",
                         activeStep === step
-                          ? " font-medium"
-                          : "text-muted-foreground",
+                          ? "font-medium"
+                          : "text-black/40",
                       )}
                     >
                       {step === "basics"
@@ -271,17 +274,17 @@ export default function CreateSongModal() {
           </DialogHeader>
 
           <FormProvider {...methods}>
-            <form>
-              <CardContent className="p-6">
+            <form className="flex min-h-0 flex-1 flex-col">
+              <div className="flex-1 overflow-y-auto p-6">
                 <AnimatePresence mode="wait">
                   {activeStep === "basics" && <BasicsStep key="basics" />}
                   {activeStep === "media" && <MediaStep key="media" />}
                   {activeStep === "pricing" && <PricingStep key="pricing" />}
                   {activeStep === "review" && <ReviewStep key="review" />}
                 </AnimatePresence>
-              </CardContent>
+              </div>
 
-              <CardFooter className="flex justify-between border-t p-6">
+              <div className="flex justify-between border-t border-black/10 p-6">
                 <Button
                   type="button"
                   variant="outline"
@@ -295,7 +298,6 @@ export default function CreateSongModal() {
                 {activeStep !== "review" ? (
                   <Button
                     type="button"
-                    className="shadow-foreground"
                     onClick={handleNext}
                   >
                     Next
@@ -304,10 +306,11 @@ export default function CreateSongModal() {
                 ) : (
                   <SubmitButton albumId={albumId} setIsOpen={setIsOpen} />
                 )}
-              </CardFooter>
+              </div>
             </form>
           </FormProvider>
         </motion.div>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -610,24 +613,22 @@ function MediaStep() {
                 transition={{ duration: 0.3 }}
                 className="mt-2"
               >
-                <Card className="overflow-hidden">
-                  <CardContent className="p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-full bg-primary/10 p-3">
-                        <Music className="h-5 w-5 " />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">
-                          Music file uploaded
-                        </p>
-                        <audio controls className="mt-2 w-full">
-                          <source src={musicUrl} type="audio/mpeg" />
-                          Your browser does not support the audio element.
-                        </audio>
-                      </div>
+                <div className="rounded-xl border border-black/10 bg-white/30 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-full bg-black/5 p-2.5">
+                      <Music className="h-5 w-5" />
                     </div>
-                  </CardContent>
-                </Card>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        Music file uploaded
+                      </p>
+                      <audio controls className="mt-2 w-full">
+                        <source src={musicUrl} type="audio/mpeg" />
+                        Your browser does not support the audio element.
+                      </audio>
+                    </div>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -857,45 +858,9 @@ function SubmitButton({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tier, setTier] = useState<string>();
   const session = useSession();
-  const { platformAssetBalance } = useUserStellarAcc();
   const { needSign } = useNeedSign();
   const { paymentMethod, setIsOpen: setPaymentModalOpen } =
     usePaymentMethodStore();
-
-  // cost in xlm
-  const requiredXlm = 2;
-  const feeInXLM = SIMPLIFIED_FEE_IN_XLM;
-  const totalXlmCost = requiredXlm + feeInXLM;
-
-  const requiredToken = api.fan.trx.getRequiredPlatformAsset.useQuery(
-    {
-      xlm: requiredXlm,
-    },
-    {
-      enabled: !!albumId,
-    },
-  );
-
-  const requiredTokenAmount = requiredToken.data ?? 0;
-
-  const totalFees = Number(TrxBaseFeeInPlatformAsset) + Number(PLATFORM_FEE);
-  const totalCostInPlatform = requiredTokenAmount + totalFees;
-
-  // Payment validation states
-  const [showAlert, setShowAlert] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
-  const [validationInProgress, setValidationInProgress] = useState(false);
-
-  const [conversionInfo, setConversionInfo] = useState<{
-    isConverting: boolean;
-    fromAsset: string;
-    toAsset: string;
-    fromAmount: number;
-    toAmount: number;
-    trustlineCost?: number;
-    canProceed: boolean;
-    message: string;
-  } | undefined>(undefined);
 
   const addSong = api.fan.music.create.useMutation({
     onSuccess: () => {
@@ -909,107 +874,6 @@ function SubmitButton({
       setIsSubmitting(false);
     },
   });
-
-  /**
-   * Validate payment method and balances before creating song
-   */
-  const validatePaymentMethod = async (): Promise<boolean> => {
-    try {
-      setValidationInProgress(true);
-      setShowAlert(false);
-      setConversionInfo(undefined);
-
-      const userPubKey = session.data?.user.id;
-
-      if (!userPubKey) {
-        setAlertMessage("User not authenticated");
-        setShowAlert(true);
-        setValidationInProgress(false);
-        return false;
-      }
-
-      let requirementResult:
-        | Awaited<ReturnType<typeof calculatePlatformAssetNFTRequirements>>
-        | Awaited<ReturnType<typeof calculateXLMNFTRequirements>>
-        | null = null;
-
-      if (paymentMethod === "asset") {
-        // PLATFORM asset payment validation
-        requirementResult = await calculatePlatformAssetNFTRequirements(
-          userPubKey,
-          totalCostInPlatform
-        );
-      } else if (paymentMethod === "xlm") {
-        // XLM payment validation
-        requirementResult = await calculateXLMNFTRequirements(
-          userPubKey,
-          totalXlmCost
-        );
-      }
-
-      setValidationInProgress(false);
-
-      // Check if payment can proceed based on requirements
-      if (!requirementResult || !requirementResult.canProceed) {
-        setShowAlert(true);
-        setAlertMessage(requirementResult?.message ?? "Validation failed");
-        return false;
-      }
-
-      // If conversion is required, extract and set conversion details
-      if (requirementResult && requirementResult.requiresConversion) {
-        let conversionDetails;
-
-        if (
-          paymentMethod === "asset" &&
-          "xlmForConversion" in requirementResult
-        ) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const assetResult = requirementResult;
-          conversionDetails = {
-            isConverting: true,
-            fromAsset: "XLM",
-            toAsset: PLATFORM_ASSET.code,
-            fromAmount: assetResult.xlmForConversion || 0,
-            toAmount: requiredToken.data ?? 0,
-            trustlineCost: assetResult.platformTrustReserve || 0,
-            canProceed: requirementResult.canProceed,
-            message: requirementResult.message,
-          };
-        } else if (paymentMethod === "xlm" && "platformForConversion" in requirementResult) {
-          // XLM payment - conversion is PLATFORM to XLM
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const xlmResult = requirementResult;
-          conversionDetails = {
-            isConverting: true,
-            fromAsset: PLATFORM_ASSET.code,
-            toAsset: "XLM",
-            fromAmount: xlmResult.platformForConversion || 0,
-            toAmount: totalXlmCost,
-            canProceed: requirementResult.canProceed,
-            message: requirementResult.message,
-          };
-        }
-
-        if (conversionDetails) {
-          setConversionInfo(conversionDetails);
-        }
-      }
-
-      // All checks passed - allow to proceed
-      return true;
-    } catch (error) {
-      console.error("Payment validation error:", error);
-      setAlertMessage(
-        error instanceof Error
-          ? error.message
-          : "Error validating payment method"
-      );
-      setShowAlert(true);
-      setValidationInProgress(false);
-      return false;
-    }
-  };
 
   const xdrMutation = api.fan.trx.createUniAssetTrx.useMutation({
     onSuccess(data, variables, context) {
@@ -1075,72 +939,25 @@ function SubmitButton({
     });
   };
 
-  if (requiredToken.isLoading) {
-    return (
-      <Button disabled>
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        Loading...
-      </Button>
-    );
-  }
-
   return (
-    <PaymentChoose
-      costBreakdown={[
-        {
-          label: "Stellar Fee",
-          amount:
-            paymentMethod === "asset"
-              ? requiredTokenAmount
-              : requiredXlm,
-          type: "cost",
-          highlighted: true,
-        },
-        {
-          label: "Platform Fee",
-          amount: paymentMethod === "asset" ? totalFees : feeInXLM,
-          highlighted: false,
-          type: "fee",
-        },
-        {
-          label: "Total Cost",
-          amount:
-            paymentMethod === "asset"
-              ? totalCostInPlatform
-              : totalXlmCost,
-          highlighted: false,
-          type: "total",
-        },
-      ]}
-      XLM_EQUIVALENT={totalXlmCost}
-      handleConfirm={handleSubmit}
-      beforeTrigger={validatePaymentMethod}
-      loading={isSubmitting || validationInProgress}
-      requiredToken={totalCostInPlatform}
-      conversionInfo={conversionInfo}
-      showAlert={showAlert}
-      alertMessage={alertMessage}
-      trigger={
-        <Button
-          variant="sidebarAccent"
-          disabled={isSubmitting || validationInProgress}
-          className="flex items-center gap-2
-                        shadow-sm shadow-black transition-shadow duration-200 hover:shadow-xl"
-        >
-          {isSubmitting || validationInProgress ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Creating Song...
-            </>
-          ) : (
-            <>
-              <Music className="h-4 w-4" />
-              Create Song
-            </>
-          )}
-        </Button>
-      }
-    />
+    <Button
+      onClick={handleSubmit}
+      variant="sidebarAccent"
+      disabled={isSubmitting}
+      className="flex items-center gap-2"
+    >
+      {isSubmitting ? (
+        <>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Creating Song...
+        </>
+      ) : (
+        <>
+          <Music className="h-4 w-4" />
+          Create Song
+        </>
+      )}
+    </Button>
   );
 }
 
@@ -1163,9 +980,9 @@ function TiersOptions({
           <SelectItem value="private">Only Members</SelectItem>
           {tiers.map((model) => (
             <SelectItem key={model.id} value={model.id.toString()}>
-              <div className="flex w-full items-center justify-between">
+              <div className="flex w-full items-center justify-between gap-2">
                 <span>{model.name}</span>
-                <Badge variant="outline">{model.price}</Badge>
+                <Badge className="py-0.5 px-0.5 rounded h-auto shadow-none">{model.price}</Badge>
               </div>
             </SelectItem>
           ))}

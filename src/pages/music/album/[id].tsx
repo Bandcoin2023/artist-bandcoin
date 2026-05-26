@@ -5,7 +5,7 @@ import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import { useState } from "react"
 import { Button } from "~/components/shadcn/ui/button"
-import { Card, CardContent, CardTitle } from "~/components/shadcn/ui/card"
+import { CardTitle } from "~/components/shadcn/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "~/components/shadcn/ui/dialog"
 import { api } from "~/utils/api"
 import { addrShort } from "~/utils/utils"
@@ -112,14 +112,14 @@ export default function Album() {
 
     return (
 
-        <div className="mx-auto w-[85vw] pb-20 overflow-y-auto h-full">
+        <div className="pb-20 overflow-y-auto h-full">
             {/* Album Header Section */}
-            <div className="relative h-auto min-h-[400px] w-full overflow-hidden rounded-t-md">
+            <div className="relative h-auto min-h-[400px] w-full overflow-hidden">
                 <Image
                     src={album?.coverImgUrl ?? "/placeholder.svg"}
                     alt="Background"
                     fill
-                    className="rounded-md object-cover transition-all duration-1000 ease-in-out hover:scale-105"
+                    className="object-cover transition-all duration-1000 ease-in-out hover:scale-105"
                     style={{ filter: "blur(15px)" }}
                 />
                 <div className="absolute inset-0 bg-black/50" />
@@ -133,7 +133,7 @@ export default function Album() {
                         transition={{ duration: 0.5 }}
                         className="relative mb-6 md:mb-0"
                     >
-                        <div className="group h-[250px] w-[250px] overflow-hidden rounded-lg shadow-2xl md:h-[300px] md:w-[300px]">
+                        <div className="group h-[250px] w-[250px] overflow-hidden md:h-[300px] md:w-[300px]">
                             <Image
                                 src={album?.coverImgUrl ?? "/placeholder.svg"}
                                 alt="Album Cover"
@@ -222,8 +222,8 @@ export default function Album() {
                             exit={{ opacity: 0, x: -100 }}
                             layout
                         >
-                            <Card className="my-2 flex w-full flex-col items-start gap-4 p-2 md:flex-row md:items-center shadow-md hover:shadow-lg transition-all duration-300">
-                                <div className="group relative h-16 w-16 flex items-center justify-center bg-gray-700 rounded-lg overflow-hidden">
+                            <div className="my-2 flex w-full flex-col items-start gap-4 p-2 md:flex-row md:items-center">
+                                <div className="group relative h-16 w-16 flex items-center justify-center bg-gray-700 overflow-hidden">
                                     <Image
                                         src={song.asset.thumbnail ?? "/placeholder.svg"}
                                         alt="Artist"
@@ -232,7 +232,7 @@ export default function Album() {
                                         className="h-16 w-16 object-cover transition-transform duration-300 group-hover:scale-110"
                                     />
                                 </div>
-                                <div className="flex w-full flex-col items-start gap-4 rounded-lg bg-secondary shadow-sm p-4 md:flex-row md:items-center md:justify-between">
+                                <div className="flex w-full flex-col items-start gap-4 p-4 md:flex-row md:items-center md:justify-between">
                                     <div className="flex items-center gap-4">
                                         <div>
                                             <h3 className="text-lg font-semibold">{song.asset.name}</h3>
@@ -245,7 +245,7 @@ export default function Album() {
                                     <div className="flex w-full items-center justify-between gap-4 md:w-auto md:gap-8">
                                         <Button
                                             variant="destructive"
-                                            className="shadow-sm shadow-black px-6 py-2 gap-1 flex items-center justify-center group"
+                                            className="px-6 py-2 gap-1 flex items-center justify-center group"
                                             onClick={() => handleDeleteClick(song)}
                                         >
                                             <Trash2 className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
@@ -255,7 +255,7 @@ export default function Album() {
                                             (song.asset.demoMediaUrl ?? song.asset.mediaUrl) && (
                                                 <Button
                                                     variant="accent"
-                                                    className="shadow-sm shadow-black px-6 py-2 gap-1 flex items-center justify-center group"
+                                                    className="px-6 py-2 gap-1 flex items-center justify-center group"
                                                     onClick={() => handlePlaySong({
                                                         tracks: song.asset.Stem,
                                                         title: song.asset.name,
@@ -271,7 +271,7 @@ export default function Album() {
                                         }
                                     </div>
                                 </div>
-                            </Card>
+                            </div>
                         </motion.div>
                     ))}
                 </motion.div>
@@ -408,7 +408,7 @@ export default function Album() {
 
 export const AlbumSkeleton = () => {
     return (
-        <div className="min-h-screen w-full">
+            <div className="min-h-screen w-full">
             {/* Album Header Section */}
             <div className="relative h-[400px] w-full overflow-hidden">
                 {/* Background Skeleton */}
@@ -418,7 +418,7 @@ export const AlbumSkeleton = () => {
                 <div className="relative z-10 flex h-full items-center p-8">
                     {/* Album Art Skeleton */}
                     <div className="relative">
-                        <div className="h-[300px] w-[300px] rounded-lg bg-gray-700 animate-pulse shadow-2xl" />
+                        <div className="h-[300px] w-[300px] bg-gray-700 animate-pulse" />
                     </div>
 
                     {/* Album Info Skeleton */}
@@ -435,18 +435,18 @@ export const AlbumSkeleton = () => {
             {/* Song List Skeleton */}
             <div className="container mx-auto px-4 py-8">
                 {Array.from({ length: 5 }, (_, index: number) => (
-                    <Card key={index} className="my-2 flex w-full items-center gap-4 p-2">
-                        <div className="h-16 w-16 bg-gray-700 animate-pulse rounded" />
-                        <div className="flex w-full items-center justify-between rounded-lg bg-primary p-4">
+                    <div key={index} className="my-2 flex w-full items-center gap-4 p-2">
+                        <div className="h-16 w-16 bg-gray-700 animate-pulse" />
+                        <div className="flex w-full items-center justify-between p-4">
                             <div className="flex items-center gap-4">
                                 <div className="space-y-2">
-                                    <div className="h-6 w-48 bg-gray-700 animate-pulse rounded" />
-                                    <div className="h-4 w-32 bg-gray-700 animate-pulse rounded" />
+                                    <div className="h-6 w-48 bg-gray-700 animate-pulse" />
+                                    <div className="h-4 w-32 bg-gray-700 animate-pulse" />
                                 </div>
                             </div>
-                            <div className="h-10 w-24 bg-gray-700 animate-pulse rounded" />
+                            <div className="h-10 w-24 bg-gray-700 animate-pulse" />
                         </div>
-                    </Card>
+                    </div>
                 ))}
             </div>
         </div>
@@ -469,17 +469,17 @@ export const EmptyAlbum = ({
             transition={{ duration: 0.5 }}
             className="container mx-auto px-4 py-8"
         >
-            <Card className="w-full overflow-hidden border-none shadow-lg">
-                <CardContent className="p-8">
+            <div className="w-full">
+                <div className="p-8">
                     <div className="flex flex-col items-center justify-center space-y-6 text-center">
-                        <motion.div whileHover={{ scale: 1.05, rotate: 5 }} className="rounded-full bg-gray-100 p-4">
+                        <motion.div whileHover={{ scale: 1.05, rotate: 5 }} className="bg-gray-100 p-4">
                             <div className="text-gray-400">
                                 <Image
                                     src={coverImgUrl ?? "/placeholder.svg"}
                                     alt="Background"
                                     height={80}
                                     width={80}
-                                    className="rounded-full h-20 w-20"
+                                    className="h-20 w-20"
                                 />
                             </div>
                         </motion.div>
@@ -495,7 +495,7 @@ export const EmptyAlbum = ({
                                     setData(albumId)
                                     setIsOpen(true)
                                 }}
-                                className="group shadow-secondary px-6 py-2 rounded-full shadow-sm hover:shadow-md transition-all duration-300"
+                                className="group px-6 py-2 transition-all duration-300"
                                 size="lg"
                             >
                                 <Upload className="mr-2 h-5 w-5" />
@@ -503,8 +503,8 @@ export const EmptyAlbum = ({
                             </Button>
                         </motion.div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </motion.div>
     )
 }
@@ -518,10 +518,9 @@ export const ErrorMessage = ({ message }: { message: string }) => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5 }}
             >
-                <Card className="w-full max-w-md overflow-hidden rounded-xl border-none shadow-xl">
-                    <CardContent className="p-8 text-center">
+                <div className="w-full max-w-md text-center">
                         <div className="mb-6 flex justify-center">
-                            <div className="rounded-full bg-red-100 p-4">
+                            <div className="bg-red-100 p-4">
                                 <Music className="h-12 w-12 text-red-500" />
                             </div>
                         </div>
@@ -530,8 +529,7 @@ export const ErrorMessage = ({ message }: { message: string }) => {
                         <Button className="mt-6 w-full" variant="outline" onClick={() => window.history.back()}>
                             Go Back
                         </Button>
-                    </CardContent>
-                </Card>
+                </div>
             </motion.div>
         </div>
     )

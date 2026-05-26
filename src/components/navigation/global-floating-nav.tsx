@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import type { IconWeight } from "@phosphor-icons/react";
 import {
   BookmarkSimpleIcon,
@@ -29,7 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "~/components/shadcn/ui/
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/shadcn/ui/tooltip";
 import { cn } from "~/lib/utils";
 import type { StemTypeWithoutAssetId } from "~/types/song/song-item-types";
-import { House, QrCodeIcon, Rss } from "lucide-react";
+import { House, QrCodeIcon, Rss, X } from "lucide-react";
 
 // Hook to detect if any dialog is open 
 // This is used to hide the floating nav when a dialog is open, to prevent UI conflicts
@@ -38,10 +38,13 @@ function useIsDialogOpen() {
 
   useEffect(() => {
     const checkDialogOpen = () => {
-      const openDialogs = document.querySelectorAll('[data-state="open"]');
-      const dialogPortals = document.querySelectorAll('[role="dialog"]');
+      const openDialogs = document.querySelectorAll(
+        '[data-dialog-content][data-state="open"], [data-dialog-overlay][data-state="open"], [role="dialog"][aria-modal="true"][data-state="open"], [role="alertdialog"][aria-modal="true"][data-state="open"]',
+      );
 
-      const hasOpenDialog = openDialogs.length > 0 || dialogPortals.length > 0;
+      const hasOpenDialog =
+        openDialogs.length > 0 ||
+        document.body.hasAttribute("data-scroll-locked");
       setIsDialogOpen(hasOpenDialog);
     };
 
@@ -165,6 +168,7 @@ function FloatingPlayer({
   onSeekTo,
   onPrevTrack,
   onNextTrack,
+  onClose,
   stemEntries,
   activeStemUrl,
   currentTime,
@@ -185,6 +189,7 @@ function FloatingPlayer({
   onSeekTo: (seconds: number) => void;
   onPrevTrack: () => void;
   onNextTrack: () => void;
+  onClose: () => void;
   stemEntries: StemEntry[];
   activeStemUrl: string | null;
   currentTime: number;
@@ -215,6 +220,35 @@ function FloatingPlayer({
     const span = Math.max(0, end - start);
     return `${formatTime(start)}-${formatTime(end)} (${span.toFixed(1)}s)`;
   };
+
+  const [isDragging, setIsDragging] = useState(false);
+  const progressRef = useRef<HTMLDivElement>(null);
+
+  const seekFromClientX = useCallback((clientX: number) => {
+    if (!progressRef.current || safeDuration <= 0) return;
+    const rect = progressRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const pct = Math.max(0, Math.min(1, x / rect.width));
+    onSeekTo(pct * safeDuration);
+  }, [safeDuration, onSeekTo]);
+
+  const handleSeekMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    seekFromClientX(e.clientX);
+  }, [seekFromClientX]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMouseMove = (e: MouseEvent) => seekFromClientX(e.clientX);
+    const handleMouseUp = () => setIsDragging(false);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, seekFromClientX]);
 
   const stemList = (
     <div className="space-y-1">
@@ -281,11 +315,11 @@ function FloatingPlayer({
         <Glass
           className={{
             root: "pointer-events-none absolute inset-0 z-0 rounded-xl *:rounded-xl",
-            tint: "bg-white/78",
+            tint: "bg-[#f8f6f1]/88",
             effect:
-              "backdrop-blur-[4px] bg-[radial-gradient(circle_at_15%_20%,rgba(255,255,255,0.5),transparent_45%)]",
+              "backdrop-blur-[4px] bg-white/80",
             shine:
-              "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.92),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.75)]",
+              "shadow-[inset_1px_1px_1px_0_rgba(250,204,21,0.35),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.45)]",
           }}
         />
         <div className="relative z-20">
@@ -298,6 +332,14 @@ function FloatingPlayer({
               <p className="truncate text-[11px] text-black/70 md:text-xs">{trackArtist}</p>
             </div>
             <div className="ml-auto flex items-center gap-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className="grid size-8 shrink-0 place-items-center rounded-md border border-red-200/60 bg-red-50/70 hover:bg-red-100/80 md:size-9"
+                aria-label="Close player"
+              >
+                <X className="size-4" />
+              </button>
               <button
                 type="button"
                 onClick={onToggleDock}
@@ -383,24 +425,38 @@ function FloatingPlayer({
   }
 
   return (
-    <div className="relative flex h-11 min-w-[170px] items-center gap-1.5 overflow-hidden rounded-xl border border-black/20 px-2 text-black md:h-12 md:min-w-[220px] md:gap-2">
+    <div className="relative flex h-14 w-full items-center gap-1.5 overflow-hidden rounded-none border border-black/20 px-2 text-black md:h-16 md:w-auto md:gap-2 md:rounded-xl">
       <Glass
         className={{
           root: "pointer-events-none absolute inset-0 z-0 rounded-xl *:rounded-xl",
-          tint: "bg-yellow-300/30",
+          tint: "bg-[#f8f6f1]/88",
           effect: "backdrop-blur-[2px]",
           shine:
             "shadow-[inset_1px_1px_1px_0_rgba(250,204,21,0.35),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.45)]",
         }}
       />
 
+      <div
+        className="absolute inset-y-0 left-0 z-[1] bg-amber-400/10 transition-all duration-150"
+        style={{ width: `${safeDuration > 0 ? (safeCurrentTime / safeDuration) * 100 : 0}%` }}
+      />
+      <div
+        ref={progressRef}
+        className="absolute inset-x-0 bottom-0 z-10 h-2.5 cursor-pointer"
+        onMouseDown={handleSeekMouseDown}
+      >
+        <div
+          className={`absolute bottom-0 left-0 h-0.5 bg-amber-400/70 ${isDragging ? "" : "transition-all duration-150"}`}
+          style={{ width: `${safeDuration > 0 ? (safeCurrentTime / safeDuration) * 100 : 0}%` }}
+        />
+      </div>
+
       <div className="relative z-20 grid size-8 place-items-center rounded-lg border border-black/20 bg-white/50 md:size-9">
         <VinylRecordIcon className="size-4 md:size-5" />
       </div>
 
-      <div className="relative z-20 min-w-0 flex-1">
-        <p className="truncate text-[10px] leading-none text-black/75 md:text-[11px]">Now Playing</p>
-        <p className="truncate text-xs font-semibold leading-tight md:text-sm">{trackTitle}</p>
+      <div className="relative z-20 min-w-0 flex-1 self-center">
+        <p className="mb-0.5 max-w-[6.5rem] truncate text-xs font-normal leading-tight md:max-w-[8.5rem] md:text-sm">{trackTitle}</p>
         <p className="max-w-[6rem] truncate text-[10px] leading-none text-black/70 md:max-w-[8rem]">{trackArtist}</p>
       </div>
 
@@ -408,7 +464,7 @@ function FloatingPlayer({
         <button
           type="button"
           onClick={onPrevTrack}
-          className="grid size-6 place-items-center rounded-md border border-black/20 bg-white/55 hover:bg-white/75 md:size-7"
+          className="grid size-6 place-items-center rounded-md border border-blue-200/70 bg-blue-50/80 hover:bg-blue-100/80 md:size-7"
           aria-label="Previous track"
         >
           <RewindIcon className="size-3 md:size-4" />
@@ -416,7 +472,7 @@ function FloatingPlayer({
         <button
           type="button"
           onClick={onPlayToggle}
-          className="grid size-7 place-items-center rounded-md border border-black/20 bg-yellow-400/60 hover:bg-yellow-400/75 md:size-8"
+          className="grid size-7 place-items-center rounded-md border border-blue-200/80 bg-blue-100/85 hover:bg-blue-200/80 md:size-8"
           aria-label={isPlaying ? "Pause track" : "Play track"}
         >
           {isPlaying ? <PauseIcon className="size-3 md:size-4" /> : <PlayIcon className="size-3 md:size-4" />}
@@ -424,7 +480,7 @@ function FloatingPlayer({
         <button
           type="button"
           onClick={onNextTrack}
-          className="grid size-6 place-items-center rounded-md border border-black/20 bg-white/55 hover:bg-white/75 md:size-7"
+          className="grid size-6 place-items-center rounded-md border border-blue-200/70 bg-blue-50/80 hover:bg-blue-100/80 md:size-7"
           aria-label="Next track"
         >
           <FastForwardIcon className="size-3 md:size-4" />
@@ -433,7 +489,7 @@ function FloatingPlayer({
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="grid size-6 place-items-center rounded-md border border-black/20 bg-white/55 hover:bg-white/75 md:size-7"
+              className="grid size-6 place-items-center rounded-md border border-blue-200/70 bg-blue-50/80 hover:bg-blue-100/80 md:size-7"
               aria-label="Open stem controls"
             >
               <MusicNotesIcon className="size-3 md:size-4" />
@@ -442,7 +498,7 @@ function FloatingPlayer({
           <PopoverContent
             side="top"
             align="end"
-            className="w-[300px] border border-black/10 bg-white/95 p-2 backdrop-blur md:w-[320px]"
+            className="z-[120] w-[300px] border border-black/10 bg-white/95 p-2 backdrop-blur md:w-[320px]"
           >
             {stemList}
           </PopoverContent>
@@ -450,7 +506,7 @@ function FloatingPlayer({
         <button
           type="button"
           onClick={onToggleDock}
-          className="ml-0.5 grid size-7 place-items-center rounded-md border border-black/20 bg-yellow-300/50 hover:bg-yellow-300/65 md:ml-1 md:size-8"
+          className="ml-0.5 grid size-7 place-items-center rounded-md border border-blue-200/80 bg-blue-100/75 hover:bg-blue-200/75 md:ml-1 md:size-8"
           aria-label={isDetached ? "Dock player back into bottom navigation" : "Move player to top bar"}
         >
           {isDetached ? (
@@ -458,6 +514,14 @@ function FloatingPlayer({
           ) : (
             <CaretUpIcon className="size-4" weight="bold" />
           )}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="grid size-7 place-items-center rounded-md border border-red-200/60 bg-red-50/70 hover:bg-red-100/80 md:size-8"
+          aria-label="Close player"
+        >
+          <X className="size-3.5 md:size-4" />
         </button>
       </div>
     </div>
@@ -856,112 +920,183 @@ export default function GlobalFloatingNav() {
     }
   };
 
+  const mobileNavScrollRef = useRef<HTMLElement>(null);
+  const mobilePlayerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!shouldShowPlayer || isPlayerDetached || !isPlaying) return;
+    if (typeof window === "undefined") return;
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
+
+    const playerNode = mobilePlayerRef.current;
+    if (!playerNode) return;
+
+    const scrollToPlayer = () => {
+      playerNode.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "end",
+      });
+    };
+
+    const rafId = window.requestAnimationFrame(scrollToPlayer);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [shouldShowPlayer, isPlayerDetached, isPlaying, currentSong?.title, currentSong?.url]);
+
   return (
-    <>
-      <audio ref={singleAudioRef} preload="metadata" />
+    <TooltipProvider>
+      <>
+        <audio ref={singleAudioRef} preload="metadata" crossOrigin="anonymous" />
 
-      {shouldShowPlayer && isPlayerDetached ? (
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex justify-center px-2 pb-24 md:px-4 md:pb-28">
-          <motion.div
-            layout
-            initial={{ y: 24, opacity: 0, scale: 0.98 }}
-            animate={isDialogOpen ? { y: 200, opacity: 0 } : { y: 0, opacity: 1, scale: 1 }}
-            transition={{ type: "spring", damping: 24, stiffness: 280 }}
-            className={cn("pointer-events-auto w-full max-w-[920px]", isDialogOpen && "pointer-events-none")}
-          >
-            <FloatingPlayer
-              isPlaying={isPlaying}
-              onPlayToggle={handlePlayToggle}
-              onSeekTo={handleSeekTo}
-              onPrevTrack={handlePrevTrack}
-              onNextTrack={handleNextTrack}
-              stemEntries={stemEntries}
-              activeStemUrl={activeStemUrl}
-              currentTime={currentTime}
-              duration={duration}
-              trackTitle={displayTrackTitle}
-              trackArtist={displayTrackArtist}
-              isDetached={isPlayerDetached}
-              onToggleDock={togglePlayerDock}
-              onSetActiveStem={handleSetActiveStem}
-              onToggleStemPlay={handleToggleStemPlay}
-              onSetStemVolume={handleSetStemVolume}
-              getStemPlaying={getStemPlaying}
-              getStemVolume={getStemVolume}
-              variant="expanded"
-            />
-          </motion.div>
-        </div>
-      ) : null}
-
-      <div className="pointer-events-none fixed inset-0 z-[60] flex items-end justify-center px-2 pb-4 md:px-4 md:pb-6 ">
-        <motion.div
-          layout
-          initial={{ y: 42, opacity: 0, scale: 0.97 }}
-          animate={isDialogOpen ? { y: 200, opacity: 0 } : { y: 0, opacity: 1, scale: 1 }}
-          transition={{ type: "spring", damping: 22, stiffness: 280 }}
-          className={cn(
-            "relative z-20 overflow-hidden rounded-2xl border border-black/20 p-1.5 md:max-w-[calc(100vw-2rem)] md:p-2",
-            shouldShowPlayer && !isPlayerDetached
-              ? "w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] md:w-fit"
-              : "w-fit max-w-[calc(100vw-1rem)]",
-            isDialogOpen ? "pointer-events-none" : "pointer-events-auto"
-          )}
-        >
-          <Glass
-            className={{
-              root: "pointer-events-none absolute inset-0 z-0 rounded-2xl *:rounded-2xl",
-              tint: "bg-[#f3f1ea]/60 transition-colors",
-              effect:
-                "backdrop-blur-[8px] bg-[radial-gradient(circle_at_20%_20%,rgba(255,251,242,0.24),rgba(248,243,232,0.08)_55%,rgba(245,240,230,0.03)_100%)] transition-all",
-              shine:
-                "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.85),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.5)]",
-            }}
-          />
-          <TooltipProvider>
-            <motion.nav
-              layout
-              className="relative z-10 flex items-center gap-1.5 overflow-x-auto pb-0.5 md:gap-2 md:overflow-x-hidden scrollbar-hide"
+        {shouldShowPlayer && isPlayerDetached ? (
+          <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex justify-center px-2 pb-4 md:px-4 md:pb-28">
+            <motion.div
+              layout="position"
+              initial={{ y: 24, opacity: 0, scale: 0.98 }}
+              animate={isDialogOpen ? { y: 200, opacity: 0 } : { y: 0, opacity: 1, scale: 1 }}
+              transition={{ type: "spring", stiffness: 150, damping: 22, mass: 0.95 }}
+              className={cn("pointer-events-auto w-full max-w-[920px]", isDialogOpen && "pointer-events-none")}
             >
-              {navItems.map((item) => {
-                const isActive = activeKey === item.key;
-                return (
-                  <FloatingNavItem
-                    key={item.key}
-                    item={item}
-                    isActive={isActive}
-                  />
-                );
-              })}
+              <FloatingPlayer
+                isPlaying={isPlaying}
+                onPlayToggle={handlePlayToggle}
+                onSeekTo={handleSeekTo}
+                onPrevTrack={handlePrevTrack}
+                onNextTrack={handleNextTrack}
+                onClose={hidePlayer}
+                stemEntries={stemEntries}
+                activeStemUrl={activeStemUrl}
+                currentTime={currentTime}
+                duration={duration}
+                trackTitle={displayTrackTitle}
+                trackArtist={displayTrackArtist}
+                isDetached={isPlayerDetached}
+                onToggleDock={togglePlayerDock}
+                onSetActiveStem={handleSetActiveStem}
+                onToggleStemPlay={handleToggleStemPlay}
+                onSetStemVolume={handleSetStemVolume}
+                getStemPlaying={getStemPlaying}
+                getStemVolume={getStemVolume}
+                variant="expanded"
+              />
+            </motion.div>
+          </div>
+        ) : null}
 
-              {shouldShowPlayer && !isPlayerDetached ? <div className="mx-1 h-8 w-px bg-black/20" /> : null}
+        <div className="pointer-events-none fixed inset-0 z-[60] flex items-end justify-center px-2 pb-4 md:px-4 md:pb-6 max-md:hidden">
+          <motion.div
+            layout="position"
+            initial={{ y: 42, opacity: 0, scale: 0.97 }}
+            animate={isDialogOpen ? { y: 200, opacity: 0 } : { y: 0, opacity: 1, scale: 1 }}
+            transition={{ type: "spring", stiffness: 145, damping: 24, mass: 0.95 }}
+            className={cn(
+              "relative z-20 overflow-hidden rounded-2xl border border-black/20 p-1.5 md:max-w-[calc(100vw-2rem)] md:p-2",
+              shouldShowPlayer && !isPlayerDetached
+                ? "w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] md:w-fit"
+                : "w-fit max-w-[calc(100vw-1rem)]",
+              isDialogOpen ? "pointer-events-none" : "pointer-events-auto"
+            )}
+          >
+            <Glass
+              className={{
+                root: "pointer-events-none absolute inset-0 z-0 rounded-2xl *:rounded-2xl",
+                tint: "bg-[#f3f1ea]/60 transition-colors",
+                effect:
+                  "backdrop-blur-[8px] bg-[radial-gradient(circle_at_20%_20%,rgba(255,251,242,0.24),rgba(248,243,232,0.08)_55%,rgba(245,240,230,0.03)_100%)] transition-all",
+                shine:
+                  "shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.85),_inset_-1px_-1px_1px_1px_rgba(255,255,255,0.5)]",
+              }}
+            />
+            <motion.nav
+              ref={mobileNavScrollRef}
+              className="relative z-10 flex items-center gap-1.5 overflow-x-auto pb-0.5 md:gap-2 md:overflow-x-hidden scrollbar-hide [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            >
+              <div className="hidden md:contents">
+                {navItems.map((item) => {
+                  const isActive = activeKey === item.key;
+                  return (
+                    <FloatingNavItem
+                      key={item.key}
+                      item={item}
+                      isActive={isActive}
+                    />
+                  );
+                })}
+              </div>
+
+              {shouldShowPlayer && !isPlayerDetached ? <div className="mx-1 h-8 w-px shrink-0 bg-black/20 max-md:hidden" /> : null}
 
               {shouldShowPlayer && !isPlayerDetached ? (
-                <FloatingPlayer
-                  isPlaying={isPlaying}
-                  onPlayToggle={handlePlayToggle}
-                  onSeekTo={handleSeekTo}
-                  onPrevTrack={handlePrevTrack}
-                  onNextTrack={handleNextTrack}
-                  stemEntries={stemEntries}
-                  activeStemUrl={activeStemUrl}
-                  currentTime={currentTime}
-                  duration={duration}
-                  trackTitle={displayTrackTitle}
-                  trackArtist={displayTrackArtist}
-                  isDetached={isPlayerDetached}
-                  onToggleDock={togglePlayerDock}
-                  onSetActiveStem={handleSetActiveStem}
-                  onToggleStemPlay={handleToggleStemPlay}
-                  onSetStemVolume={handleSetStemVolume}
-                  getStemPlaying={getStemPlaying}
-                  getStemVolume={getStemVolume}
-                />
+                <motion.div
+                  ref={mobilePlayerRef}
+                  className="shrink-0"
+                  initial={{ opacity: 0, x: 4 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                >
+                  <FloatingPlayer
+                    isPlaying={isPlaying}
+                    onPlayToggle={handlePlayToggle}
+                    onSeekTo={handleSeekTo}
+                    onPrevTrack={handlePrevTrack}
+                    onNextTrack={handleNextTrack}
+                    onClose={hidePlayer}
+                    stemEntries={stemEntries}
+                    activeStemUrl={activeStemUrl}
+                    currentTime={currentTime}
+                    duration={duration}
+                    trackTitle={displayTrackTitle}
+                    trackArtist={displayTrackArtist}
+                    isDetached={isPlayerDetached}
+                    onToggleDock={togglePlayerDock}
+                    onSetActiveStem={handleSetActiveStem}
+                    onToggleStemPlay={handleToggleStemPlay}
+                    onSetStemVolume={handleSetStemVolume}
+                    getStemPlaying={getStemPlaying}
+                    getStemVolume={getStemVolume}
+                  />
+                </motion.div>
               ) : null}
             </motion.nav>
-          </TooltipProvider>
-        </motion.div>
-      </div>
-    </>
+          </motion.div>
+        </div>
+
+        {shouldShowPlayer && !isPlayerDetached ? (
+          <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] md:hidden">
+            <motion.div
+              initial={{ y: 42, opacity: 0, scale: 0.97 }}
+              animate={isDialogOpen ? { y: 200, opacity: 0 } : { y: 0, opacity: 1, scale: 1 }}
+              transition={{ type: "spring", stiffness: 145, damping: 24, mass: 0.95 }}
+              className={cn(
+                "w-full",
+                isDialogOpen ? "pointer-events-none" : "pointer-events-auto"
+              )}
+            >
+              <FloatingPlayer
+                isPlaying={isPlaying}
+                onPlayToggle={handlePlayToggle}
+                onSeekTo={handleSeekTo}
+                onPrevTrack={handlePrevTrack}
+                onNextTrack={handleNextTrack}
+                onClose={hidePlayer}
+                stemEntries={stemEntries}
+                activeStemUrl={activeStemUrl}
+                currentTime={currentTime}
+                duration={duration}
+                trackTitle={displayTrackTitle}
+                trackArtist={displayTrackArtist}
+                isDetached={isPlayerDetached}
+                onToggleDock={togglePlayerDock}
+                onSetActiveStem={handleSetActiveStem}
+                onToggleStemPlay={handleToggleStemPlay}
+                onSetStemVolume={handleSetStemVolume}
+                getStemPlaying={getStemPlaying}
+                getStemVolume={getStemVolume}
+              />
+            </motion.div>
+          </div>
+        ) : null}
+      </>
+    </TooltipProvider>
   );
 }
