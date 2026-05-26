@@ -63,8 +63,8 @@ function buildCircleFeature(center: Point, edgePoint: Point): GeoJSON.Feature {
     for (let i = 0; i < 36; i++) {
         const angle = (i / 36) * 2 * Math.PI
         coords.push([
-            center.lat + radiusDegLat * Math.sin(angle),
             center.lng + radiusDegLng * Math.cos(angle),
+            center.lat + radiusDegLat * Math.sin(angle),
         ])
     }
     coords.push([...coords[0]!])
@@ -72,7 +72,7 @@ function buildCircleFeature(center: Point, edgePoint: Point): GeoJSON.Feature {
     return {
         type: 'Feature',
         properties: {
-            center: [center.lat, center.lng] as [number, number],
+            center: [center.lng, center.lat] as [number, number],
             radiusMetres,
         },
         geometry: {
@@ -239,7 +239,7 @@ export function MapboxDrawing({ onSelectionChange, mapElement, onClose, map }: M
 
         if (activeMode === 'rectangle' && points.length === 2) {
             const corners = getRectangleCorners(points[0]!, points[1]!);
-            const coords = corners.map(p => [p.lat, p.lng] as [number, number]);
+            const coords = corners.map(p => [p.lng, p.lat] as [number, number]);
             coords.push([...coords[0]!]);
             feature = {
                 type: 'Feature',
@@ -248,7 +248,7 @@ export function MapboxDrawing({ onSelectionChange, mapElement, onClose, map }: M
             };
 
         } else if (activeMode === 'polygon' && points.length > 2) {
-            const coords = points.map(p => [p.lat, p.lng] as [number, number]);
+            const coords = points.map(p => [p.lng, p.lat] as [number, number]);
             coords.push([...coords[0]!]);
             feature = {
                 type: 'Feature',

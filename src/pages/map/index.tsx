@@ -400,10 +400,15 @@ function CreatorMapDashboardContent() {
       if (!mapRef.current) return;
 
       const center = mapRef.current.getCenter();
-      const bounds = mapRef.current.getBounds();
+      const mapBounds = mapRef.current.getBounds();
 
       setMapCenter({ lat: center.lat, lng: center.lng });
-      setCenterChanged(bounds);
+      setCenterChanged({
+        south: mapBounds.getSouth(),
+        north: mapBounds.getNorth(),
+        west: mapBounds.getWest(),
+        east: mapBounds.getEast(),
+      });
 
       handleMapClick(e as unknown as MouseEvent);
     },
@@ -414,10 +419,15 @@ function CreatorMapDashboardContent() {
     if (!mapRef.current) return;
 
     const center = mapRef.current.getCenter();
-    const bounds = mapRef.current.getBounds();
+    const mapBounds = mapRef.current.getBounds();
 
     setMapCenter({ lat: center.lat, lng: center.lng });
-    setCenterChanged(bounds);
+    setCenterChanged({
+      south: mapBounds.getSouth(),
+      north: mapBounds.getNorth(),
+      west: mapBounds.getWest(),
+      east: mapBounds.getEast(),
+    });
     handleDragEnd();
   }, [handleDragEnd, setMapCenter, setCenterChanged]);
 

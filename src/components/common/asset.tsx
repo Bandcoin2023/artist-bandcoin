@@ -197,7 +197,23 @@ export default function AssetView({
                 </div>
               </div>
 
-              <div className="space-y-0">
+              {isCollectionCard ? (
+                <div className="flex items-center justify-between gap-2">
+                  {price ? (
+                    <div className="flex items-center gap-2 text-sm font-medium text-black/88 dark:text-zinc-100">
+                      <span>{price}</span>
+                      <span className="text-black/55 dark:text-zinc-400">
+                        {PLATFORM_ASSET.code.toUpperCase()}
+                      </span>
+                    </div>
+                  ) : null}
+                  {priceInUSD ? (
+                    <Badge className="text-xs !py-0.5 !px-1 !rounded">
+                      {`${priceInUSD} USD`}
+                    </Badge>
+                  ) : null}
+                </div>
+              ) : (
                 <div className="text-black/88 flex items-center gap-1 text-sm font-medium dark:text-zinc-100">
                   <Gem className="h-4 w-4" />
                   {priceInUSD && price ? (
@@ -230,7 +246,7 @@ export default function AssetView({
                     </span>
                   )}
                 </div>
-              </div>
+              )}
 
               {!isCollectionCard && mediaType && (
                 <div className="inline-flex w-fit rounded-[2px] bg-[#f3f1ee] px-2 py-0.5 text-sm font-medium text-black/60 dark:bg-zinc-800 dark:text-zinc-300">
@@ -239,18 +255,20 @@ export default function AssetView({
               )}
             </div>
 
-            {isCollectionCard && price && (
-              <div className="relative z-20 mt-3 md:pointer-events-none md:absolute md:inset-x-0 md:bottom-0 md:mt-0 md:translate-y-full md:opacity-0 md:transition-all md:duration-300 md:group-hover:pointer-events-auto md:group-hover:translate-y-0 md:group-hover:opacity-100">
+            {isCollectionCard && price ? (
+              <div className="relative z-20 mt-3 md:pointer-events-none md:inset-x-0 md:bottom-0 md:mt-0 md:transition-all md:duration-300 md:group-hover:pointer-events-auto md:group-hover:translate-y-0 md:group-hover:opacity-100">
                 <Button
-                  variant="default"
-                  className="h-12 w-full rounded-none border-0 bg-[#1f86ee] px-4 text-base font-semibold text-white shadow-none hover:bg-[#1877da]"
                   onClick={onBuy}
+                  size="sm"
+                  variant="secondary"
+                  className="h-12 w-full rounded-none border-0 px-4 text-base font-semibold shadow-none bg-secondary text-secondary-foreground"
                 >
                   <ShoppingCart className="mr-2 h-4 w-4" />
-                  Buy Now
+                  <span>Buy Now</span>
+                  <span className="ml-auto text-sm">{`${price} ${PLATFORM_ASSET.code.toUpperCase()}`}</span>
                 </Button>
               </div>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       </motion.div>

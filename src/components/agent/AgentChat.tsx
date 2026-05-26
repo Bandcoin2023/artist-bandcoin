@@ -1203,7 +1203,7 @@ export default function AgentChat({ creatorId }: AgentChatProps) {
 
             {/* Neon input bar */}
             {!isMinimized && (
-                <div className="fixed bottom-24 left-1/2 z-40 w-full max-w-2xl -translate-x-1/2 px-4">
+                <div className="fixed bottom-32 left-1/2 z-40 w-full max-w-2xl -translate-x-1/2 px-4">
                     <style>{`
             @keyframes neon-glow {
               0%, 100% { box-shadow: 0 0 5px rgba(34,197,94,.3), 0 0 10px rgba(34,197,94,.2); }

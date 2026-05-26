@@ -75,6 +75,7 @@ type NavItem = {
   icon: ComponentType<{ className?: string; weight?: IconWeight }>;
   isButton?: boolean;
   dashed?: boolean;
+  external?: boolean;
 };
 
 type StemEntry = Pick<StemTypeWithoutAssetId, "name" | "startTime" | "endTime" | "steamUrl">;
@@ -108,41 +109,48 @@ function FloatingNavItem({
 
   const itemBody = (
     <motion.div
-      layout
       className={cn(
-        "relative flex flex-col items-center gap-1 rounded-xl px-2.5 py-2 transition-colors md:px-3 md:py-2.5",
-        isActive ? "text-blue-600" : "text-black/85",
+        "relative flex h-14 md:h-16 items-center overflow-hidden rounded-xl px-2.5 transition-colors md:px-3 border border-transparent dark:text-black",
+        isActive && "text-[#b4b800]",
+        item.dashed ? "border-dashed border-black/35" : "border-solid",
       )}
-      transition={{ type: "spring", damping: 28, stiffness: 220 }}
+      transition={{ type: "spring", stiffness: 180, damping: 24, mass: 0.9 }}
     >
-      <div className="relative z-30 grid size-5 place-items-center md:size-6">
-        <Icon className="size-5 md:size-6" />
-      </div>
-
-      <div className="relative z-30 text-center">
-        <span className="relative z-10 whitespace-nowrap text-[10px] font-medium capitalize leading-tight md:text-xs">
-          {item.text}
-        </span>
+      <div className={cn("relative z-30 grid place-items-center w-auto h-full py-2", isActive && "text-[#b4b800]")}>
+        <Icon className="size-5 md:size-6 min-w-6" />
+        <span className="text-sm font-medium mt-1 whitespace-nowrap">{item.text}</span>
       </div>
     </motion.div>
   );
 
-  const content = item.isButton ? (
-    <button type="button" className="block">
-      {itemBody}
-    </button>
-  ) : (
-    <Link href={item.path} aria-current={isActive ? "page" : undefined} className="block">
-      {itemBody}
-    </Link>
+  const linkContent = (
+    <motion.div>
+      {item.external ? (
+        <a
+          href={item.path}
+          aria-current={isActive ? "page" : undefined}
+          className="block"
+          target="_blank"
+          rel="noreferrer"
+        >
+          {itemBody}
+        </a>
+      ) : item.isButton ? (
+        <button type="button" className="block">
+          {itemBody}
+        </button>
+      ) : (
+        <Link href={item.path} aria-current={isActive ? "page" : undefined} className="block">
+          {itemBody}
+        </Link>
+      )}
+    </motion.div>
   );
 
   return (
-    <Tooltip>
+    <Tooltip delayDuration={300}>
       <TooltipTrigger asChild>
-        <motion.div layout>
-          {content}
-        </motion.div>
+        {linkContent}
       </TooltipTrigger>
       <TooltipContent side="top" className="capitalize">
         {item.text}

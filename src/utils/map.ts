@@ -53,7 +53,7 @@ function generateInCircle(
     radiusMetres: number;
   };
 
-  const [centerLat, centerLng] = center;
+  const [centerLng, centerLat] = center;
   const results: { latitude: number; longitude: number }[] = [];
 
   while (results.length < count) {
@@ -81,8 +81,8 @@ function generateInPolygon(
   const geometry = feature.geometry as GeoJSON.Polygon;
   const ring = geometry.coordinates[0] as [number, number][];
 
-  const lats = ring.map((c) => c[0]);
-  const lngs = ring.map((c) => c[1]);
+  const lngs = ring.map((c) => c[0]);
+  const lats = ring.map((c) => c[1]);
   const minLat = Math.min(...lats);
   const maxLat = Math.max(...lats);
   const minLng = Math.min(...lngs);
@@ -97,7 +97,7 @@ function generateInPolygon(
     const lat = minLat + Math.random() * (maxLat - minLat);
     const lng = minLng + Math.random() * (maxLng - minLng);
 
-    if (pointInPolygon([lat, lng], ring)) {
+    if (pointInPolygon([lng, lat], ring)) {
       results.push({ latitude: lat, longitude: lng });
     }
   }

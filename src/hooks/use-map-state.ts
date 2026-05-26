@@ -8,7 +8,7 @@ export function useMapState() {
         lat: 22.54992,
         lng: 0,
     })
-    const [centerChanged, setCenterChanged] = useState<{ lat: number; lng: number } | null>(null)
+    const [centerChanged, setCenterChanged] = useState<{ south: number; north: number; west: number; east: number } | null>(null)
     const [isCordsSearch, setIsCordsSearch] = useState<boolean>(false)
     const [searchCoordinates, setSearchCoordinates] = useState<{ lat: number; lng: number } | undefined>()
     const [cordSearchCords, setCordSearchCords] = useState<{ lat: number; lng: number } | undefined>()

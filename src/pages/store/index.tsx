@@ -401,21 +401,22 @@ export default function StoredItemsView() {
     setIsQRViewModalOpen(true);
   };
   return (
-    <Card className="mx-auto w-[85vw] border-none">
-      <CardHeader className="flex flex-row items-center  justify-between ">
+    <div className="mx-auto w-[85vw]">
+      <div className="flex flex-row items-center  justify-between py-6">
         <div className="flex w-full items-center justify-between">
           <h2 className="text-center text-4xl font-semibold">Stores</h2>
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="hidden items-center gap-1.5 md:flex">
             {actions.map((action) => {
               const Icon = action.icon;
               return (
                 <Button
                   key={action.label}
                   onClick={action.onClick}
-                  className="cursor-pointer shadow-sm shadow-foreground"
+                  size="sm"
+                  className="cursor-pointer h-8"
                 >
-                  <Icon className="mr-2 h-4 w-4" />
-                  <span>{action.label}</span>
+                  <Icon className="mr-1.5 h-3.5 w-3.5" />
+                  <span className="text-xs">{action.label}</span>
                 </Button>
               );
             })}
@@ -446,18 +447,18 @@ export default function StoredItemsView() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </CardHeader>
-      <CardContent className="h-[calc(100vh-20vh)] overflow-y-auto scrollbar-hide">
+      </div>
+      <div className="h-[calc(100vh-20vh)] pb-24 overflow-y-auto scrollbar-hide">
         <Tabs
           defaultValue="STORED"
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as MainCategory)}
           className="w-full"
         >
-          <TabsList className="relative mx-auto inline-flex w-fit items-center gap-0.5 rounded-[0.9rem] border border-black/15 p-[0.3rem] shadow-[0_8px_24px_rgba(0,0,0,0.05)]">
+          <TabsList className="relative mx-auto inline-flex w-fit items-center gap-0.5 rounded-[0.9rem] p-[0.3rem]">
             <Glass
               className={{
-                root: "pointer-events-none absolute inset-0 z-0 rounded-[0.9rem] *:rounded-[0.9rem]",
+                root: "pointer-events-none absolute inset-0 z-0 rounded-[0.9rem] *:rounded-[0.9rem] shadow-none",
                 tint: "bg-[#f3f1ea]/65",
                 effect:
                   "bg-[radial-gradient(circle_at_20%_20%,rgba(255,251,242,0.24),rgba(248,243,232,0.08)_55%,rgba(245,240,230,0.03)_100%)] backdrop-blur-[8px]",
@@ -1214,7 +1215,7 @@ export default function StoredItemsView() {
                         />
                     )
                 } */}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
